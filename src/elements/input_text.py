@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from ..options import UIOptions, UIOptionsDict, UIInputTextOptions, UIInputTextOptionsDict
-from ..box_model import BoxModelLayout
-from ..cursor import Cursor
+from ..core.box_model import BoxModelLayout
+from ..core.cursor import Cursor
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect

@@ -1,14 +1,14 @@
 from itertools import cycle
-from ..core.box_model import BoxModelLayout
 from ..options import UIOptions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from itertools import cycle
-from ..node import Node
+from .node import UINode
+from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
 
-class UIContainer(Node):
+class UIContainer(UINode):
     def __init__(self, element_type, options: UIOptions = None):
         super().__init__(element_type=element_type, options=options)
         self.scroll_y = 0

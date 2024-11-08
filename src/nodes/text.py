@@ -6,7 +6,7 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
 from itertools import cycle
-from ..node import Node
+from .node import UINode
 from ..utils import draw_text_simple
 
 @dataclass
@@ -24,7 +24,7 @@ class UITextOptionsDict(UIOptionsDict):
     font_size: int
     font_weight: str
 
-class UIText(Node):
+class UIText(UINode):
     def __init__(self, text: str, options: UITextOptions = None):
         super().__init__(element_type="text", options=options)
         self.text = str(text)

@@ -4,11 +4,11 @@ from talon.canvas import Canvas
 from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from .node import Node
-from .elements.div import UIContainer
-from .state import state
-from .utils import get_screen, canvas_from_screen, draw_text_simple
-from .core.cursor import Cursor
-from .options import UIOptionsDict, UIOptions
+from .container import UIContainer
+from ..state import state
+from ..utils import get_screen, canvas_from_screen, draw_text_simple
+from ..core.cursor import Cursor
+from ..options import UIOptionsDict, UIOptions
 from typing import Literal
 import uuid
 import hashlib
@@ -227,40 +227,36 @@ class UIBuilder(UIContainer):
         self.is_blockable_canvas_init = True
 
     def generate_hash_from_tree(self):
-        pass
-        # def collect_options_and_children(obj):
-        #     tree = {}
+        def collect_options_and_children(obj):
+            tree = {}
 
-        #     if hasattr(obj, 'options'):
-        #         tree['options'] = {k: v for k, v in vars(obj.options).items() if not callable(v)}
+            if hasattr(obj, 'options'):
+                tree['options'] = {k: v for k, v in vars(obj.options).items() if not callable(v)}
 
-        #     if hasattr(obj, 'children'):
-        #         tree['children'] = [
-        #             collect_options_and_children(child) for child in obj.children
-        #         ]
+            if hasattr(obj, 'children'):
+                tree['children'] = [
+                    collect_options_and_children(child) for child in obj.children
+                ]
 
-        #     return tree
+            return tree
 
-        # state_to_serialize = collect_options_and_children(self)
-        # serialized_self = pickle.dumps(state_to_serialize)
-        # self.hash = hashlib.md5(serialized_self).hexdigest()
+        state_to_serialize = collect_options_and_children(self)
+        serialized_self = pickle.dumps(state_to_serialize)
+        self.hash = hashlib.md5(serialized_self).hexdigest()
 
     def hash_and_prevent_duplicate_render(self):
-        pass
-        # global hash_id_map
-        # self.generate_hash_from_tree()
+        global hash_id_map
+        self.generate_hash_from_tree()
 
-        # if hash_id_map.get(self.hash):
-        #     builder = builders.get(hash_id_map[self.hash])
-        #     getattr(builder, "hide", lambda: None)(destroy=False)
-
-        # hash_id_map[self.hash] = self.id
+        for node in state.builders.values():
+            if node.hash == self.hash:
+                node.hide(destroy=False)
 
     def show(self, on_mount: callable = None):
         global state, debug_current_step, render_step, debug_start_step, debug_draw_step_by_step, unique_key, current_builder_id_render
         unique_key = 0
 
-        # self.hash_and_prevent_duplicate_render()
+        self.hash_and_prevent_duplicate_render()
 
         screen = get_screen(self.screen_index)
 

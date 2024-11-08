@@ -6,6 +6,7 @@ from .src.elements.index import (
     screen,
 )
 from .src.state import state
+from .src.actions import ui_elements_new
 
 mod = Module()
 
@@ -47,12 +48,7 @@ class Actions:
         actions.user.ui_elements_get_value("the_input")
         ```
         """
-        element_mapping: Dict[str, callable] = {
-            'div': div,
-            'text': text,
-            'screen': screen,
-        }
-        return tuple(element_mapping[element] for element in elements)
+        return ui_elements_new(elements)
 
     def ui_elements_test_new():
         """asdf"""
@@ -62,7 +58,9 @@ class Actions:
             (div, text, screen) = actions.user.ui_elements_new(["div", "text", "screen"])
 
             ui = screen(justify_content="center", align_items="center")[
-                div()[text("Hello world")]
+                div(background_color="white", padding=16, border_radius=16, border_width=1)[
+                    text("Hello world", color="red", font_size=24)
+                ]
             ]
             ui.show()
         else:

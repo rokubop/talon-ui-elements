@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Literal, Optional
-from .options import UIOptions
-from .core.box_model import BoxModelLayout
-from .state import state
+from ..options import UIOptions
+from ..state import state
+from ..core.box_model import BoxModelLayout
 import uuid
 
 NodeType = Literal['root', 'node', 'leaf']
@@ -17,7 +17,7 @@ NODE_TYPE_MAP = {
     'window': 'root',
 }
 
-class Node(ABC):
+class UINode(ABC):
     def __init__(self,
             element_type: ElementType,
             options: UIOptions = None,
@@ -28,10 +28,10 @@ class Node(ABC):
         self.key: str = self.options.key
         self.node_type: NodeType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementType = element_type
-        self.builder_node: Node = self if self.node_type == 'root' else None
+        self.builder_node: UINode = self if self.node_type == 'root' else None
         self.box_model: BoxModelLayout = None
-        self.children_nodes: List['Node'] = []
-        self.parent_node: Optional['Node'] = None
+        self.children_nodes: List['UINode'] = []
+        self.parent_node: Optional['UINode'] = None
         self.is_dirty: bool = False
         self.reactive_state_keys: List[str] = []
         self.depth: int = 0
