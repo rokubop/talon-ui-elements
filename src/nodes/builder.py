@@ -26,7 +26,7 @@ class UIBuilder(UIContainer):
         self.screen_index = screen_index
         self.cursor = Cursor(screen)
 
-        store.builders[self.guid] = self
+        store.builder_nodes[self.guid] = self
         store.nodes[self.guid] = self
 
         self.static_canvas = None
@@ -179,6 +179,7 @@ class UIBuilder(UIContainer):
             self.blockable_canvases = []
             self.is_blockable_canvas_init = False
 
+
     def init_blockable_canvases(self):
         """
         If we have at least one button or input, then we will consider the whole content area as blockable.
@@ -244,7 +245,7 @@ class UIBuilder(UIContainer):
         global hash_id_map
         self.generate_hash_from_tree()
 
-        for node in store.builders.values():
+        for node in store.builder_nodes.values():
             if node.hash == self.hash:
                 node.hide(destroy=False)
 
@@ -463,7 +464,7 @@ class UIBuilder(UIContainer):
             #     ids.pop(id, None)
 
             # clean_state(self.id)
-            # store.builders.pop(self.guid, None)
+            # store.builder_nodes.pop(self.guid, None)
             # store.nodes.pop(self.guid, None)
             # pass
             # builders.pop(self.id, None)

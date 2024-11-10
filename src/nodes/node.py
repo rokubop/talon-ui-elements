@@ -73,7 +73,7 @@ class UINode(ABC):
 
     def destroy(self):
         if self.node_type == 'root':
-            store.builders.pop(self.guid, None)
+            store.builder_nodes.pop(self.guid, None)
 
         store.nodes.pop(self.guid, None)
 

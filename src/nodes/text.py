@@ -42,7 +42,7 @@ class UIText(UINode):
             self.options.gap = 16
 
         if element_type == "button":
-            store.buttons[self.guid] = self
+            store.button_nodes[self.guid] = self
 
     # def init_state(self, builder_options: dict[str, any], scroll_region_key: int = None):
     #     global ids, state, buttons

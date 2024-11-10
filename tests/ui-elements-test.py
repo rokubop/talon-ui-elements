@@ -33,7 +33,7 @@ def test_hello_world():
 
     def on_mount():
         test("State should have 3 nodes", 3, len(store.nodes))
-        test("State should have 1 builder", 1, len(store.builders))
+        test("State should have 1 builder", 1, len(store.builder_nodes))
         nodes = list(store.nodes.values())
         div_node = nodes[1]
         text_node = nodes[2]
@@ -65,13 +65,13 @@ def test_button():
 
     def on_mount():
         test("State should have 3 nodes", 3, len(store.nodes))
-        test("State should have 1 builder", 1, len(store.builders))
-        test("State should have 1 button", 1, len(store.buttons))
+        test("State should have 1 builder", 1, len(store.builder_nodes))
+        test("State should have 1 button", 1, len(store.button_nodes))
         nodes = list(store.nodes.values())
-        buttons = list(store.buttons.values())
-        test("guid should be same for button and node", nodes[2].guid, buttons[0].guid)
-        test("button should have element type button", "button", buttons[0].element_type)
-        test("button should have node type leaf", "leaf", buttons[0].node_type)
+        button_nodes = list(store.button_nodes.values())
+        test("guid should be same for button and node", nodes[2].guid, button_nodes[0].guid)
+        test("button should have element type button", "button", button_nodes[0].element_type)
+        test("button should have node type leaf", "leaf", button_nodes[0].node_type)
 
     ui = screen(justify_content="center", align_items="center")[
         div(background_color="white", padding=16, border_radius=16, border_width=1)[
@@ -141,7 +141,7 @@ class Actions:
 
 #         def on_mount():
 #             test("State should have 3 nodes", 3, len(store.nodes))
-#             test("State should have 1 builder", 1, len(store.builders))
+#             test("State should have 1 builder", 1, len(store.builder_nodes))
 #             nodes = list(store.nodes.values())
 #             div_node = nodes[1]
 #             text_node = nodes[2]
@@ -190,7 +190,7 @@ class Actions:
 # class HelloWorld(Component):
 #     def on_mount(self):
 #         test("State should have 3 nodes", 3, len(state.nodes))
-#         test("State should have 1 builder", 1, len(state.builders))
+#         test("State should have 1 builder", 1, len(state.builder_nodes))
 #         nodes = list(state.nodes.values())
 #         div_node = nodes[1]
 #         text_node = nodes[2]
@@ -252,7 +252,7 @@ class Actions:
 
 #         def on_mount():
 #             test("State should have 3 nodes", 3, len(store.nodes))
-#             test("State should have 1 builder", 1, len(store.builders))
+#             test("State should have 1 builder", 1, len(store.builder_nodes))
 #             nodes = list(store.nodes.values())
 #             div_node = nodes[1]
 #             text_node = nodes[2]
@@ -301,7 +301,7 @@ class Actions:
 # class HelloWorld(Component):
 #     def on_mount(self):
 #         test("State should have 3 nodes", 3, len(state.nodes))
-#         test("State should have 1 builder", 1, len(state.builders))
+#         test("State should have 1 builder", 1, len(state.builder_nodes))
 #         nodes = list(state.nodes.values())
 #         div_node = nodes[1]
 #         text_node = nodes[2]
