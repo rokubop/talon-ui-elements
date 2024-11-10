@@ -1,1 +1,1 @@
-talon elements test: user.private_ui_elements_test()
+element test: user.private_ui_elements_test()

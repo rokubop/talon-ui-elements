@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Literal, Optional
 from ..options import UIOptions
-from ..state import state
+from ..store import store
 from ..core.box_model import BoxModelLayout
 import uuid
 
@@ -35,7 +35,7 @@ class UINode(ABC):
         self.is_dirty: bool = False
         self.reactive_state_keys: List[str] = []
         self.depth: int = 0
-        state.nodes[self.guid] = self
+        store.nodes[self.guid] = self
 
     def add_child(self, node):
         if isinstance(node, tuple):
@@ -73,9 +73,9 @@ class UINode(ABC):
 
     def destroy(self):
         if self.node_type == 'root':
-            state.builders.pop(self.guid, None)
+            store.builders.pop(self.guid, None)
 
-        state.nodes.pop(self.guid, None)
+        store.nodes.pop(self.guid, None)
 
         if self.children_nodes:
             for node in list(self.children_nodes):

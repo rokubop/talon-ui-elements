@@ -8,6 +8,8 @@ from talon.types import Rect
 from itertools import cycle
 from .node import UINode
 from ..utils import draw_text_simple
+from typing import Literal
+from ..store import store
 
 @dataclass
 class UITextOptions(UIOptions):
@@ -24,47 +26,23 @@ class UITextOptionsDict(UIOptionsDict):
     font_size: int
     font_weight: str
 
+ElementType = Literal['button', 'text']
+
 class UIText(UINode):
-    def __init__(self, text: str, options: UITextOptions = None):
-        super().__init__(element_type="text", options=options)
+    def __init__(self, element_type, text: str, options: UITextOptions = None):
+        super().__init__(
+            element_type=element_type,
+            options=options
+        )
         self.text = str(text)
         self.text_width = None
         self.text_height = None
-        self.debug_number = 0
-        self.debug_color = "red"
-        self.debug_colors = iter(cycle(["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]))
 
         if self.options.gap is None:
             self.options.gap = 16
 
-    def draw_debug_number(self, c: SkiaCanvas, cursor: Cursor, new_color = False):
-        if new_color:
-            self.debug_color = next(self.debug_colors)
-
-        c.paint.color = self.debug_color
-        self.debug_number += 1
-
-        c.draw_text(str(self.debug_number), cursor.x, cursor.y)
-
-    def debugger(self, c: SkiaCanvas, cursor: Cursor, incrememnt_step: bool = False, new_color = False, is_breakpoint = True):
-        pass
-    #     """Add circles and numbers and the ability to render step by step. Returns the current view state if it should be rendered."""
-    #     global debug_enabled, debug_current_step, render_step, debug_numbers, debug_points, debug_draw_step_by_step
-
-    #     if not debug_enabled:
-    #         return None
-
-    #     if incrememnt_step and debug_draw_step_by_step:
-    #         render_step += 1
-    #         if debug_current_step and render_step >= debug_current_step:
-    #             return self.box_model.margin_rect
-    #     if debug_points:
-    #         c.paint.color = "red"
-    #         c.draw_circle(cursor.x, cursor.y, 2)
-    #     if debug_numbers:
-    #         self.draw_debug_number(c, cursor, new_color)
-
-    #     return None
+        if element_type == "button":
+            store.buttons[self.guid] = self
 
     # def init_state(self, builder_options: dict[str, any], scroll_region_key: int = None):
     #     global ids, state, buttons
@@ -91,9 +69,6 @@ class UIText(UINode):
     #     return render_now
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
-        # global unique_key
-        # self.key = unique_key
-        # unique_key += 1
         self.box_model = BoxModelLayout(cursor.virtual_x, cursor.virtual_y, self.options.margin, self.options.padding, self.options.border, self.options.width, self.options.height)
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.options.font_size
@@ -118,15 +93,9 @@ class UIText(UINode):
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
         global ids
 
-        if view_state := self.debugger(c, cursor, True):
-            return view_state
-
         self.box_model.prepare_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
         # render_now = self.init_state(scroll_region_key)
         render_now = True
-
-        if view_state := self.debugger(c, cursor, True):
-            return view_state
 
         self.render_background(c, cursor)
 
@@ -139,9 +108,6 @@ class UIText(UINode):
 
         if render_now:
             draw_text_simple(c, self.text, self.options, cursor.x, cursor.y + self.text_height)
-
-        if view_state := self.debugger(c, cursor, True):
-            return view_state
 
         return self.box_model.margin_rect
 

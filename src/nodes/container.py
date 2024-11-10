@@ -36,7 +36,7 @@ class UIContainer(UINode):
         else:
             self.scroll_y_percentage = 0
 
-    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
+    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: UINode, i: int, move_after_last_child = True):
         gap = self.options.gap or 0
         if self.options.gap is None and child.element_type == "text" and self.children_nodes[i - 1].element_type == "text":
             gap = 16

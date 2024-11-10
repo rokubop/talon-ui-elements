@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-class State:
+class Store:
     def __init__(self):
         self.builders: Dict[str, dict] = {}
         self.nodes: Dict[str, dict] = {}
@@ -20,4 +20,16 @@ class State:
     # def find_text(self, id: str) -> Optional[dict]:
     #     return self.text.get(id)
 
-state = State()
+    def hide_all(self):
+        for node in list(self.builders.values()):
+            node.hide()
+        self.builders = {}
+        self.nodes = {}
+        self.buttons = {}
+        self.inputs = {}
+        self.reactive_states = {}
+        self.highlighted = {}
+        self.text = {}
+        self.scrollable_regions = {}
+
+store = Store()

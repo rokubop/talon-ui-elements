@@ -1,7 +1,7 @@
 from talon.screen import Screen
-from .div import UIContainer
-from .text import UIText
-from ..builder import UIBuilder
+from ..nodes.container import UIContainer
+from ..nodes.text import UIText
+from ..nodes.builder import UIBuilder
 from ..options import UIOptions, UITextOptions, UIProps, UIOptionsDict, UITextOptionsDict, UIInputTextOptionsDict
 from dataclasses import dataclass, fields
 from ..utils import get_screen
@@ -317,7 +317,20 @@ def div(props=None, **additional_props):
 def text(text_str: str, props=None, **additional_props):
     options = get_props(props, additional_props)
     text_options = UITextOptions(**options)
-    return UIText(text_str, text_options)
+    return UIText("text", text_str, text_options)
+
+def button(text_str: str, props=None, **additional_props):
+    default_props = {
+        "type": "button",
+        "color": "FFFFFF",
+        "padding": 8,
+        "background_color": "444444",
+        **(props or {})
+    }
+
+    options = get_props(default_props, additional_props)
+    text_options = UITextOptions(**options)
+    return UIText("button", text_str, text_options)
 
 class UIElementsProxy:
     def __init__(self, func):
@@ -342,3 +355,4 @@ class UIElementsNoChildrenProxy:
 div = UIElementsProxy(div)
 text = UIElementsNoChildrenProxy(text)
 screen = UIElementsProxy(screen)
+button = UIElementsNoChildrenProxy(button)

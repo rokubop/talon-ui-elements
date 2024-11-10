@@ -5,12 +5,10 @@ from .src.elements.index import (
     text,
     screen,
 )
-from .src.state import state
+from .src.store import store
 from .src.actions import ui_elements_new
 
 mod = Module()
-
-show = True
 
 @mod.action_class
 class Actions:
@@ -50,21 +48,6 @@ class Actions:
         """
         return ui_elements_new(elements)
 
-    def ui_elements_test_new():
-        """asdf"""
-        global show
-
-        if show:
-            (div, text, screen) = actions.user.ui_elements_new(["div", "text", "screen"])
-
-            ui = screen(justify_content="center", align_items="center")[
-                div(background_color="white", padding=16, border_radius=16, border_width=1)[
-                    text("Hello world", color="red", font_size=24)
-                ]
-            ]
-            ui.show()
-        else:
-            for node in list(state.builders.values()):
-                node.hide()
-
-        show = not show
+    def ui_elements_new_hide_all():
+        """Hide all UI elements"""
+        store.hide_all()

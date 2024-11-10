@@ -3,6 +3,7 @@ from .elements.index import (
     div,
     text,
     screen,
+    button,
 )
 
 def ui_elements_new(elements: List[str]) -> tuple[callable]:
@@ -10,5 +11,6 @@ def ui_elements_new(elements: List[str]) -> tuple[callable]:
         'div': div,
         'text': text,
         'screen': screen,
+        'button': button,
     }
     return tuple(element_mapping[element] for element in elements)
