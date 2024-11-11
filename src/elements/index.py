@@ -1,8 +1,8 @@
 from talon.screen import Screen
-from ..nodes.container import UIContainer
-from ..nodes.text import UIText
-from ..nodes.builder import UIBuilder
-from ..options import UIOptions, UITextOptions, UIProps, UIOptionsDict, UITextOptionsDict, UIInputTextOptionsDict
+from ..nodes.node_container import NodeContainer
+from ..nodes.node_text import NodeText
+from ..nodes.node_root import NodeRoot
+from ..options import UIOptions, NodeTextOptions, UIProps, UIOptionsDict, NodeTextOptionsDict, UIInputTextOptionsDict
 from dataclasses import dataclass, fields
 from ..utils import get_screen
 from typing import TypedDict, Optional, get_origin, get_args, Union
@@ -52,7 +52,7 @@ class UIOptionsDict(TypedDict):
     top: int
     width: int
 
-class UITextOptionsDict(UIOptionsDict):
+class NodeTextOptionsDict(UIOptionsDict):
     id: str
     font_size: int
     font_weight: str
@@ -65,7 +65,7 @@ class UIInputTextOptionsDict(UIOptionsDict):
 
 VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
-    .union(set(UITextOptionsDict.__annotations__.keys()))
+    .union(set(NodeTextOptionsDict.__annotations__.keys()))
     .union(set(UIInputTextOptionsDict.__annotations__.keys()))
 )
 
@@ -144,7 +144,7 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
 #         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
 
 # @dataclass
-# class UITextOptions(UIOptions):
+# class NodeTextOptions(UIOptions):
 #     id: str = None
 #     font_size: int = 16
 #     font_weight: str = "normal"
@@ -259,8 +259,8 @@ def get_props(props, additional_props):
 
     return all_props
 
-builders_core = None
-updating_builder_id = None
+roots_core = None
+updating_root_id = None
 
 def screen(*args, **additional_props):
     """
@@ -281,7 +281,7 @@ def screen(*args, **additional_props):
     screen({"justify_content": "center", "align_items": "center"})
     ```
     """
-    # global builders_core, updating_builder_id
+    # global roots_core, updating_root_id
     props = None
     if len(args) == 1 and isinstance(args[0], dict):
         props = args[0]
@@ -295,29 +295,29 @@ def screen(*args, **additional_props):
 
     options = get_props(props, additional_props)
 
-    # if updating_builder_id:
-    #     # try reusing the builder instead
-    #     options["id"] = updating_builder_id
+    # if updating_root_id:
+    #     # try reusing the root instead
+    #     options["id"] = updating_root_id
 
     options["width"] = ref_screen.width
     options["height"] = ref_screen.height
 
-    builder = UIBuilder(
+    root = NodeRoot(
         "screen",
         UIOptions(**options)
     )
-    # builders_core[builder.id] = builder
-    return builder
+    # roots_core[root.id] = root
+    return root
 
 def div(props=None, **additional_props):
     options = get_props(props, additional_props)
     box_options = UIOptions(**options)
-    return UIContainer('div', box_options)
+    return NodeContainer('div', box_options)
 
 def text(text_str: str, props=None, **additional_props):
     options = get_props(props, additional_props)
-    text_options = UITextOptions(**options)
-    return UIText("text", text_str, text_options)
+    text_options = NodeTextOptions(**options)
+    return NodeText("text", text_str, text_options)
 
 def button(text_str: str, props=None, **additional_props):
     default_props = {
@@ -329,8 +329,8 @@ def button(text_str: str, props=None, **additional_props):
     }
 
     options = get_props(default_props, additional_props)
-    text_options = UITextOptions(**options)
-    return UIText("button", text_str, text_options)
+    text_options = NodeTextOptions(**options)
+    return NodeText("button", text_str, text_options)
 
 class UIElementsProxy:
     def __init__(self, func):

@@ -1,6 +1,6 @@
 from talon import Module, actions
-from ..src.store import store
 from ..src.actions import ui_elements_new
+from ..src.node_manager import node_manager
 
 mod = Module()
 
@@ -32,11 +32,13 @@ def test_hello_world():
     (div, text, screen) = ui_elements_new(["div", "text", "screen"])
 
     def on_mount():
-        test("State should have 3 nodes", 3, len(store.nodes))
-        test("State should have 1 builder", 1, len(store.builder_nodes))
-        nodes = list(store.nodes.values())
-        div_node = nodes[1]
-        text_node = nodes[2]
+        root_nodes = node_manager.get_root_nodes()
+        test("Global global_store should have 1 root node", 1, len(root_nodes))
+
+        all_nodes = node_manager.get_all_nodes()
+        test("Root node should have 3 nodes", 3, len(all_nodes))
+        div_node = all_nodes[1]
+        text_node = all_nodes[2]
         test("div should have correct padding", 16, div_node.box_model.padding_spacing.top)
         test("div should have div element type", "div", div_node.element_type)
         test("div should have node type", "node", div_node.node_type)
@@ -44,13 +46,13 @@ def test_hello_world():
         test("text should have text element type", "text", text_node.element_type)
         test("text should have leaf node type", "leaf", text_node.node_type)
 
-        test("screen should have screen element type", "screen", nodes[0].element_type)
-        test("screen should have root node type", "root", nodes[0].node_type)
+        test("screen should have screen element type", "screen", all_nodes[0].element_type)
+        test("screen should have root node type", "root", all_nodes[0].node_type)
 
         test("div should have 1 children node", 1, len(div_node.children_nodes))
         test_truthy("div should have 1 parent node", div_node.parent_node)
 
-        test("divs parent and screen should be the same", div_node.parent_node, nodes[0])
+        test("divs parent and screen should be the same", div_node.parent_node, all_nodes[0])
 
     ui = screen(justify_content="center", align_items="center")[
         div(background_color="white", padding=16, border_radius=16, border_width=1)[
@@ -64,18 +66,21 @@ def test_button():
     (div, button, screen) = ui_elements_new(["div", "button", "screen"])
 
     def on_mount():
-        test("State should have 3 nodes", 3, len(store.nodes))
-        test("State should have 1 builder", 1, len(store.builder_nodes))
-        test("State should have 1 button", 1, len(store.button_nodes))
-        nodes = list(store.nodes.values())
-        button_nodes = list(store.button_nodes.values())
-        test("guid should be same for button and node", nodes[2].guid, button_nodes[0].guid)
-        test("button should have element type button", "button", button_nodes[0].element_type)
-        test("button should have node type leaf", "leaf", button_nodes[0].node_type)
+        root_nodes = node_manager.get_root_nodes()
+        test("Global global_store should have 1 root node", 1, len(root_nodes))
+
+        all_nodes = node_manager.get_all_nodes()
+        root_node = root_nodes[0]
+        buttons = node_manager.get_button_nodes(root_node)
+        test("State should have 3 nodes", 3, len(all_nodes))
+        test("State should have 1 button", 1, len(buttons))
+
+        test("button should have element type button", "button", buttons[0].element_type)
+        test("button should have node type leaf", "leaf", buttons[0].node_type)
 
     ui = screen(justify_content="center", align_items="center")[
         div(background_color="white", padding=16, border_radius=16, border_width=1)[
-            button("Click me", background_color="blue", font_size=24),
+            button("Click me", on_click=lambda: print("hello"), background_color="blue", font_size=24),
         ]
     ]
     ui.show(on_mount)
@@ -140,9 +145,9 @@ class Actions:
 #         color, set_color = state("color", "red")
 
 #         def on_mount():
-#             test("State should have 3 nodes", 3, len(store.nodes))
-#             test("State should have 1 builder", 1, len(store.builder_nodes))
-#             nodes = list(store.nodes.values())
+#             test("State should have 3 nodes", 3, len(global_store.nodes))
+#             test("State should have 1 root", 1, len(global_store.root_nodes))
+#             nodes = list(global_store.nodes.values())
 #             div_node = nodes[1]
 #             text_node = nodes[2]
 #             test("Div should have correct padding", 16, div_node.box_model.padding_spacing.top)
@@ -190,7 +195,7 @@ class Actions:
 # class HelloWorld(Component):
 #     def on_mount(self):
 #         test("State should have 3 nodes", 3, len(state.nodes))
-#         test("State should have 1 builder", 1, len(state.builder_nodes))
+#         test("State should have 1 root", 1, len(state.root_nodes))
 #         nodes = list(state.nodes.values())
 #         div_node = nodes[1]
 #         text_node = nodes[2]
@@ -251,9 +256,9 @@ class Actions:
 #         color, set_color = state("color", "red")
 
 #         def on_mount():
-#             test("State should have 3 nodes", 3, len(store.nodes))
-#             test("State should have 1 builder", 1, len(store.builder_nodes))
-#             nodes = list(store.nodes.values())
+#             test("State should have 3 nodes", 3, len(global_store.nodes))
+#             test("State should have 1 root", 1, len(global_store.root_nodes))
+#             nodes = list(global_store.nodes.values())
 #             div_node = nodes[1]
 #             text_node = nodes[2]
 #             test("Div should have correct padding", 16, div_node.box_model.padding_spacing.top)
@@ -301,7 +306,7 @@ class Actions:
 # class HelloWorld(Component):
 #     def on_mount(self):
 #         test("State should have 3 nodes", 3, len(state.nodes))
-#         test("State should have 1 builder", 1, len(state.builder_nodes))
+#         test("State should have 1 root", 1, len(state.root_nodes))
 #         nodes = list(state.nodes.values())
 #         div_node = nodes[1]
 #         text_node = nodes[2]

@@ -81,7 +81,7 @@ class UIOptionsDict(TypedDict):
     top: int
     width: int
 
-class UITextOptionsDict(UIOptionsDict):
+class NodeTextOptionsDict(UIOptionsDict):
     id: str
     font_size: int
     font_weight: str
@@ -93,7 +93,7 @@ class UIInputTextOptionsDict(UIOptionsDict):
     on_change: callable
 
 @dataclass
-class UITextOptions(UIOptions):
+class NodeTextOptions(UIOptions):
     id: str = None
     font_size: int = 16
     font_weight: str = "normal"
@@ -104,7 +104,7 @@ class UITextOptions(UIOptions):
 
 VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
-    .union(set(UITextOptionsDict.__annotations__.keys()))
+    .union(set(NodeTextOptionsDict.__annotations__.keys()))
     .union(set(UIInputTextOptionsDict.__annotations__.keys()))
 )
 

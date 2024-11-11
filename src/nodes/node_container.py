@@ -4,11 +4,11 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from itertools import cycle
-from .node import UINode
+from .node import Node
 from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
 
-class UIContainer(UINode):
+class NodeContainer(Node):
     def __init__(self, element_type, options: UIOptions = None):
         super().__init__(element_type=element_type, options=options)
         self.scroll_y = 0
@@ -36,7 +36,7 @@ class UIContainer(UINode):
         else:
             self.scroll_y_percentage = 0
 
-    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: UINode, i: int, move_after_last_child = True):
+    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.options.gap or 0
         if self.options.gap is None and child.element_type == "text" and self.children_nodes[i - 1].element_type == "text":
             gap = 16
@@ -79,7 +79,7 @@ class UIContainer(UINode):
 
         cursor.virtual_move_to(last_cursor.x, last_cursor.y)
 
-        # if self.type != "builder" and self.box_model.scrollable and self.options.height < self.box_model.padding_rect.height and self.key not in scrollable_regions:
+        # if self.type != "root" and self.box_model.scrollable and self.options.height < self.box_model.padding_rect.height and self.key not in scrollable_regions:
         #     scrollable_regions[self.key] = {
         #         "scroll_box_rect": self.box_model.scroll_box_rect,
         #         "on_scroll_y": self.set_scroll_y,
@@ -259,7 +259,7 @@ class UIContainer(UINode):
         #     ids[self.id] = {
         #         "box_model": self.box_model,
         #         "options": self.options,
-        #         "builder_id": builder_options["id"],
+        #         "root_id": root_options["id"],
         #         "scroll_region_key": scroll_region_key
         #     }
 

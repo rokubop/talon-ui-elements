@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List, Literal, Optional
 from ..options import UIOptions
-from ..store import store
 from ..core.box_model import BoxModelLayout
+from ..node_manager import node_manager
 import uuid
 
 NodeType = Literal['root', 'node', 'leaf']
@@ -17,7 +17,7 @@ NODE_TYPE_MAP = {
     'window': 'root',
 }
 
-class UINode(ABC):
+class Node(ABC):
     def __init__(self,
             element_type: ElementType,
             options: UIOptions = None,
@@ -28,30 +28,31 @@ class UINode(ABC):
         self.key: str = self.options.key
         self.node_type: NodeType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementType = element_type
-        self.builder_node: UINode = self if self.node_type == 'root' else None
         self.box_model: BoxModelLayout = None
-        self.children_nodes: List['UINode'] = []
-        self.parent_node: Optional['UINode'] = None
+        self.children_nodes: List['Node'] = []
+        self.parent_node: Optional['Node'] = None
         self.is_dirty: bool = False
         self.reactive_state_keys: List[str] = []
-        self.depth: int = 0
-        store.nodes[self.guid] = self
+        self.root_node = None
+        self.depth: int = None
 
     def add_child(self, node):
         if isinstance(node, tuple):
             for n in node:
                 if n:
+                    print(n.element_type)
                     self.check_invalid_child(n)
                     self.children_nodes.append(n)
                     n.parent_node = self
-                    n.depth = self.depth + 1
-                    n.builder_node = self.builder_node
+                    # n.depth = self.depth + 1
+                    # n.root_node = self.root_node
         elif node:
+            print(node.element_type)
             self.check_invalid_child(node)
             self.children_nodes.append(node)
             node.parent_node = self
-            node.depth = self.depth + 1
-            node.builder_node = self.builder_node
+            # node.depth = self.depth + 1
+            # node.root_node = self.root_node
 
     def __getitem__(self, children_nodes=None):
         if children_nodes is None:
@@ -63,6 +64,9 @@ class UINode(ABC):
         for node in children_nodes:
             self.add_child(node)
 
+        if self.node_type == 'root':
+            node_manager.init_node_hierarchy(self, self)
+
         return self
 
     def invalidate(self):
@@ -72,14 +76,7 @@ class UINode(ABC):
                 node.invalidate()
 
     def destroy(self):
-        if self.node_type == 'root':
-            store.builder_nodes.pop(self.guid, None)
-
-        store.nodes.pop(self.guid, None)
-
-        if self.children_nodes:
-            for node in list(self.children_nodes):
-                node.destroy()
+        node_manager.remove_node(self)
 
     def show(self):
         raise NotImplementedError(f"{self.element_type} cannot use .show() directly.")

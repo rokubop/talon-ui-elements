@@ -70,7 +70,7 @@
 #         self.box_model.accumulate_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.width, self.height))
 #         return self.box_model.margin_rect
 
-#     def render(self, c: SkiaCanvas, cursor: Cursor, builder_options: dict[str, any], scroll_region_key: int = None):
+#     def render(self, c: SkiaCanvas, cursor: Cursor, root_options: dict[str, any], scroll_region_key: int = None):
 #         global ids, inputs, debug_current_step, render_step, debug_points, debug_numbers, debug_draw_step_by_step
 
 #         if debug_draw_step_by_step:
@@ -84,7 +84,7 @@
 #             ids[self.id] = {
 #                 "box_model": self.box_model,
 #                 "options": self.options,
-#                 "builder_id": builder_options["id"],
+#                 "root_id": root_options["id"],
 #                 "scroll_region_key": scroll_region_key
 #             }
 #         cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)

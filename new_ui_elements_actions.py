@@ -1,12 +1,12 @@
 from talon import Module, actions
 from typing import List, Dict, Any
-from .src.elements.index import (
-    div,
-    text,
-    screen,
-)
-from .src.store import store
+# from .src.elements.index import (
+#     div,
+#     text,
+#     screen,
+# )
 from .src.actions import ui_elements_new
+from .src.node_manager import node_manager
 
 mod = Module()
 
@@ -50,4 +50,4 @@ class Actions:
 
     def ui_elements_new_hide_all():
         """Hide all UI elements"""
-        store.hide_all()
+        node_manager.hide_all()

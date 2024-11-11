@@ -3,11 +3,11 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.skia import RoundRect
 from talon.types import Rect, Point2d
-from .container import UIContainer
-from ..store import store
+from .node_container import NodeContainer
 from ..utils import get_screen, canvas_from_screen, draw_text_simple
 from ..core.cursor import Cursor
 from ..options import UIOptionsDict, UIOptions
+from ..node_manager import node_manager
 from typing import Literal
 import uuid
 import hashlib
@@ -15,7 +15,15 @@ import pickle
 
 RootElementType = Literal['screen', 'window']
 
-class UIBuilder(UIContainer):
+class NodeRootStore:
+    def __init__(self):
+        self.buttons = []
+        self.inputs = []
+        self.dynamic_text = []
+        self.highlighted = []
+        self.scrollable_regions = []
+
+class NodeRoot(NodeContainer):
     def __init__(self, element_type: RootElementType, options: UIOptions):
         super().__init__(
             element_type=element_type,
@@ -23,13 +31,13 @@ class UIBuilder(UIContainer):
         )
         screen_index = options.screen
         screen = get_screen(screen_index)
+        self.root_node = self
+        node_manager.add_root_node(self)
         self.screen_index = screen_index
         self.cursor = Cursor(screen)
-
-        store.builder_nodes[self.guid] = self
-        store.nodes[self.guid] = self
-
-        self.static_canvas = None
+        self.node_store = NodeRootStore()
+        self.canvas_base = None
+        self.canvas_decorative = None
         self.dynamic_canvas = None
         self.highlight_canvas = None
         self.blockable_canvases = []
@@ -59,18 +67,18 @@ class UIBuilder(UIContainer):
 
     # def set_updater(self, updater):
     #     global updaters
-    #     # this is for if we need a wrapper to contain store and
+    #     # this is for if we need a wrapper to contain global_store and
     #     # conditionals for dynamic elements
     #     self.updater = updater
     #     updaters[self.id] = updater
 
     #     def new_update():
     #         pass
-    #         # global updating_builder_id
-    #         # updating_builder_id = self.id
-    #         # getattr(builders[self.id], "hide", lambda: None)(destroy=False)
-    #         # builder = self.updater()
-    #         # builder.show()
+    #         # global updating_root_id
+    #         # updating_root_id = self.id
+    #         # getattr(roots[self.id], "hide", lambda: None)(destroy=False)
+    #         # root = self.updater()
+    #         # root.show()
 
     #     self.update = new_update
 
@@ -93,7 +101,7 @@ class UIBuilder(UIContainer):
         self.dynamic_canvas.freeze()
 
     def on_draw_dynamic(self, c: SkiaCanvas):
-        # for node in store.get_builder_text_nodes(self.id):
+        # for node in global_store.get_root_text_nodes(self.id):
             # options = node["options"]
             # cursor = node["cursor"]
 
@@ -102,7 +110,7 @@ class UIBuilder(UIContainer):
             #     c.save()
             #     c.clip_rect(scrollable_regions[node["scroll_region_key"]]["scroll_box_rect"])
 
-            # draw_text_simple(c, store["text"][id], options, cursor["x"], cursor["y"])
+            # draw_text_simple(c, global_store["text"][id], options, cursor["x"], cursor["y"])
 
             # if has_scroll_region:
             #     c.restore()
@@ -136,23 +144,23 @@ class UIBuilder(UIContainer):
         debounce_blockable_canvas = cron.after("100ms", self.update_blockable_canvases)
 
     def on_fully_rendered(self):
-        global current_builder_id_render, updating_builder_id
+        global current_root_id_render, updating_root_id
         if not self.is_mounted:
             self.is_mounted = True
 
             if self.on_mount:
                 self.on_mount()
 
-            current_builder_id_render = None
-            updating_builder_id = None
+            current_root_id_render = None
+            updating_root_id = None
 
             # cron.after("10ms", lambda: event_fire_on_mount(self.id))
 
     def on_draw_highlight(self, c: SkiaCanvas):
         pass
-        # for node in store.get_builder_highlighted_nodes(self.id):
+        # for node in global_store.get_root_highlighted_nodes(self.id):
         #     box_model = node.box_model
-        #     c.paint.color = store["highlighted"][id]
+        #     c.paint.color = global_store["highlighted"][id]
         #     c.paint.style = c.paint.Style.FILL
 
         #     has_scroll_region = ids[id]["scroll_region_key"] and ids[id]["scroll_region_key"] in scrollable_regions
@@ -179,14 +187,16 @@ class UIBuilder(UIContainer):
             self.blockable_canvases = []
             self.is_blockable_canvas_init = False
 
-
     def init_blockable_canvases(self):
         """
         If we have at least one button or input, then we will consider the whole content area as blockable.
         If we have an inputs, then everything should be blockable except for those inputs.
         """
 
-        if buttons or inputs:
+        print("init_blockable_canvases")
+        if self.node_store.buttons or self.node_store.inputs:
+        # if global_store.has_buttons_or_inputs(self):
+            print("has_buttons_or_inputs")
             full_rect = self.box_model.content_children_rect
             if self.window and self.window.offset:
                 full_rect.x += self.window.offset.x
@@ -196,7 +206,7 @@ class UIBuilder(UIContainer):
                     input.rect.x += self.window.offset.x
                     input.rect.y += self.window.offset.y
 
-            if inputs:
+            if self.node_store.inputs:
                 bottom_rect = None
                 for input in list(inputs.values()):
                     current_rect = bottom_rect or full_rect
@@ -245,26 +255,26 @@ class UIBuilder(UIContainer):
         global hash_id_map
         self.generate_hash_from_tree()
 
-        for node in store.builder_nodes.values():
+        for node in node_manager.get_root_nodes():
             if node.hash == self.hash:
                 node.hide(destroy=False)
 
     def show(self, on_mount: callable = None):
-        global debug_current_step, render_step, debug_start_step, debug_draw_step_by_step, unique_key, current_builder_id_render
+        global debug_current_step, render_step, debug_start_step, debug_draw_step_by_step, unique_key, current_root_id_render
         unique_key = 0
 
         self.hash_and_prevent_duplicate_render()
 
         screen = get_screen(self.screen_index)
 
-        current_builder_id_render = self.id
-        # if store["user_pending"]:
-        #     for state_value in store["user_pending"]:
+        current_root_id_render = self.id
+        # if global_store["user_pending"]:
+        #     for state_value in global_store["user_pending"]:
         #         state_value.append_target(self.id)
-        #     store["user_pending"].clear()
+        #     global_store["user_pending"].clear()
 
         # if debug_draw_step_by_step:
-        #     if self.static_canvas:
+        #     if self.canvas_base:
         #         render_step = 0
         #         debug_current_step += 1
 
@@ -272,9 +282,9 @@ class UIBuilder(UIContainer):
         #         render_step = 0
         #         debug_current_step = debug_start_step
 
-        if self.static_canvas:
+        if self.canvas_base:
             self.cursor = Cursor(screen)
-            self.static_canvas.freeze()
+            self.canvas_base.freeze()
             # self.highlight_canvas.freeze()
             # for canvas in self.blockable_canvases:
             #     canvas.freeze()
@@ -282,24 +292,24 @@ class UIBuilder(UIContainer):
             self.is_mounted = False
             self.on_mount = on_mount
 
-            self.static_canvas = canvas_from_screen(screen)
-            self.static_canvas.register("draw", self.on_draw_static)
+            self.canvas_base = canvas_from_screen(screen)
+            self.canvas_base.register("draw", self.on_draw_static)
 
             # FLOW:
-            # 1. self.static_canvas.freeze() -> self.on_draw_static() ->
+            # 1. self.canvas_base.freeze() -> self.on_draw_static() ->
             # 2. self.dynamic_canvas.freeze() -> self.on_draw_dynamic() ->
             # 4. self.on_fully_rendered() -> self.is_mounted = True ->
             # 5. setup blockable canvases and fire on mounted events
             # Other: highlight_canvas triggered manually
-            self.static_canvas.freeze()
+            self.canvas_base.freeze()
 
     def on_hover_button(self, gpos):
         pass
         # for id, button in list(buttons.items()):
-        #     if button["builder_id"] == self.id:
+        #     if button["root_id"] == self.id:
         #         rect = ids[id]["box_model"].padding_rect
         #         hovering = rect.contains(gpos)
-        #         if store["highlighted"].get(id) != hovering:
+        #         if global_store["highlighted"].get(id) != hovering:
         #             if hovering:
         #                 self.highlight(id)
         #             else:
@@ -307,15 +317,14 @@ class UIBuilder(UIContainer):
 
     def on_click_button(self, gpos):
         pass
-        # found_button = False
-        # for id, button in list(buttons.items()):
-        #     if button["builder_id"] == self.id:
-        #         rect = ids[id]["box_model"].padding_rect
-        #         if rect.contains(gpos):
-        #             button["on_click"]()
-        #             found_button = True
-        #             break
-        # return found_button
+        found_button = False
+        for button_node in list(self.node_store.buttons):
+            rect = button_node.box_model.padding_rect
+            if rect.contains(gpos):
+                button_node.on_click()
+                found_button = True
+                break
+        return found_button
 
     def on_mouse_window(self, e):
         pass
@@ -336,7 +345,7 @@ class UIBuilder(UIContainer):
         #         if abs(e.gpos.x - drag_start_pos.x) > drag_init_threshold or abs(e.gpos.y - drag_start_pos.y) > drag_init_threshold:
         #             drag_active = True
 
-        #     if drag_active and self.window and self.static_canvas:
+        #     if drag_active and self.window and self.canvas_base:
         #         self.window.offset.x = e.gpos.x - drag_relative_offset.x
         #         self.window.offset.y = e.gpos.y - drag_relative_offset.y
         #         self.window.offset_dirty = True
@@ -346,10 +355,11 @@ class UIBuilder(UIContainer):
     def on_mouse(self, e):
         pass
         # found_clickable = False
-        # if e.event == "mousemove":
-        #     self.on_hover_button(e.gpos)
-        # elif e.event == "mousedown":
-        #     found_clickable = self.on_click_button(e.gpos)
+        print("on_mouse")
+        if e.event == "mousemove":
+            self.on_hover_button(e.gpos)
+        elif e.event == "mousedown":
+            found_clickable = self.on_click_button(e.gpos)
 
         # if not found_clickable and self.window:
         #     self.on_mouse_window(e)
@@ -367,7 +377,7 @@ class UIBuilder(UIContainer):
     #             elif e.degrees.y < 0:
     #                 smallest_region["on_scroll_y"](scroll_amount_per_tick)
 
-    #         self.static_canvas.freeze()
+    #         self.canvas_base.freeze()
 
     # def on_scroll(self, e):
     #     global scroll_throttle_job
@@ -380,20 +390,20 @@ class UIBuilder(UIContainer):
 
     def set_text(self, id: str, text: str):
         pass
-        # store["text"][id] = text
+        # global_store["text"][id] = text
         # if self.dynamic_canvas:
         #     self.dynamic_canvas.freeze()
 
     def highlight(self, id: str, color: str = None):
         pass
         # if id in ids:
-        #     store["highlighted"][id] = color or self.highlight_color or "FFFFFF88"
+        #     global_store["highlighted"][id] = color or self.highlight_color or "FFFFFF88"
         #     self.highlight_canvas.freeze()
 
     def unhighlight(self, id: str):
         pass
-        # if id in ids and id in store["highlighted"]:
-        #     store["highlighted"].pop(id)
+        # if id in ids and id in global_store["highlighted"]:
+        #     global_store["highlighted"].pop(id)
 
         #     if self.unhighlight_jobs.get(id):
         #         cron.cancel(self.unhighlight_jobs[id][0])
@@ -412,22 +422,22 @@ class UIBuilder(UIContainer):
     def freeze_if_not_busy(self):
         if not self.render_busy:
             self.render_busy = True
-            self.static_canvas.freeze()
+            self.canvas_base.freeze()
 
     def hide(self, destroy=True):
-        """Hide and destroy the UI builder."""
+        """Hide and destroy the UI root."""
         global ids, buttons, inputs, unique_key
 
         # event_fire_on_unmount(self.id)
         self.is_mounted = False
 
-        if self.static_canvas:
-            self.static_canvas.unregister("draw", self.on_draw_static)
+        if self.canvas_base:
+            self.canvas_base.unregister("draw", self.on_draw_static)
 
             if destroy:
-                self.static_canvas.hide()
-                self.static_canvas.close()
-                self.static_canvas = None
+                self.canvas_base.hide()
+                self.canvas_base.close()
+                self.canvas_base = None
 
         if self.dynamic_canvas:
             self.dynamic_canvas.unregister("draw", self.on_draw_dynamic)
@@ -456,18 +466,18 @@ class UIBuilder(UIContainer):
         #     inputs[id].hide()
 
         if destroy:
-            # remove_ids = [id for id in ids if ids[id]["builder_id"] == self.id]
+            # remove_ids = [id for id in ids if ids[id]["root_id"] == self.id]
 
             # for id in remove_ids:
-            #     store["highlighted"].pop(id, None)
-            #     store["text"].pop(id, None)
+            #     global_store["highlighted"].pop(id, None)
+            #     global_store["text"].pop(id, None)
             #     ids.pop(id, None)
 
             # clean_state(self.id)
-            # store.builder_nodes.pop(self.guid, None)
-            # store.nodes.pop(self.guid, None)
+            # global_store.root_nodes.pop(self.guid, None)
+            # global_store.nodes.pop(self.guid, None)
             # pass
-            # builders.pop(self.id, None)
+            # roots.pop(self.id, None)
             # hash_id_map.pop(self.hash, None)
             self.hash = None
             # updaters.pop(self.id, None)
@@ -475,8 +485,8 @@ class UIBuilder(UIContainer):
             self.destroy()
 
         # for id in list(buttons):
-        #     if id in store["text"]:
-        #         store["text"].pop(id, None)
+        #     if id in global_store["text"]:
+        #         global_store["text"].pop(id, None)
 
         # buttons.clear()
         # inputs.clear()

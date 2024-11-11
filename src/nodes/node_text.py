@@ -6,13 +6,13 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
 from itertools import cycle
-from .node import UINode
+from .node import Node
 from ..utils import draw_text_simple
 from typing import Literal
-from ..store import store
+from ..node_manager import node_manager
 
 @dataclass
-class UITextOptions(UIOptions):
+class NodeTextOptions(UIOptions):
     id: str = None
     font_size: int = 16
     font_weight: str = "normal"
@@ -21,15 +21,15 @@ class UITextOptions(UIOptions):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class UITextOptionsDict(UIOptionsDict):
+class NodeTextOptionsDict(UIOptionsDict):
     id: str
     font_size: int
     font_weight: str
 
 ElementType = Literal['button', 'text']
 
-class UIText(UINode):
-    def __init__(self, element_type, text: str, options: UITextOptions = None):
+class NodeText(Node):
+    def __init__(self, element_type, text: str, options: NodeTextOptions = None):
         super().__init__(
             element_type=element_type,
             options=options
@@ -42,9 +42,10 @@ class UIText(UINode):
             self.options.gap = 16
 
         if element_type == "button":
-            store.button_nodes[self.guid] = self
+            self.on_click = self.options.on_click or (lambda: None)
+            self.is_hovering = False
 
-    # def init_state(self, builder_options: dict[str, any], scroll_region_key: int = None):
+    # def init_state(self, root_options: dict[str, any], scroll_region_key: int = None):
     #     global ids, state, buttons
     #     render_now = True
     #     # if self.id:
@@ -52,13 +53,13 @@ class UIText(UINode):
     #         #     "key": self.key,
     #         #     "box_model": self.box_model,
     #         #     "options": self.options,
-    #         #     "builder_id": builder_options["id"],
+    #         #     "root_id": root_options["id"],
     #         #     "scroll_region_key": scroll_region_key
     #         # }
     #         # if self.type == "button" and not buttons.get(self.id):
     #         #     buttons[self.id] = {
     #         #         "key": self.key,
-    #         #         "builder_id": builder_options["id"],
+    #         #         "root_id": root_options["id"],
     #         #         "is_hovering": False,
     #         #         "on_click": self.options.on_click or (lambda: None),
     #         #         "scroll_region_key": scroll_region_key
