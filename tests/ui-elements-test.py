@@ -1,6 +1,7 @@
 from talon import Module, actions
 from ..src.actions import ui_elements_new
 from ..src.node_manager import node_manager
+from ..src.state_manager import state_manager
 
 mod = Module()
 
@@ -26,6 +27,37 @@ def test_truthy(test_name, actual):
     else:
         print(f"❌ {test_name}")
         print(f"Expected True but got False")
+
+@test_module
+def test_component():
+    (div, text, screen, component) = ui_elements_new(["div", "text", "screen", "component"])
+
+    def on_mount():
+        root_nodes = node_manager.get_root_nodes()
+        all_nodes = node_manager.get_all_nodes()
+        root_node = all_nodes[0]
+        component_node = all_nodes[1]
+        div_node = all_nodes[2]
+        text_node = all_nodes[2]
+
+        test("Global global_store should have 1 root node", 1, len(root_nodes))
+        test("Root node should have 4 nodes", 4, len(all_nodes))
+        test("div should have reference to component node", component_node, div_node.component_node)
+        test("div should have reference to root node", root_node, div_node.root_node)
+        test("active component should not be active outside of render cycle", state_manager.get_active_component(), None)
+
+    @component
+    def hello_world():
+        return div(background_color="green", padding=16, border_radius=16, border_width=1)[
+            text("Component", color="red", font_size=24),
+        ]
+
+    ui = screen(justify_content="center", align_items="center")[
+        hello_world()
+    ]
+
+    # actions.user.ui_elements_show(ui)
+    ui.show(on_mount)
 
 @test_module
 def test_hello_world():

@@ -12,7 +12,7 @@ mod = Module()
 
 @mod.action_class
 class Actions:
-    def ui_elements_show(ui):
+    def ui_elements_show(ui: Any):
         """Render and show the UI"""
         ui.show()
 

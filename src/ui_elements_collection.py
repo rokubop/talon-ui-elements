@@ -1,11 +1,13 @@
 from talon.screen import Screen
-from ..nodes.node_container import NodeContainer
-from ..nodes.node_text import NodeText
-from ..nodes.node_root import NodeRoot
-from ..options import UIOptions, NodeTextOptions, UIProps, UIOptionsDict, NodeTextOptionsDict, UIInputTextOptionsDict
+from .nodes.node_container import NodeContainer
+from .nodes.node_text import NodeText
+from .nodes.node_root import NodeRoot
+from .nodes.node_component import NodeComponent
+from .options import UIOptions, NodeTextOptions, UIProps, UIOptionsDict, NodeTextOptionsDict, UIInputTextOptionsDict
 from dataclasses import dataclass, fields
-from ..utils import get_screen
+from .utils import get_screen
 from typing import TypedDict, Optional, get_origin, get_args, Union
+from .state_manager import state_manager
 
 @dataclass
 class BoxModelSpacing:
@@ -308,6 +310,18 @@ def screen(*args, **additional_props):
     )
     # roots_core[root.id] = root
     return root
+
+def component(func):
+    # TODO: args and kwargs
+    def create_node_component():
+        return NodeComponent(func)
+    return create_node_component
+
+# def use_effect(func, deps):
+#     active_component = state_manager.get_active_component()
+#     if not active_component:
+#         raise ValueError("use_effect() must be called within a @component decorated function.")
+#     state_manager.register_something...
 
 def div(props=None, **additional_props):
     options = get_props(props, additional_props)

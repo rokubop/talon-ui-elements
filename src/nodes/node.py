@@ -3,6 +3,7 @@ from typing import List, Literal, Optional
 from ..options import UIOptions
 from ..core.box_model import BoxModelLayout
 from ..node_manager import node_manager
+from ..state_manager import state_manager
 import uuid
 
 NodeType = Literal['root', 'node', 'leaf']
@@ -35,6 +36,7 @@ class Node(ABC):
         self.reactive_state_keys: List[str] = []
         self.root_node = None
         self.depth: int = None
+        self.component_node = state_manager.get_active_component()
 
     def add_child(self, node):
         if isinstance(node, tuple):

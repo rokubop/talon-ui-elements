@@ -1,9 +1,10 @@
 from typing import List, Dict, Any
-from .elements.index import (
+from .ui_elements_collection import (
     div,
     text,
     screen,
     button,
+    component
 )
 
 def ui_elements_new(elements: List[str]) -> tuple[callable]:
@@ -12,5 +13,6 @@ def ui_elements_new(elements: List[str]) -> tuple[callable]:
         'text': text,
         'screen': screen,
         'button': button,
+        'component': component,
     }
     return tuple(element_mapping[element] for element in elements)
