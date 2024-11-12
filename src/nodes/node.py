@@ -40,19 +40,13 @@ class Node(ABC):
         if isinstance(node, tuple):
             for n in node:
                 if n:
-                    print(n.element_type)
                     self.check_invalid_child(n)
                     self.children_nodes.append(n)
                     n.parent_node = self
-                    # n.depth = self.depth + 1
-                    # n.root_node = self.root_node
         elif node:
-            print(node.element_type)
             self.check_invalid_child(node)
             self.children_nodes.append(node)
             node.parent_node = self
-            # node.depth = self.depth + 1
-            # node.root_node = self.root_node
 
     def __getitem__(self, children_nodes=None):
         if children_nodes is None:

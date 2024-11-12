@@ -33,32 +33,37 @@ def test_hello_world():
 
     def on_mount():
         root_nodes = node_manager.get_root_nodes()
-        test("Global global_store should have 1 root node", 1, len(root_nodes))
-
         all_nodes = node_manager.get_all_nodes()
-        test("Root node should have 3 nodes", 3, len(all_nodes))
+        root_node = all_nodes[0]
         div_node = all_nodes[1]
         text_node = all_nodes[2]
+
+        test("Global global_store should have 1 root node", 1, len(root_nodes))
+        test("Root node should have 3 nodes", 3, len(all_nodes))
         test("div should have correct padding", 16, div_node.box_model.padding_spacing.top)
         test("div should have div element type", "div", div_node.element_type)
         test("div should have node type", "node", div_node.node_type)
-
         test("text should have text element type", "text", text_node.element_type)
         test("text should have leaf node type", "leaf", text_node.node_type)
-
-        test("screen should have screen element type", "screen", all_nodes[0].element_type)
-        test("screen should have root node type", "root", all_nodes[0].node_type)
-
+        test("screen should have screen element type", "screen", root_node.element_type)
+        test("screen should have root node type", "root", root_node.node_type)
         test("div should have 1 children node", 1, len(div_node.children_nodes))
         test_truthy("div should have 1 parent node", div_node.parent_node)
+        test("divs parent and screen should be the same", div_node.parent_node, root_node)
+        test("root should have depth 0", 0, root_node.depth)
+        test("div should have depth 1", 1, div_node.depth)
+        test("text should have depth 2", 2, text_node.depth)
+        test("div should have reference to root_node", root_node, div_node.root_node)
+        test("text should have reference to root_node", root_node, text_node.root_node)
 
-        test("divs parent and screen should be the same", div_node.parent_node, all_nodes[0])
+    # use_effect(on_mount, [])
 
     ui = screen(justify_content="center", align_items="center")[
         div(background_color="white", padding=16, border_radius=16, border_width=1)[
             text("Hello world", color="red", font_size=24),
         ]
     ]
+    # actions.user.ui_elements_show(ui)
     ui.show(on_mount)
 
 @test_module

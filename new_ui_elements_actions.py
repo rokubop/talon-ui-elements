@@ -12,6 +12,10 @@ mod = Module()
 
 @mod.action_class
 class Actions:
+    def ui_elements_show(ui):
+        """Render and show the UI"""
+        ui.show()
+
     def ui_elements_new(elements: List[str]) -> tuple[callable]:
         """
         This acts like an import for the components you want to use.

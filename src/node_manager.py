@@ -52,14 +52,16 @@ class NodeManager:
 
         global_store.root_nodes.clear()
 
-    def init_node_hierarchy(self, root_node, current_node, depth=0):
+    def init_node_hierarchy(self, root_node, current_node, depth = 0):
         for child_node in current_node.children_nodes:
             child_node.root_node = root_node
-            child_node.depth = depth
+            child_node.depth = depth + 1
+
             if child_node.element_type == 'button':
                 root_node.node_store.buttons.append(child_node)
             elif child_node.element_type == 'text' and child_node.id:
                 root_node.node_store.dynamic_text.append(child_node)
+
             self.init_node_hierarchy(root_node, child_node, depth + 1)
 
     # def set_text(self, node_id, text):

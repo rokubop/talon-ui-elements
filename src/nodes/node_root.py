@@ -32,6 +32,7 @@ class NodeRoot(NodeContainer):
         screen_index = options.screen
         screen = get_screen(screen_index)
         self.root_node = self
+        self.depth = 0
         node_manager.add_root_node(self)
         self.screen_index = screen_index
         self.cursor = Cursor(screen)
