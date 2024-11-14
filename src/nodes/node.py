@@ -4,10 +4,8 @@ from ..options import UIOptions
 from ..core.box_model import BoxModelLayout
 from ..node_manager import node_manager
 from ..state_manager import state_manager
+from ..interfaces import NodeType, NodeEnumType, ElementEnumType
 import uuid
-
-NodeType = Literal['root', 'node', 'leaf']
-ElementType = Literal['button', 'text', 'div', 'input', 'screen', 'window']
 
 NODE_TYPE_MAP = {
     'button': 'leaf',
@@ -18,20 +16,20 @@ NODE_TYPE_MAP = {
     'window': 'root',
 }
 
-class Node(ABC):
+class Node(NodeType):
     def __init__(self,
-            element_type: ElementType,
+            element_type: ElementEnumType,
             options: UIOptions = None,
         ):
         self.options: UIOptions = options or UIOptions()
         self.guid: str = uuid.uuid4().hex
         self.id: str = self.options.id
         self.key: str = self.options.key
-        self.node_type: NodeType = NODE_TYPE_MAP[element_type]
-        self.element_type: ElementType = element_type
+        self.node_type = NODE_TYPE_MAP[element_type]
+        self.element_type: ElementEnumType = element_type
         self.box_model: BoxModelLayout = None
-        self.children_nodes: List['Node'] = []
-        self.parent_node: Optional['Node'] = None
+        self.children_nodes = []
+        self.parent_node = None
         self.is_dirty: bool = False
         self.reactive_state_keys: List[str] = []
         self.root_node = None

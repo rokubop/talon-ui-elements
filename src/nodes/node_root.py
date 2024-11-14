@@ -9,7 +9,7 @@ from ..core.cursor import Cursor
 from ..options import UIOptionsDict, UIOptions
 from ..node_manager import node_manager
 from typing import Literal
-from ..interfaces import NodeRootStateStoreType, NodeRootStoreType
+from ..interfaces import NodeRootType, NodeRootStateStoreType, NodeRootStoreType
 import uuid
 import hashlib
 import pickle
@@ -53,7 +53,7 @@ class NodeRootStateStore(NodeRootStateStoreType):
         self.state_to_effects.clear()
         self.state_to_components.clear()
 
-class NodeRoot(NodeContainer):
+class NodeRoot(NodeContainer, NodeRootType):
     def __init__(self, element_type: RootElementType, options: UIOptions):
         super().__init__(
             element_type=element_type,

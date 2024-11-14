@@ -7,8 +7,9 @@ from itertools import cycle
 from .node import Node
 from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
+from ..interfaces import NodeContainerType
 
-class NodeContainer(Node):
+class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, options: UIOptions = None):
         super().__init__(element_type=element_type, options=options)
         self.scroll_y = 0
