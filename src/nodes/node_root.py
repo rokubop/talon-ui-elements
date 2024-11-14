@@ -9,19 +9,49 @@ from ..core.cursor import Cursor
 from ..options import UIOptionsDict, UIOptions
 from ..node_manager import node_manager
 from typing import Literal
+from ..interfaces import NodeRootStateStoreType, NodeRootStoreType
 import uuid
 import hashlib
 import pickle
 
 RootElementType = Literal['screen', 'window']
 
-class NodeRootStore:
+class NodeRootStore(NodeRootStoreType):
     def __init__(self):
+        self.components = []
         self.buttons = []
         self.inputs = []
         self.dynamic_text = []
         self.highlighted = []
         self.scrollable_regions = []
+
+    def clear(self):
+        self.components.clear()
+        self.buttons.clear()
+        self.inputs.clear()
+        self.dynamic_text.clear()
+        self.highlighted.clear()
+        self.scrollable_regions.clear()
+
+class NodeRootStateStore(NodeRootStateStoreType):
+    def __init__(self):
+        self.effects = []
+        self.state_to_effects = {}
+        self.state_to_components = {}
+
+    def add_effect(self, effect):
+        self.effects.append(effect)
+
+        for state in effect['dependencies']:
+            if state not in self.state_to_effects:
+                self.state_to_effects[state] = []
+
+            self.state_to_effects[state].append(effect)
+
+    def clear(self):
+        self.effects.clear()
+        self.state_to_effects.clear()
+        self.state_to_components.clear()
 
 class NodeRoot(NodeContainer):
     def __init__(self, element_type: RootElementType, options: UIOptions):
@@ -37,6 +67,7 @@ class NodeRoot(NodeContainer):
         self.screen_index = screen_index
         self.cursor = Cursor(screen)
         self.node_store = NodeRootStore()
+        self.state_store = NodeRootStateStore()
         self.canvas_base = None
         self.canvas_decorative = None
         self.dynamic_canvas = None
@@ -151,6 +182,9 @@ class NodeRoot(NodeContainer):
 
             if self.on_mount:
                 self.on_mount()
+
+            for effect in self.state_store.effects:
+                effect['callback']()
 
             current_root_id_render = None
             updating_root_id = None
@@ -467,6 +501,8 @@ class NodeRoot(NodeContainer):
         #     inputs[id].hide()
 
         if destroy:
+            self.node_store.clear()
+            self.state_store.clear()
             # remove_ids = [id for id in ids if ids[id]["root_id"] == self.id]
 
             # for id in remove_ids:

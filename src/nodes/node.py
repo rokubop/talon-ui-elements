@@ -36,7 +36,7 @@ class Node(ABC):
         self.reactive_state_keys: List[str] = []
         self.root_node = None
         self.depth: int = None
-        self.component_node = state_manager.get_active_component()
+        self.component_node = state_manager.get_active_component_node()
 
     def add_child(self, node):
         if isinstance(node, tuple):

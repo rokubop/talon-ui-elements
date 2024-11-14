@@ -1,4 +1,5 @@
 from .global_store import global_store
+from .interfaces import NodeType
 # from .nodes.node import Node
 
 class NodeManager:
@@ -52,7 +53,14 @@ class NodeManager:
 
         global_store.root_nodes.clear()
 
-    def init_node_hierarchy(self, root_node, current_node, depth = 0):
+    # def link_root_node_to_state(self, node, root_node):
+    #     if node.state_key:
+    #         if node.state_key not in global_store.reactive_global_state:
+    #             global_store.reactive_global_state[node.state_key] = []
+
+    #         global_store.reactive_global_state[node.state_key].append(root_node
+
+    def init_node_hierarchy(self, root_node: NodeType, current_node: NodeType, depth = 0):
         for child_node in current_node.children_nodes:
             child_node.root_node = root_node
             child_node.depth = depth + 1
@@ -61,6 +69,13 @@ class NodeManager:
                 root_node.node_store.buttons.append(child_node)
             elif child_node.element_type == 'text' and child_node.id:
                 root_node.node_store.dynamic_text.append(child_node)
+            elif child_node.element_type == 'component':
+                root_node.node_store.components.append(child_node)
+
+                for effect in list(global_store.staged_effects):
+                    if effect['component_node'] == child_node:
+                        root_node.state_store.add_effect(effect)
+                        global_store.staged_effects.remove(effect)
 
             self.init_node_hierarchy(root_node, child_node, depth + 1)
 

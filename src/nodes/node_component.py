@@ -14,9 +14,7 @@ class NodeComponent:
         self.func = func
         self.options: UIOptions = UIOptions()
         self.inner_node = None
-
-        self.state = {}
-        self.effects = []
+        self.is_initialized = False
 
         self.children_nodes  = []
         self.parent_node = None
@@ -33,10 +31,10 @@ class NodeComponent:
 
     def with_active_component(func):
         def wrapper(self, *args, **kwargs):
-            state_manager.set_active_component(self)
+            state_manager.set_active_component_node(self)
             result = func(self, *args, **kwargs)
             self.adopt_inner_node_attributes(self.inner_node)
-            state_manager.set_active_component(None)
+            state_manager.set_active_component_node(None)
             return result
         return wrapper
 
@@ -45,6 +43,7 @@ class NodeComponent:
         self.inner_node = self.func()
         self.children_nodes.append(self.inner_node)
         self.inner_node.parent_node = self
+        self.is_initialized = True
 
     @with_active_component
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):

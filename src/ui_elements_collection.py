@@ -317,11 +317,13 @@ def component(func):
         return NodeComponent(func)
     return create_node_component
 
-# def use_effect(func, deps):
-#     active_component = state_manager.get_active_component()
-#     if not active_component:
-#         raise ValueError("use_effect() must be called within a @component decorated function.")
-#     state_manager.register_something...
+def use_effect(callback, state_dependencies: list[str] = []):
+    active_component = state_manager.get_active_component_node()
+    if not active_component:
+        raise ValueError("use_effect() must be called within a @component decorated function.")
+
+    if not active_component.is_initialized:
+        state_manager.register_effect(active_component, callback, state_dependencies)
 
 def div(props=None, **additional_props):
     options = get_props(props, additional_props)
