@@ -14,6 +14,7 @@ NODE_TYPE_MAP = {
     'input': 'leaf',
     'screen': 'root',
     'window': 'root',
+    'component': 'component'
 }
 
 class Node(NodeType):
@@ -25,13 +26,12 @@ class Node(NodeType):
         self.guid: str = uuid.uuid4().hex
         self.id: str = self.options.id
         self.key: str = self.options.key
-        self.node_type = NODE_TYPE_MAP[element_type]
+        self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
         self.box_model: BoxModelLayout = None
         self.children_nodes = []
         self.parent_node = None
         self.is_dirty: bool = False
-        self.reactive_state_keys: List[str] = []
         self.root_node = None
         self.depth: int = None
         self.component_node = state_manager.get_active_component_node()
