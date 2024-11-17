@@ -1,8 +1,24 @@
+from talon.canvas import Canvas
 from typing import Callable, List, Optional, TypedDict, Any, Union, Literal
 from abc import ABC, abstractmethod
 
 NodeEnumType = Literal['root', 'node', 'leaf', 'component']
 ElementEnumType = Literal['button', 'text', 'div', 'input', 'screen', 'window', 'component']
+
+class CursorType:
+    x: int
+    y: int
+    virtual_x: int
+    virtual_y: int
+
+    def move_to(self, x: int, y: int):
+        pass
+
+    def virtual_move_to(self, x: int, y: int):
+        pass
+
+    def reset(self):
+        pass
 
 class EffectType(TypedDict):
     name: str
@@ -47,7 +63,7 @@ class NodeRootStateStoreType(ABC):
     def clear(self):
         pass
 
-class NodeRootStoreType(ABC):
+class TreeNodeRefsType(ABC):
     components: List['NodeType']
     buttons: List['NodeType']
     inputs: List['NodeType']
@@ -197,6 +213,68 @@ class NodeContainerType(NodeType):
     def hide(self):
         pass
 
+# actions.user.ui_elements_show(ui)
+# def ui_elements_show(ui):
+#   tree_manager.render(ui)
+
+class TreeType(ABC):
+    canvas_base: Canvas
+    canvas_decorator: Canvas
+    canvas_mouse: Canvas
+    cursor: CursorType
+    effects: List[EffectType]
+    surfaces: List[object]
+    update_tree: callable
+    update_tree_hash: str
+    root_node: NodeType
+    node_refs: TreeNodeRefsType
+    is_mounted: bool
+
+    @abstractmethod
+    def __init__(self, update_tree: callable, update_tree_hash: str):
+        pass
+
+    @abstractmethod
+    def render(self):
+        pass
+
+    @abstractmethod
+    def destroy(self):
+        pass
+
+class TreeManagerType(ABC):
+    trees: List[TreeType]
+    processing_tree: Optional[TreeType]
+
+    @abstractmethod
+    def render(self, update_tree: callable):
+        # hash = generate_hash_id_for_updater(update_tree)
+        # iterate trees to check hash
+        # for tree in trees:
+        #   if tree.update_tree_hash_id != hash:
+        #     tree.process_tree(update_tree)
+        pass
+
+    @abstractmethod
+    def get_tree_with_hash(self, hash: str):
+        pass
+
+    @abstractmethod
+    def generate_hash_for_updater(self, update_tree: callable):
+        pass
+
+
+    @abstractmethod
+    def set_processing_tree(self, tree: TreeType):
+        pass
+
+    @abstractmethod
+    def destroy_all(self):
+        pass
+
+class NodeScreenType(NodeContainerType):
+    screen_index: int
+
 class NodeRootType(NodeContainerType):
     blockable_canvases: List[object]
     canvas_base: object
@@ -208,7 +286,7 @@ class NodeRootType(NodeContainerType):
     highlight_color: str
     is_blockable_canvas_init: bool
     is_mounted: bool
-    node_store: NodeRootStoreType
+    node_store: TreeNodeRefsType
     render_busy: bool
     root_node: object
     screen_index: int

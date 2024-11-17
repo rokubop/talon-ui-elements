@@ -1,7 +1,8 @@
 from talon import Module, actions
 from ..src.actions import ui_elements_new
-from ..src.node_manager import node_manager
-from ..src.state_manager import state_manager
+from ..src.global_store import global_store
+from ..src.tree_manager import tree_manager
+import traceback
 
 mod = Module()
 
@@ -28,37 +29,7 @@ def test_truthy(test_name, actual):
         print(f"❌ {test_name}")
         print(f"Expected True but got False")
 
-def outside_component():
-    el = ["div", "text", "component", "use_effect"]
-    (div, text, component, use_effect) = ui_elements_new(el)
-
-    @component
-    def hello_world():
-        def on_mount():
-            root_nodes = node_manager.get_root_nodes()
-            all_nodes = node_manager.get_all_nodes()
-            root_node = all_nodes[0]
-            component_node = all_nodes[1]
-            div_node = all_nodes[2]
-            text_node = all_nodes[2]
-
-            test("Global global_store should have 1 root node", 1, len(root_nodes))
-            test("Root node should have 4 nodes", 4, len(all_nodes))
-            test("div should have reference to component node", component_node, div_node.component_node)
-            test("div should have reference to root node", root_node, div_node.root_node)
-            test("active component should not be active outside of render cycle", state_manager.get_active_component_node(), None)
-            test("root node should have 1 effect", 1, len(root_node.state_store.effects))
-            test("root node should have named effects", "on_mount", root_node.state_store.effects[0]["name"])
-
-        use_effect(on_mount, [])
-
-        return div(background_color="green", padding=16, border_radius=16, border_width=1)[
-            text("Component", color="red", font_size=24)
-        ]
-
-    return hello_world()
-
-# def outside_component():
+# def some_component():
 #     el = ["div", "text", "screen", "Component"]
 #     (div, text, screen, Component) = ui_elements_new(el)
 
@@ -84,7 +55,7 @@ def outside_component():
 
     # return hello_world()
 
-# def outside_component():
+# def some_component():
 #     el = ["div", "text", "screen", "component", "use_effect"]
 #     (div, text, screen, component, use_effect) = ui_elements_new(el)
 
@@ -110,78 +81,172 @@ def outside_component():
 #         text("Component", color="red", font_size=24)
 #     ]
 
-@test_module
-def test_component():
-    (div, screen) = ui_elements_new(["div", "screen"])
+# def tabs(active_tab, set_active_tab):
+#     (div, text) = ui_elements_new(["div", "text"])
 
-    ui = screen(justify_content="center", align_items="center")[
-        outside_component()
-    ]
+#     return div(flex_direction="column")[
+#         div(background_color=("00FF00" if active_tab == 0 else "FF0000"), on_click=lambda: set_active_tab(0))[text("Tab 1")],
+#         div(background_color=("00FF00" if active_tab == 1 else "FF0000"), on_click=lambda: set_active_tab(1))[text("Tab 2")],
+#         div(background_color=("00FF00" if active_tab == 2 else "FF0000"), on_click=lambda: set_active_tab(2))[text("Tab 3")]
+#     ]
 
-    actions.user.ui_elements_show(ui)
+# def body(active_tab):
+#     (div, text) = ui_elements_new(["div", "text"])
 
-@test_module
-def test_hello_world():
-    (div, text, screen) = ui_elements_new(["div", "text", "screen"])
+#     return div(width=500, height=500)[
+#         text(active_tab)
+#     ]
+
+# class HelloWorld:
+#     def __init__(self):
+#         self.active_tab = 0
+
+#     def on_mount(self):
+#         print("hello world")
+
+#     def on_unmount(self):
+#         print("see you later!")
+
+#     def render(self):
+#         (div, screen) = ui_elements_new(["div", "screen"])
+#         return screen(justify_content="center", align_items="center")[
+#             tabs(self.active_tab, self.set_active_tab),
+#             body(self.active_tab)
+#         ]
+
+# actions.user.ui_elements_show(HelloWorld)
+
+# class HelloWorld:
+#     def on_mount(self):
+#         print("hello world")
+
+#     def on_unmount(self):
+#         print("see you later!")
+
+#     def render(self):
+#         (div, screen, text) = ui_elements_new(["div", "screen", "text"])
+
+#         return screen(justify_content="center", align_items="center")[
+#             div(background_color="white", padding=16, border_radius=16, border_width=1)[
+#                 text("Hello world", color="red", font_size=24)
+#             ]
+#         ]
+
+# def some_component():
+#     (div, text, component, use_effect) = ui_elements_new(["div", "text", "component", "use_effect"])
+
+#     # use_effect(lambda: print("hello world"), [])
+
+#     # return div(background_color="green", padding=16, border_radius=16, border_width=1)[
+#     #     text("Component", color="red", font_size=24)
+#     # ]
+
+#     # print("".join(traceback.format_stack()))
+
+#     # caller_frame = inspect.stack()
+#     # print("caller_frame:", caller_frame)
+#     # caller_name = caller_frame.function
+#     # print("caller_name:", caller_name)
+
+#     @component
+#     def render():
+#         use_effect(lambda: print("hello world"), [])
+
+#         return div(background_color="green", padding=16, border_radius=16, border_width=1)[
+#             text("Component", color="red", font_size=24)
+#         ]
+
+#     return render()
+
+# @test_module
+# def test_component():
+
+#     def ui():
+#         (div, screen, text) = ui_elements_new(["div", "screen", "text"])
+
+#         return screen(justify_content="center", align_items="center")[
+#             some_component()
+#         ]
+
+#     actions.user.ui_elements_show(ui)
+
+def hello_world_ui():
+    (div, text, screen, use_effect) = ui_elements_new(["div", "text", "screen", "use_effect"])
 
     def on_mount():
-        root_nodes = node_manager.get_root_nodes()
-        all_nodes = node_manager.get_all_nodes()
-        root_node = all_nodes[0]
-        div_node = all_nodes[1]
-        text_node = all_nodes[2]
+        trees = tree_manager.get_all_trees()
+        nodes = tree_manager.get_all_nodes()
+        screen_node = nodes[0]
+        div_node = nodes[1]
+        text_node = nodes[2]
 
-        test("Global global_store should have 1 root node", 1, len(root_nodes))
-        test("Root node should have 3 nodes", 3, len(all_nodes))
-        test("div should have correct padding", 16, div_node.box_model.padding_spacing.top)
+        # --- Tree Structure Tests ---
+        test("Global global_store should have 1 tree", 1, len(trees))
+        tree = trees[0]
+        test_truthy("Tree should have a root nodes", tree.root_node)
+        test("Tree's root node should be screen", screen_node, tree.root_node)
+        test("Tree should have 3 nodes", 3, len(nodes))
+
+        # --- Node Attributes Tests ---
+        test("screen should have screen element type", "screen", screen_node.element_type)
+        test("screen should have root node type", "root", screen_node.node_type)
         test("div should have div element type", "div", div_node.element_type)
         test("div should have node type", "node", div_node.node_type)
         test("text should have text element type", "text", text_node.element_type)
         test("text should have leaf node type", "leaf", text_node.node_type)
-        test("screen should have screen element type", "screen", root_node.element_type)
-        test("screen should have root node type", "root", root_node.node_type)
+
+        # --- Node Hierarchy Tests ---
         test("div should have 1 children node", 1, len(div_node.children_nodes))
         test_truthy("div should have 1 parent node", div_node.parent_node)
-        test("divs parent and screen should be the same", div_node.parent_node, root_node)
-        test("root should have depth 0", 0, root_node.depth)
+        test("divs parent and screen should be the same", div_node.parent_node, screen_node)
+        test("root should have depth 0", 0, screen_node.depth)
         test("div should have depth 1", 1, div_node.depth)
         test("text should have depth 2", 2, text_node.depth)
-        test("div should have reference to root_node", root_node, div_node.root_node)
-        test("text should have reference to root_node", root_node, text_node.root_node)
 
-    # use_effect(on_mount, [])
+        # --- Styling Tests ---
+        test("div should have correct padding", 16, div_node.box_model.padding_spacing.top)
+        test("div should have reference to tree", tree, div_node.tree)
 
-    ui = screen(justify_content="center", align_items="center")[
+        # --- Node and Tree References Tests ---
+        test("screen should have reference to tree", tree, screen_node.tree)
+        test("div should have reference to tree", tree, div_node.tree)
+        test("text should have reference to tree", tree, text_node.tree)
+
+    use_effect(on_mount, [])
+
+    return screen(justify_content="center", align_items="center")[
         div(background_color="white", padding=16, border_radius=16, border_width=1)[
             text("Hello world", color="red", font_size=24),
         ]
     ]
-    # actions.user.ui_elements_show(ui)
-    ui.show(on_mount)
 
 @test_module
-def test_button():
-    (div, button, screen) = ui_elements_new(["div", "button", "screen"])
+def test_hello_world():
+    actions.user.ui_elements_show(hello_world_ui)
 
-    def on_mount():
-        root_nodes = node_manager.get_root_nodes()
-        test("Global global_store should have 1 root node", 1, len(root_nodes))
+# @test_module
+# def test_button():
+#     (div, button, screen) = ui_elements_new(["div", "button", "screen"])
 
-        all_nodes = node_manager.get_all_nodes()
-        root_node = root_nodes[0]
-        buttons = node_manager.get_button_nodes(root_node)
-        test("State should have 3 nodes", 3, len(all_nodes))
-        test("State should have 1 button", 1, len(buttons))
+#     def on_mount():
+#         root_nodes = node_manager.get_root_nodes()
+#         test("Global global_store should have 1 root node", 1, len(root_nodes))
 
-        test("button should have element type button", "button", buttons[0].element_type)
-        test("button should have node type leaf", "leaf", buttons[0].node_type)
+#         all_nodes = node_manager.get_all_nodes()
+#         root_node = root_nodes[0]
+#         buttons = node_manager.get_button_nodes(root_node)
+#         test("State should have 3 nodes", 3, len(all_nodes))
+#         test("State should have 1 button", 1, len(buttons))
 
-    ui = screen(justify_content="center", align_items="center")[
-        div(background_color="white", padding=16, border_radius=16, border_width=1)[
-            button("Click me", on_click=lambda: print("hello"), background_color="blue", font_size=24),
-        ]
-    ]
-    ui.show(on_mount)
+#         test("button should have element type button", "button", buttons[0].element_type)
+#         test("button should have node type leaf", "leaf", buttons[0].node_type)
+
+#     ui = screen(justify_content="center", align_items="center")[
+#         div(background_color="white", padding=16, border_radius=16, border_width=1)[
+#             button("Click me", on_click=lambda: print("hello"), background_color="blue", font_size=24),
+#         ]
+#     ]
+#     ui.show(on_mount)
 
 def create_test_runner():
     return (test_fn for test_fn in test_cases)
@@ -423,3 +488,33 @@ class Actions:
 
 # test("Div should have correct padding", 885.0, div_node.box_model.margin_rect.x)
 # test("Div should have correct padding", 516.0, div_node.box_model.margin_rect.y)
+
+# def dpad():
+#     (div, text, screen, use_effect) = ui_elements_new(["div", "text", "screen", "use_effect"])
+
+#     def on_mount():
+#         print("hello world")
+
+#     use_effect(on_mount, [])
+
+#     return div(background_color="white", padding=16, border_radius=16, border_width=1)[
+#         text("Hello world", color="red", font_size=24),
+#     ]
+
+# def render():
+#     (div, text, screen, use_effect) = ui_elements_new(["div", "text", "screen", "use_effect"])
+
+#     def on_mount():
+#         print("hello world")
+
+#     use_effect(on_mount, [])
+
+#     return screen(justify_content="center", align_items="center")[
+#         div(background_color="white", padding=16, border_radius=16, border_width=1)[
+#             text("Hello world", color="red", font_size=24),
+#             dpad(),
+#         ]
+#     ]
+
+# def show_ui():
+#     actions.user.ui_elements_show(render)

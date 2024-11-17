@@ -26,6 +26,8 @@ class ReactiveState(ReactiveStateType):
 
 class GlobalStore(GlobalStoreType):
     def __init__(self):
+        self.trees = []
+        self.processing_tree = None
         self.root_nodes = []
         self.id_nodes = {}
         self.active_component = None

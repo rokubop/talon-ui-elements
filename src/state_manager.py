@@ -1,10 +1,13 @@
 from .global_store import global_store
-from .interfaces import EffectType
-
-
+from .interfaces import EffectType, TreeType
 
 class StateManager:
-    #
+    def set_processing_tree(self, tree: TreeType):
+        global_store.processing_tree = tree
+
+    def get_processing_tree(self) -> TreeType:
+        return global_store.processing_tree
+
     def get_active_component_node(self):
         return global_store.active_component
 
@@ -17,12 +20,12 @@ class StateManager:
     # def set_state_value(self, key, value):
     #     global_store.reactive_global_state[key] = value
 
-    def register_effect(self, component, callback, dependencies):
+    def register_effect(self, tree, callback, dependencies):
         effect: EffectType = {
             'name': callback.__name__,
             'callback': callback,
             'dependencies': dependencies,
-            'component_node': component
+            'tree': tree
         }
         global_store.staged_effects.append(effect)
 

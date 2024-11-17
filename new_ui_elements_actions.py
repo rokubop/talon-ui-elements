@@ -7,14 +7,15 @@ from typing import List, Dict, Any
 # )
 from .src.actions import ui_elements_new
 from .src.node_manager import node_manager
+from .src.tree import tree_manager
 
 mod = Module()
 
 @mod.action_class
 class Actions:
-    def ui_elements_show(ui: Any):
+    def ui_elements_show(ui: callable):
         """Render and show the UI"""
-        ui.show()
+        tree_manager.render(ui)
 
     def ui_elements_new(elements: List[str]) -> tuple[callable]:
         """
@@ -54,4 +55,4 @@ class Actions:
 
     def ui_elements_new_hide_all():
         """Hide all UI elements"""
-        node_manager.hide_all()
+        tree_manager.hide_all()

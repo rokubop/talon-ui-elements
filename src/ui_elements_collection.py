@@ -1,8 +1,9 @@
 from talon.screen import Screen
 from .nodes.node_container import NodeContainer
 from .nodes.node_text import NodeText
-from .nodes.node_root import NodeRoot
+# from .nodes.node_root import NodeRoot
 from .nodes.node_component import NodeComponent
+from .nodes.node_screen import NodeScreen
 from .options import UIOptions, NodeTextOptions, UIProps, UIOptionsDict, NodeTextOptionsDict, UIInputTextOptionsDict
 from dataclasses import dataclass, fields
 from .utils import get_screen
@@ -304,7 +305,7 @@ def screen(*args, **additional_props):
     options["width"] = ref_screen.width
     options["height"] = ref_screen.height
 
-    root = NodeRoot(
+    root = NodeScreen(
         "screen",
         UIOptions(**options)
     )
@@ -318,12 +319,12 @@ def component(func):
     return create_node_component
 
 def use_effect(callback, state_dependencies: list[str] = []):
-    active_component = state_manager.get_active_component_node()
-    if not active_component:
+    tree = state_manager.get_processing_tree()
+    if not tree:
         raise ValueError("use_effect() must be called within a @component decorated function.")
 
-    if not active_component.is_initialized:
-        state_manager.register_effect(active_component, callback, state_dependencies)
+    if not tree.is_mounted:
+        state_manager.register_effect(tree, callback, state_dependencies)
 
 def div(props=None, **additional_props):
     options = get_props(props, additional_props)
