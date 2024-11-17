@@ -7,7 +7,7 @@
 # from ..utils import get_screen, canvas_from_screen, draw_text_simple
 # from ..core.cursor import Cursor
 # from ..options import UIOptionsDict, UIOptions
-# from ..node_manager import node_manager
+# from ..managers import entity_manager
 # from typing import Literal
 # from ..interfaces import NodeRootType, NodeRootStateStoreType, NodeRootStoreType
 # import uuid
@@ -63,7 +63,7 @@
 #         screen = get_screen(screen_index)
 #         self.root_node = self
 #         self.depth = 0
-#         node_manager.add_root_node(self)
+#         entity_manager.add_root_node(self)
 #         self.screen_index = screen_index
 #         self.cursor = Cursor(screen)
 #         self.node_store = NodeRootStore()
@@ -290,7 +290,7 @@
 #         global hash_id_map
 #         self.generate_hash_from_tree()
 
-#         for node in node_manager.get_root_nodes():
+#         for node in entity_manager.get_root_nodes():
 #             if node.hash == self.hash:
 #                 node.hide(destroy=False)
 

@@ -1,11 +1,10 @@
 from abc import ABC
 from typing import List, Literal, Optional
-from ..options import UIOptions
-from ..core.box_model import BoxModelLayout
-from ..node_manager import node_manager
-from ..state_manager import state_manager
-from ..interfaces import NodeType, NodeEnumType, ElementEnumType
 import uuid
+from ..core.box_model import BoxModelLayout
+from ..interfaces import NodeType, NodeEnumType, ElementEnumType
+from ..managers import entity_manager, state_manager
+from ..options import UIOptions
 
 NODE_TYPE_MAP = {
     'button': 'leaf',
@@ -58,8 +57,8 @@ class Node(NodeType):
         for node in children_nodes:
             self.add_child(node)
 
-        if self.node_type == 'root':
-            node_manager.init_node_hierarchy(self, self)
+        # if self.node_type == 'root':
+        #     entity_manager.init_node_hierarchy(self, self)
 
         return self
 
@@ -70,7 +69,8 @@ class Node(NodeType):
                 node.invalidate()
 
     def destroy(self):
-        node_manager.remove_node(self)
+        pass
+        # entity_manager.remove_node(self)
 
     def show(self):
         raise NotImplementedError(f"{self.element_type} cannot use .show() directly.")

@@ -1,13 +1,13 @@
-from .state_manager import state_manager
-from .options import UIOptions
 from talon.skia.canvas import Canvas as SkiaCanvas
-from .core.cursor import Cursor
 from talon.canvas import Canvas
 from talon.screen import Screen
-from .global_store import global_store
 from typing import List, Optional
-from .interfaces import TreeType, TreeManagerType, NodeType
-from .utils import get_screen, canvas_from_screen, draw_text_simple
+from ..core.cursor import Cursor
+from ..interfaces import TreeType, TreeManagerType, NodeType
+from ..managers import state_manager, entity_manager
+from ..options import UIOptions
+from ..store import store
+from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_simple
 
 import uuid
 
@@ -112,12 +112,13 @@ class Tree(TreeType):
     def render(self):
         self.render_base_canvas()
 
+    def hide(self):
+        self.destroy()
+
     def on_fully_rendered(self):
         if not self.is_mounted:
-            print("Tree is mounted")
             self.is_mounted = True
 
-            print(f"effects: {self.effects}")
             for effect in self.effects:
                 effect['callback']()
 
@@ -154,7 +155,21 @@ class Tree(TreeType):
             self.init_node_hierarchy(child_node, depth + 1)
 
     def consume_effects(self):
-        for effect in list(global_store.staged_effects):
+        for effect in list(store.staged_effects):
             if effect['tree'] == self:
                 self.effects.append(effect)
-                global_store.staged_effects.remove(effect)
+                store.staged_effects.remove(effect)
+
+def render_tree(update_tree: callable):
+    hash = generate_hash(update_tree)
+    tree = None
+    for t in entity_manager.get_all_trees():
+        if t.hashed_update_tree == hash:
+            tree = t
+            break
+
+    if not tree:
+        tree = Tree(update_tree, hash)
+        entity_manager.add_tree(tree)
+
+    tree.render()

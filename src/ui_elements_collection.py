@@ -1,14 +1,20 @@
-from talon.screen import Screen
-from .nodes.node_container import NodeContainer
-from .nodes.node_text import NodeText
-# from .nodes.node_root import NodeRoot
-from .nodes.node_component import NodeComponent
-from .nodes.node_screen import NodeScreen
-from .options import UIOptions, NodeTextOptions, UIProps, UIOptionsDict, NodeTextOptionsDict, UIInputTextOptionsDict
 from dataclasses import dataclass, fields
-from .utils import get_screen
 from typing import TypedDict, Optional, get_origin, get_args, Union
-from .state_manager import state_manager
+from talon.screen import Screen
+from .entities.node_component import NodeComponent
+from .entities.node_container import NodeContainer
+from .entities.node_screen import NodeScreen
+from .entities.node_text import NodeText
+from .managers import state_manager
+from .options import (
+    UIOptions,
+    NodeTextOptions,
+    UIProps,
+    UIOptionsDict,
+    NodeTextOptionsDict,
+    UIInputTextOptionsDict,
+)
+from .utils import get_screen
 
 @dataclass
 class BoxModelSpacing:

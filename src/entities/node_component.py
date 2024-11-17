@@ -1,9 +1,9 @@
-from ..state_manager import state_manager
-from ..options import UIOptions
+import uuid
 from talon.skia.canvas import Canvas as SkiaCanvas
 from ..core.cursor import Cursor
 from ..interfaces import NodeComponentType
-import uuid
+from ..managers import state_manager
+from ..options import UIOptions
 
 class NodeComponent(NodeComponentType):
     def __init__(self, func):

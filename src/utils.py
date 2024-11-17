@@ -1,6 +1,7 @@
 from talon import ui
 from talon.canvas import Canvas
 from talon.screen import Screen
+from typing import Any
 
 def draw_text_simple(c, text, options, x, y):
     c.paint.color = options.color
@@ -13,3 +14,6 @@ def get_screen(index: int = None) -> Screen:
 
 def canvas_from_screen(screen: Screen) -> Canvas:
     return Canvas.from_screen(screen)
+
+def generate_hash(callable: callable) -> str:
+    return "asdf"

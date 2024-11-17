@@ -6,8 +6,8 @@ from typing import List, Dict, Any
 #     screen,
 # )
 from .src.actions import ui_elements_new
-from .src.node_manager import node_manager
-from .src.tree import tree_manager
+from .src.managers import entity_manager
+from .src.entities.tree import render_tree
 
 mod = Module()
 
@@ -15,7 +15,7 @@ mod = Module()
 class Actions:
     def ui_elements_show(ui: callable):
         """Render and show the UI"""
-        tree_manager.render(ui)
+        render_tree(ui)
 
     def ui_elements_new(elements: List[str]) -> tuple[callable]:
         """
@@ -55,4 +55,4 @@ class Actions:
 
     def ui_elements_new_hide_all():
         """Hide all UI elements"""
-        tree_manager.hide_all()
+        entity_manager.hide_all_trees()

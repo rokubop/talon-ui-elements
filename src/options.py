@@ -1,7 +1,7 @@
-from typing import Optional, TypedDict
-from .core.box_model import Border, Margin, Padding, parse_box_model
 from dataclasses import dataclass, fields
+from typing import Optional, TypedDict
 from typing import TypedDict, Optional, get_origin, get_args
+from .core.box_model import Border, Margin, Padding, parse_box_model
 
 class UIOptions:
     id: str = None

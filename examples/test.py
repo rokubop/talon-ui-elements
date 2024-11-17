@@ -76,9 +76,7 @@ def refresh_drawing():
     global draw_busy, draw_busy_job, canvas
     if canvas and not draw_busy:
         draw_busy = True
-        # print(f"refreshing start {time.time()}")
         canvas.freeze()
-        # print(f"refreshing end {time.time()}")
         draw_busy_job = cron.after("16ms", draw_throttled)
 
 

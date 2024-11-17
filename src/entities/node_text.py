@@ -1,15 +1,15 @@
 from dataclasses import dataclass
-from ..options import UIOptions, UIOptionsDict
+from itertools import cycle
+from talon.skia import RoundRect
+from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.types import Rect
+from typing import Literal
 from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
-from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.skia import RoundRect
-from talon.types import Rect
-from itertools import cycle
-from .node import Node
+from ..options import UIOptions, UIOptionsDict
 from ..utils import draw_text_simple
-from typing import Literal
-from ..node_manager import node_manager
+from .node import Node
+# from ..managers import entity_manager
 
 @dataclass
 class NodeTextOptions(UIOptions):

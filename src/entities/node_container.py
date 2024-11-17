@@ -1,13 +1,14 @@
 from itertools import cycle
-from ..options import UIOptions
-from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.skia import RoundRect
-from talon.types import Rect, Point2d
 from itertools import cycle
-from .node import Node
+from talon.skia import RoundRect
+from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.types import Rect, Point2d
 from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
 from ..interfaces import NodeContainerType
+from ..options import UIOptions
+from .node import Node
+
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, options: UIOptions = None):

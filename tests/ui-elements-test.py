@@ -1,7 +1,7 @@
 from talon import Module, actions
 from ..src.actions import ui_elements_new
-from ..src.global_store import global_store
-from ..src.tree_manager import tree_manager
+from ..src.store import store
+from ..src.managers import entity_manager
 import traceback
 
 mod = Module()
@@ -60,14 +60,14 @@ def test_truthy(test_name, actual):
 #     (div, text, screen, component, use_effect) = ui_elements_new(el)
 
 #     def on_mount():
-#         root_nodes = node_manager.get_root_nodes()
-#         all_nodes = node_manager.get_all_nodes()
+#         root_nodes = entity_manager.get_root_nodes()
+#         all_nodes = entity_manager.get_all_nodes()
 #         root_node = all_nodes[0]
 #         component_node = all_nodes[1]
 #         div_node = all_nodes[2]
 #         text_node = all_nodes[2]
 
-#         test("Global global_store should have 1 root node", 1, len(root_nodes))
+#         test("Global store should have 1 root node", 1, len(root_nodes))
 #         test("Root node should have 4 nodes", 4, len(all_nodes))
 #         test("div should have reference to component node", component_node, div_node.component_node)
 #         test("div should have reference to root node", root_node, div_node.root_node)
@@ -174,14 +174,14 @@ def hello_world_ui():
     (div, text, screen, use_effect) = ui_elements_new(["div", "text", "screen", "use_effect"])
 
     def on_mount():
-        trees = tree_manager.get_all_trees()
-        nodes = tree_manager.get_all_nodes()
+        trees = entity_manager.get_all_trees()
+        nodes = entity_manager.get_all_nodes()
         screen_node = nodes[0]
         div_node = nodes[1]
         text_node = nodes[2]
 
         # --- Tree Structure Tests ---
-        test("Global global_store should have 1 tree", 1, len(trees))
+        test("Global store should have 1 tree", 1, len(trees))
         tree = trees[0]
         test_truthy("Tree should have a root nodes", tree.root_node)
         test("Tree's root node should be screen", screen_node, tree.root_node)
@@ -229,12 +229,12 @@ def test_hello_world():
 #     (div, button, screen) = ui_elements_new(["div", "button", "screen"])
 
 #     def on_mount():
-#         root_nodes = node_manager.get_root_nodes()
-#         test("Global global_store should have 1 root node", 1, len(root_nodes))
+#         root_nodes = entity_manager.get_root_nodes()
+#         test("Global store should have 1 root node", 1, len(root_nodes))
 
-#         all_nodes = node_manager.get_all_nodes()
+#         all_nodes = entity_manager.get_all_nodes()
 #         root_node = root_nodes[0]
-#         buttons = node_manager.get_button_nodes(root_node)
+#         buttons = entity_manager.get_button_nodes(root_node)
 #         test("State should have 3 nodes", 3, len(all_nodes))
 #         test("State should have 1 button", 1, len(buttons))
 
@@ -308,9 +308,9 @@ class Actions:
 #         color, set_color = state("color", "red")
 
 #         def on_mount():
-#             test("State should have 3 nodes", 3, len(global_store.nodes))
-#             test("State should have 1 root", 1, len(global_store.root_nodes))
-#             nodes = list(global_store.nodes.values())
+#             test("State should have 3 nodes", 3, len(store.nodes))
+#             test("State should have 1 root", 1, len(store.root_nodes))
+#             nodes = list(store.nodes.values())
 #             div_node = nodes[1]
 #             text_node = nodes[2]
 #             test("Div should have correct padding", 16, div_node.box_model.padding_spacing.top)
@@ -419,9 +419,9 @@ class Actions:
 #         color, set_color = state("color", "red")
 
 #         def on_mount():
-#             test("State should have 3 nodes", 3, len(global_store.nodes))
-#             test("State should have 1 root", 1, len(global_store.root_nodes))
-#             nodes = list(global_store.nodes.values())
+#             test("State should have 3 nodes", 3, len(store.nodes))
+#             test("State should have 1 root", 1, len(store.root_nodes))
+#             nodes = list(store.nodes.values())
 #             div_node = nodes[1]
 #             text_node = nodes[2]
 #             test("Div should have correct padding", 16, div_node.box_model.padding_spacing.top)

@@ -1,6 +1,6 @@
-from talon.canvas import Canvas
-from typing import Callable, List, Optional, TypedDict, Any, Union, Literal
 from abc import ABC, abstractmethod
+from typing import Callable, List, Optional, TypedDict, Any, Union, Literal
+from talon.canvas import Canvas
 
 NodeEnumType = Literal['root', 'node', 'leaf', 'component']
 ElementEnumType = Literal['button', 'text', 'div', 'input', 'screen', 'window', 'component']
