@@ -1,5 +1,5 @@
 from talon import Module, actions
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 # from .src.elements.index import (
 #     div,
 #     text,
@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 # )
 from .src.actions import ui_elements_new
 from .src.managers import entity_manager
+from .src.state_manager import state_manager
 from .src.entities.tree import render_tree
 
 mod = Module()
@@ -56,3 +57,7 @@ class Actions:
     def ui_elements_new_hide_all():
         """Hide all UI elements"""
         entity_manager.hide_all_trees()
+
+    def ui_elements_new_set_state(name: str, value: Union[Any, callable]):
+        """set any arbitrary state which will automatically rerender"""
+        state_manager.set_state_value(name, value)

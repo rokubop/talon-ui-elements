@@ -1,11 +1,11 @@
 from dataclasses import dataclass, fields
-from typing import TypedDict, Optional, get_origin, get_args, Union
+from typing import TypedDict, Optional, get_origin, get_args, Any
 from talon.screen import Screen
 from .entities.node_component import NodeComponent
 from .entities.node_container import NodeContainer
 from .entities.node_screen import NodeScreen
 from .entities.node_text import NodeText
-from .managers import state_manager
+from .state_manager import state_manager
 from .options import (
     UIOptions,
     NodeTextOptions,
@@ -324,10 +324,25 @@ def component(func):
         return NodeComponent(func)
     return create_node_component
 
+def use_state(key: str, initial_state: Any = None):
+    tree = state_manager.get_processing_tree()
+    if not tree:
+        raise ValueError("""
+            use_state() must be called during render of a tree, such as during ui_elements_show(ui).
+            If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+            actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+        """)
+
+    return state_manager.use_state(key, initial_state)
+
+
 def use_effect(callback, state_dependencies: list[str] = []):
     tree = state_manager.get_processing_tree()
     if not tree:
-        raise ValueError("use_effect() must be called within a @component decorated function.")
+        raise ValueError("""
+            use_effect() must be called during render of a tree, such as during ui_elements_show(ui).
+            For mounting, you can also optionally use ui_elements_show(ui, on_mount=callback)
+        """)
 
     if not tree.is_mounted:
         state_manager.register_effect(tree, callback, state_dependencies)

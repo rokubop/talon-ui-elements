@@ -26,17 +26,33 @@ class EffectType(TypedDict):
     dependencies: Optional[List[str]]
     component_node: Optional[object]
 
-class ReactiveStateType(ABC):
-    value: Any
-    subscriber_root_nodes: List[object]
-    next_state_queue: List[Any]
+StateValueType = Union[int, float, str, bool, dict, list, None]
+StateValueOrCallableType = Union[StateValueType, callable[[StateValueType], StateValueType]]
 
-    @abstractmethod
-    def set_value(self, value: Any):
+class ReactiveStateType(ABC):
+    _initial_value: StateValueType
+    _value: StateValueType
+    subscriber_trees: List['TreeType']
+    next_state_queue: List[StateValueOrCallableType]
+
+    @property
+    def initial_value(self) -> StateValueType:
+        pass
+
+    @property
+    def value(self) -> StateValueType:
         pass
 
     @abstractmethod
-    def add_subscriber(self, root_node: object):
+    def resolve_value(self, value_or_callable: StateValueOrCallableType) -> StateValueType:
+        pass
+
+    @abstractmethod
+    def set_initial_value(self, value: StateValueType):
+        pass
+
+    @abstractmethod
+    def set_value(self, value_or_callable: StateValueOrCallableType):
         pass
 
     @abstractmethod
@@ -44,10 +60,12 @@ class ReactiveStateType(ABC):
         pass
 
 class GlobalStoreType(ABC):
+    trees: List['TreeType']
+    processing_tree: Optional['TreeType']
     root_nodes: dict[str, dict]
     id_nodes: dict[str, dict]
     active_component: Optional[str]
-    reactive_global_state: dict[str, ReactiveStateType]
+    state: dict[str, ReactiveStateType]
     staged_effects: List[EffectType]
 
 class NodeRootStateStoreType(ABC):
@@ -224,14 +242,14 @@ class TreeType(ABC):
     cursor: CursorType
     effects: List[EffectType]
     surfaces: List[object]
-    update_tree: callable
-    update_tree_hash: str
+    _renderer: callable
+    update_renderer: str
     root_node: NodeType
     node_refs: TreeNodeRefsType
     is_mounted: bool
 
     @abstractmethod
-    def __init__(self, update_tree: callable, update_tree_hash: str):
+    def __init__(self, renderer: callable, update_renderer: str):
         pass
 
     @abstractmethod
@@ -247,12 +265,12 @@ class TreeManagerType(ABC):
     processing_tree: Optional[TreeType]
 
     @abstractmethod
-    def render(self, update_tree: callable):
-        # hash = generate_hash_id_for_updater(update_tree)
+    def render(self, renderer: callable):
+        # hash = generate_hash_id_for_updater(renderer)
         # iterate trees to check hash
         # for tree in trees:
-        #   if tree.update_tree_hash_id != hash:
-        #     tree.process_tree(update_tree)
+        #   if tree.update_renderer_id != hash:
+        #     tree.process_tree(renderer)
         pass
 
     @abstractmethod
@@ -260,7 +278,7 @@ class TreeManagerType(ABC):
         pass
 
     @abstractmethod
-    def generate_hash_for_updater(self, update_tree: callable):
+    def generate_hash_for_updater(self, renderer: callable):
         pass
 
 

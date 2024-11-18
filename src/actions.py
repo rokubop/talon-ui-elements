@@ -6,6 +6,7 @@ from .ui_elements_collection import (
     button,
     component,
     use_effect,
+    use_state,
 )
 
 def ui_elements_new(elements: List[str]) -> tuple[callable]:
@@ -16,5 +17,6 @@ def ui_elements_new(elements: List[str]) -> tuple[callable]:
         'button': button,
         'component': component,
         'use_effect': use_effect,
+        'use_state': use_state,
     }
     return tuple(element_mapping[element] for element in elements)

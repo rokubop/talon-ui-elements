@@ -2,7 +2,7 @@ import uuid
 from talon.skia.canvas import Canvas as SkiaCanvas
 from ..core.cursor import Cursor
 from ..interfaces import NodeComponentType
-from ..managers import state_manager
+from ..state_manager import state_manager
 from ..options import UIOptions
 
 class NodeComponent(NodeComponentType):

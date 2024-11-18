@@ -1,10 +1,12 @@
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.screen import Screen
+from talon.types import Rect, Point2d
 from typing import List, Optional
 from ..core.cursor import Cursor
 from ..interfaces import TreeType, TreeManagerType, NodeType
-from ..managers import state_manager, entity_manager
+from ..managers import entity_manager
+from ..state_manager import state_manager
 from ..options import UIOptions
 from ..store import store
 from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_simple
@@ -29,22 +31,23 @@ class NodeRefs():
         self.scrollable_regions.clear()
 
 class Tree(TreeType):
-    def __init__(self, update_tree: callable, hashed_update_tree: str):
+    def __init__(self, renderer: callable, hashed_renderer: str):
         self.canvas_base = None
+        self.canvas_blockable = []
         self.canvas_decorator = None
-        self.canvas_mouse = None
         self.canvas_draw = None
+        self.canvas_mouse = None
         self.cursor = None
         self.effects = []
-        self.surfaces = []
-        self.update_tree = update_tree
-        self.hashed_update_tree = hashed_update_tree
-        self.node_refs = NodeRefs()
+        self.hashed_renderer = hashed_renderer
+        self.is_blockable_canvas_init = False
         self.is_mounted = False
-        self.screen_index = None
-        self.screen = None
-        self.cursor = None
+        self.node_refs = NodeRefs()
+        self._renderer = renderer
         self.root_node = None
+        self.screen = None
+        self.screen_index = None
+        self.surfaces = []
         self.init_nodes_and_screen()
 
     def with_tree(func):
@@ -71,13 +74,14 @@ class Tree(TreeType):
 
     @with_tree
     def init_nodes_and_screen(self):
-        self.root_node = self.update_tree()
+        self.root_node = self._renderer()
         self.init_screen()
 
     @with_tree
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
-        # self.root_node = self.update_tree()
+        # self.root_node = self.renderer()
         # self.init_screen()
+        print('on_draw_base_canvas')
         self.reset_cursor()
         self.init_node_hierarchy(self.root_node)
         self.consume_effects()
@@ -89,6 +93,8 @@ class Tree(TreeType):
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
+        if not self.is_blockable_canvas_init:
+            self.init_blockable_canvases()
         self.on_fully_rendered()
 
     @with_tree
@@ -110,6 +116,10 @@ class Tree(TreeType):
         self.canvas_base.freeze()
 
     def render(self):
+        if self.is_mounted:
+            self.node_refs.clear()
+            self.effects.clear()
+            self.init_nodes_and_screen()
         self.render_base_canvas()
 
     def hide(self):
@@ -121,6 +131,36 @@ class Tree(TreeType):
 
             for effect in self.effects:
                 effect['callback']()
+
+    # def on_button_hover(self, gpos):
+    #     for button in list(self.node_refs.buttons):
+    #         hovering = button.box_model.padding_rect.contains(gpos)
+    #         if self.node_refs.highlighted state["highlighted"].get(id) != hovering:
+    #             if hovering:
+    #                 self.highlight(id)
+    #             else:
+    #                 self.unhighlight(id)
+
+    def on_button_click(self, gpos):
+        found_button = False
+        for button in list(self.node_refs.buttons):
+            if button.box_model.padding_rect.contains(gpos):
+                button.on_click()
+                found_button = True
+                break
+        return found_button
+
+    def on_mouse(self, e):
+        found_clickable = False
+        if e.event == "mousemove":
+            # print('hover')
+            pass
+            # self.on_hover_button(e.gpos)
+        elif e.event == "mousedown":
+            found_clickable = self.on_button_click(e.gpos)
+
+        # if not found_clickable and self.window:
+        #     self.on_mouse_window(e)
 
     def destroy(self):
         if self.canvas_base:
@@ -138,9 +178,18 @@ class Tree(TreeType):
             self.canvas_mouse.close()
             self.canvas_mouse = None
 
+        if self.canvas_blockable:
+            for canvas in self.canvas_blockable:
+                canvas.unregister("mouse", self.on_mouse)
+                # canvas.unregister("mouse", self.on_scroll)
+                canvas.close()
+            self.canvas_blockable.clear()
+            self.is_blockable_canvas_init = False
+
         self.node_refs.clear()
         self.effects.clear()
         self.is_mounted = False
+        state_manager.clear_state()
 
     def init_node_hierarchy(self, current_node: NodeType, depth = 0):
         current_node.tree = self
@@ -148,9 +197,9 @@ class Tree(TreeType):
 
         for child_node in current_node.children_nodes:
             if child_node.element_type == 'button':
-                self.node_store.buttons.append(child_node)
+                self.node_refs.buttons.append(child_node)
             elif child_node.element_type == 'text' and child_node.id:
-                self.node_store.dynamic_text.append(child_node)
+                self.node_refs.dynamic_text.append(child_node)
 
             self.init_node_hierarchy(child_node, depth + 1)
 
@@ -160,16 +209,58 @@ class Tree(TreeType):
                 self.effects.append(effect)
                 store.staged_effects.remove(effect)
 
-def render_tree(update_tree: callable):
-    hash = generate_hash(update_tree)
+    def init_blockable_canvases(self):
+        """
+        If we have at least one button or input, then we will consider the whole content area as blockable.
+        If we have an inputs, then everything should be blockable except for those inputs.
+        """
+        if self.node_refs.buttons or self.node_refs.inputs:
+            full_rect = self.root_node.box_model.content_children_rect
+            # if self.window and self.window.offset:
+            #     full_rect.x += self.window.offset.x
+            #     full_rect.y += self.window.offset.y
+
+            #     for input in list(self.node_refs.inputs.values()):
+            #         input.rect.x += self.window.offset.x
+            #         input.rect.y += self.window.offset.y
+
+            if self.node_refs.inputs:
+                bottom_rect = None
+                for input in list(self.node_refs.inputs.values()):
+                    current_rect = bottom_rect or full_rect
+
+                    top_rect = Rect(current_rect.x, current_rect.y, current_rect.width, input.rect.y - current_rect.y)
+                    self.canvas_blockable.append(Canvas.from_rect(top_rect))
+
+                    left_rect = Rect(current_rect.x, input.rect.y, input.rect.x - current_rect.x, input.rect.height)
+                    self.canvas_blockable.append(Canvas.from_rect(left_rect))
+
+                    right_rect = Rect(input.rect.x + input.rect.width, input.rect.y, current_rect.x + current_rect.width - input.rect.x - input.rect.width, input.rect.height)
+                    self.canvas_blockable.append(Canvas.from_rect(right_rect))
+
+                    bottom_rect = Rect(current_rect.x, input.rect.y + input.rect.height, current_rect.width, current_rect.y + current_rect.height - input.rect.y - input.rect.height)
+                self.canvas_blockable.append(Canvas.from_rect(bottom_rect))
+            else:
+                self.canvas_blockable = [Canvas.from_rect(full_rect)]
+
+            for canvas in self.canvas_blockable:
+                canvas.blocks_mouse = True
+                canvas.register("mouse", self.on_mouse)
+                # canvas.register("scroll", self.on_scroll)
+                canvas.freeze()
+
+        self.is_blockable_canvas_init = True
+
+def render_tree(renderer: callable):
+    hash = generate_hash(renderer)
     tree = None
     for t in entity_manager.get_all_trees():
-        if t.hashed_update_tree == hash:
+        if t.hashed_renderer == hash:
             tree = t
             break
 
     if not tree:
-        tree = Tree(update_tree, hash)
+        tree = Tree(renderer, hash)
         entity_manager.add_tree(tree)
 
     tree.render()

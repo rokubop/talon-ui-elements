@@ -3,7 +3,8 @@ from typing import List, Literal, Optional
 import uuid
 from ..core.box_model import BoxModelLayout
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType
-from ..managers import entity_manager, state_manager
+from ..managers import entity_manager
+from ..state_manager import state_manager
 from ..options import UIOptions
 
 NODE_TYPE_MAP = {
@@ -33,7 +34,7 @@ class Node(NodeType):
         self.is_dirty: bool = False
         self.root_node = None
         self.depth: int = None
-        self.component_node = state_manager.get_active_component_node()
+        # self.component_node = state_manager.get_active_component_node()
 
     def add_child(self, node):
         if isinstance(node, tuple):
