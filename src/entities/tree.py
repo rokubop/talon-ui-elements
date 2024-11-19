@@ -4,8 +4,8 @@ from talon.screen import Screen
 from talon.types import Rect, Point2d
 from typing import List, Optional
 from ..core.cursor import Cursor
-from ..interfaces import TreeType, TreeManagerType, NodeType
-from ..managers import entity_manager
+from ..interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
+from ..entity_manager import entity_manager
 from ..state_manager import state_manager
 from ..options import UIOptions
 from ..store import store
@@ -13,22 +13,96 @@ from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_sim
 
 import uuid
 
-class NodeRefs():
+# class NodeRefs():
+#     def __init__(self):
+#         self.buttons = {}
+#         self.inputs = {}
+#         self.dynamic_text = {}
+#         self.highlighted = {}
+#         self.scrollable_regions = {}
+
+#     def clear(self):
+#         self.buttons.clear()
+#         self.inputs.clear()
+#         self.dynamic_text.clear()
+#         self.highlighted.clear()
+#         self.scrollable_regions.clear()
+
+class ScrollRegion(ScrollRegionType):
+    def __init__(self, scroll_y: int, scroll_x: int):
+        self.scroll_y = scroll_y
+        self.scroll_x = scroll_x
+
+class MetaState(MetaStateType):
     def __init__(self):
-        self.components = []
-        self.buttons = []
-        self.inputs = []
-        self.dynamic_text = []
-        self.highlighted = []
-        self.scrollable_regions = []
+        self.buttons = set()
+        self.highlighted = {}
+        self.id_to_node = {}
+        self.inputs = {}
+        self.scroll_regions = {}
+        self.style_mutations = {}
+        self.text_mutations = {}
+
+    def add_input(self, id, initial_value):
+        self.inputs[id] = initial_value
+
+    def add_button(self, id):
+        self.buttons.add(id)
+
+    def map_id_to_node(self, id, node):
+        self.id_to_node[id] = node
+
+    def add_scroll_region(self, id):
+        self.scroll_regions[id] = ScrollRegion(0, 0)
+
+    def set_highlighted(self, id, color):
+        if id in self.id_to_node:
+            self.highlighted[id] = color
+
+    def set_unhighlighted(self, id):
+        if id in self.id_to_node:
+            self.highlighted.pop(id)
+
+    def set_input_value(self, id, value):
+        if id in self.id_to_node:
+            self.inputs[id] = value
+
+    def scroll_y_increment(self, id, y):
+        if id in self.id_to_node:
+            if id not in self.scroll_regions:
+                self.add_scroll_region(id)
+            self.scroll_regions[id].scroll_y += y
+
+    def scroll_x_increment(self, id, x):
+        if id in self.id_to_node:
+            if id not in self.scroll_regions:
+                self.add_scroll_region(id)
+            self.scroll_regions[id].scroll_x += x
+
+    def set_text_mutation(self, id, text):
+        if id in self.id_to_node:
+            self.text_mutations[id] = text
+
+    def use_text_mutation(self, id, initial_text):
+        if id not in self.text_mutations:
+            self.text_mutations[id] = initial_text
+        return self.text_mutations[id]
+
+    def set_style_mutation(self, id, style):
+        if id in self.id_to_node:
+            self.style_mutations[id] = style
+
+    def clear_nodes(self):
+        self.id_to_node.clear()
 
     def clear(self):
-        self.components.clear()
         self.buttons.clear()
-        self.inputs.clear()
-        self.dynamic_text.clear()
         self.highlighted.clear()
-        self.scrollable_regions.clear()
+        self.id_to_node.clear()
+        self.inputs.clear()
+        self.scroll_regions.clear()
+        self.style_mutations.clear()
+        self.text_mutations.clear()
 
 class Tree(TreeType):
     def __init__(self, renderer: callable, hashed_renderer: str):
@@ -42,7 +116,8 @@ class Tree(TreeType):
         self.hashed_renderer = hashed_renderer
         self.is_blockable_canvas_init = False
         self.is_mounted = False
-        self.node_refs = NodeRefs()
+        self.meta_state = MetaState()
+        # self.node_refs = NodeRefs()
         self._renderer = renderer
         self.root_node = None
         self.screen = None
@@ -93,6 +168,12 @@ class Tree(TreeType):
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
+        for id, text_value in self.meta_state.text_mutations.items():
+            if id in self.meta_state.id_to_node:
+                node = self.meta_state.id_to_node[id]
+                x, y = node.cursor_pre_draw_text
+                draw_text_simple(canvas, text_value, node.options, x, y)
+
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
         self.on_fully_rendered()
@@ -117,7 +198,7 @@ class Tree(TreeType):
 
     def render(self):
         if self.is_mounted:
-            self.node_refs.clear()
+            self.meta_state.clear_nodes()
             self.effects.clear()
             self.init_nodes_and_screen()
         self.render_base_canvas()
@@ -143,9 +224,10 @@ class Tree(TreeType):
 
     def on_button_click(self, gpos):
         found_button = False
-        for button in list(self.node_refs.buttons):
-            if button.box_model.padding_rect.contains(gpos):
-                button.on_click()
+        for button_id in list(self.meta_state.buttons):
+            node = self.meta_state.id_to_node[button_id]
+            if node.box_model.padding_rect.contains(gpos):
+                node.on_click()
                 found_button = True
                 break
         return found_button
@@ -186,7 +268,7 @@ class Tree(TreeType):
             self.canvas_blockable.clear()
             self.is_blockable_canvas_init = False
 
-        self.node_refs.clear()
+        self.meta_state.clear()
         self.effects.clear()
         self.is_mounted = False
         state_manager.clear_state()
@@ -195,13 +277,20 @@ class Tree(TreeType):
         current_node.tree = self
         current_node.depth = depth
 
-        for child_node in current_node.children_nodes:
-            if child_node.element_type == 'button':
-                self.node_refs.buttons.append(child_node)
-            elif child_node.element_type == 'text' and child_node.id:
-                self.node_refs.dynamic_text.append(child_node)
+        if current_node.id:
+            self.meta_state.map_id_to_node(current_node.id, current_node)
 
+            if current_node.element_type == 'button':
+                self.meta_state.add_button(current_node.id)
+            elif current_node.element_type == 'text':
+                self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
+            # elif current_node.element_type == 'input':
+            #     self.meta_state.add_input(current_node.id, initial_value=current_node.value)
+
+        for child_node in current_node.children_nodes:
             self.init_node_hierarchy(child_node, depth + 1)
+
+        entity_manager.synchronize_global_ids()
 
     def consume_effects(self):
         for effect in list(store.staged_effects):
@@ -214,19 +303,19 @@ class Tree(TreeType):
         If we have at least one button or input, then we will consider the whole content area as blockable.
         If we have an inputs, then everything should be blockable except for those inputs.
         """
-        if self.node_refs.buttons or self.node_refs.inputs:
+        if self.meta_state.buttons or self.meta_state.inputs:
             full_rect = self.root_node.box_model.content_children_rect
             # if self.window and self.window.offset:
             #     full_rect.x += self.window.offset.x
             #     full_rect.y += self.window.offset.y
 
-            #     for input in list(self.node_refs.inputs.values()):
+            #     for input in list(self.meta_state.inputs.values()):
             #         input.rect.x += self.window.offset.x
             #         input.rect.y += self.window.offset.y
 
-            if self.node_refs.inputs:
+            if self.meta_state.inputs:
                 bottom_rect = None
-                for input in list(self.node_refs.inputs.values()):
+                for input in list(self.meta_state.inputs.values()):
                     current_rect = bottom_rect or full_rect
 
                     top_rect = Rect(current_rect.x, current_rect.y, current_rect.width, input.rect.y - current_rect.y)

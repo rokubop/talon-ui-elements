@@ -1,7 +1,7 @@
 from talon import Module, actions
 from ..src.actions import ui_elements_new
 from ..src.store import store
-from ..src.managers import entity_manager
+from ..src.entity_manager import entity_manager
 import traceback
 
 mod = Module()
@@ -242,7 +242,9 @@ def counter_ui():
     def on_mount():
         trees = entity_manager.get_all_trees()
         nodes = entity_manager.get_all_nodes()
-        test("Tree should have one button ref", 1, len(trees[0].node_refs.buttons))
+        test("There should be 1 tree", 1, len(trees))
+        test("Tree should have 6 nodes", 6, len(nodes))
+        test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
         print("mounted")
 
     count, set_count = use_state("count", 0)

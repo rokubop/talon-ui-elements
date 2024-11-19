@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Union
 #     screen,
 # )
 from .src.actions import ui_elements_new
-from .src.managers import entity_manager
+from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
 from .src.entities.tree import render_tree
 

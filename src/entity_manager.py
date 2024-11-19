@@ -5,10 +5,13 @@ class EntityManager:
     def add_tree(self, tree: TreeType):
         store.trees.append(tree)
 
-    def get_all_trees(self) -> TreeType:
+    def synchronize_global_ids(self):
+        store.synchronize_ids()
+
+    def get_all_trees(self) -> list[TreeType]:
         return store.trees
 
-    def get_all_nodes(self) -> NodeType:
+    def get_all_nodes(self) -> list[NodeType]:
         flattened = []
 
         for tree in store.trees:
@@ -39,17 +42,17 @@ class EntityManager:
     def destroy_all(self):
         pass
 
-    def get_button_nodes(self, root_node = None):
-        if root_node:
-            return root_node.node_store.buttons
-        else:
-            buttons = []
+    # def get_button_nodes(self, root_node = None):
+    #     if root_node:
+    #         return root_node.node_store.buttons
+    #     else:
+    #         buttons = []
 
-            for node in store.root_nodes:
-                buttons.extend(node.node_store.buttons)
+    #         for node in store.root_nodes:
+    #             buttons.extend(node.node_store.buttons)
 
-    def add_button_node(self, node):
-        pass
+    # def add_button_node(self, node):
+    #     pass
         # print(node)
         # print(node.root_node)
         # print(node.root_node.node_store)
@@ -110,9 +113,9 @@ class EntityManager:
 #     #             effect['callback']()
 #     #             effect['prev_deps'] = current_deps_values
 
-class TreeManager():
-    def add_tree(self, tree: TreeType):
-        store.trees.append(tree)
+# class TreeManager():
+#     def add_tree(self, tree: TreeType):
+#         store.trees.append(tree)
 
 entity_manager = EntityManager()
 # state_manager = StateManager()

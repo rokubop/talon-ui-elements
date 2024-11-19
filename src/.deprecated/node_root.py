@@ -7,7 +7,7 @@
 # from ..utils import get_screen, canvas_from_screen, draw_text_simple
 # from ..core.cursor import Cursor
 # from ..options import UIOptionsDict, UIOptions
-# from ..managers import entity_manager
+# from ..entity_manager import entity_manager
 # from typing import Literal
 # from ..interfaces import NodeRootType, NodeRootStateStoreType, NodeRootStoreType
 # import uuid

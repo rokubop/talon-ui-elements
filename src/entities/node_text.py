@@ -9,7 +9,8 @@ from ..core.cursor import Cursor
 from ..options import UIOptions, UIOptionsDict
 from ..utils import draw_text_simple
 from .node import Node
-# from ..managers import entity_manager
+from ..utils import generate_hash
+# from ..entity_manager import entity_manager
 
 @dataclass
 class NodeTextOptions(UIOptions):
@@ -37,6 +38,7 @@ class NodeText(Node):
         self.text = str(text)
         self.text_width = None
         self.text_height = None
+        self.cursor_pre_draw_text = (0, 0)
 
         if self.options.gap is None:
             self.options.gap = 16
@@ -44,6 +46,8 @@ class NodeText(Node):
         if element_type == "button":
             self.on_click = self.options.on_click or (lambda: None)
             self.is_hovering = False
+            if not self.id:
+                self.id = f"button_{text}"
 
     # def init_state(self, root_options: dict[str, any], scroll_region_key: int = None):
     #     global ids, state, buttons
@@ -96,16 +100,13 @@ class NodeText(Node):
 
         self.box_model.prepare_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
         # render_now = self.init_state(scroll_region_key)
-        render_now = True
+        render_now = False if self.id and self.element_type == "text" else True
 
         self.render_background(c, cursor)
 
         cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        if self.id:
-            ids[self.id]["cursor"] = {
-                "x": cursor.x,
-                "y": cursor.y + self.text_height
-            }
+
+        self.cursor_pre_draw_text = (cursor.x, cursor.y + self.text_height)
 
         if render_now:
             draw_text_simple(c, self.text, self.options, cursor.x, cursor.y + self.text_height)

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, TypedDict, Any, Union, Literal
+from typing import Callable, List, Optional, TypedDict, Any, Union, Literal, Set
 from talon.canvas import Canvas
 
 NodeEnumType = Literal['root', 'node', 'leaf', 'component']
@@ -27,7 +27,7 @@ class EffectType(TypedDict):
     component_node: Optional[object]
 
 StateValueType = Union[int, float, str, bool, dict, list, None]
-StateValueOrCallableType = Union[StateValueType, callable[[StateValueType], StateValueType]]
+StateValueOrCallableType = Union[StateValueType, Callable[[StateValueType], StateValueType]]
 
 class ReactiveStateType(ABC):
     _initial_value: StateValueType
@@ -59,14 +59,74 @@ class ReactiveStateType(ABC):
     def activate_next_state_value(self):
         pass
 
-class GlobalStoreType(ABC):
-    trees: List['TreeType']
-    processing_tree: Optional['TreeType']
-    root_nodes: dict[str, dict]
-    id_nodes: dict[str, dict]
-    active_component: Optional[str]
-    state: dict[str, ReactiveStateType]
-    staged_effects: List[EffectType]
+class ScrollRegionType(ABC):
+    scroll_y: int
+    scroll_x: int
+
+class MetaStateType(ABC):
+    inputs: dict[str, str]
+    highlighted: dict[str, str]
+    buttons: Set[str]
+    text_mutations: dict[str, str]
+    style_mutations: dict[str, dict[str, Union[str, int]]]
+    scroll_regions: dict[str, ScrollRegionType]
+    id_to_node: dict[str, 'NodeType']
+
+    @abstractmethod
+    def clear(self):
+        pass
+
+    @abstractmethod
+    def clear_nodes(self):
+        pass
+
+    @abstractmethod
+    def add_input(self, id: str, initial_value: str):
+        pass
+
+    @abstractmethod
+    def set_input_value(self, id: str, value: str):
+        pass
+
+    @abstractmethod
+    def set_highlighted(self, id: str, color: str):
+        pass
+
+    @abstractmethod
+    def set_unhighlighted(self, id: str):
+        pass
+
+    @abstractmethod
+    def add_button(self, id: str):
+        pass
+
+    @abstractmethod
+    def set_text_mutation(self, id: str, text: str):
+        pass
+
+    @abstractmethod
+    def use_text_mutation(self, id: str, initial_text: str):
+        pass
+
+    @abstractmethod
+    def set_style_mutation(self, id: str, style: dict[str, Union[str, int]]):
+        pass
+
+    @abstractmethod
+    def add_scroll_region(self, id: str):
+        pass
+
+    @abstractmethod
+    def scroll_y_increment(self, id: str, y: int):
+        pass
+
+    @abstractmethod
+    def scroll_x_increment(self, id: str, x: int):
+        pass
+
+    @abstractmethod
+    def map_id_to_node(self, id: str, node: object):
+        pass
 
 class NodeRootStateStoreType(ABC):
     effects: List[EffectType]
@@ -82,12 +142,11 @@ class NodeRootStateStoreType(ABC):
         pass
 
 class TreeNodeRefsType(ABC):
-    components: List['NodeType']
-    buttons: List['NodeType']
-    inputs: List['NodeType']
-    dynamic_text: List['NodeType']
-    highlighted: List['NodeType']
-    scrollable_regions: List['NodeType']
+    buttons: dict[str, 'NodeType']
+    inputs: dict[str, 'NodeType']
+    dynamic_text: dict[str, 'NodeType']
+    highlighted: dict[str, 'NodeType']
+    scrollable_regions: dict[str, 'NodeType']
 
     @abstractmethod
     def clear(self):
@@ -104,6 +163,7 @@ class NodeType(ABC):
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
     is_dirty: bool
+    tree: 'TreeType'
     root_node: object
     depth: int
     component_node: object
@@ -231,21 +291,17 @@ class NodeContainerType(NodeType):
     def hide(self):
         pass
 
-# actions.user.ui_elements_show(ui)
-# def ui_elements_show(ui):
-#   tree_manager.render(ui)
-
 class TreeType(ABC):
     canvas_base: Canvas
     canvas_decorator: Canvas
     canvas_mouse: Canvas
     cursor: CursorType
     effects: List[EffectType]
-    surfaces: List[object]
+    meta_state: MetaStateType
     _renderer: callable
+    surfaces: List[object]
     update_renderer: str
     root_node: NodeType
-    node_refs: TreeNodeRefsType
     is_mounted: bool
 
     @abstractmethod

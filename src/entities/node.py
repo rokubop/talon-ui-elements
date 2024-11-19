@@ -2,8 +2,8 @@ from abc import ABC
 from typing import List, Literal, Optional
 import uuid
 from ..core.box_model import BoxModelLayout
-from ..interfaces import NodeType, NodeEnumType, ElementEnumType
-from ..managers import entity_manager
+from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
+from ..entity_manager import entity_manager
 from ..state_manager import state_manager
 from ..options import UIOptions
 
@@ -29,6 +29,7 @@ class Node(NodeType):
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
         self.box_model: BoxModelLayout = None
+        self.tree: TreeType
         self.children_nodes = []
         self.parent_node = None
         self.is_dirty: bool = False
