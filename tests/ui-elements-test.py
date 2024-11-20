@@ -262,7 +262,7 @@ def counter_ui():
 
 @test_module
 def test_counter_ui():
-    actions.user.ui_elements_show(counter_ui)
+    actions.user.ui_elements_new_show(counter_ui)
 
 def create_test_runner():
     return (test_fn for test_fn in test_cases)

@@ -8,15 +8,15 @@ from typing import List, Dict, Any, Union
 from .src.actions import ui_elements_new
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
-from .src.entities.tree import render_tree
+from .src.entities.tree import render_ui
 
 mod = Module()
 
 @mod.action_class
 class Actions:
-    def ui_elements_show(ui: callable):
+    def ui_elements_new_show(ui: callable, props: dict[str, Any] = None, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
         """Render and show the UI"""
-        render_tree(ui)
+        render_ui(ui, props, on_mount, on_unmount, show_hints)
 
     def ui_elements_new(elements: List[str]) -> tuple[callable]:
         """

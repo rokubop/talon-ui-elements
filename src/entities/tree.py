@@ -4,7 +4,7 @@ from talon.screen import Screen
 from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron
-from typing import List, Optional
+from typing import List, Optional, Any
 from ..core.cursor import Cursor
 from ..interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
 from ..entity_manager import entity_manager
@@ -13,6 +13,7 @@ from ..options import UIOptions
 from ..store import store
 from ..constants import HIGHLIGHT_COLOR, CLICK_COLOR
 from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_simple
+import time
 
 import uuid
 
@@ -193,14 +194,18 @@ class Tree(TreeType):
         # self.root_node = self.renderer()
         # self.init_screen()
         print('on_draw_base_canvas')
+        start = time.time()
         self.reset_cursor()
         self.init_node_hierarchy(self.root_node)
         self.consume_effects()
-
+        print(f"init_node_hierarchy: {time.time() - start}")
         self.root_node.virtual_render(canvas, self.cursor)
+        print(f"virtual_render: {time.time() - start}")
         self.root_node.render(canvas, self.cursor)
+        print(f"on_draw_base_canvas: {time.time() - start}")
 
         self.render_decorator_canvas()
+        print(f"on_draw_base_canvas + decorator: {time.time() - start}")
 
     def draw_highlights(self, canvas: SkiaCanvas):
         for id, color in self.meta_state.highlighted.items():
@@ -244,12 +249,14 @@ class Tree(TreeType):
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
+        start = time.time()
         self.draw_highlights(canvas)
         self.draw_text_mutations(canvas)
 
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
         self.on_fully_rendered()
+        print(f"on_draw_decorator_canvas: {time.time() - start}")
 
     @with_tree
     def on_draw_mouse_canvas(self, canvas: SkiaCanvas):
@@ -392,6 +399,7 @@ class Tree(TreeType):
         If we have at least one button or input, then we will consider the whole content area as blockable.
         If we have an inputs, then everything should be blockable except for those inputs.
         """
+        start = time.time()
         if self.meta_state.buttons or self.meta_state.inputs:
             full_rect = self.root_node.box_model.content_children_rect
             # if self.window and self.window.offset:
@@ -428,17 +436,23 @@ class Tree(TreeType):
                 canvas.freeze()
 
         self.is_blockable_canvas_init = True
+        print(f"init_blockable_canvases: {time.time() - start}")
 
-def render_tree(renderer: callable):
+def render_ui(renderer: callable, props: dict[str, Any] = None, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
     hash = generate_hash(renderer)
+    print(f"hash: {hash}")
     tree = None
     for t in entity_manager.get_all_trees():
         if t.hashed_renderer == hash:
+            print("found tree")
             tree = t
             break
 
     if not tree:
+        print("creating tree")
         tree = Tree(renderer, hash)
         entity_manager.add_tree(tree)
 
+    start = time.time()
     tree.render()
+    print(f"render_ui: {time.time() - start}")

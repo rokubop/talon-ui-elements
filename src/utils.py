@@ -4,6 +4,7 @@ from talon.screen import Screen
 from typing import Any, Union, Callable
 import hashlib
 import json
+import time
 
 def draw_text_simple(c, text, options, x, y):
     c.paint.color = options.color
