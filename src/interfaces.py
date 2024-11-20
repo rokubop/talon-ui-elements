@@ -64,13 +64,42 @@ class ScrollRegionType(ABC):
     scroll_x: int
 
 class MetaStateType(ABC):
-    inputs: dict[str, str]
-    highlighted: dict[str, str]
-    buttons: Set[str]
-    text_mutations: dict[str, str]
-    style_mutations: dict[str, dict[str, Union[str, int]]]
-    scroll_regions: dict[str, ScrollRegionType]
-    id_to_node: dict[str, 'NodeType']
+    _inputs: dict[str, str]
+    _highlighted: dict[str, str]
+    _buttons: set[str]
+    _text_mutations: dict[str, str]
+    _style_mutations: dict[str, dict[str, Union[str, int]]]
+    _scroll_regions: dict[str, ScrollRegionType]
+    _id_to_node: dict[str, 'NodeType']
+    unhighlight_jobs: dict[str, callable]
+
+    @property
+    def inputs(self) -> dict[str, str]:
+        pass
+
+    @property
+    def highlighted(self) -> dict[str, str]:
+        pass
+
+    @property
+    def buttons(self) -> set[str]:
+        pass
+
+    @property
+    def text_mutations(self) -> dict[str, str]:
+        pass
+
+    @property
+    def style_mutations(self) -> dict[str, dict[str, Union[str, int]]]:
+        pass
+
+    @property
+    def scroll_regions(self) -> dict[str, ScrollRegionType]:
+        pass
+
+    @property
+    def id_to_node(self) -> dict[str, 'NodeType']:
+        pass
 
     @abstractmethod
     def clear(self):

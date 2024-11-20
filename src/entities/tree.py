@@ -1,7 +1,9 @@
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.screen import Screen
+from talon.skia import RoundRect
 from talon.types import Rect, Point2d
+from talon import cron
 from typing import List, Optional
 from ..core.cursor import Cursor
 from ..interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
@@ -9,6 +11,7 @@ from ..entity_manager import entity_manager
 from ..state_manager import state_manager
 from ..options import UIOptions
 from ..store import store
+from ..constants import HIGHLIGHT_COLOR, CLICK_COLOR
 from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_simple
 
 import uuid
@@ -35,74 +38,107 @@ class ScrollRegion(ScrollRegionType):
 
 class MetaState(MetaStateType):
     def __init__(self):
-        self.buttons = set()
-        self.highlighted = {}
-        self.id_to_node = {}
-        self.inputs = {}
-        self.scroll_regions = {}
-        self.style_mutations = {}
-        self.text_mutations = {}
+        self._buttons = set()
+        self._highlighted = {}
+        self._id_to_node = {}
+        self._inputs = {}
+        self._scroll_regions = {}
+        self._style_mutations = {}
+        self._text_mutations = {}
+        self.unhighlight_jobs = {}
+
+    @property
+    def buttons(self):
+        return self._buttons
+
+    @property
+    def highlighted(self):
+        return self._highlighted
+
+    @property
+    def id_to_node(self):
+        return self._id_to_node
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def scroll_regions(self):
+        return self._scroll_regions
+
+    @property
+    def style_mutations(self):
+        return self._style_mutations
+
+    @property
+    def text_mutations(self):
+        return self._text_mutations
 
     def add_input(self, id, initial_value):
-        self.inputs[id] = initial_value
+        self._inputs[id] = initial_value
 
     def add_button(self, id):
-        self.buttons.add(id)
+        self._buttons.add(id)
 
     def map_id_to_node(self, id, node):
-        self.id_to_node[id] = node
+        self._id_to_node[id] = node
 
     def add_scroll_region(self, id):
-        self.scroll_regions[id] = ScrollRegion(0, 0)
+        self._scroll_regions[id] = ScrollRegion(0, 0)
 
-    def set_highlighted(self, id, color):
-        if id in self.id_to_node:
-            self.highlighted[id] = color
+    def set_highlighted(self, id, color = HIGHLIGHT_COLOR):
+        if id in self._id_to_node:
+            self._highlighted[id] = color
 
     def set_unhighlighted(self, id):
-        if id in self.id_to_node:
-            self.highlighted.pop(id)
+        if id in self._id_to_node:
+            self._highlighted.pop(id)
 
     def set_input_value(self, id, value):
-        if id in self.id_to_node:
-            self.inputs[id] = value
+        if id in self._id_to_node:
+            self._inputs[id] = value
 
     def scroll_y_increment(self, id, y):
-        if id in self.id_to_node:
-            if id not in self.scroll_regions:
+        if id in self._id_to_node:
+            if id not in self._scroll_regions:
                 self.add_scroll_region(id)
-            self.scroll_regions[id].scroll_y += y
+            self._scroll_regions[id].scroll_y += y
 
     def scroll_x_increment(self, id, x):
-        if id in self.id_to_node:
-            if id not in self.scroll_regions:
+        if id in self._id_to_node:
+            if id not in self._scroll_regions:
                 self.add_scroll_region(id)
-            self.scroll_regions[id].scroll_x += x
+            self._scroll_regions[id].scroll_x += x
 
     def set_text_mutation(self, id, text):
-        if id in self.id_to_node:
-            self.text_mutations[id] = text
+        if id in self._id_to_node:
+            self._text_mutations[id] = text
 
     def use_text_mutation(self, id, initial_text):
-        if id not in self.text_mutations:
-            self.text_mutations[id] = initial_text
-        return self.text_mutations[id]
+        if id not in self._text_mutations:
+            self._text_mutations[id] = initial_text
+        return self._text_mutations[id]
 
     def set_style_mutation(self, id, style):
-        if id in self.id_to_node:
-            self.style_mutations[id] = style
+        if id in self._id_to_node:
+            self._style_mutations[id] = style
 
     def clear_nodes(self):
-        self.id_to_node.clear()
+        self._id_to_node.clear()
 
     def clear(self):
-        self.buttons.clear()
-        self.highlighted.clear()
-        self.id_to_node.clear()
-        self.inputs.clear()
-        self.scroll_regions.clear()
-        self.style_mutations.clear()
-        self.text_mutations.clear()
+        self._buttons.clear()
+        self._highlighted.clear()
+        self._id_to_node.clear()
+        self._inputs.clear()
+        self._scroll_regions.clear()
+        self._style_mutations.clear()
+        self._text_mutations.clear()
+        for job in self.unhighlight_jobs.values():
+            cron.cancel(job[0])
+        self.unhighlight_jobs.clear()
+        self.active_button = None
 
 class Tree(TreeType):
     def __init__(self, renderer: callable, hashed_renderer: str):
@@ -166,13 +202,50 @@ class Tree(TreeType):
 
         self.render_decorator_canvas()
 
-    @with_tree
-    def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
+    def draw_highlights(self, canvas: SkiaCanvas):
+        for id, color in self.meta_state.highlighted.items():
+            if id in self.meta_state.id_to_node:
+                node = self.meta_state.id_to_node[id]
+                box_model = node.box_model
+                canvas.paint.color = color
+                canvas.paint.style = canvas.paint.Style.FILL
+
+                if hasattr(node.options, 'border_radius'):
+                    border_radius = node.options.border_radius
+                    canvas.draw_rrect(RoundRect.from_rect(box_model.padding_rect, x=border_radius, y=border_radius))
+                else:
+                    canvas.draw_rect(box_model.padding_rect)
+
+    def draw_text_mutations(self, canvas: SkiaCanvas):
         for id, text_value in self.meta_state.text_mutations.items():
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
                 x, y = node.cursor_pre_draw_text
                 draw_text_simple(canvas, text_value, node.options, x, y)
+
+    def highlight(self, id: str, color: str = None):
+        self.meta_state.set_highlighted(id, color)
+        self.canvas_decorator.freeze()
+
+    def unhighlight(self, id: str):
+        self.meta_state.set_unhighlighted(id)
+
+        if self.meta_state.unhighlight_jobs.get(id):
+            cron.cancel(self.unhighlight_jobs[id][0])
+            self.meta_state.unhighlight_jobs[id][1]()
+            self.meta_state.unhighlight_jobs[id] = None
+
+        self.canvas_decorator.freeze()
+
+    def highlight_briefly(self, id: str, color: str = None, duration: int = 150):
+        self.highlight(id, color)
+        pending_unhighlight = lambda: self.unhighlight(id)
+        self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
+
+    @with_tree
+    def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
+        self.draw_highlights(canvas)
+        self.draw_text_mutations(canvas)
 
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
@@ -213,33 +286,49 @@ class Tree(TreeType):
             for effect in self.effects:
                 effect['callback']()
 
-    # def on_button_hover(self, gpos):
-    #     for button in list(self.node_refs.buttons):
-    #         hovering = button.box_model.padding_rect.contains(gpos)
-    #         if self.node_refs.highlighted state["highlighted"].get(id) != hovering:
-    #             if hovering:
-    #                 self.highlight(id)
-    #             else:
-    #                 self.unhighlight(id)
-
-    def on_button_click(self, gpos):
-        found_button = False
+    def on_hover(self, gpos):
+        new_hovered_id = None
+        prev_hovered_id = state_manager.get_hovered_id()
         for button_id in list(self.meta_state.buttons):
             node = self.meta_state.id_to_node[button_id]
             if node.box_model.padding_rect.contains(gpos):
-                node.on_click()
-                found_button = True
+                new_hovered_id = button_id
+                if new_hovered_id != prev_hovered_id:
+                    state_manager.set_hovered_id(button_id)
+                    self.unhighlight(prev_hovered_id)
+                    self.highlight(button_id, color=HIGHLIGHT_COLOR)
                 break
-        return found_button
+
+        if not new_hovered_id and prev_hovered_id:
+            self.unhighlight(prev_hovered_id)
+            state_manager.set_hovered_id(None)
+
+    def on_mousedown(self, gpos):
+        hovered_id = state_manager.get_hovered_id()
+
+        if hovered_id in list(self.meta_state.buttons):
+            state_manager.set_mousedown_start_id(hovered_id)
+            self.highlight(hovered_id, color=CLICK_COLOR)
+
+    def on_mouseup(self, gpos):
+        hovered_id = state_manager.get_hovered_id()
+        mousedown_start_id = state_manager.get_mousedown_start_id()
+
+        if mousedown_start_id and hovered_id == mousedown_start_id:
+            node = self.meta_state.id_to_node[mousedown_start_id]
+            self.highlight(mousedown_start_id, color=HIGHLIGHT_COLOR)
+            node.on_click()
+
+        state_manager.set_mousedown_start_id(None)
 
     def on_mouse(self, e):
         found_clickable = False
         if e.event == "mousemove":
-            # print('hover')
-            pass
-            # self.on_hover_button(e.gpos)
+            self.on_hover(e.gpos)
         elif e.event == "mousedown":
-            found_clickable = self.on_button_click(e.gpos)
+            found_clickable = self.on_mousedown(e.gpos)
+        elif e.event == "mouseup":
+            self.on_mouseup(e.gpos)
 
         # if not found_clickable and self.window:
         #     self.on_mouse_window(e)

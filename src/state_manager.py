@@ -45,6 +45,18 @@ class StateManager:
     def __init__(self):
         self.debounce_render_job = None
 
+    def get_hovered_id(self):
+        return store.mouse_state['hovered_id']
+
+    def set_hovered_id(self, id):
+        store.mouse_state['hovered_id'] = id
+
+    def get_mousedown_start_id(self):
+        return store.mouse_state['mousedown_start_id']
+
+    def set_mousedown_start_id(self, id):
+        store.mouse_state['mousedown_start_id'] = id
+
     def set_processing_tree(self, tree: TreeType):
         store.processing_tree = tree
 
@@ -52,13 +64,13 @@ class StateManager:
         return store.processing_tree
 
     def init_state(self, key, initial_value):
-        if key not in store.state:
-            store.state[key] = ReactiveState()
+        if key not in store.reactive_state:
+            store.reactive_state[key] = ReactiveState()
 
-        store.state[key].set_initial_value(initial_value)
+        store.reactive_state[key].set_initial_value(initial_value)
 
     def rerender_state(self):
-        for state in store.state.values():
+        for state in store.reactive_state.values():
             state.activate_next_state_value()
 
         for tree in store.trees:
@@ -68,7 +80,7 @@ class StateManager:
     def set_state_value(self, key, value):
         print(f"Setting state value for {key} to {value}")
         self.init_state(key, value)
-        store.state[key].set_value(value)
+        store.reactive_state[key].set_value(value)
 
         if not self.debounce_render_job:
             # Let the current event loop finish before rendering
@@ -76,7 +88,7 @@ class StateManager:
 
     def use_state(self, key, initial_value):
         self.init_state(key, initial_value)
-        return store.state[key].value, lambda new_value: self.set_state_value(key, new_value)
+        return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 
     def register_effect(self, tree, callback, dependencies):
         effect: EffectType = {
@@ -88,6 +100,7 @@ class StateManager:
         store.staged_effects.append(effect)
 
     def clear_state(self):
-        store.state.clear()
+        store.reactive_state.clear()
+        store.reset_mouse_state()
 
 state_manager = StateManager()
