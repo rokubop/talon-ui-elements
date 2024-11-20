@@ -276,11 +276,13 @@ class Tree(TreeType):
 
         self.canvas_base.freeze()
 
-    def render(self):
+    def render(self, props: dict[str, Any] = None, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
         if self.is_mounted:
             self.meta_state.clear_nodes()
             self.effects.clear()
             self.init_nodes_and_screen()
+        if on_mount:
+            state_manager.register_effect(self, on_mount, [])
         self.render_base_canvas()
 
     def hide(self):
@@ -454,5 +456,5 @@ def render_ui(renderer: callable, props: dict[str, Any] = None, on_mount: callab
         entity_manager.add_tree(tree)
 
     start = time.time()
-    tree.render()
+    tree.render(props, on_mount, on_unmount, show_hints)
     print(f"render_ui: {time.time() - start}")
