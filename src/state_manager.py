@@ -19,12 +19,15 @@ class ReactiveState(ReactiveStateType):
         return self._value
 
     def resolve_value(self, value_or_callable):
+        print(f"Resolving value {value_or_callable}")
         if callable(value_or_callable):
+            print(f"Value is callable")
             return value_or_callable(self._value)
+        print(f"Value is not callable")
         return value_or_callable
 
     def set_initial_value(self, value):
-        if not self._initial_value:
+        if self._initial_value is None:
             self._initial_value = value
             self._value = value
 
@@ -64,6 +67,9 @@ class StateManager:
         return store.processing_tree
 
     def init_state(self, key, initial_value):
+        if type(key) is not str:
+            raise ValueError("use_state must include a string name like this: use_state('my_state', initial_value)")
+
         if key not in store.reactive_state:
             store.reactive_state[key] = ReactiveState()
 

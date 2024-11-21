@@ -47,7 +47,7 @@ class NodeText(Node):
             self.on_click = self.options.on_click or (lambda: None)
             self.is_hovering = False
             if not self.id:
-                self.id = f"button_{text}"
+                self.id = f"button_{text.replace(' ', '_')}_{self.guid}"
 
     # def init_state(self, root_options: dict[str, any], scroll_region_key: int = None):
     #     global ids, state, buttons

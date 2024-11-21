@@ -127,6 +127,7 @@ class MetaState(MetaStateType):
 
     def clear_nodes(self):
         self._id_to_node.clear()
+        entity_manager.synchronize_global_ids()
 
     def clear(self):
         self._buttons.clear()
@@ -140,6 +141,7 @@ class MetaState(MetaStateType):
             cron.cancel(job[0])
         self.unhighlight_jobs.clear()
         self.active_button = None
+        entity_manager.synchronize_global_ids()
 
 class Tree(TreeType):
     def __init__(self, renderer: callable, hashed_renderer: str):
@@ -280,6 +282,12 @@ class Tree(TreeType):
         if self.is_mounted:
             self.meta_state.clear_nodes()
             self.effects.clear()
+            if self.canvas_blockable:
+                for canvas in self.canvas_blockable:
+                    canvas.unregister("mouse", self.on_mouse)
+                    # canvas.unregister("mouse", self.on_scroll)
+                    canvas.close()
+                self.is_blockable_canvas_init = False
             self.init_nodes_and_screen()
         if on_mount:
             state_manager.register_effect(self, on_mount, [])
@@ -299,8 +307,8 @@ class Tree(TreeType):
         new_hovered_id = None
         prev_hovered_id = state_manager.get_hovered_id()
         for button_id in list(self.meta_state.buttons):
-            node = self.meta_state.id_to_node[button_id]
-            if node.box_model.padding_rect.contains(gpos):
+            node = self.meta_state.id_to_node.get(button_id, None)
+            if node and node.box_model.padding_rect.contains(gpos):
                 new_hovered_id = button_id
                 if new_hovered_id != prev_hovered_id:
                     state_manager.set_hovered_id(button_id)
@@ -363,7 +371,6 @@ class Tree(TreeType):
                 canvas.unregister("mouse", self.on_mouse)
                 # canvas.unregister("mouse", self.on_scroll)
                 canvas.close()
-            self.canvas_blockable.clear()
             self.is_blockable_canvas_init = False
 
         self.meta_state.clear()

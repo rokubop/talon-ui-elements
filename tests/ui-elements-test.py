@@ -4,6 +4,7 @@ from ..src.store import store
 from ..src.entity_manager import entity_manager
 from ..examples.counter import counter_ui
 from ..examples.hello_world import hello_world_ui
+from ..examples.todo_list import todo_list_ui
 import traceback
 
 mod = Module()
@@ -30,6 +31,17 @@ def test_truthy(test_name, actual):
     else:
         print(f"❌ {test_name}")
         print(f"Expected True but got False")
+
+def test_cases_todo_list_ui():
+    trees = entity_manager.get_all_trees()
+    nodes = entity_manager.get_all_nodes()
+    test("There should be 1 tree", 1, len(trees))
+    test("Tree should have 8 nodes", 8, len(nodes))
+    test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
+
+@test_module
+def test_cases_todo_list_ui():
+    actions.user.ui_elements_new_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
 
 def test_cases_hello_world_ui():
     trees = entity_manager.get_all_trees()

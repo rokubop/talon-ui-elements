@@ -24,3 +24,7 @@ def counter_ui():
             button("Increment", button_style, on_click=lambda: set_count(count + 1)),
         ]
     ]
+
+# actions.user.ui_elements_new_show(counter_ui)
+# actions.user.ui_elements_new_hide(counter_ui)
+# actions.user.ui_elements_new_hide_all()
