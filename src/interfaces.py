@@ -243,6 +243,7 @@ class NodeContainerType(NodeType):
     scroll_y_percentage: float
     highlight_color: str
     is_uniform_border: bool
+    justify_between_gaps: Optional[int]
 
     @abstractmethod
     def set_scroll_y(self, delta: int):

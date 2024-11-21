@@ -17,6 +17,7 @@ class NodeContainer(Node, NodeContainerType):
         self.scroll_y_percentage = 0
         self.highlight_color = self.options.highlight_color or None
         self.is_uniform_border = True
+        self.justify_between_gaps = None
         self.debug_number = 0
         self.debug_color = "red"
         self.debug_colors = iter(cycle(["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]))
@@ -37,6 +38,21 @@ class NodeContainer(Node, NodeContainerType):
             self.scroll_y_percentage = self.scroll_y / self.options.height
         else:
             self.scroll_y_percentage = 0
+
+    def set_justify_between_gaps(self):
+        if self.options.justify_content == "justify_between":
+            total_children_width = None
+            total_children_height = None
+
+            if self.options.flex_direction == "row":
+                total_children_width = sum(child.box_model.margin_rect.width for child in self.children_nodes)
+                available_space = self.box_model.content_rect.width - total_children_width
+            else:
+                total_children_height = sum(child.box_model.margin_rect.height for child in self.children_nodes)
+                available_space = self.box_model.content_rect.height - total_children_height
+
+            gaps = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
+            self.justify_between_gaps = gaps
 
     def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.options.gap or 0
@@ -78,6 +94,8 @@ class NodeContainer(Node, NodeContainerType):
                 elif self.options.flex_direction == "column":
                     child.options.height = remaining_height * flex_weights[i]
                 self.virtual_render_child(c, cursor, child, i, move_after_last_child=False)
+
+        self.set_justify_between_gaps()
 
         cursor.virtual_move_to(last_cursor.x, last_cursor.y)
 
@@ -294,7 +312,7 @@ class NodeContainer(Node, NodeContainerType):
             # if self.debugger_should_continue(c, cursor):
             #     continue
 
-            gap = self.options.gap or 0
+            gap = self.justify_between_gaps or self.options.gap or 0
             if self.options.gap is None and child.element_type == "text" and self.children_nodes[i + 1].element_type == "text":
                 gap = 16
 
