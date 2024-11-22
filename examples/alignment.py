@@ -19,14 +19,14 @@ def items():
     ]
 
 def alignment_ui():
-    div, text, screen, button = actions.user.ui_elements_new(["div", "text", "screen", "button"])
+    div, text, screen = actions.user.ui_elements_new(["div", "text", "screen"])
 
-    return screen()[
-        div(background_color="222222", width=1000, height=500, padding=32, flex_direction="row", align_items="flex_start", gap=32)[
+    return screen(justify_content="center", align_items="center")[
+        div(background_color="222222", width=1000, height=500, padding=64, flex_direction="row", align_items="flex_start", gap=32, border_radius=8, border_width=1, border_color="555555")[
             div()[
                 text('flex_direction="row"', margin_bottom=16, color="FFCC00"),
                 div(background_color="333333", width=400, height=150, border_radius=4, border_width=1, border_color="CCCCCC")[
-                    div(padding=8, gap=8, flex_direction="row")[
+                    div(padding=8, gap=8, flex_direction="row", background_color="0000FF55")[
                         *items(),
                     ],
                 ],
