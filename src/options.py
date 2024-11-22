@@ -25,7 +25,7 @@ class UIOptions:
     highlight_color: str = None
     justify: str = "flex_start"
     justify_content: str = "flex_start"
-    align_items: str = "flex_start"
+    align_items: str = "stretch"
     type: str = None
     margin: Margin = Margin(0, 0, 0, 0)
     opacity: float = None

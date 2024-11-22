@@ -51,8 +51,22 @@ class NodeContainer(Node, NodeContainerType):
                 total_children_height = sum(child.box_model.margin_rect.height for child in self.children_nodes)
                 available_space = self.box_model.content_rect.height - total_children_height
 
+            print(f"total_children_width: {total_children_width}, total_children_height: {total_children_height}, available_space: {available_space}")
             gaps = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
             self.justify_between_gaps = gaps
+
+    def set_children_align_items_stretch(self):
+        print(f"align_items: {self.options.align_items}")
+        if self.options.align_items == "stretch":
+            print(f"box_model.content_rect: {self.box_model.content_rect}")
+            for child in self.children_nodes:
+                if child.node_type != "leaf":
+                    if self.options.flex_direction == "row" and not child.options.height:
+                        print(f"stretching height for {child.element_type} to {self.box_model.content_rect.height}")
+                        child.options.height = self.box_model.content_rect.height
+                    elif self.options.flex_direction == "column" and not child.options.width:
+                        print(f"stretching width for {child.element_type} to {self.box_model.content_rect.width}")
+                        child.options.width = self.box_model.content_rect.width
 
     def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.options.gap or 0
@@ -77,6 +91,9 @@ class NodeContainer(Node, NodeContainerType):
         last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
 
         flex_children = []
+
+        self.set_children_align_items_stretch()
+
         for i, child in enumerate(self.children_nodes):
             if child.options.flex:
                 flex_children.append(child)
@@ -285,8 +302,8 @@ class NodeContainer(Node, NodeContainerType):
 
         # self.debugger(c, cursor)
         self.render_borders(c, cursor)
-        self.adjust_for_scroll_y_start(c)
-        self.crop_scrollable_region_start(c)
+        # self.adjust_for_scroll_y_start(c)
+        # self.crop_scrollable_region_start(c)
         self.render_background(c, cursor)
         # if view_state := self.debugger(c, cursor, True):
         #     return view_state
@@ -313,7 +330,7 @@ class NodeContainer(Node, NodeContainerType):
             #     continue
 
             gap = self.justify_between_gaps or self.options.gap or 0
-            if self.options.gap is None and child.element_type == "text" and self.children_nodes[i + 1].element_type == "text":
+            if not gap and child.element_type == "text" and self.children_nodes[i + 1].element_type == "text" and not child.options.flex and not self.children_nodes[i + 1].options.flex:
                 gap = 16
 
             self.move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, rect, gap)
@@ -325,8 +342,8 @@ class NodeContainer(Node, NodeContainerType):
         cursor.move_to(last_cursor.x, last_cursor.y)
         # self.debugger(c, cursor)
 
-        self.adjust_for_scroll_y_end(c)
-        self.crop_scrollable_region_end(c)
+        # self.adjust_for_scroll_y_end(c)
+        # self.crop_scrollable_region_end(c)
 
         return self.box_model.margin_rect
 

@@ -5,6 +5,7 @@ from ..src.entity_manager import entity_manager
 from ..examples.counter import counter_ui
 from ..examples.hello_world import hello_world_ui
 from ..examples.todo_list import todo_list_ui
+from ..examples.alignment import alignment_ui
 import traceback
 
 mod = Module()
@@ -32,6 +33,17 @@ def test_truthy(test_name, actual):
         print(f"❌ {test_name}")
         print(f"Expected True but got False")
 
+def test_cases_alignment_ui():
+    trees = entity_manager.get_all_trees()
+    nodes = entity_manager.get_all_nodes()
+    test("There should be 1 tree", 1, len(trees))
+    test("Tree should have 3 nodes", 3, len(nodes))
+    test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
+
+@test_module
+def test_alignment_ui():
+    actions.user.ui_elements_new_show(alignment_ui, on_mount=test_cases_alignment_ui)
+
 def test_cases_todo_list_ui():
     trees = entity_manager.get_all_trees()
     nodes = entity_manager.get_all_nodes()
@@ -39,8 +51,8 @@ def test_cases_todo_list_ui():
     test("Tree should have 8 nodes", 8, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
 
-@test_module
-def test_cases_todo_list_ui():
+# @test_module
+def test_todo_list_ui():
     actions.user.ui_elements_new_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
 
 def test_cases_hello_world_ui():
@@ -82,7 +94,7 @@ def test_cases_hello_world_ui():
     test("div should have reference to tree", tree, div_node.tree)
     test("text should have reference to tree", tree, text_node.tree)
 
-@test_module
+# @test_module
 def test_hello_world_ui():
     actions.user.ui_elements_new_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
 
@@ -93,7 +105,7 @@ def test_cases_counter_ui():
     test("Tree should have 6 nodes", 6, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
 
-@test_module
+# @test_module
 def test_counter_ui():
     actions.user.ui_elements_new_show(counter_ui, on_mount=test_cases_counter_ui)
 

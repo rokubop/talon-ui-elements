@@ -443,6 +443,10 @@ class Tree(TreeType):
                 canvas.register("mouse", self.on_mouse)
                 # canvas.register("scroll", self.on_scroll)
                 canvas.freeze()
+                # canvas.focused = True might help with latency
+                # but we can't be recreating canvas every time otherwise
+                # this is even more expensive switching back and forth
+                # between "applications"
 
         self.is_blockable_canvas_init = True
         print(f"init_blockable_canvases: {time.time() - start}")

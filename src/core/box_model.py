@@ -91,7 +91,7 @@ class BoxModelLayout:
             self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
             self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
 
-    def prepare_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "flex_start", justify_content: str = "flex_start"):
+    def prepare_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_rect.x = cursor.x
         self.margin_rect.y = cursor.y
         self.border_rect.x = cursor.x + self.margin_spacing.left
