@@ -41,8 +41,14 @@ class NodeContainer(Node, NodeContainerType):
 
     def set_justify_between_gaps(self):
         if self.options.justify_content == "space_between":
+            print("JUSTIFY_BETWEEN")
             total_children_width = None
             total_children_height = None
+
+            for child in self.children_nodes:
+                if child.element_type == "text":
+                    print("IM TEXT")
+                    print(child.text)
 
             if self.options.flex_direction == "row":
                 total_children_width = sum(child.box_model.margin_rect.width for child in self.children_nodes)
@@ -51,22 +57,24 @@ class NodeContainer(Node, NodeContainerType):
                 total_children_height = sum(child.box_model.margin_rect.height for child in self.children_nodes)
                 available_space = self.box_model.content_rect.height - total_children_height
 
+            print(f"self.box_model.margin_rect.width: {self.box_model.margin_rect.width}")
+            print(f"self.box_model.padding_rect.width: {self.box_model.padding_rect.width}")
             print(f"total_children_width: {total_children_width}, total_children_height: {total_children_height}, available_space: {available_space}")
             gaps = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
             self.justify_between_gaps = gaps
 
-    def set_children_align_items_stretch(self):
-        print(f"align_items: {self.options.align_items}")
-        if self.options.align_items == "stretch":
-            print(f"box_model.content_rect: {self.box_model.content_rect}")
-            for child in self.children_nodes:
-                if child.node_type != "leaf":
-                    if self.options.flex_direction == "row" and not child.options.height:
-                        print(f"stretching height for {child.element_type} to {self.box_model.content_rect.height}")
-                        child.options.height = self.box_model.content_rect.height
-                    elif self.options.flex_direction == "column" and not child.options.width:
-                        print(f"stretching width for {child.element_type} to {self.box_model.content_rect.width}")
-                        child.options.width = self.box_model.content_rect.width
+    # def set_children_align_items_stretch(self):
+    #     # print(f"align_items: {self.options.align_items}")
+    #     if self.options.align_items == "stretch":
+    #         # print(f"box_model.content_rect: {self.box_model.content_rect}")
+    #         for child in self.children_nodes:
+    #             if child.node_type != "leaf":
+    #                 if self.options.flex_direction == "row" and not child.options.height:
+    #                     # print(f"stretching height for {child.element_type} to {self.box_model.content_rect.height}")
+    #                     child.options.height = self.box_model.content_rect.height
+    #                 elif self.options.flex_direction == "column" and not child.options.width:
+    #                     # print(f"stretching width for {child.element_type} to {self.box_model.content_rect.width}")
+    #                     child.options.width = self.box_model.content_rect.width
 
     def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.options.gap or 0
@@ -80,7 +88,7 @@ class NodeContainer(Node, NodeContainerType):
                 cursor.virtual_move_to(cursor.virtual_x, cursor.virtual_y + rect.height + gap)
             elif self.options.flex_direction == "row":
                 cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
-        print(f"rect: {rect}")
+        # print(f"rect: {rect}")
         self.box_model.accumulate_content_dimensions(rect)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
@@ -119,20 +127,29 @@ class NodeContainer(Node, NodeContainerType):
 
         growable_counter_axis = []
         growable_primary_axis = []
+        growable_primary_axis_flex = []
 
         # self.set_children_align_items_stretch()
 
+        # Intristic sizing phase
         for i, child in enumerate(self.children_nodes):
             if self.options.align_items == "stretch" or child.options.align_self == "stretch" or \
-                    (self.options.flex_direction == "row" and isinstance(child.options.height, str) and "%" in child.options.height) or \
-                    (self.options.flex_direction == "column" and isinstance(child.options.width, str) and "%" in child.options.width):
+                    (self.options.flex_direction == "row" and \
+                     isinstance(child.options.height, str) and "%" in child.options.height) or \
+                    (self.options.flex_direction == "column" and \
+                     isinstance(child.options.width, str) and "%" in child.options.width):
                 growable_counter_axis.append(child)
 
             if child.options.flex:
+                growable_primary_axis_flex.append(child)
+
+            if (self.options.flex_direction == "row" and child.options.width == "100%") or \
+                    (self.options.flex_direction == "column" and child.options.height == "100%"):
                 growable_primary_axis.append(child)
 
             self.virtual_render_child(c, cursor, child, i, move_after_last_child=True)
 
+        # Second pass grow children
         if growable_counter_axis:
             for i, child in enumerate(growable_counter_axis):
                 if child.node_type != "leaf":
@@ -142,6 +159,13 @@ class NodeContainer(Node, NodeContainerType):
                         child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
 
         if growable_primary_axis:
+            for i, child in enumerate(growable_primary_axis):
+                if child.options.width == "100%":
+                    child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
+                elif child.options.height == "100%":
+                    child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
+
+        if growable_primary_axis_flex:
             remaining_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
             remaining_height = self.box_model.content_rect.height - self.box_model.content_children_rect.height
 
@@ -202,10 +226,10 @@ class NodeContainer(Node, NodeContainerType):
                 c.paint.style = c.paint.Style.STROKE
                 c.paint.stroke_width = border_width
 
-                print(f"border_width: {border_width}")
-                print(f"self.box_model.padding_rect: {self.box_model.padding_rect}")
-                print(f"inner_rect: {inner_rect}")
-                print(f"border_spacing: {border_spacing}")
+                # print(f"border_width: {border_width}")
+                # print(f"self.box_model.padding_rect: {self.box_model.padding_rect}")
+                # print(f"inner_rect: {inner_rect}")
+                # print(f"border_spacing: {border_spacing}")
 
                 bordered_rect = Rect(
                     inner_rect.x - border_width / 2,
@@ -217,7 +241,7 @@ class NodeContainer(Node, NodeContainerType):
                 if self.options.border_radius:
                     c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.options.border_radius + border_width / 2, y=self.options.border_radius + border_width / 2))
                 else:
-                    print(f"bordered_rect: {bordered_rect}")
+                    # print(f"bordered_rect: {bordered_rect}")
                     c.draw_rect(bordered_rect)
             else:
                 c.paint.color = self.options.border_color
@@ -347,7 +371,7 @@ class NodeContainer(Node, NodeContainerType):
         if view_state := self.debugger(c, cursor, True):
             return view_state
 
-        self.box_model.prepare_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
+        self.box_model.position_for_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
 
         # if self.id:
         #     ids[self.id] = {

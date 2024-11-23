@@ -38,22 +38,22 @@ def grow_rect_x(orig_rect: Rect, new_rect: Rect, max_width: int = None):
     if new_rect.x < orig_rect.x:
         new_width = orig_rect.width + orig_rect.x - new_rect.x
         orig_rect.width = min(new_width, max_width) if max_width else new_width
-        print(f"a grow_rect_x new_width: {new_width} max_width: {max_width} orig_rect.width: {orig_rect.width}")
+        # print(f"a grow_rect_x new_width: {new_width} max_width: {max_width} orig_rect.width: {orig_rect.width}")
         orig_rect.x = new_rect.x
     if new_rect.x + new_rect.width > orig_rect.x + orig_rect.width:
         new_width = new_rect.x + new_rect.width - orig_rect.x
-        print(f"b grow_rect_x new_width: {new_width} max_width: {max_width} orig_rect.width: {orig_rect.width}")
+        # print(f"b grow_rect_x new_width: {new_width} max_width: {max_width} orig_rect.width: {orig_rect.width}")
         orig_rect.width = min(new_width, max_width) if max_width else new_width
 
 def grow_rect_y(orig_rect: Rect, new_rect: Rect, max_height: int = None):
     if new_rect.y < orig_rect.y:
         new_height = orig_rect.height + orig_rect.y - new_rect.y
         orig_rect.height = min(new_height, max_height) if max_height else new_height
-        print(f"c grow_rect_y new_height: {new_height} max_height: {max_height} orig_rect.height: {orig_rect.height}")
+        # print(f"c grow_rect_y new_height: {new_height} max_height: {max_height} orig_rect.height: {orig_rect.height}")
         orig_rect.y = new_rect.y
     if new_rect.y + new_rect.height > orig_rect.y + orig_rect.height:
         new_height = new_rect.y + new_rect.height - orig_rect.y
-        print(f"d grow_rect_y new_height: {new_height} max_height: {max_height} orig_rect.height: {orig_rect.height}")
+        # print(f"d grow_rect_y new_height: {new_height} max_height: {max_height} orig_rect.height: {orig_rect.height}")
         orig_rect.height = min(new_height, max_height) if max_height else new_height
 
 @dataclass
@@ -123,7 +123,7 @@ class BoxModelLayout:
             self.scroll_box_rect = Rect(self.padding_rect.x, self.padding_rect.y, self.padding_rect.width, self.padding_rect.height)
 
     def accumulate_outer_dimensions_width(self, new_width: int):
-        print(f"accumulate_outer_dimensions_width new_width: {new_width} margin_rect.width: {self.margin_rect.width}")
+        # print(f"accumulate_outer_dimensions_width new_width: {new_width} margin_rect.width: {self.margin_rect.width}")
         if not self.fixed_width and new_width > self.margin_rect.width:
             new_width = min(new_width, self.max_width) if self.max_width else new_width
             diff = new_width - self.margin_rect.width
@@ -135,7 +135,7 @@ class BoxModelLayout:
             self.content_children_rect.width = self.padding_rect.width
 
     def accumulate_outer_dimensions_height(self, new_height: int):
-        print(f"accumulate_outer_dimensions_height new_height: {new_height} margin_rect.height: {self.margin_rect.height}")
+        # print(f"accumulate_outer_dimensions_height new_height: {new_height} margin_rect.height: {self.margin_rect.height}")
         if not self.fixed_height and new_height > self.margin_rect.height:
             new_height = min(new_height, self.max_height) if self.max_height else new_height
             diff = new_height - self.margin_rect.height
@@ -169,7 +169,7 @@ class BoxModelLayout:
         #     self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
         #     self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
 
-    def prepare_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
+    def position_for_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_rect.x = cursor.x
         self.margin_rect.y = cursor.y
         self.border_rect.x = cursor.x + self.margin_spacing.left

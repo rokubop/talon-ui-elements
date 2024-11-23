@@ -105,7 +105,7 @@ class NodeText(Node):
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
         global ids
 
-        self.box_model.prepare_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
+        self.box_model.position_for_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
         # render_now = self.init_state(scroll_region_key)
         render_now = False if self.id and self.element_type == "text" else True
 

@@ -41,7 +41,7 @@ def example_ui(title: str, content):
 
     return div()[
         text(title, margin_bottom=16, color="FFCC00"),
-        div(background_color="333333", width=400, height=150, border_radius=4, border_width=1, border_color="CCCCCC")[
+        div(background_color="333333", width=400, height=180, border_radius=4, border_width=1, border_color="CCCCCC")[
             content
         ],
     ]
@@ -116,11 +116,13 @@ def alignment_ui():
         div(background_color="222222", padding=32, border_radius=8, border_width=1, border_color="555555")[
             # how do i get another div here?
             div(flex_direction="row", gap=32)[
-                div(height="100%", padding=16, background_color="FFCC00")[
-                    text('height="100%"', color="000000"),
+                div(padding=16, background_color="FFCC00")[
+                    text('A', color="000000"),
                 ],
                 div(background_color="121212")[
-                    div(flex_direction='row', justify_content="space_between", width="100%", background_color="FF000033", margin_bottom=16)[
+                    div(flex_direction='row', justify_content="space_between", background_color="FF000033", margin_bottom=16)[
+                        # div(width=100, height=100, background_color="FF0000"),
+                        # div(width=100, height=100, background_color="00FF00"),
                         text("Alignment", font_size=32),
                         text("ui-elements", font_size=32, color="FFCC00"),
                     ],
