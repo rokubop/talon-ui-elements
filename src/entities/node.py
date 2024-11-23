@@ -1,10 +1,6 @@
-from abc import ABC
-from typing import List, Literal, Optional
 import uuid
 from ..core.box_model import BoxModelLayout
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
-from ..entity_manager import entity_manager
-from ..state_manager import state_manager
 from ..options import UIOptions
 
 NODE_TYPE_MAP = {
@@ -36,14 +32,18 @@ class Node(NodeType):
         self.root_node = None
         self.depth: int = None
 
-        # self.component_node = state_manager.get_active_component_node()
-
     def add_child(self, node):
         if isinstance(node, tuple):
             for n in node:
                 if n:
                     self.check_invalid_child(n)
                     self.children_nodes.append(n)
+                    if isinstance(n, tuple):
+                        raise ValueError(
+                            f"Trailing comma detected for ui_elements node. "
+                            f"This can happen when a comma is mistakenly added after an element. "
+                            f"Remove the trailing comma to fix this issue."
+                        )
                     n.parent_node = self
         elif node:
             self.check_invalid_child(node)
@@ -60,9 +60,6 @@ class Node(NodeType):
         for node in children_nodes:
             self.add_child(node)
 
-        # if self.node_type == 'root':
-        #     entity_manager.init_node_hierarchy(self, self)
-
         return self
 
     def invalidate(self):
@@ -73,7 +70,6 @@ class Node(NodeType):
 
     def destroy(self):
         pass
-        # entity_manager.remove_node(self)
 
     def show(self):
         raise NotImplementedError(f"{self.element_type} cannot use .show() directly.")
@@ -86,11 +82,3 @@ class Node(NodeType):
             raise TypeError(
                 "Invalid child type: str. Use `ui_elements` `text` element."
             )
-
-    # @abstractmethod
-    # def render(self):
-    #     pass
-
-    # @abstractmethod
-    # def virtual_render(self):
-    #     pass

@@ -19,4 +19,4 @@ def ui_elements_new(elements: List[str]) -> tuple[callable]:
         'use_effect': use_effect,
         'use_state': use_state,
     }
-    return tuple(element_mapping[element] for element in elements)
+    return tuple(element_mapping[element] for element in elements) if len(elements) > 1 else element_mapping[elements[0]]

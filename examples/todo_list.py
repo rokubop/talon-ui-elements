@@ -21,7 +21,7 @@ def todo_list_ui():
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=16, border_radius=8, gap=16, width=300)[
             text("Todo List", color="FFFFFF", font_size=24),
-            div(background_color="333333", gap=8)[
+            div(background_color="333333", gap=8, max_height=300)[
                 *(item(item_name) for item_name in items)
             ],
             button("Add Item", color="FFFFFF", font_size=16, on_click=add_item)

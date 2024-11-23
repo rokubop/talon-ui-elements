@@ -5,7 +5,7 @@ class MouseState(TypedDict):
     hovered_id: Optional[str]
     mousedown_start_id: Optional[str]
     mousedown_start_pos: Optional[Tuple[int, int]]
-    drag_active: bool
+    is_drag_active: bool
     drag_window_relative_offset: Optional[Tuple[int, int]]
 
 class Store():
@@ -20,7 +20,7 @@ class Store():
             "hovered_id": None,
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
-            "drag_active": False,
+            "is_drag_active": False,
             "drag_window_relative_offset": None,
         }
 
@@ -29,7 +29,7 @@ class Store():
             "hovered_id": None,
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
-            "drag_active": False,
+            "is_drag_active": False,
             "drag_window_relative_offset": None,
         }
 

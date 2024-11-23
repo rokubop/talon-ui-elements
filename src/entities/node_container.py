@@ -80,6 +80,7 @@ class NodeContainer(Node, NodeContainerType):
                 cursor.virtual_move_to(cursor.virtual_x, cursor.virtual_y + rect.height + gap)
             elif self.options.flex_direction == "row":
                 cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
+        print(f"rect: {rect}")
         self.box_model.accumulate_content_dimensions(rect)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):

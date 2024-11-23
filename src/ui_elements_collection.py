@@ -370,6 +370,20 @@ def button(text_str: str, props=None, **additional_props):
     text_options = NodeTextOptions(**options)
     return NodeText("button", text_str, text_options)
 
+class UIElementsContainerProxy:
+    def __init__(self, func):
+        self.func = func
+
+    def __getitem__(self, item):
+        raise TypeError(f"You must call {self.func.__name__}() before declaring children. Use {self.func.__name__}()[..] instead of {self.func.__name__}[..].")
+
+    def __call__(self, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str):
+                raise ValueError(f"div/screen does not accept string arguments, only keyword arguments. Use text() if you want to display a string.")
+
+        return self.func(*args, **kwargs)
+
 class UIElementsProxy:
     def __init__(self, func):
         self.func = func
@@ -390,7 +404,7 @@ class UIElementsNoChildrenProxy:
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-div = UIElementsProxy(div)
+div = UIElementsContainerProxy(div)
 text = UIElementsNoChildrenProxy(text)
-screen = UIElementsProxy(screen)
+screen = UIElementsContainerProxy(screen)
 button = UIElementsNoChildrenProxy(button)
