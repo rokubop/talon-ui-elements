@@ -1,42 +1,60 @@
 from dataclasses import dataclass, fields
-from typing import Optional, TypedDict
+from typing import Optional, TypedDict, Union
 from typing import TypedDict, Optional, get_origin, get_args
 from .core.box_model import Border, Margin, Padding, parse_box_model
 
 class UIOptions:
-    id: str = None
+    align_items: str = "stretch"
     align: str = "start"
+    align_self: str = None
     background_color: str = None
     border_color: str = "FF0000"
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
     bottom: Optional[int] = None
-    top: Optional[int] = None
-    left: Optional[int] = None
-    right: Optional[int] = None
     color: str = "FFFFFF"
-    flex: int = None
     flex_direction: str = "column"
-    key: str = None
-    guid: str = None
+    flex: int = None
     gap: int = None
-    height: int = 0
+    guid: str = None
+    height: Union[int, str] = 0
     highlight_color: str = None
-    justify: str = "flex_start"
+    id: str = None
     justify_content: str = "flex_start"
-    align_items: str = "stretch"
-    type: str = None
+    justify: str = "flex_start"
+    key: str = None
+    left: Optional[int] = None
     margin: Margin = Margin(0, 0, 0, 0)
+    max_height: int = None
+    max_width: int = None
+    min_height: int = None
+    min_width: int = None
     opacity: float = None
     padding: Padding = Padding(0, 0, 0, 0)
-    width: int = 0
+    right: Optional[int] = None
     screen: int = 0
+    top: Optional[int] = None
+    type: str = None
+    width: Union[int, str] = 0
 
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
+        if self.justify_content:
+            if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center']:
+                raise ValueError(
+                    f"\nInvalid value for justify_content: '{self.justify_content}'\n"
+                    f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'center'"
+                )
+        if self.align_items:
+            if self.align_items not in ['stretch', 'center', 'flex_start', 'flex_end']:
+                raise ValueError(
+                    f"\nInvalid value for align_items: '{self.align_items}'\n"
+                    f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
+                )
 
         if self.opacity is not None:
             # convert float to 2 digit hex e.g. 00 44 88 AA FF
@@ -56,8 +74,9 @@ class UIOptions:
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
 
 class UIOptionsDict(TypedDict):
-    id: str
+    align_items: str
     align: str
+    align_self: str
     background_color: str
     border_color: str
     border_radius: int
@@ -65,21 +84,25 @@ class UIOptionsDict(TypedDict):
     border: Border
     bottom: int
     color: str
-    flex: int
     flex_direction: str
-    justify_content: str
+    flex: int
+    height: Union[int, str]
     highlight_color: str
-    align_items: str
-    height: int
+    id: str
+    justify_content: str
     justify: str
     left: int
     margin: Margin
+    max_height: int
+    max_width: int
+    min_height: int
+    min_width: int
     opacity: float
     padding: Padding
     right: int
     screen: int
     top: int
-    width: int
+    width: Union[int, str]
 
 class NodeTextOptionsDict(UIOptionsDict):
     id: str
@@ -110,47 +133,52 @@ VALID_PROPS = (
 
 @dataclass
 class UIProps:
-    id: str
+    align_items: str
     align: str
+    align_self: str
     background_color: str
-    border_color: str
-    border_radius: int
-    border_width: int
-    border_top: int
-    border_right: int
     border_bottom: int
+    border_color: str
     border_left: int
+    border_radius: int
+    border_right: int
+    border_top: int
+    border_width: int
     bottom: int
-    top: int
-    left: int
-    right: int
     color: str
-    flex: int
     flex_direction: str
+    flex: int
     font_size: int
     font_weight: str
     gap: int
-    height: int
+    height: Union[int, str]
     highlight_color: str
-    justify: str
+    id: str
     justify_content: str
-    align_items: str
-    margin: int
-    margin_top: int
-    margin_right: int
+    justify: str
+    left: int
     margin_bottom: int
     margin_left: int
+    margin_right: int
+    margin_top: int
+    margin: int
+    max_height: int
+    max_width: int
+    min_height: int
+    min_width: int
     on_change: callable
     on_click: callable
     opacity: float
-    padding: int
-    padding_top: int
-    padding_right: int
     padding_bottom: int
     padding_left: int
+    padding_right: int
+    padding_top: int
+    padding: int
+    right: int
     screen: int
+    top: int
     value: str
-    width: int
+    width: Union[int, str]
 
 VALID_PROPS = {f.name for f in fields(UIProps)}
 EXPECTED_TYPES = {f.name: f.type for f in fields(UIProps)}

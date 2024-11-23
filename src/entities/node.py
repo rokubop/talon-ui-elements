@@ -35,6 +35,7 @@ class Node(NodeType):
         self.is_dirty: bool = False
         self.root_node = None
         self.depth: int = None
+
         # self.component_node = state_manager.get_active_component_node()
 
     def add_child(self, node):

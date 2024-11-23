@@ -34,17 +34,23 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
 
     return model
 
-def grow_rect(orig_rect: Rect, new_rect: Rect):
+def grow_rect_x(orig_rect: Rect, new_rect: Rect, max_width: int = None):
     if new_rect.x < orig_rect.x:
-        orig_rect.width += orig_rect.x - new_rect.x
+        new_width = orig_rect.width + orig_rect.x - new_rect.x
+        orig_rect.width = min(new_width, max_width) if max_width else new_width
         orig_rect.x = new_rect.x
-    if new_rect.y < orig_rect.y:
-        orig_rect.height += orig_rect.y - new_rect.y
-        orig_rect.y = new_rect.y
     if new_rect.x + new_rect.width > orig_rect.x + orig_rect.width:
-        orig_rect.width = new_rect.x + new_rect.width - orig_rect.x
+        new_width = new_rect.x + new_rect.width - orig_rect.x
+        orig_rect.width = min(new_width, max_width) if max_width else new_width
+
+def grow_rect_y(orig_rect: Rect, new_rect: Rect, max_height: int = None):
+    if new_rect.y < orig_rect.y:
+        new_height = orig_rect.height + orig_rect.y - new_rect.y
+        orig_rect.height = min(new_height, max_height) if max_height else new_height
+        orig_rect.y = new_rect.y
     if new_rect.y + new_rect.height > orig_rect.y + orig_rect.height:
-        orig_rect.height = new_rect.y + new_rect.height - orig_rect.y
+        new_height = new_rect.y + new_rect.height - orig_rect.y
+        orig_rect.height = min(new_height, max_height) if max_height else new_height
 
 @dataclass
 class BoxModelLayout:
@@ -59,37 +65,103 @@ class BoxModelLayout:
     scroll_box_rect: Union[Rect, None] = None
     # Margin > Border > Scrollbox > Padding > Content > Content children
 
-    def __init__(self, x: int, y: int, margin_spacing: BoxModelSpacing, padding_spacing: BoxModelSpacing, border_spacing: BoxModelSpacing, width: int = None, height: int = None):
-        self.scrollable = True if height else False
+    def __init__(
+        self,
+        x: int,
+        y: int,
+        margin_spacing: BoxModelSpacing,
+        padding_spacing: BoxModelSpacing,
+        border_spacing: BoxModelSpacing,
+        width: int = None,
+        height: int = None,
+        min_width: int = None,
+        min_height: int = None,
+        max_width: int = None,
+        max_height: int = None
+    ):
+        self.scrollable = False
+        self.fixed_width = True if width else False
+        self.fixed_height = True if height else False
+        self.min_width = min_width
+        self.min_height = min_height
+        self.max_width = max_width
+        self.max_height = max_height
+        self.width = width or min_width or 0
+        self.height = height or min_height or 0
         self.margin_spacing = margin_spacing
         self.padding_spacing = padding_spacing
         self.border_spacing = border_spacing
-        self.margin_rect = Rect(x, y, width or 0, height or 0)
-        self.border_rect = Rect(x + margin_spacing.left, y + margin_spacing.top, width or 0, height or 0)
-        self.padding_rect = Rect(x + margin_spacing.left + border_spacing.left, y + margin_spacing.top + border_spacing.top, width - border_spacing.left - border_spacing.right if width else 0, height - border_spacing.top - border_spacing.bottom if height else 0)
+
+        if isinstance(width, str):
+            if "%" in width:
+                self.width = 0 # calculated later
+            else:
+                self.width = int(width)
+        if isinstance(height, str) and "%" in height:
+            if "%" in height:
+                self.height = 0 # calculated later
+            else:
+                self.height = int(height)
+
+        self.margin_rect = Rect(x, y, self.width, self.height)
+        self.border_rect = Rect(x + margin_spacing.left, y + margin_spacing.top, self.width, self.height)
+        self.padding_rect = Rect(x + margin_spacing.left + border_spacing.left, y + margin_spacing.top + border_spacing.top, self.width - border_spacing.left - border_spacing.right if self.width else 0, self.height - border_spacing.top - border_spacing.bottom if self.height else 0)
         content_x = x + margin_spacing.left + border_spacing.left + padding_spacing.left
         content_y = y + margin_spacing.top + margin_spacing.top + padding_spacing.top
-        content_width = width - padding_spacing.left - padding_spacing.right - border_spacing.left - border_spacing.right if width else 0
-        content_height = height - padding_spacing.top - padding_spacing.bottom - border_spacing.top - border_spacing.bottom if height else 0
+        content_width = self.width - padding_spacing.left - padding_spacing.right - border_spacing.left - border_spacing.right if self.width else 0
+        content_height = self.height - padding_spacing.top - padding_spacing.bottom - border_spacing.top - border_spacing.bottom if self.height else 0
         self.content_rect = Rect(content_x, content_y, content_width, content_height)
+        self.max_content_width = content_width + max_width - width if max_width and width else content_width
+        self.max_content_height = content_height + max_height - height if max_height and height else content_height
         self.content_children_rect = Rect(self.content_rect.x, self.content_rect.y, 0, 0)
 
         if self.scrollable:
             self.scroll_box_rect = Rect(self.padding_rect.x, self.padding_rect.y, self.padding_rect.width, self.padding_rect.height)
 
-    def accumulate_dimensions(self, rect: Rect):
-        grow_rect(self.content_children_rect, rect)
-        grow_rect(self.content_rect, rect)
-        self.padding_rect.width = self.content_rect.width + self.padding_spacing.left + self.padding_spacing.right
-        self.padding_rect.height = self.content_rect.height + self.padding_spacing.top + self.padding_spacing.bottom
-        self.border_rect.width = self.padding_rect.width + self.border_spacing.left + self.border_spacing.right
-        self.margin_rect.width = self.padding_rect.width + self.margin_spacing.left + self.margin_spacing.right
+    def accumulate_outer_dimensions_width(self, new_width: int):
+        print(f"accumulate_outer_dimensions_width new_width: {new_width} margin_rect.width: {self.margin_rect.width}")
+        if not self.fixed_width and new_width > self.margin_rect.width:
+            diff = new_width - self.margin_rect.width
+            self.width = new_width
+            self.margin_rect.width += diff
+            self.border_rect.width += diff
+            self.padding_rect.width += diff
+            self.content_rect.width = self.padding_rect.width
+            self.content_children_rect.width = self.padding_rect.width
+
+    def accumulate_outer_dimensions_height(self, new_height: int):
+        print(f"accumulate_outer_dimensions_height new_height: {new_height} margin_rect.height: {self.margin_rect.height}")
+        if not self.fixed_height and new_height > self.margin_rect.height:
+            diff = new_height - self.margin_rect.height
+            self.height = new_height
+            self.margin_rect.height += diff
+            self.border_rect.height += diff
+            self.padding_rect.height += diff
+            self.content_rect.height = self.padding_rect.height
+            self.content_children_rect.height = self.padding_rect.height
+
+    def accumulate_content_dimensions(self, rect: Rect, axis: str = None):
+        if not axis or axis == "x" and not self.fixed_width:
+            grow_rect_x(self.content_children_rect, rect, self.max_content_width)
+            grow_rect_x(self.content_rect, rect, self.max_content_width)
+            self.padding_rect.width = self.content_rect.width + self.padding_spacing.left + self.padding_spacing.right
+            self.border_rect.width = self.padding_rect.width + self.border_spacing.left + self.border_spacing.right
+            self.margin_rect.width = self.padding_rect.width + self.margin_spacing.left + self.margin_spacing.right
+            self.width = self.margin_rect.width
+
+        if not axis or axis == "y" and not self.fixed_height:
+            grow_rect_y(self.content_children_rect, rect, self.max_content_height)
+            grow_rect_y(self.content_rect, rect, self.max_content_height)
+            self.padding_rect.height = self.content_rect.height + self.padding_spacing.top + self.padding_spacing.bottom
+            self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
+            self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
+            self.height = self.margin_rect.height
 
         # If the box is scrollable, the height of the margin/border is static
         # If the box is not scrollable, the height of the margin/border is dynamic so change it
-        if not self.scrollable:
-            self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
-            self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
+        # if not self.scrollable:
+        #     self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
+        #     self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
 
     def prepare_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_rect.x = cursor.x
