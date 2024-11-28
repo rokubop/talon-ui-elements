@@ -13,7 +13,7 @@ def inputs_ui():
     div, text, screen, input_text, button = actions.user.ui_elements_new(["div", "text", "screen", "input_text", "button"])
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="333333", padding=16, border_radius=16, border_width=1, gap=16)[
+        div(background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
             div(border_bottom=1, padding_bottom=16, margin_bottom=8)[
                 text("Enter your name", font_size=24),
             ],
@@ -22,7 +22,7 @@ def inputs_ui():
             text("Last"),
             input_text(id="last", background_color="444444", on_change=on_change),
             div(flex_direction="row", justify_content="flex_end", margin_top=8)[
-                button("Submit", on_click=on_submit, background_color="42A5F5", border_radius=8, padding=16)
+                button("Submit", on_click=on_submit, background_color="42A5F5", border_radius=8, padding=12, padding_left=24, padding_right=24)
             ]
         ]
     ]

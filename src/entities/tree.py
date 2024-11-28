@@ -281,12 +281,12 @@ class Tree(TreeType):
         if self.is_mounted:
             self.meta_state.clear_nodes()
             self.effects.clear()
-            # if self.canvas_blockable:
-            #     for canvas in self.canvas_blockable:
-            #         canvas.unregister("mouse", self.on_mouse)
-            #         # canvas.unregister("mouse", self.on_scroll)
-            #         canvas.close()
-            #     self.is_blockable_canvas_init = False
+            if self.canvas_blockable:
+                for canvas in self.canvas_blockable:
+                    canvas.unregister("mouse", self.on_mouse)
+                    # canvas.unregister("mouse", self.on_scroll)
+                    canvas.close()
+                self.is_blockable_canvas_init = False
             self.init_nodes_and_screen()
         if on_mount:
             state_manager.register_effect(self, on_mount, [])
@@ -453,7 +453,7 @@ class Tree(TreeType):
                 canvas.register("mouse", self.on_mouse)
                 # canvas.register("scroll", self.on_scroll)
                 canvas.freeze()
-                canvas.focused = True
+                # canvas.focused = True
                 # but we can't be recreating canvas every time otherwise
                 # this is even more expensive switching back and forth
                 # between "applications"

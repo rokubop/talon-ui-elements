@@ -25,6 +25,5 @@ def counter_ui():
         ]
     ]
 
-# actions.user.ui_elements_new_show(counter_ui)
-# actions.user.ui_elements_new_hide(counter_ui)
-# actions.user.ui_elements_new_hide_all()
+def show_counter_ui():
+    actions.user.ui_elements_new_show(counter_ui)
