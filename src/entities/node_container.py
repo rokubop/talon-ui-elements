@@ -3,6 +3,7 @@ from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
+from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
 from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
 from ..interfaces import NodeContainerType
@@ -45,7 +46,7 @@ class NodeContainer(Node, NodeContainerType):
             total_children_height = None
 
             for child in self.children_nodes:
-                if child.element_type == "text":
+                if child.element_type == ELEMENT_ENUM_TYPE["text"]:
                     print(child.text)
 
             if self.options.flex_direction == "row":
@@ -60,8 +61,8 @@ class NodeContainer(Node, NodeContainerType):
 
     def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.options.gap or 0
-        if self.options.gap is None and self.options.flex_direction == "column" and child.element_type == "text" and \
-                self.children_nodes[i - 1].element_type == "text" \
+        if self.options.gap is None and self.options.flex_direction == "column" and child.element_type == ELEMENT_ENUM_TYPE["text"] and \
+                self.children_nodes[i - 1].element_type == ELEMENT_ENUM_TYPE["text"] \
                 and not self.options.justify_content == "space_between":
             gap = 16
         a_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
@@ -106,7 +107,7 @@ class NodeContainer(Node, NodeContainerType):
         # Second pass grow children
         if growable_counter_axis:
             for i, child in enumerate(growable_counter_axis):
-                if child.node_type != "leaf":
+                if child.node_type != NODE_ENUM_TYPE["leaf"]:
                     if self.options.flex_direction == "row" and not child.box_model.fixed_height:
                         child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
                     elif self.options.flex_direction == "column" and not child.box_model.fixed_width:
@@ -398,8 +399,8 @@ class NodeContainer(Node, NodeContainerType):
             #     continue
 
             gap = self.justify_between_gaps or self.options.gap or 0
-            if not gap and child.element_type == "text" and self.options.flex_direction == "column" and \
-                    self.children_nodes[i + 1].element_type == "text" and \
+            if not gap and child.element_type == ELEMENT_ENUM_TYPE["text"] and self.options.flex_direction == "column" and \
+                    self.children_nodes[i + 1].element_type == ELEMENT_ENUM_TYPE["text"] and \
                     not child.options.flex and not self.children_nodes[i + 1].options.flex and \
                     not self.options.justify_content == "space_between":
                 gap = 16

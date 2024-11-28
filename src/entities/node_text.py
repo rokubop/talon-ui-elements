@@ -6,7 +6,7 @@ from talon.types import Rect
 from typing import Literal
 from ..core.box_model import BoxModelLayout
 from ..core.cursor import Cursor
-from ..options import UIOptions, UIOptionsDict
+from ..options import NodeTextOptions
 from ..utils import draw_text_simple
 from ..state_manager import state_manager
 from .node import Node
@@ -86,20 +86,20 @@ class TextBlock():
     def __str__(self):
         return self.value
 
-@dataclass
-class NodeTextOptions(UIOptions):
-    id: str = None
-    font_size: int = 16
-    font_weight: str = "normal"
-    on_click: any = None
+# @dataclass
+# class NodeTextOptions(UIOptions):
+#     id: str = None
+#     font_size: int = 16
+#     font_weight: str = "normal"
+#     on_click: any = None
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
 
-class NodeTextOptionsDict(UIOptionsDict):
-    id: str
-    font_size: int
-    font_weight: str
+# class NodeTextOptionsDict(UIOptionsDict):
+#     id: str
+#     font_size: int
+#     font_weight: str
 
 ElementType = Literal['button', 'text']
 

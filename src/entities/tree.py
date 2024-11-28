@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.screen import Screen
@@ -5,6 +6,7 @@ from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron
 from typing import List, Optional, Any
+from ..constants import ELEMENT_ENUM_TYPE
 from ..core.cursor import Cursor
 from ..interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
 from ..entity_manager import entity_manager
@@ -15,27 +17,14 @@ from ..constants import HIGHLIGHT_COLOR, CLICK_COLOR
 from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_simple
 import time
 
-import uuid
-
-# class NodeRefs():
-#     def __init__(self):
-#         self.buttons = {}
-#         self.inputs = {}
-#         self.dynamic_text = {}
-#         self.highlighted = {}
-#         self.scrollable_regions = {}
-
-#     def clear(self):
-#         self.buttons.clear()
-#         self.inputs.clear()
-#         self.dynamic_text.clear()
-#         self.highlighted.clear()
-#         self.scrollable_regions.clear()
-
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int, scroll_x: int):
         self.scroll_y = scroll_y
         self.scroll_x = scroll_x
+
+@dataclass
+class ClickEvent:
+    id: str
 
 class MetaState(MetaStateType):
     def __init__(self):
@@ -130,6 +119,14 @@ class MetaState(MetaStateType):
         entity_manager.synchronize_global_ids()
 
     def clear(self):
+        for id in list(self._inputs.keys()):
+            if id in self._id_to_node and self._id_to_node[id].input:
+                self.id_to_node[id].input.hide()
+
+        for job in list(self.unhighlight_jobs.values()):
+            if job:
+                cron.cancel(job[0])
+
         self._buttons.clear()
         self._highlighted.clear()
         self._id_to_node.clear()
@@ -137,9 +134,6 @@ class MetaState(MetaStateType):
         self._scroll_regions.clear()
         self._style_mutations.clear()
         self._text_mutations.clear()
-        for job in list(self.unhighlight_jobs.values()):
-            if job:
-                cron.cancel(job[0])
         self.unhighlight_jobs.clear()
         self.active_button = None
         entity_manager.synchronize_global_ids()
@@ -157,7 +151,6 @@ class Tree(TreeType):
         self.is_blockable_canvas_init = False
         self.is_mounted = False
         self.meta_state = MetaState()
-        # self.node_refs = NodeRefs()
         self._renderer = renderer
         self.root_node = None
         self.screen = None
@@ -340,7 +333,7 @@ class Tree(TreeType):
         if mousedown_start_id and hovered_id == mousedown_start_id:
             node = self.meta_state.id_to_node[mousedown_start_id]
             self.highlight(mousedown_start_id, color=HIGHLIGHT_COLOR)
-            node.on_click()
+            node.on_click(ClickEvent(id=mousedown_start_id))
 
         state_manager.set_mousedown_start_id(None)
 
@@ -398,13 +391,14 @@ class Tree(TreeType):
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
+            print("found id", current_node.id)
 
-            if current_node.element_type == 'button':
+            if current_node.element_type == ELEMENT_ENUM_TYPE["button"]:
                 self.meta_state.add_button(current_node.id)
-            elif current_node.element_type == 'text':
+            elif current_node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
-            # elif current_node.element_type == 'input':
-            #     self.meta_state.add_input(current_node.id, initial_value=current_node.value)
+            elif current_node.element_type == ELEMENT_ENUM_TYPE["input_text"]:
+                self.meta_state.add_input(current_node.id, initial_value=current_node.value)
 
         for child_node in current_node.children_nodes:
             self.init_node_hierarchy(child_node, depth + 1, constraint_nodes)
@@ -435,7 +429,9 @@ class Tree(TreeType):
 
             if self.meta_state.inputs:
                 bottom_rect = None
-                for input in list(self.meta_state.inputs.values()):
+                for input_id in list(self.meta_state.inputs.keys()):
+                    input_node = self.meta_state.id_to_node[input_id]
+                    input = input_node.input
                     current_rect = bottom_rect or full_rect
 
                     top_rect = Rect(current_rect.x, current_rect.y, current_rect.width, input.rect.y - current_rect.y)

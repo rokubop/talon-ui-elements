@@ -5,6 +5,7 @@ from .entities.node_component import NodeComponent
 from .entities.node_container import NodeContainer
 from .entities.node_screen import NodeScreen
 from .entities.node_text import NodeText
+from .entities.node_input_text import NodeInputText
 from .state_manager import state_manager
 from .options import (
     UIOptions,
@@ -12,7 +13,8 @@ from .options import (
     UIProps,
     UIOptionsDict,
     NodeTextOptionsDict,
-    UIInputTextOptionsDict,
+    NodeInputTextOptions,
+    NodeInputTextOptionsDict,
 )
 from .utils import get_screen
 
@@ -35,47 +37,10 @@ class Padding(BoxModelSpacing):
 class Border(BoxModelSpacing):
     pass
 
-class UIOptionsDict(TypedDict):
-    id: str
-    align: str
-    background_color: str
-    border_color: str
-    border_radius: int
-    border_width: int
-    border: Border
-    bottom: int
-    color: str
-    flex: int
-    flex_direction: str
-    justify_content: str
-    highlight_color: str
-    align_items: str
-    height: int
-    justify: str
-    left: int
-    margin: Margin
-    opacity: float
-    padding: Padding
-    right: int
-    screen: int
-    top: int
-    width: int
-
-class NodeTextOptionsDict(UIOptionsDict):
-    id: str
-    font_size: int
-    font_weight: str
-
-class UIInputTextOptionsDict(UIOptionsDict):
-    id: str
-    font_size: int
-    value: str
-    on_change: callable
-
 VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
     .union(set(NodeTextOptionsDict.__annotations__.keys()))
-    .union(set(UIInputTextOptionsDict.__annotations__.keys()))
+    .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
 )
 
 def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
@@ -101,128 +66,6 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
             setattr(model, side, kwargs[side_key])
 
     return model
-
-# class UIOptions:
-#     id: str = None
-#     align: str = "start"
-#     background_color: str = None
-#     border_color: str = "FF0000"
-#     border_radius: int = 0
-#     border_width: int = None
-#     border: Border = Border(0, 0, 0, 0)
-#     bottom: Optional[int] = None
-#     top: Optional[int] = None
-#     left: Optional[int] = None
-#     right: Optional[int] = None
-#     color: str = "FFFFFF"
-#     flex: int = None
-#     flex_direction: str = "column"
-#     gap: int = None
-#     height: int = 0
-#     highlight_color: str = None
-#     justify: str = "flex_start"
-#     justify_content: str = "flex_start"
-#     align_items: str = "flex_start"
-#     type: str = None
-#     margin: Margin = Margin(0, 0, 0, 0)
-#     opacity: float = None
-#     padding: Padding = Padding(0, 0, 0, 0)
-#     key: str = None
-#     width: int = 0
-
-#     def __init__(self, **kwargs):
-#         for key, value in kwargs.items():
-#             if hasattr(self, key):
-#                 setattr(self, key, value)
-
-#         if self.opacity is not None:
-#             # convert float to 2 digit hex e.g. 00 44 88 AA FF
-#             opacity_hex = format(int(round(self.opacity * 255)), '02X')
-
-#             if self.background_color and len(self.background_color) == 6:
-#                     self.background_color = self.background_color + opacity_hex
-
-#             if self.border_color and len(self.border_color) == 6:
-#                     self.border_color = self.border_color + opacity_hex
-
-#             if self.color and len(self.color) == 6:
-#                     self.color = self.color + opacity_hex
-
-#         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
-#         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
-#         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
-
-# @dataclass
-# class NodeTextOptions(UIOptions):
-#     id: str = None
-#     font_size: int = 16
-#     font_weight: str = "normal"
-#     on_click: any = None
-
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
-
-# @dataclass
-# class UIInputTextOptions(UIOptions):
-#     id: str = None
-#     font_size: int = 16
-#     value: str = ""
-#     on_change: callable = None
-
-#     def __init__(self, **kwargs):
-#         kwargs['padding_left'] = max(
-#             kwargs.get('padding_left', 0),
-#             kwargs.get('padding', 0)
-#         ) + max(8, kwargs.get('border_radius', 0))
-#         kwargs['padding_right'] = max(
-#             kwargs.get('padding_right', 0),
-#             kwargs.get('padding', 0)
-#         ) + max(8, kwargs.get('border_radius', 0))
-#         super().__init__(**kwargs)
-
-# @dataclass
-# class UIProps:
-#     id: str
-#     align: str
-#     background_color: str
-#     border_color: str
-#     border_radius: int
-#     border_width: int
-#     border_top: int
-#     border_right: int
-#     border_bottom: int
-#     border_left: int
-#     bottom: int
-#     top: int
-#     left: int
-#     right: int
-#     color: str
-#     flex: int
-#     flex_direction: str
-#     font_size: int
-#     font_weight: str
-#     gap: int
-#     height: int
-#     highlight_color: str
-#     justify: str
-#     justify_content: str
-#     align_items: str
-#     margin: int
-#     margin_top: int
-#     margin_right: int
-#     margin_bottom: int
-#     margin_left: int
-#     on_change: callable
-#     on_click: callable
-#     opacity: float
-#     padding: int
-#     padding_top: int
-#     padding_right: int
-#     padding_bottom: int
-#     padding_left: int
-#     screen: int
-#     value: str
-#     width: int
 
 VALID_PROPS = {f.name for f in fields(UIProps)}
 EXPECTED_TYPES = {f.name: f.type for f in fields(UIProps)}
@@ -370,6 +213,13 @@ def button(text_str: str, props=None, **additional_props):
     text_options = NodeTextOptions(**options)
     return NodeText("button", text_str, text_options)
 
+def input_text(props=None, **additional_props):
+    options = get_props(props, additional_props)
+    input_options = NodeInputTextOptions(**options)
+    if not input_options.id:
+        raise ValueError("input_text must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
+    return NodeInputText(input_options)
+
 class UIElementsContainerProxy:
     def __init__(self, func):
         self.func = func
@@ -380,7 +230,7 @@ class UIElementsContainerProxy:
     def __call__(self, *args, **kwargs):
         for arg in args:
             if isinstance(arg, str):
-                raise ValueError(f"div/screen does not accept string arguments, only keyword arguments. Use text() if you want to display a string.")
+                raise ValueError(f"Tried to provide a string argument to a ui_element that doesn't accept it. Use text() if you want to display a string.")
 
         return self.func(*args, **kwargs)
 
@@ -408,3 +258,4 @@ div = UIElementsContainerProxy(div)
 text = UIElementsNoChildrenProxy(text)
 screen = UIElementsContainerProxy(screen)
 button = UIElementsNoChildrenProxy(button)
+input_text = UIElementsNoChildrenProxy(input_text)

@@ -1,5 +1,5 @@
 from talon import cron
-from .interfaces import ReactiveStateType, TreeType, EffectType, MetaStateType, ScrollRegionType
+from .interfaces import NodeType, ReactiveStateType, TreeType, EffectType, MetaStateType, ScrollRegionType
 from typing import Union
 from .store import store
 
@@ -104,11 +104,23 @@ class StateManager:
         else:
             print(f"Node with ID '{id}' not found.")
 
-    def use_text_mutation(self, node):
+    def use_text_mutation(self, node: NodeType):
         if node.tree.meta_state.text_mutations.get(node.id):
             return node.tree.meta_state.text_mutations[node.id]
         node.tree.meta_state.text_mutations[id] = node.text
         return node.text
+
+    def get_input_value(self, id):
+        node = store.id_to_node.get(id)
+        if node:
+            return node.tree.meta_state.inputs.get(id)
+        return ""
+
+    def use_input_value(self, node: NodeType):
+        if node.tree.meta_state.inputs.get(node.id):
+            return node.tree.meta_state.inputs[node.id]
+        node.tree.meta_state.inputs[node.id] = node.options.value or ""
+        return node.options.value
 
     def use_state(self, key, initial_value):
         self.init_state(key, initial_value)

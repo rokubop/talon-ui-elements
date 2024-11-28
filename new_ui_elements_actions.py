@@ -86,6 +86,10 @@ class Actions:
         """Get node for informational purposes e.g. '.box_model', '.tree'"""
         return entity_manager.get_node(id)
 
+    def ui_elements_new_get_input_value(id: str):
+        """Get the value of an input element"""
+        return state_manager.get_input_value(id)
+
     def ui_elements_new_version():
         """Get the version of talon-ui-elements"""
         return "0.5.0"

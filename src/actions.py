@@ -4,6 +4,7 @@ from .ui_elements_collection import (
     text,
     screen,
     button,
+    input_text,
     component,
     use_effect,
     use_state,
@@ -15,7 +16,8 @@ def ui_elements_new(elements: List[str]) -> tuple[callable]:
         'text': text,
         'screen': screen,
         'button': button,
-        'component': component,
+        'input_text': input_text,
+        # 'component': component,
         'use_effect': use_effect,
         'use_state': use_state,
     }

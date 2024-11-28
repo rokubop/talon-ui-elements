@@ -8,7 +8,7 @@ class UIOptions:
     align: str = "start"
     align_self: str = None
     background_color: str = None
-    border_color: str = "FF0000"
+    border_color: str = "555555"
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
@@ -16,6 +16,7 @@ class UIOptions:
     color: str = "FFFFFF"
     flex_direction: str = "column"
     flex: int = None
+    font_size: int = 16
     gap: int = None
     guid: str = None
     height: Union[int, str] = 0
@@ -30,12 +31,15 @@ class UIOptions:
     max_width: int = None
     min_height: int = None
     min_width: int = None
+    on_change: callable = None
+    on_click: callable = None
     opacity: float = None
     padding: Padding = Padding(0, 0, 0, 0)
     right: Optional[int] = None
     screen: int = 0
     top: Optional[int] = None
     type: str = None
+    value: str = None
     width: Union[int, str] = 0
 
     def __init__(self, **kwargs):
@@ -97,23 +101,20 @@ class UIOptionsDict(TypedDict):
     max_width: int
     min_height: int
     min_width: int
+    on_change: callable
+    on_click: callable
     opacity: float
     padding: Padding
     right: int
     screen: int
     top: int
+    value: str
     width: Union[int, str]
 
 class NodeTextOptionsDict(UIOptionsDict):
     id: str
     font_size: int
     font_weight: str
-
-class UIInputTextOptionsDict(UIOptionsDict):
-    id: str
-    font_size: int
-    value: str
-    on_change: callable
 
 @dataclass
 class NodeTextOptions(UIOptions):
@@ -125,10 +126,34 @@ class NodeTextOptions(UIOptions):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+@dataclass
+class NodeInputTextOptions(UIOptions):
+    id: str = None
+    font_size: int = 16
+    value = ""
+    on_change: callable = None
+
+    def __init__(self, **kwargs):
+        kwargs['padding_left'] = max(
+            kwargs.get('padding_left', 0),
+            kwargs.get('padding', 0)
+        ) + max(8, kwargs.get('border_radius', 0))
+        kwargs['padding_right'] = max(
+            kwargs.get('padding_right', 0),
+            kwargs.get('padding', 0)
+        ) + max(8, kwargs.get('border_radius', 0))
+        super().__init__(**kwargs)
+
+class NodeInputTextOptionsDict(UIOptionsDict):
+    id: str
+    font_size: int
+    value: str
+    on_change: callable
+
 VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
     .union(set(NodeTextOptionsDict.__annotations__.keys()))
-    .union(set(UIInputTextOptionsDict.__annotations__.keys()))
+    .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
 )
 
 @dataclass

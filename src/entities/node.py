@@ -1,17 +1,8 @@
 import uuid
+from ..constants import NODE_TYPE_MAP
 from ..core.box_model import BoxModelLayout
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
 from ..options import UIOptions
-
-NODE_TYPE_MAP = {
-    'button': 'leaf',
-    'text': 'leaf',
-    'div': 'node',
-    'input': 'leaf',
-    'screen': 'root',
-    'window': 'root',
-    'component': 'component'
-}
 
 class Node(NodeType):
     def __init__(self,
@@ -20,6 +11,8 @@ class Node(NodeType):
         ):
         self.options: UIOptions = options or UIOptions()
         self.guid: str = uuid.uuid4().hex
+        print(f"element type: {element_type}")
+        print(f"node options: {vars(self.options)}")
         self.id: str = self.options.id
         self.key: str = self.options.key
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
