@@ -19,4 +19,9 @@ def ui_elements_new(elements: List[str]) -> tuple[callable]:
         'use_effect': use_effect,
         'use_state': use_state,
     }
+    if not all(element in element_mapping for element in elements):
+        raise ValueError(
+            f"\nInvalid elements {elements} provided to ui_elements_new"
+            f"\nValid elements are {list(element_mapping.keys())}"
+        )
     return tuple(element_mapping[element] for element in elements) if len(elements) > 1 else element_mapping[elements[0]]

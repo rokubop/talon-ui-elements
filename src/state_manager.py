@@ -94,15 +94,11 @@ class StateManager:
 
     def set_text_mutation(self, id, text_or_callable):
         node = store.id_to_node.get(id)
-        print("Setting text mutation", id, text_or_callable)
         if node:
             if isinstance(text_or_callable, str):
-                print("Setting text mutation as string")
                 node.tree.meta_state.text_mutations[id] = text_or_callable
             else:
-                print("Setting text mutation as callable")
                 print(node.tree.meta_state.text_mutations)
-                # print(text_or_callable(node.tree.meta_state.text_mutations.get(id, "")))
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
             node.tree.refresh_decorator_canvas()
         else:

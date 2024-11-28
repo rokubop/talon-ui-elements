@@ -93,7 +93,7 @@ class MetaState(MetaStateType):
             self._highlighted[id] = color
 
     def set_unhighlighted(self, id):
-        if id in self._id_to_node:
+        if id in self._id_to_node and id in self._highlighted:
             self._highlighted.pop(id)
 
     def set_input_value(self, id, value):
@@ -137,8 +137,9 @@ class MetaState(MetaStateType):
         self._scroll_regions.clear()
         self._style_mutations.clear()
         self._text_mutations.clear()
-        for job in self.unhighlight_jobs.values():
-            cron.cancel(job[0])
+        for job in list(self.unhighlight_jobs.values()):
+            if job:
+                cron.cancel(job[0])
         self.unhighlight_jobs.clear()
         self.active_button = None
         entity_manager.synchronize_global_ids()
@@ -195,7 +196,6 @@ class Tree(TreeType):
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         # self.root_node = self.renderer()
         # self.init_screen()
-        print('on_draw_base_canvas')
         start = time.time()
         self.reset_cursor()
         self.init_node_hierarchy(self.root_node)
@@ -211,12 +211,12 @@ class Tree(TreeType):
         print(f"on_draw_base_canvas + decorator: {time.time() - start}")
 
     def draw_highlights(self, canvas: SkiaCanvas):
-        for id, color in self.meta_state.highlighted.items():
+        canvas.paint.style = canvas.paint.Style.FILL
+        for id, color in list(self.meta_state.highlighted.items()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
                 box_model = node.box_model
-                canvas.paint.color = color
-                canvas.paint.style = canvas.paint.Style.FILL
+                canvas.paint.color = color or HIGHLIGHT_COLOR
 
                 if hasattr(node.options, 'border_radius'):
                     border_radius = node.options.border_radius
@@ -240,14 +240,15 @@ class Tree(TreeType):
         self.canvas_decorator.freeze()
 
     def unhighlight(self, id: str):
-        self.meta_state.set_unhighlighted(id)
+        if id in self.meta_state.highlighted:
+            self.meta_state.set_unhighlighted(id)
 
-        if self.meta_state.unhighlight_jobs.get(id):
-            cron.cancel(self.unhighlight_jobs[id][0])
-            self.meta_state.unhighlight_jobs[id][1]()
-            self.meta_state.unhighlight_jobs[id] = None
+            if self.meta_state.unhighlight_jobs.get(id):
+                cron.cancel(self.meta_state.unhighlight_jobs[id][0])
+                self.meta_state.unhighlight_jobs[id][1]()
+                self.meta_state.unhighlight_jobs[id] = None
 
-        self.canvas_decorator.freeze()
+            self.canvas_decorator.freeze()
 
     def highlight_briefly(self, id: str, color: str = None, duration: int = 150):
         self.highlight(id, color)
@@ -263,7 +264,7 @@ class Tree(TreeType):
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
         self.on_fully_rendered()
-        print(f"on_draw_decorator_canvas: {time.time() - start}")
+        # print(f"on_draw_decorator_canvas: {time.time() - start}")
 
     @with_tree
     def on_draw_mouse_canvas(self, canvas: SkiaCanvas):
@@ -462,23 +463,19 @@ class Tree(TreeType):
                 # between "applications"
 
         self.is_blockable_canvas_init = True
-        print(f"init_blockable_canvases: {time.time() - start}")
+        # print(f"init_blockable_canvases: {time.time() - start}")
 
 def render_ui(renderer: callable, props: dict[str, Any] = None, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
     hash = generate_hash(renderer)
-    print(f"hash: {hash}")
     tree = None
     for t in entity_manager.get_all_trees():
         if t.hashed_renderer == hash:
-            print("found tree")
             tree = t
             break
 
     if not tree:
-        print("creating tree")
         tree = Tree(renderer, hash)
         entity_manager.add_tree(tree)
 
     start = time.time()
     tree.render(props, on_mount, on_unmount, show_hints)
-    print(f"render_ui: {time.time() - start}")
