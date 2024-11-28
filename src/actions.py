@@ -1,23 +1,21 @@
-from typing import List, Dict, Any
+from typing import List, Dict
 from .ui_elements_collection import (
     div,
     text,
     screen,
     button,
     input_text,
-    component,
     use_effect,
     use_state,
 )
 
 def ui_elements_new(elements: List[str]) -> tuple[callable]:
     element_mapping: Dict[str, callable] = {
-        'div': div,
-        'text': text,
-        'screen': screen,
         'button': button,
+        'div': div,
         'input_text': input_text,
-        # 'component': component,
+        'screen': screen,
+        'text': text,
         'use_effect': use_effect,
         'use_state': use_state,
     }

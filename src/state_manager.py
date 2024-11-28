@@ -1,8 +1,6 @@
 from talon import cron
-from .interfaces import NodeType, ReactiveStateType, TreeType, EffectType, MetaStateType, ScrollRegionType
-from typing import Union
+from .interfaces import NodeType, ReactiveStateType, TreeType, EffectType
 from .store import store
-
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):

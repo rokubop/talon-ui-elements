@@ -1,11 +1,11 @@
 from dataclasses import dataclass, fields
-from typing import TypedDict, Optional, get_origin, get_args, Any
+from typing import Optional, get_origin, get_args, Any
 from talon.screen import Screen
-from .entities.node_component import NodeComponent
-from .entities.node_container import NodeContainer
-from .entities.node_screen import NodeScreen
-from .entities.node_text import NodeText
-from .entities.node_input_text import NodeInputText
+# from .nodes.node_component import NodeComponent
+from .nodes.node_container import NodeContainer
+from .nodes.node_screen import NodeScreen
+from .nodes.node_text import NodeText
+from .nodes.node_input_text import NodeInputText
 from .state_manager import state_manager
 from .options import (
     UIOptions,
@@ -161,11 +161,11 @@ def screen(*args, **additional_props):
     # roots_core[root.id] = root
     return root
 
-def component(func):
-    # TODO: args and kwargs
-    def create_node_component():
-        return NodeComponent(func)
-    return create_node_component
+# def component(func):
+#     # TODO: args and kwargs
+#     def create_node_component():
+#         return NodeComponent(func)
+#     return create_node_component
 
 def use_state(key: str, initial_state: Any = None):
     tree = state_manager.get_processing_tree()

@@ -1,18 +1,14 @@
-from dataclasses import dataclass
-from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
 from typing import Literal
-from ..core.box_model import BoxModelLayout
-from ..core.cursor import Cursor
+from ..box_model import BoxModelLayout
+from ..cursor import Cursor
 from ..options import NodeTextOptions
 from ..utils import draw_text_simple
 from ..state_manager import state_manager
 from .node import Node
-from ..utils import generate_hash
 import re
-# from ..entity_manager import entity_manager
 
 def split_lines(text, max_width, measure_text):
     lines = []
@@ -118,9 +114,6 @@ class NodeText(Node):
         self.text_line_height = 0
         self.text_body_height = 0
 
-        # if self.options.gap is None:
-        #     self.options.gap = 16
-
         if element_type == "button":
             self.on_click = self.options.on_click or (lambda: None)
             self.is_hovering = False
@@ -209,7 +202,6 @@ class NodeText(Node):
 
         self.box_model.position_for_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
 
-        # render_now = self.init_state(scroll_region_key)
         render_now = False if self.id and self.element_type == "text" else True
 
         self.render_background(c, cursor)

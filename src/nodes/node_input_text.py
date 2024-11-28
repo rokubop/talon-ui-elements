@@ -4,8 +4,8 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
 from dataclasses import dataclass
 from ..constants import ELEMENT_ENUM_TYPE
-from ..core.box_model import BoxModelLayout
-from ..core.cursor import Cursor
+from ..box_model import BoxModelLayout
+from ..cursor import Cursor
 from ..options import NodeInputTextOptions
 from ..state_manager import state_manager
 from .node import Node

@@ -4,12 +4,11 @@ from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
-from ..core.box_model import BoxModelLayout
-from ..core.cursor import Cursor
+from ..box_model import BoxModelLayout
+from ..cursor import Cursor
 from ..interfaces import NodeContainerType
 from ..options import UIOptions
 from .node import Node
-
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, options: UIOptions = None):
@@ -206,18 +205,12 @@ class NodeContainer(Node, NodeContainerType):
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
-            # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             inner_rect = self.box_model.padding_rect
             if self.is_uniform_border:
                 border_width = border_spacing.left
                 c.paint.color = self.options.border_color
                 c.paint.style = c.paint.Style.STROKE
                 c.paint.stroke_width = border_width
-
-                # print(f"border_width: {border_width}")
-                # print(f"self.box_model.padding_rect: {self.box_model.padding_rect}")
-                # print(f"inner_rect: {inner_rect}")
-                # print(f"border_spacing: {border_spacing}")
 
                 bordered_rect = Rect(
                     inner_rect.x - border_width / 2,
@@ -229,7 +222,6 @@ class NodeContainer(Node, NodeContainerType):
                 if self.options.border_radius:
                     c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.options.border_radius + border_width / 2, y=self.options.border_radius + border_width / 2))
                 else:
-                    # print(f"bordered_rect: {bordered_rect}")
                     c.draw_rect(bordered_rect)
             else:
                 c.paint.color = self.options.border_color

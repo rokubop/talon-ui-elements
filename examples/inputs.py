@@ -26,3 +26,9 @@ def inputs_ui():
             ]
         ]
     ]
+
+def show_inputs_ui():
+    actions.user.ui_elements_new_show(inputs_ui)
+
+def hide_inputs_ui():
+    actions.user.ui_elements_new_hide(inputs_ui)

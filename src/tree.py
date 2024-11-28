@@ -1,21 +1,20 @@
 from dataclasses import dataclass
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
-from talon.screen import Screen
 from talon.skia import RoundRect
-from talon.types import Rect, Point2d
+from talon.types import Rect
 from talon import cron
-from typing import List, Optional, Any
-from ..constants import ELEMENT_ENUM_TYPE
-from ..core.cursor import Cursor
-from ..interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
-from ..entity_manager import entity_manager
-from ..state_manager import state_manager
-from ..options import UIOptions
-from ..store import store
-from ..constants import HIGHLIGHT_COLOR, CLICK_COLOR
-from ..utils import generate_hash, get_screen, canvas_from_screen, draw_text_simple
+from typing import Any
+from .constants import ELEMENT_ENUM_TYPE
+from .cursor import Cursor
+from .interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
+from .entity_manager import entity_manager
+from .state_manager import state_manager
+from .store import store
+from .constants import HIGHLIGHT_COLOR, CLICK_COLOR
+from .utils import generate_hash, get_screen, draw_text_simple
 import time
+import inspect
 
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int, scroll_x: int):
@@ -187,21 +186,19 @@ class Tree(TreeType):
 
     @with_tree
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
-        # self.root_node = self.renderer()
-        # self.init_screen()
-        start = time.time()
+        # start = time.time()
         self.reset_cursor()
         self.init_node_hierarchy(self.root_node)
         self.consume_effects()
-        print(f"init_node_hierarchy: {time.time() - start}")
+        # print(f"init_node_hierarchy: {time.time() - start}")
         self.root_node.virtual_render(canvas, self.cursor)
-        print(f"virtual_render: {time.time() - start}")
+        # print(f"virtual_render: {time.time() - start}")
         self.root_node.grow_intrinsic_size(canvas, self.cursor)
         self.root_node.render(canvas, self.cursor)
-        print(f"on_draw_base_canvas: {time.time() - start}")
+        # print(f"on_draw_base_canvas: {time.time() - start}")
 
         self.render_decorator_canvas()
-        print(f"on_draw_base_canvas + decorator: {time.time() - start}")
+        # print(f"on_draw_base_canvas + decorator: {time.time() - start}")
 
     def draw_highlights(self, canvas: SkiaCanvas):
         canvas.paint.style = canvas.paint.Style.FILL
@@ -250,7 +247,7 @@ class Tree(TreeType):
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
-        start = time.time()
+        # start = time.time()
         self.draw_highlights(canvas)
         self.draw_text_mutations(canvas)
 
@@ -333,7 +330,12 @@ class Tree(TreeType):
         if mousedown_start_id and hovered_id == mousedown_start_id:
             node = self.meta_state.id_to_node[mousedown_start_id]
             self.highlight(mousedown_start_id, color=HIGHLIGHT_COLOR)
-            node.on_click(ClickEvent(id=mousedown_start_id))
+
+            sig = inspect.signature(node.on_click)
+            if len(sig.parameters) == 0:
+                node.on_click()
+            else:
+                node.on_click(ClickEvent(id=mousedown_start_id))
 
         state_manager.set_mousedown_start_id(None)
 
@@ -391,7 +393,6 @@ class Tree(TreeType):
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
-            print("found id", current_node.id)
 
             if current_node.element_type == ELEMENT_ENUM_TYPE["button"]:
                 self.meta_state.add_button(current_node.id)
@@ -473,5 +474,5 @@ def render_ui(renderer: callable, props: dict[str, Any] = None, on_mount: callab
         tree = Tree(renderer, hash)
         entity_manager.add_tree(tree)
 
-    start = time.time()
+    # start = time.time()
     tree.render(props, on_mount, on_unmount, show_hints)

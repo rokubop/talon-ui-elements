@@ -1,10 +1,8 @@
 from talon import ui
 from talon.canvas import Canvas
 from talon.screen import Screen
-from typing import Any, Union, Callable
+from typing import Union, Callable
 import hashlib
-import json
-import time
 
 def draw_text_simple(c, text, options, x, y):
     c.paint.color = options.color
