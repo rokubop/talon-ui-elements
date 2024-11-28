@@ -92,6 +92,28 @@ class StateManager:
             # Let the current event loop finish before rendering
             self.debounce_render_job = cron.after("1ms", self.rerender_state)
 
+    def set_text_mutation(self, id, text_or_callable):
+        node = store.id_to_node.get(id)
+        print("Setting text mutation", id, text_or_callable)
+        if node:
+            if isinstance(text_or_callable, str):
+                print("Setting text mutation as string")
+                node.tree.meta_state.text_mutations[id] = text_or_callable
+            else:
+                print("Setting text mutation as callable")
+                print(node.tree.meta_state.text_mutations)
+                # print(text_or_callable(node.tree.meta_state.text_mutations.get(id, "")))
+                node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
+            node.tree.refresh_decorator_canvas()
+        else:
+            print(f"Node with ID '{id}' not found.")
+
+    def use_text_mutation(self, node):
+        if node.tree.meta_state.text_mutations.get(node.id):
+            return node.tree.meta_state.text_mutations[node.id]
+        node.tree.meta_state.text_mutations[id] = node.text
+        return node.text
+
     def use_state(self, key, initial_value):
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)

@@ -81,7 +81,7 @@ class BoxModelLayout:
         min_width: int = None,
         min_height: int = None,
         max_width: int = None,
-        max_height: int = None
+        max_height: int = None,
     ):
         self.scrollable = False
         self.fixed_width = True if width else False
@@ -95,6 +95,8 @@ class BoxModelLayout:
         self.margin_spacing = margin_spacing
         self.padding_spacing = padding_spacing
         self.border_spacing = border_spacing
+        self.content_width = None
+        self.content_height = None
 
         if isinstance(width, str):
             if "%" in width:
@@ -112,11 +114,11 @@ class BoxModelLayout:
         self.padding_rect = Rect(x + margin_spacing.left + border_spacing.left, y + margin_spacing.top + border_spacing.top, self.width - border_spacing.left - border_spacing.right if self.width else 0, self.height - border_spacing.top - border_spacing.bottom if self.height else 0)
         content_x = x + margin_spacing.left + border_spacing.left + padding_spacing.left
         content_y = y + margin_spacing.top + margin_spacing.top + padding_spacing.top
-        content_width = self.width - padding_spacing.left - padding_spacing.right - border_spacing.left - border_spacing.right if self.width else 0
-        content_height = self.height - padding_spacing.top - padding_spacing.bottom - border_spacing.top - border_spacing.bottom if self.height else 0
-        self.content_rect = Rect(content_x, content_y, content_width, content_height)
-        self.max_content_width = content_width + max_width - width if max_width else None
-        self.max_content_height = content_height + max_height - height if max_height else None
+        self.content_width = self.width - padding_spacing.left - padding_spacing.right - border_spacing.left - border_spacing.right if self.width else 0
+        self.content_height = self.height - padding_spacing.top - padding_spacing.bottom - border_spacing.top - border_spacing.bottom if self.height else 0
+        self.content_rect = Rect(content_x, content_y, self.content_width, self.content_height)
+        self.max_content_width = self.content_width + max_width - width if max_width else None
+        self.max_content_height = self.content_height + max_height - height if max_height else None
         self.content_children_rect = Rect(self.content_rect.x, self.content_rect.y, 0, 0)
 
         if self.scrollable:
@@ -131,8 +133,8 @@ class BoxModelLayout:
             self.margin_rect.width += diff
             self.border_rect.width += diff
             self.padding_rect.width += diff
-            self.content_rect.width = self.padding_rect.width
-            self.content_children_rect.width = self.padding_rect.width
+            self.content_rect.width = self.padding_rect.width - self.padding_spacing.left - self.padding_spacing.right
+            self.content_children_rect.width = self.content_rect.width
 
     def accumulate_outer_dimensions_height(self, new_height: int):
         # print(f"accumulate_outer_dimensions_height new_height: {new_height} margin_rect.height: {self.margin_rect.height}")
@@ -143,8 +145,8 @@ class BoxModelLayout:
             self.margin_rect.height += diff
             self.border_rect.height += diff
             self.padding_rect.height += diff
-            self.content_rect.height = self.padding_rect.height
-            self.content_children_rect.height = self.padding_rect.height
+            self.content_rect.height = self.padding_rect.height - self.padding_spacing.top - self.padding_spacing.bottom
+            self.content_children_rect.height = self.content_rect.height
 
     def accumulate_content_dimensions(self, rect: Rect, axis: str = None):
         if not axis or axis == "x" and not self.fixed_width:

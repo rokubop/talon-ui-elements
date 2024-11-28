@@ -203,6 +203,7 @@ class Tree(TreeType):
         print(f"init_node_hierarchy: {time.time() - start}")
         self.root_node.virtual_render(canvas, self.cursor)
         print(f"virtual_render: {time.time() - start}")
+        self.root_node.grow_intrinsic_size(canvas, self.cursor)
         self.root_node.render(canvas, self.cursor)
         print(f"on_draw_base_canvas: {time.time() - start}")
 
@@ -229,6 +230,10 @@ class Tree(TreeType):
                 node = self.meta_state.id_to_node[id]
                 x, y = node.cursor_pre_draw_text
                 draw_text_simple(canvas, text_value, node.options, x, y)
+
+    def refresh_decorator_canvas(self):
+        if self.canvas_decorator:
+            self.canvas_decorator.freeze()
 
     def highlight(self, id: str, color: str = None):
         self.meta_state.set_highlighted(id, color)
@@ -282,12 +287,12 @@ class Tree(TreeType):
         if self.is_mounted:
             self.meta_state.clear_nodes()
             self.effects.clear()
-            if self.canvas_blockable:
-                for canvas in self.canvas_blockable:
-                    canvas.unregister("mouse", self.on_mouse)
-                    # canvas.unregister("mouse", self.on_scroll)
-                    canvas.close()
-                self.is_blockable_canvas_init = False
+            # if self.canvas_blockable:
+            #     for canvas in self.canvas_blockable:
+            #         canvas.unregister("mouse", self.on_mouse)
+            #         # canvas.unregister("mouse", self.on_scroll)
+            #         canvas.close()
+            #     self.is_blockable_canvas_init = False
             self.init_nodes_and_screen()
         if on_mount:
             state_manager.register_effect(self, on_mount, [])
@@ -378,9 +383,17 @@ class Tree(TreeType):
         self.is_mounted = False
         state_manager.clear_state()
 
-    def init_node_hierarchy(self, current_node: NodeType, depth = 0):
+    def init_node_hierarchy(self, current_node: NodeType, depth = 0, constraint_nodes: list[NodeType] = None):
         current_node.tree = self
         current_node.depth = depth
+
+        if constraint_nodes:
+            current_node.constraint_nodes = constraint_nodes
+
+        if current_node.options.width is not None or current_node.options.max_width is not None:
+            if constraint_nodes is None:
+                constraint_nodes = []
+            constraint_nodes = constraint_nodes + [current_node]
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
@@ -393,7 +406,7 @@ class Tree(TreeType):
             #     self.meta_state.add_input(current_node.id, initial_value=current_node.value)
 
         for child_node in current_node.children_nodes:
-            self.init_node_hierarchy(child_node, depth + 1)
+            self.init_node_hierarchy(child_node, depth + 1, constraint_nodes)
 
         entity_manager.synchronize_global_ids()
 
@@ -443,7 +456,7 @@ class Tree(TreeType):
                 canvas.register("mouse", self.on_mouse)
                 # canvas.register("scroll", self.on_scroll)
                 canvas.freeze()
-                # canvas.focused = True might help with latency
+                canvas.focused = True
                 # but we can't be recreating canvas every time otherwise
                 # this is even more expensive switching back and forth
                 # between "applications"

@@ -61,3 +61,7 @@ class Actions:
     def ui_elements_new_set_state(name: str, value: Union[Any, callable]):
         """set any arbitrary state which will automatically rerender"""
         state_manager.set_state_value(name, value)
+
+    def ui_elements_new_set_text(id: str, text_or_callable: Union[str, callable]):
+        """Set text of an element"""
+        state_manager.set_text_mutation(id, text_or_callable)

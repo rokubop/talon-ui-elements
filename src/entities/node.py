@@ -27,6 +27,7 @@ class Node(NodeType):
         self.box_model: BoxModelLayout = None
         self.tree: TreeType
         self.children_nodes = []
+        self.constraint_nodes = []
         self.parent_node = None
         self.is_dirty: bool = False
         self.root_node = None

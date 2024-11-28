@@ -189,6 +189,7 @@ class NodeType(ABC):
     node_type: NodeEnumType
     element_type: ElementEnumType
     box_model: object
+    constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
     is_dirty: bool
@@ -251,6 +252,10 @@ class NodeContainerType(NodeType):
 
     @abstractmethod
     def virtual_render_child(self, c: object, cursor: object, child: NodeType, i: int, move_after_last_child: bool):
+        pass
+
+    @abstractmethod
+    def grow_intrinsic_size(self, c: object, cursor: object):
         pass
 
     @abstractmethod
@@ -357,6 +362,10 @@ class TreeManagerType(ABC):
         # for tree in trees:
         #   if tree.update_renderer_id != hash:
         #     tree.process_tree(renderer)
+        pass
+
+    @abstractmethod
+    def refresh_decorator_canvas(self):
         pass
 
     @abstractmethod

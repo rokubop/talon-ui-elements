@@ -18,7 +18,7 @@ def counter_ui():
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=32, border_radius=16, border_width=1, border_color="3B71CA")[
             div(flex_direction="row")[
-                text("Count:", font_size=24),
+                text("Count: ", font_size=24),
                 text(count, font_size=24)
             ],
             button("Increment", button_style, on_click=lambda: set_count(count + 1)),
