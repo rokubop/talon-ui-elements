@@ -8,6 +8,9 @@ class EntityManager:
     def synchronize_global_ids(self):
         store.synchronize_ids()
 
+    def get_node(self, id: str) -> NodeType:
+        return store.id_to_node.get(id)
+
     def get_all_trees(self) -> list[TreeType]:
         return store.trees
 
@@ -18,6 +21,12 @@ class EntityManager:
             flattened.extend(self.get_node_tree_flattened(tree.root_node))
 
         return flattened
+
+    def hide_tree(self, renderer: callable):
+        for tree in store.trees:
+            if tree.renderer == renderer:
+                tree.destroy()
+                store.trees.remove(tree)
 
     def hide_all_trees(self):
         for tree in list(store.trees):

@@ -131,4 +131,19 @@ class StateManager:
         store.reactive_state.clear()
         store.reset_mouse_state()
 
+    def highlight(self, id, color=None):
+        node = store.id_to_node.get(id)
+        if node:
+            node.tree.highlight(id, color)
+
+    def unhighlight(self, id):
+        node = store.id_to_node.get(id)
+        if node:
+            node.tree.unhighlight(id)
+
+    def highlight_briefly(self, id, color=None):
+        node = store.id_to_node.get(id)
+        if node:
+            node.tree.highlight_briefly(id, color)
+
 state_manager = StateManager()

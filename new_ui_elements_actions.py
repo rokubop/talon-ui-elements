@@ -54,6 +54,10 @@ class Actions:
         """
         return ui_elements_new(elements)
 
+    def ui_elements_new_hide(renderer: callable):
+        """Hide the UI"""
+        entity_manager.hide_tree(renderer)
+
     def ui_elements_new_hide_all():
         """Hide all UI elements"""
         entity_manager.hide_all_trees()
@@ -65,3 +69,23 @@ class Actions:
     def ui_elements_new_set_text(id: str, text_or_callable: Union[str, callable]):
         """Set text of an element"""
         state_manager.set_text_mutation(id, text_or_callable)
+
+    def ui_elements_new_highlight(id: str, color: str = None):
+        """highlight based on id"""
+        state_manager.highlight(id, color)
+
+    def ui_elements_new_unhighlight(id: str):
+        """unhighlight based on id"""
+        state_manager.unhighlight(id)
+
+    def ui_elements_new_highlight_briefly(id: str, color: str = None):
+        """highlight briefly based on id"""
+        state_manager.highlight_briefly(id, color)
+
+    def ui_elements_new_get_node(id: str):
+        """Get node for informational purposes e.g. '.box_model', '.tree'"""
+        return entity_manager.get_node(id)
+
+    def ui_elements_new_version():
+        """Get the version of talon-ui-elements"""
+        return "0.5.0"
