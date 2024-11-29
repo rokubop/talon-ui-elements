@@ -1,0 +1,22 @@
+{
+  "name": "ui_elements",
+  "description": "This is an experimental repository for making any generic UI in HTML-like syntax.",
+  "version": "0.4.0",
+  "contributes": {
+    "actions": [
+      "user.ui_elements",
+      "user.ui_elements_get",
+      "user.ui_elements_get_value",
+      "user.ui_elements_hide",
+      "user.ui_elements_hide_all",
+      "user.ui_elements_highlight",
+      "user.ui_elements_highlight_briefly",
+      "user.ui_elements_register_on_lifecycle",
+      "user.ui_elements_screen",
+      "user.ui_elements_set_text",
+      "user.ui_elements_unhighlight",
+      "user.ui_elements_unregister_on_lifecycle"
+    ]
+  },
+  "depends": {}
+}

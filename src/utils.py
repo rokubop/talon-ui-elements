@@ -2,6 +2,8 @@ from talon import ui
 from talon.canvas import Canvas
 from talon.screen import Screen
 from typing import Union, Callable
+import json
+import os
 import hashlib
 
 def draw_text_simple(c, text, options, x, y):
@@ -28,3 +30,11 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
         raise TypeError("Object must be a callable or a dictionary.")
 
     return hasher.hexdigest()
+
+def get_version() -> str:
+    manifest = os.path.join(os.path.dirname(__file__), '..', 'manifest.json')
+
+    with open(manifest, 'r') as file:
+        data = json.load(file)
+
+    return data['version']

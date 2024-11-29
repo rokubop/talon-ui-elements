@@ -138,7 +138,13 @@ class MetaState(MetaStateType):
         entity_manager.synchronize_global_ids()
 
 class Tree(TreeType):
-    def __init__(self, renderer: callable, hashed_renderer: str):
+    def __init__(
+            self,
+            renderer: callable,
+            hashed_renderer: str,
+            props: dict[str, Any] = {},
+            initial_state = dict[str, Any]
+        ):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
@@ -150,11 +156,13 @@ class Tree(TreeType):
         self.is_blockable_canvas_init = False
         self.is_mounted = False
         self.meta_state = MetaState()
+        self.props = props
         self._renderer = renderer
         self.root_node = None
         self.screen = None
         self.screen_index = None
         self.surfaces = []
+        state_manager.init_states(initial_state)
         self.init_nodes_and_screen()
 
     def with_tree(func):
@@ -181,7 +189,10 @@ class Tree(TreeType):
 
     @with_tree
     def init_nodes_and_screen(self):
-        self.root_node = self._renderer()
+        if len(inspect.signature(self._renderer).parameters) > 0:
+            self.root_node = self._renderer(self.props)
+        else:
+            self.root_node = self._renderer()
         self.init_screen()
 
     @with_tree
@@ -274,7 +285,8 @@ class Tree(TreeType):
 
         self.canvas_base.freeze()
 
-    def render(self, props: dict[str, Any] = None, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
+    def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
+        self.props = self.props or props
         if self.is_mounted:
             self.meta_state.clear_nodes()
             self.effects.clear()
@@ -462,7 +474,14 @@ class Tree(TreeType):
         self.is_blockable_canvas_init = True
         # print(f"init_blockable_canvases: {time.time() - start}")
 
-def render_ui(renderer: callable, props: dict[str, Any] = None, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
+def render_ui(
+        renderer: callable,
+        props: dict[str, Any] = None,
+        on_mount: callable = None,
+        on_unmount: callable = None,
+        show_hints: bool = False,
+        initial_state = dict[str, Any],
+    ):
     hash = generate_hash(renderer)
     tree = None
     for t in entity_manager.get_all_trees():
@@ -471,8 +490,9 @@ def render_ui(renderer: callable, props: dict[str, Any] = None, on_mount: callab
             break
 
     if not tree:
-        tree = Tree(renderer, hash)
+        tree = Tree(renderer, hash, props, initial_state)
         entity_manager.add_tree(tree)
 
     # start = time.time()
+    # print(f"props: {props}")
     tree.render(props, on_mount, on_unmount, show_hints)

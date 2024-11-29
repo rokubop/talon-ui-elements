@@ -5,7 +5,7 @@ LIGHT_BLUE = "87CEEB"
 WHITE = "CCCCCC"
 
 def items():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     return [
         div(border_width=1, border_color=WHITE, padding=8)[
@@ -23,7 +23,7 @@ def items():
     ]
 
 def items_first_flex():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     return [
         div(border_width=1, border_color=WHITE, padding=8, flex=1)[
@@ -41,7 +41,7 @@ def items_first_flex():
     ]
 
 def items_all_flex():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     return [
         div(border_width=1, border_color=WHITE, padding=8, flex=1)[
@@ -59,7 +59,7 @@ def items_all_flex():
     ]
 
 def example_ui(number: int, title, content):
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     return div()[
         div(flex_direction="row", align_items="center", margin_bottom=16)[
@@ -72,7 +72,7 @@ def example_ui(number: int, title, content):
     ]
 
 def example1_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('flex_direction=', color=WHITE),
@@ -86,7 +86,7 @@ def example1_ui():
     ])
 
 def example2_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('flex_direction=', color=WHITE),
@@ -98,7 +98,7 @@ def example2_ui():
     ])
 
 def example3_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('justify_content=', color=WHITE),
@@ -110,7 +110,7 @@ def example3_ui():
     ])
 
 def example4_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('flex_direction=', color=WHITE),
@@ -124,7 +124,7 @@ def example4_ui():
     ])
 
 def example5_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('align_items=', color=WHITE),
@@ -138,7 +138,7 @@ def example5_ui():
     ])
 
 def example6_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('flex_direction=', color=WHITE),
@@ -152,7 +152,7 @@ def example6_ui():
     ])
 
 def example7_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
         text('justify_content=', color=WHITE),
@@ -164,7 +164,7 @@ def example7_ui():
     ])
 
 def example8_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row", align_items="center")[
         div(flex_direction="row")[
@@ -179,7 +179,7 @@ def example8_ui():
     ])
 
 def example9_ui():
-    div, text = actions.user.ui_elements_new(["div", "text"])
+    div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row", align_items="center")[
         div(flex_direction="row")[
@@ -194,7 +194,7 @@ def example9_ui():
     ])
 
 def alignment_ui():
-    div, text, screen = actions.user.ui_elements_new(["div", "text", "screen"])
+    div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="222222", padding=32, border_radius=8, border_width=1, border_color="555555")[
@@ -230,7 +230,7 @@ def alignment_ui():
     ]
 
 def show_alignment_ui():
-    actions.user.ui_elements_new_show(alignment_ui)
+    actions.user.ui_elements_show(alignment_ui)
 
 def hide_alignment_ui():
-    actions.user.ui_elements_new_hide(alignment_ui)
+    actions.user.ui_elements_hide(alignment_ui)

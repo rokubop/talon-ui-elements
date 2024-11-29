@@ -41,15 +41,15 @@ def test_cases_alignment_ui():
 
 @test_module
 def test_inputs_ui():
-    actions.user.ui_elements_new_show(inputs_ui)
+    actions.user.ui_elements_show(inputs_ui)
 
 @test_module
 def test_updating_content_ui():
-    actions.user.ui_elements_new_show(updating_content_ui)
+    actions.user.ui_elements_show(updating_content_ui)
 
 @test_module
 def test_alignment_ui():
-    actions.user.ui_elements_new_show(alignment_ui, on_mount=test_cases_alignment_ui)
+    actions.user.ui_elements_show(alignment_ui, on_mount=test_cases_alignment_ui)
 
 def test_cases_todo_list_ui():
     trees = entity_manager.get_all_trees()
@@ -60,7 +60,7 @@ def test_cases_todo_list_ui():
 
 @test_module
 def test_todo_list_ui():
-    actions.user.ui_elements_new_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
+    actions.user.ui_elements_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
 
 def test_cases_hello_world_ui():
     trees = entity_manager.get_all_trees()
@@ -103,7 +103,7 @@ def test_cases_hello_world_ui():
 
 @test_module
 def test_hello_world_ui():
-    actions.user.ui_elements_new_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
+    actions.user.ui_elements_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
 
 def test_cases_counter_ui():
     trees = entity_manager.get_all_trees()
@@ -114,7 +114,7 @@ def test_cases_counter_ui():
 
 @test_module
 def test_counter_ui():
-    actions.user.ui_elements_new_show(counter_ui, on_mount=test_cases_counter_ui)
+    actions.user.ui_elements_show(counter_ui, on_mount=test_cases_counter_ui)
 
 def create_test_runner():
     return (test_fn for test_fn in test_cases)
@@ -127,19 +127,19 @@ class Actions:
         global test_gen
 
         try:
-            actions.user.ui_elements_new_hide_all()
+            actions.user.ui_elements_hide_all()
             next_test = next(test_gen)
             next_test()
         except StopIteration:
-            actions.user.ui_elements_new_hide_all()
+            actions.user.ui_elements_hide_all()
             print("All tests have been run.")
             test_gen = create_test_runner()
 
     def private_ui_elements_trigger():
         """Trigger the next test"""
-        actions.user.ui_elements_new_set_state("count", lambda c: c + 1)
+        actions.user.ui_elements_set_state("count", lambda c: c + 1)
 
     def private_ui_elements_get_value():
         """Get the value of an input element"""
-        v = actions.user.ui_elements_new_get_input_value("the_input")
+        v = actions.user.ui_elements_get_input_value("the_input")
         print(f"Value: {v}")

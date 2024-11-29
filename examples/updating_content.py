@@ -6,12 +6,12 @@ WHITE = "CCCCCC"
 text = 0
 
 def code(text_str):
-    text = actions.user.ui_elements_new(["text"])
+    text = actions.user.ui_elements(["text"])
 
     return text(text_str, color=YELLOW)
 
 def updating_content_ui():
-    div, text, screen, use_state, use_effect, button = actions.user.ui_elements_new(["div", "text", "screen", "use_state", "use_effect", "button"])
+    div, text, screen, use_state, use_effect, button = actions.user.ui_elements(["div", "text", "screen", "use_state", "use_effect", "button"])
 
     text_state, set_text_state = use_state("text_state", "0")
     use_effect(lambda: print("time", [text_state]))
@@ -39,7 +39,7 @@ def updating_content_ui():
                             code("actions.user.ui_elements_set_text"),
                             text("Direct mutation. Fast render."),
                             text("0", id="text_with_id", font_size=32, margin=16),
-                            button("Increment", on_click=lambda: actions.user.ui_elements_new_set_text("text_with_id", lambda t: str(int(t) + 1))),
+                            button("Increment", on_click=lambda: actions.user.ui_elements_set_text("text_with_id", lambda t: str(int(t) + 1))),
                         ],
                     ]
                 ]

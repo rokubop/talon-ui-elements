@@ -17,11 +17,8 @@ class ReactiveState(ReactiveStateType):
         return self._value
 
     def resolve_value(self, value_or_callable):
-        print(f"Resolving value {value_or_callable}")
         if callable(value_or_callable):
-            print(f"Value is callable")
             return value_or_callable(self._value)
-        print(f"Value is not callable")
         return value_or_callable
 
     def set_initial_value(self, value):
@@ -64,6 +61,11 @@ class StateManager:
     def get_processing_tree(self) -> TreeType:
         return store.processing_tree
 
+    def init_states(self, states):
+        if states is not None:
+            for key, value in states.items():
+                self.init_state(key, value)
+
     def init_state(self, key, initial_value):
         if type(key) is not str:
             raise ValueError("use_state must include a string name like this: use_state('my_state', initial_value)")
@@ -82,7 +84,6 @@ class StateManager:
         self.debounce_render_job = None
 
     def set_state_value(self, key, value):
-        print(f"Setting state value for {key} to {value}")
         self.init_state(key, value)
         store.reactive_state[key].set_value(value)
 
@@ -96,7 +97,6 @@ class StateManager:
             if isinstance(text_or_callable, str):
                 node.tree.meta_state.text_mutations[id] = text_or_callable
             else:
-                print(node.tree.meta_state.text_mutations)
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
             node.tree.refresh_decorator_canvas()
         else:

@@ -1,16 +1,16 @@
 from talon import actions
 
 def on_submit(e):
-    first = actions.user.ui_elements_new_get_input_value("first")
-    last = actions.user.ui_elements_new_get_input_value("last")
+    first = actions.user.ui_elements_get_input_value("first")
+    last = actions.user.ui_elements_get_input_value("last")
     print(f"Submitted - First: {first}, Last: {last}")
-    actions.user.ui_elements_new_hide_all()
+    actions.user.ui_elements_hide_all()
 
 def on_change(e):
     print(e)
 
 def inputs_ui():
-    div, text, screen, input_text, button = actions.user.ui_elements_new(["div", "text", "screen", "input_text", "button"])
+    div, text, screen, input_text, button = actions.user.ui_elements(["div", "text", "screen", "input_text", "button"])
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
@@ -28,7 +28,7 @@ def inputs_ui():
     ]
 
 def show_inputs_ui():
-    actions.user.ui_elements_new_show(inputs_ui)
+    actions.user.ui_elements_show(inputs_ui)
 
 def hide_inputs_ui():
-    actions.user.ui_elements_new_hide(inputs_ui)
+    actions.user.ui_elements_hide(inputs_ui)

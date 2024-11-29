@@ -178,6 +178,13 @@ def use_state(key: str, initial_state: Any = None):
 
     return state_manager.use_state(key, initial_state)
 
+def get_state(key: str, initial_state: Any = None):
+    value, _ = use_state(key, initial_state)
+    return value
+
+def set_state(key: str, value: Any):
+    _, set_value = state_manager.set_state_value(key, value)
+    return set_value
 
 def use_effect(callback, state_dependencies: list[str] = []):
     tree = state_manager.get_processing_tree()

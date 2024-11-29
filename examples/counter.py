@@ -11,7 +11,7 @@ button_style = {
 }
 
 def counter_ui():
-    div, text, screen, button, use_state = actions.user.ui_elements_new(["div", "text", "screen", "button", "use_state"])
+    div, text, screen, button, use_state = actions.user.ui_elements(["div", "text", "screen", "button", "use_state"])
 
     count, set_count = use_state("count", 0)
 
@@ -26,7 +26,7 @@ def counter_ui():
     ]
 
 def show_counter_ui():
-    actions.user.ui_elements_new_show(counter_ui)
+    actions.user.ui_elements_show(counter_ui)
 
 def hide_counter_ui():
-    actions.user.ui_elements_new_hide(counter_ui)
+    actions.user.ui_elements_hide(counter_ui)
