@@ -1,9 +1,9 @@
 from talon import actions
 
 def todo_list_ui():
-    div, text, button, screen, use_state = actions.user.ui_elements(["div", "text", "button", "screen", "use_state"])
+    div, text, button, screen, state = actions.user.ui_elements(["div", "text", "button", "screen", "state"])
 
-    items, set_items = use_state('items', [])
+    items, set_items = state.use('items', [])
 
     def add_item():
         new_item = f"Item {len(items)}"

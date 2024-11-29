@@ -10,6 +10,32 @@ mod = Module()
 
 @mod.action_class
 class Actions:
+    def ui_elements(elements: List[str]) -> Union[tuple[callable], callable]:
+        """
+        Returns elements or helpers to compose your UI.
+
+        `div`, `text`, `screen`, `button`, `input_text`, `state`, `ref`, `effect`
+
+        Usage:
+        ```
+        (div, text, screen) = actions.user.ui_elements(["div", "text", "screen"])
+
+        def ui():
+            return screen()[
+                div()[
+                    text("Hello world"),
+                ]
+            ]
+
+        actions.user.ui_elements_show(ui)
+
+        # def hide and destroy
+        actions.user.ui_elements_hide(ui)
+        actions.user.ui_elements_hide_all()
+        ```
+        """
+        return ui_elements(elements)
+
     def ui_elements_show(
             renderer: callable,
             props: dict[str, Any] = None,
@@ -42,38 +68,12 @@ class Actions:
         """
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
-    def ui_elements(elements: List[str]) -> Union[tuple[callable], callable]:
-        """
-        Returns elements or state management functions to use in your UI.
-
-        `div`, `text`, `screen`, `button`, `input_text`, `use_state`, `get_state`, `set_state`, `use_effect`
-
-        Usage:
-        ```
-        (div, text, screen) = actions.user.ui_elements(["div", "text", "screen"])
-
-        def ui():
-            return screen()[
-                div()[
-                    text("Hello world"),
-                ]
-            ]
-
-        actions.user.ui_elements_show(ui)
-
-        # def hide and destroy
-        actions.user.ui_elements_hide(ui)
-        actions.user.ui_elements_hide_all()
-        ```
-        """
-        return ui_elements(elements)
-
     def ui_elements_hide(renderer: callable):
-        """Destroy and hide a specific ui (compliments ui_elements_show)"""
+        """Destroy and hide a specific ui (compliments `ui_elements_show`)"""
         entity_manager.hide_tree(renderer)
 
     def ui_elements_hide_all():
-        """Destroy and hide all UI"""
+        """Destroy and hide all UIs"""
         entity_manager.hide_all_trees()
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = None):
@@ -100,7 +100,7 @@ class Actions:
 
     def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
         """
-        Set text based on its `id`. Does not trigger a relayout.
+        Set text based on its `id`. Does not trigger a relayout. Faster than using `ui_elements_set_state`.
 
         ```
         actions.user.ui_elements_set_text("my_text", "Hello world")

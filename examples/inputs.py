@@ -10,7 +10,12 @@ def on_change(e):
     print(e)
 
 def inputs_ui():
-    div, text, screen, input_text, button = actions.user.ui_elements(["div", "text", "screen", "input_text", "button"])
+    div, text, screen, input_text, button, ref = actions.user.ui_elements(["div", "text", "screen", "input_text", "button", "ref"])
+
+    # input_first = ref("first")
+    # input_last = ref("last")
+    # input_first.get("value")
+    # input_last.get("value")
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[

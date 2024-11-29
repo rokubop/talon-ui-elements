@@ -167,6 +167,16 @@ def screen(*args, **additional_props):
 #         return NodeComponent(func)
 #     return create_node_component
 
+class State:
+    def get(self, key: str, initial_state: Any = None):
+        return get_state(key, initial_state)
+
+    def use(self, key: str, initial_state: Any = None):
+        return use_state(key, initial_state)
+
+    def set(self, key: str, value: Any):
+        return set_state(key, value)
+
 def use_state(key: str, initial_state: Any = None):
     tree = state_manager.get_processing_tree()
     if not tree:
@@ -266,3 +276,4 @@ text = UIElementsNoChildrenProxy(text)
 screen = UIElementsContainerProxy(screen)
 button = UIElementsNoChildrenProxy(button)
 input_text = UIElementsNoChildrenProxy(input_text)
+state = State()
