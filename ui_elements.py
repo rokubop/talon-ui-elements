@@ -18,51 +18,62 @@ class Actions:
             show_hints: bool = False,
             initial_state: dict[str, Any] = None,
         ):
-        """Render and show the UI"""
+        """
+        Render and show the UI
+
+        ```
+        (div, text, screen) = actions.user.ui_elements(["div", "text", "screen"])
+
+        def ui():
+            return screen()[
+                div()[
+                    text("Hello world"),
+                ]
+            ]
+
+        actions.user.ui_elements_show(ui)
+
+        # with initial state
+        actions.user.ui_elements_show(ui, initial_state={"color": "red"})
+
+        # `on_mount` (after UI is visible) and `on_unmount` (before UI is hidden)
+        actions.user.ui_elements_show(ui, on_mount=lambda: print("mounted"), on_unmount=lambda: print("unmounted"))
+        ```
+        """
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
-    def ui_elements(elements: List[str]) -> tuple[callable]:
+    def ui_elements(elements: List[str]) -> Union[tuple[callable], callable]:
         """
-        This acts like an import for the components you want to use.
-        div, text, screen, button, input_text.
+        Returns elements or state management functions to use in your UI.
+
+        `div`, `text`, `screen`, `button`, `input_text`, `use_state`, `get_state`, `set_state`, `use_effect`
 
         Usage:
-        ```py
-        # def show
-        (div, text, screen, button, input_text) = actions.user.ui_elements(["div", "text", "screen", "button", "input_text"])
-        ui = screen(align_items="flex_end", justify_content="center")[
-            div(id="box", padding=16, background_color="FF000088")[
-                text("Hello world", color="FFFFFF"),
-                text("Test", id="test", font_size=24),
-                input_text(id="the_input"),
-                button("Click me", on_click=lambda: print("Clicked"))
+        ```
+        (div, text, screen) = actions.user.ui_elements(["div", "text", "screen"])
+
+        def ui():
+            return screen()[
+                div()[
+                    text("Hello world"),
+                ]
             ]
-        ]
-        ui.show()
+
+        actions.user.ui_elements_show(ui)
 
         # def hide and destroy
+        actions.user.ui_elements_hide(ui)
         actions.user.ui_elements_hide_all()
-
-        # trigger update text
-        actions.user.ui_elements_set_text("test", "Updated")
-
-        # trigger highlight
-        actions.user.ui_elements_highlight("box")
-        actions.user.ui_elements_highlight_briefly("box")
-        actions.user.ui_elements_unhighlight("box")
-
-        # trigger get value
-        actions.user.ui_elements_get_value("the_input")
         ```
         """
         return ui_elements(elements)
 
     def ui_elements_hide(renderer: callable):
-        """Hide the UI"""
+        """Destroy and hide a specific ui (compliments ui_elements_show)"""
         entity_manager.hide_tree(renderer)
 
     def ui_elements_hide_all():
-        """Hide all UI elements"""
+        """Destroy and hide all UI"""
         entity_manager.hide_all_trees()
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = None):
@@ -71,7 +82,14 @@ class Actions:
 
         ```
         actions.user.ui_elements_set_state("color", "red")
-        actions.user.ui_elements_set_state({"color": "red", "align": "left"})
+        ```
+
+        Set multiple states at once:
+        ```
+        actions.user.ui_elements_set_state({
+            "color": "red",
+            "align": "left"
+        })
         ```
         """
         if isinstance(name, dict):
@@ -81,31 +99,38 @@ class Actions:
             state_manager.set_state_value(name, value)
 
     def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
-        """Set text of an element"""
+        """
+        Set text based on its `id`. Does not trigger a relayout.
+
+        ```
+        actions.user.ui_elements_set_text("my_text", "Hello world")
+        actions.user.ui_elements_set_text("my_text", lambda current_text: current_text + "!")
+        ```
+        """
         state_manager.set_text_mutation(id, text_or_callable)
 
     def ui_elements_highlight(id: str, color: str = None):
-        """highlight based on id"""
+        """Highlight element based on its id. Does not trigger a relayout"""
         state_manager.highlight(id, color)
 
     def ui_elements_unhighlight(id: str):
-        """unhighlight based on id"""
+        """Unhighlight element based on its id. Does not trigger a relayout"""
         state_manager.unhighlight(id)
 
     def ui_elements_highlight_briefly(id: str, color: str = None):
-        """highlight briefly based on id"""
+        """Highlight element briefly based on its id. Does not trigger a relayout"""
         state_manager.highlight_briefly(id, color)
 
     def ui_elements_get_node(id: str):
-        """Get node for informational purposes e.g. '.box_model', '.tree'"""
+        """Get node for informational purposes e.g. to access `.box_model`, `.tree`, `.parent_node`, `.children_nodes`, or other properties"""
         return entity_manager.get_node(id)
 
     def ui_elements_get_input_value(id: str):
-        """Get the value of an input element"""
+        """Get the value of a `input_text` element based on its id"""
         return state_manager.get_input_value(id)
 
     def ui_elements_version():
-        """Get the version of talon-ui-elements"""
+        """Get the current version of `talon-ui-elements`"""
         return get_version()
 
     def ui_elements_register_on_lifecycle(callback: callable):
