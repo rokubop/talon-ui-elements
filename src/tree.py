@@ -100,13 +100,18 @@ class MetaState(MetaStateType):
                 self.add_scroll_region(id)
             self._scroll_regions[id].scroll_x += x
 
+    def get_text_mutation(self, id: str):
+        if id in self._id_to_node:
+            return self._text_mutations.get(id, "")
+        return ""
+
     def set_text_mutation(self, id, text):
         if id in self._id_to_node:
-            self._text_mutations[id] = text
+            self._text_mutations[id] = str(text)
 
     def use_text_mutation(self, id, initial_text):
         if id not in self._text_mutations:
-            self._text_mutations[id] = initial_text
+            self._text_mutations[id] = str(initial_text)
         return self._text_mutations[id]
 
     def set_style_mutation(self, id, style):
@@ -429,7 +434,10 @@ class Tree(TreeType):
         If we have at least one button or input, then we will consider the whole content area as blockable.
         If we have an inputs, then everything should be blockable except for those inputs.
         """
-        start = time.time()
+        # start = time.time()
+        if not self.root_node or not self.root_node.box_model:
+            return
+
         if self.meta_state.buttons or self.meta_state.inputs:
             full_rect = self.root_node.box_model.content_children_rect
             # if self.window and self.window.offset:

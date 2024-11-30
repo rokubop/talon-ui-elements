@@ -1,11 +1,12 @@
 from talon import Module, actions
 from ..src.entity_manager import entity_manager
-from ..examples.counter import counter_ui
-from ..examples.hello_world import hello_world_ui
-from ..examples.todo_list import todo_list_ui
-from ..examples.alignment import alignment_ui
-from ..examples.updating_content import updating_content_ui
-from ..examples.inputs import inputs_ui
+from .counter import counter_ui
+from .hello_world import hello_world_ui
+from .todo_list import todo_list_ui
+from .alignment import alignment_ui
+from .state_and_refs import state_and_refs_ui
+from .cheatsheet import cheatsheet_show
+from .inputs import inputs_ui
 
 mod = Module()
 
@@ -39,13 +40,17 @@ def test_cases_alignment_ui():
     test("Tree should have 3 nodes", 3, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
 
+@test_module
+def test_cheatsheet_ui():
+    cheatsheet_show()
+
 # @test_module
 def test_inputs_ui():
     actions.user.ui_elements_show(inputs_ui)
 
-@test_module
+# @test_module
 def test_updating_content_ui():
-    actions.user.ui_elements_show(updating_content_ui)
+    actions.user.ui_elements_show(state_and_refs_ui)
 
 # @test_module
 def test_alignment_ui():

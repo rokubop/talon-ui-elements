@@ -1,6 +1,7 @@
 from talon import cron
 from .interfaces import NodeType, ReactiveStateType, TreeType, EffectType
 from .store import store
+from typing import Callable
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -91,13 +92,19 @@ class StateManager:
             # Let the current event loop finish before rendering
             self.debounce_render_job = cron.after("1ms", self.rerender_state)
 
+    def get_text_mutation(self, id):
+        node = store.id_to_node.get(id)
+        if node:
+            return node.tree.meta_state.get_text_mutation(id)
+        return ""
+
     def set_text_mutation(self, id, text_or_callable):
         node = store.id_to_node.get(id)
         if node:
-            if isinstance(text_or_callable, str):
-                node.tree.meta_state.text_mutations[id] = text_or_callable
-            else:
+            if isinstance(text_or_callable, Callable):
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
+            else:
+                node.tree.meta_state.text_mutations[id] = text_or_callable
             node.tree.refresh_decorator_canvas()
         else:
             print(f"Node with ID '{id}' not found.")

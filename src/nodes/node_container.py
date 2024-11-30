@@ -44,9 +44,9 @@ class NodeContainer(Node, NodeContainerType):
             total_children_width = None
             total_children_height = None
 
-            for child in self.children_nodes:
-                if child.element_type == ELEMENT_ENUM_TYPE["text"]:
-                    print(child.text)
+            # for child in self.children_nodes:
+            #     if child.element_type == ELEMENT_ENUM_TYPE["text"]:
+            #         print(child.text)
 
             if self.options.flex_direction == "row":
                 total_children_width = sum(child.box_model.margin_rect.width for child in self.children_nodes)

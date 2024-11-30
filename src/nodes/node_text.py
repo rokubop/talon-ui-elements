@@ -172,7 +172,7 @@ class NodeText(Node):
             self.options.height)
 
         if self.element_type == "text" and self.id:
-            self.text = state_manager.use_text_mutation(self)
+            self.text = str(state_manager.use_text_mutation(self))
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.options.font_size

@@ -5,11 +5,9 @@ from .ui_elements_collection import (
     screen,
     button,
     input_text,
-    use_effect,
+    effect,
     state,
-    use_state,
-    get_state,
-    set_state,
+    ref,
 )
 
 def ui_elements(elements: List[str]) -> tuple[callable]:
@@ -20,10 +18,8 @@ def ui_elements(elements: List[str]) -> tuple[callable]:
         'screen': screen,
         'text': text,
         'state': state,
-        'use_effect': use_effect,
-        'use_state': use_state, # value, set_value
-        'get_state': get_state, # value
-        'set_state': set_state, # set_value
+        'ref': ref,
+        'effect': effect,
     }
     if not all(element in element_mapping for element in elements):
         raise ValueError(

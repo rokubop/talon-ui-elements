@@ -5,34 +5,12 @@ from .node_container import NodeContainer
 
 def print_deprecated_show():
     print(
-        f"\n\n.show() directly on a node is deprecated. Use actions.user.ui_elements_show instead:\n\n"
-        f"def custom_ui():\n"
-        f"    screen, div, text = actions.user.ui_elements([\"screen\", \"div\", \"text\"])\n"
-        f"\n"
-        f"    return screen()[\n"
-        f"        div()[\n"
-        f"            text(\"Hello, World!\")\n"
-        f"        ]\n"
-        f"    ]\n"
-        f"\n"
-        f"actions.user.ui_elements_show(custom_ui)\n"
+        f"\n\nWARNING: .show() directly on ui_elements is deprecated. Instead create a function that returns the ui_elements, and pass the function to actions.user.ui_elements_show(...)."
     )
 
 def print_deprecated_hide():
     print(
-        f"\n\n.hide() directly on a node is deprecated. Use actions.user.ui_elements_hide or actions.user.ui_elements_hide_all instead:\n\n"
-        f"def custom_ui():\n"
-        f"    screen, div, text = actions.user.ui_elements([\"screen\", \"div\", \"text\"])\n"
-        f"\n"
-        f"    return screen()[\n"
-        f"        div()[\n"
-        f"            text(\"Hello, World!\")\n"
-        f"        ]\n"
-        f"    ]\n"
-        f"\n"
-        f"actions.user.ui_elements_hide(custom_ui)\n"
-        f"or\n"
-        f"actions.user.ui_elements_hide_all()\n"
+        f"\n\nWARNING: .hide() directly on ui_elements is deprecated. Instead create a function that returns the ui_elements, and pass the function to actions.user.ui_elements_hide(...), or use actions.user.ui_elements_hide_all()."
     )
 
 class NodeScreen(NodeContainer, NodeScreenType):
