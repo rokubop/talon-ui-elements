@@ -45,7 +45,7 @@ class Actions:
             props: dict[str, Any] = None,
             on_mount: callable = None,
             on_unmount: callable = None,
-            show_hints: bool = False,
+            show_hints: bool = None,
             initial_state: dict[str, Any] = None,
         ):
         """

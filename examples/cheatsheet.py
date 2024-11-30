@@ -97,4 +97,4 @@ def cheatsheet_actions():
         "text": 'ui_elements_set_state("align", "right")',
         "action": cheatsheet_align_right
     }])
-    actions.user.ui_elements_show(actions_ui)
+    actions.user.ui_elements_show(actions_ui, show_hints=True)

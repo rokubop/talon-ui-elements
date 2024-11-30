@@ -12,7 +12,7 @@ from .entity_manager import entity_manager
 from .state_manager import state_manager
 from .store import store
 from .constants import HIGHLIGHT_COLOR, CLICK_COLOR
-from .utils import generate_hash, get_screen, draw_text_simple
+from .utils import generate_hash, get_screen, draw_text_simple, draw_hint
 import inspect
 
 class ScrollRegion(ScrollRegionType):
@@ -174,8 +174,6 @@ class Tree(TreeType):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
-        self.canvas_draw = None
-        self.canvas_mouse = None
         self.cursor = None
         self.effects = []
         self.processing_states = []
@@ -189,6 +187,7 @@ class Tree(TreeType):
         self.root_node = None
         self.screen = None
         self.screen_index = None
+        self.show_hints = False
         self.surfaces = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_screen()
@@ -260,6 +259,12 @@ class Tree(TreeType):
                 x, y = node.cursor_pre_draw_text
                 draw_text_simple(canvas, text_value, node.options, x, y)
 
+    def draw_hints(self, canvas: SkiaCanvas):
+        for node in list(self.meta_state.id_to_node.values()):
+            if node.element_type in ["button", "input_text"]:
+                hint_generator = state_manager.get_hint_generator()
+                draw_hint(canvas, node, hint_generator(node))
+
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
             self.canvas_decorator.freeze()
@@ -292,15 +297,15 @@ class Tree(TreeType):
         self.draw_highlights(canvas)
         self.draw_text_mutations(canvas)
 
+        if self.show_hints:
+            self.draw_hints(canvas)
+
         # if self.render_cause.is_state_change():
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
+
         self.on_fully_rendered()
         # print(f"on_draw_decorator_canvas: {time.time() - start}")
-
-    @with_tree
-    def on_draw_mouse_canvas(self, canvas: SkiaCanvas):
-        pass
 
     def render_decorator_canvas(self):
         if not self.canvas_decorator:
@@ -316,9 +321,10 @@ class Tree(TreeType):
 
         self.canvas_base.freeze()
 
-    def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
+    def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
         self.props = self.props or props
         self.render_cause.state_change()
+
         if self.is_mounted:
             self.on_state_change_effect_cleanups()
             self.meta_state.clear_nodes()
@@ -329,6 +335,7 @@ class Tree(TreeType):
                     canvas.close()
                 self.is_blockable_canvas_init = False
             self.init_nodes_and_screen()
+
         if on_mount or on_unmount:
             state_manager.register_effect(Effect(
                 tree=self,
@@ -336,6 +343,10 @@ class Tree(TreeType):
                 cleanup=on_unmount,
                 dependencies=[]
             ))
+
+        if show_hints is not None:
+            self.show_hints = show_hints
+
         self.render_base_canvas()
 
     def hide(self):
@@ -439,11 +450,6 @@ class Tree(TreeType):
             self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
             self.canvas_decorator.close()
             self.canvas_decorator = None
-
-        if self.canvas_mouse:
-            self.canvas_mouse.unregister("draw", self.on_draw_mouse_canvas)
-            self.canvas_mouse.close()
-            self.canvas_mouse = None
 
         if self.canvas_blockable:
             for canvas in self.canvas_blockable:
@@ -549,7 +555,7 @@ def render_ui(
         props: dict[str, Any] = None,
         on_mount: callable = None,
         on_unmount: callable = None,
-        show_hints: bool = False,
+        show_hints: bool = None,
         initial_state = dict[str, Any],
     ):
     hash = generate_hash(renderer)

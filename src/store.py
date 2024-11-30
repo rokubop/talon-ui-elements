@@ -15,6 +15,7 @@ class Store():
         self.processing_states: list[str] = []
         self.root_nodes: list[NodeType] = []
         self.id_to_node: dict[str, NodeType] = {}
+        self.hint_to_id: dict[str, str] = {}
         self.reactive_state: dict[str, ReactiveStateType] = {}
         self.staged_effects: list[Effect] = []
         self.mouse_state: MouseState = {

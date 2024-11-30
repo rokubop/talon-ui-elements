@@ -48,8 +48,29 @@ class DeprecatedLifecycleEvent:
 
 _deprecated_event_subscribers = {}
 
+class HintGenerator:
+    def __init__(self):
+        self.char_map = {
+            "input_text": ("i", [chr(i) for i in range(97, 123)]),  # 'a' to 'z'
+            "button": ("b", [chr(i) for i in range(97, 123)])
+        }
+        self.state = {key: 0 for key in self.char_map}
+
+    def generate_hint(self, node: NodeType):
+        if node.element_type in self.char_map:
+            first_char, second_char_list = self.char_map[node.element_type]
+            index = self.state[node.element_type]
+            if index < len(second_char_list):
+                hint = f"{first_char}{second_char_list[index]}"
+                self.state[node.element_type] += 1
+                store.hint_to_id[hint] = node.id
+                return hint
+            else:
+                raise ValueError("Ran out of hints values")
+
 class StateManager:
     def __init__(self):
+        self.hint_generator = HintGenerator()
         self.debounce_render_job = None
 
     def get_hovered_id(self):
@@ -150,6 +171,7 @@ class StateManager:
         store.reactive_state.clear()
         store.processing_states.clear()
         store.reset_mouse_state()
+        self.reset_hint_generator()
 
     def highlight(self, id, color=None):
         node = store.id_to_node.get(id)
@@ -165,6 +187,12 @@ class StateManager:
         node = store.id_to_node.get(id)
         if node:
             node.tree.highlight_briefly(id, color)
+
+    def reset_hint_generator(self):
+        self.hint_generator = HintGenerator()
+
+    def get_hint_generator(self):
+        return self.hint_generator.generate_hint
 
     def deprecated_event_register_on_lifecycle(self, callback):
         if callback not in _deprecated_event_subscribers:
