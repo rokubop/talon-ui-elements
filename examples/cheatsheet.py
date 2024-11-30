@@ -7,9 +7,6 @@ def on_mount():
 def on_unmount():
     print("hello unmount")
 
-def on_background_color_change():
-    print(f"Background color changed")
-
 def cheatsheet_ui():
     div, screen, text, state, effect = actions.user.ui_elements(['div', 'screen', 'text', 'state', 'effect'])
 
@@ -18,7 +15,6 @@ def cheatsheet_ui():
     background_color = state.get("background_color", "04732A")
 
     effect(on_mount, on_unmount, [])
-    effect(on_background_color_change, ["background_color"])
 
     if align == "right":
         justify_content = "flex_end"

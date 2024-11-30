@@ -292,10 +292,10 @@ class Tree(TreeType):
         self.draw_highlights(canvas)
         self.draw_text_mutations(canvas)
 
-        if self.render_cause.is_state_change():
-            if not self.is_blockable_canvas_init:
-                self.init_blockable_canvases()
-            self.on_fully_rendered()
+        # if self.render_cause.is_state_change():
+        if not self.is_blockable_canvas_init:
+            self.init_blockable_canvases()
+        self.on_fully_rendered()
         # print(f"on_draw_decorator_canvas: {time.time() - start}")
 
     @with_tree
@@ -322,7 +322,6 @@ class Tree(TreeType):
         if self.is_mounted:
             self.on_state_change_effect_cleanups()
             self.meta_state.clear_nodes()
-            self.effects.clear()
             if self.canvas_blockable:
                 for canvas in self.canvas_blockable:
                     canvas.unregister("mouse", self.on_mouse)
@@ -350,19 +349,22 @@ class Tree(TreeType):
 
     def on_state_change_effect_cleanups(self):
         for state in self.processing_states:
-            for effect in self.effects:
+            for effect in reversed(self.effects):
                 if state in effect.dependencies:
                     if effect.cleanup:
                         effect.cleanup()
 
     def on_fully_rendered(self):
         if self.is_mounted:
-            self.on_state_change_effect_callbacks()
+            if self.render_cause.is_state_change():
+                self.on_state_change_effect_callbacks()
         else:
             self.is_mounted = True
 
             for effect in self.effects:
-                effect.callback()
+                cleanup = effect.callback()
+                if cleanup and not effect.cleanup:
+                    effect.cleanup = cleanup
 
             state_manager.deprecated_event_fire_on_mount(self)
 
@@ -422,7 +424,7 @@ class Tree(TreeType):
         #     self.on_mouse_window(e)
 
     def destroy(self):
-        for effect in self.effects:
+        for effect in reversed(self.effects):
             if effect.cleanup:
                 effect.cleanup()
 
