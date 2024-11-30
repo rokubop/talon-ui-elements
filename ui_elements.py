@@ -1,6 +1,6 @@
 from talon import Module
 from typing import List, Any, Union
-from .src.actions import ui_elements
+from .src.elements import ui_elements
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
 from .src.tree import render_ui
@@ -12,13 +12,17 @@ mod = Module()
 class Actions:
     def ui_elements(elements: List[str]) -> Union[tuple[callable], callable]:
         """
-        Returns elements or helpers to compose your UI.
+        Provides elements and utilities to build your UI.
 
-        `div`, `text`, `screen`, `button`, `input_text`, `state`, `ref`, `effect`
+        Elements:
+        - `div`, `text`, `screen`, `button`, `input_text`
+
+        Utilities:
+        - `state`, `ref`, `effect`
 
         Usage:
         ```
-        (div, text, screen) = actions.user.ui_elements(["div", "text", "screen"])
+        div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
         def ui():
             return screen()[
@@ -29,7 +33,7 @@ class Actions:
 
         actions.user.ui_elements_show(ui)
 
-        # def hide and destroy
+        # To hide and destroy the UI
         actions.user.ui_elements_hide(ui)
         actions.user.ui_elements_hide_all()
         ```
@@ -136,9 +140,9 @@ class Actions:
     def ui_elements_register_on_lifecycle(callback: callable):
         """Register a callback to be called on mount or unmount"""
         print("ui_elements_register_on_lifecycle is deprecated.")
-        # event_register_on_lifecycle(callback)
+        state_manager.deprecated_event_register_on_lifecycle(callback)
 
     def ui_elements_unregister_on_lifecycle(callback: callable):
         """Unregister a lifecycle callback"""
         print("ui_elements_unregister_on_lifecycle is deprecated.")
-        # event_unregister_on_lifecycle(callback)
+        state_manager.deprecated_event_unregister_on_lifecycle(callback)

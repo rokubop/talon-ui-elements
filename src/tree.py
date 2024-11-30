@@ -7,13 +7,12 @@ from talon import cron
 from typing import Any
 from .constants import ELEMENT_ENUM_TYPE
 from .cursor import Cursor
-from .interfaces import TreeType, NodeType, MetaStateType, ScrollRegionType
+from .interfaces import TreeType, NodeType, MetaStateType, Effect, ScrollRegionType
 from .entity_manager import entity_manager
 from .state_manager import state_manager
 from .store import store
 from .constants import HIGHLIGHT_COLOR, CLICK_COLOR
 from .utils import generate_hash, get_screen, draw_text_simple
-import time
 import inspect
 
 class ScrollRegion(ScrollRegionType):
@@ -142,6 +141,28 @@ class MetaState(MetaStateType):
         self.active_button = None
         entity_manager.synchronize_global_ids()
 
+class RenderCauseState:
+    def __init__(self):
+        self.state = None
+
+    def state_change(self):
+        self.state = "state"
+
+    def ref_change(self):
+        self.state = "ref"
+
+    def is_state_change(self):
+        return self.state == "state"
+
+    def is_ref_change(self):
+        return self.state == "ref"
+
+    def clear(self):
+        self.state = None
+
+    def __str__(self):
+        return self.state
+
 class Tree(TreeType):
     def __init__(
             self,
@@ -157,11 +178,13 @@ class Tree(TreeType):
         self.canvas_mouse = None
         self.cursor = None
         self.effects = []
+        self.processing_states = []
         self.hashed_renderer = hashed_renderer
         self.is_blockable_canvas_init = False
         self.is_mounted = False
         self.meta_state = MetaState()
         self.props = props
+        self.render_cause = RenderCauseState()
         self._renderer = renderer
         self.root_node = None
         self.screen = None
@@ -242,11 +265,13 @@ class Tree(TreeType):
             self.canvas_decorator.freeze()
 
     def highlight(self, id: str, color: str = None):
+        self.render_cause.ref_change()
         self.meta_state.set_highlighted(id, color)
         self.canvas_decorator.freeze()
 
     def unhighlight(self, id: str):
         if id in self.meta_state.highlighted:
+            self.render_cause.ref_change()
             self.meta_state.set_unhighlighted(id)
 
             if self.meta_state.unhighlight_jobs.get(id):
@@ -267,9 +292,10 @@ class Tree(TreeType):
         self.draw_highlights(canvas)
         self.draw_text_mutations(canvas)
 
-        if not self.is_blockable_canvas_init:
-            self.init_blockable_canvases()
-        self.on_fully_rendered()
+        if self.render_cause.is_state_change():
+            if not self.is_blockable_canvas_init:
+                self.init_blockable_canvases()
+            self.on_fully_rendered()
         # print(f"on_draw_decorator_canvas: {time.time() - start}")
 
     @with_tree
@@ -292,7 +318,9 @@ class Tree(TreeType):
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = False):
         self.props = self.props or props
+        self.render_cause.state_change()
         if self.is_mounted:
+            self.on_state_change_effect_cleanups()
             self.meta_state.clear_nodes()
             self.effects.clear()
             if self.canvas_blockable:
@@ -302,19 +330,44 @@ class Tree(TreeType):
                     canvas.close()
                 self.is_blockable_canvas_init = False
             self.init_nodes_and_screen()
-        if on_mount:
-            state_manager.register_effect(self, on_mount, [])
+        if on_mount or on_unmount:
+            state_manager.register_effect(Effect(
+                tree=self,
+                callback=on_mount,
+                cleanup=on_unmount,
+                dependencies=[]
+            ))
         self.render_base_canvas()
 
     def hide(self):
         self.destroy()
 
+    def on_state_change_effect_callbacks(self):
+        for state in self.processing_states:
+            for effect in self.effects:
+                if state in effect.dependencies:
+                    effect.callback()
+
+    def on_state_change_effect_cleanups(self):
+        for state in self.processing_states:
+            for effect in self.effects:
+                if state in effect.dependencies:
+                    if effect.cleanup:
+                        effect.cleanup()
+
     def on_fully_rendered(self):
-        if not self.is_mounted:
+        if self.is_mounted:
+            self.on_state_change_effect_callbacks()
+        else:
             self.is_mounted = True
 
             for effect in self.effects:
-                effect['callback']()
+                effect.callback()
+
+            state_manager.deprecated_event_fire_on_mount(self)
+
+        self.processing_states.clear()
+        self.render_cause.clear()
 
     def on_hover(self, gpos):
         new_hovered_id = None
@@ -369,6 +422,12 @@ class Tree(TreeType):
         #     self.on_mouse_window(e)
 
     def destroy(self):
+        for effect in self.effects:
+            if effect.cleanup:
+                effect.cleanup()
+
+        state_manager.deprecated_event_fire_on_unmount(self)
+
         if self.canvas_base:
             self.canvas_base.unregister("draw", self.on_draw_base_canvas)
             self.canvas_base.close()
@@ -393,6 +452,7 @@ class Tree(TreeType):
 
         self.meta_state.clear()
         self.effects.clear()
+        self.processing_states.clear()
         self.is_mounted = False
         state_manager.clear_state()
 
@@ -425,7 +485,7 @@ class Tree(TreeType):
 
     def consume_effects(self):
         for effect in list(store.staged_effects):
-            if effect['tree'] == self:
+            if effect.tree == self:
                 self.effects.append(effect)
                 store.staged_effects.remove(effect)
 

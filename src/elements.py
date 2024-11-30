@@ -1,8 +1,7 @@
-from talon import actions
-from dataclasses import dataclass, fields
-from typing import Optional, get_origin, get_args, Any
+from dataclasses import fields
+from typing import Optional, List, Dict, get_origin, get_args, Any
 from talon.screen import Screen
-# from .nodes.node_component import NodeComponent
+from .interfaces import Effect
 from .nodes.node_container import NodeContainer
 from .nodes.node_screen import NodeScreen
 from .nodes.node_text import NodeText
@@ -20,54 +19,11 @@ from .options import (
 )
 from .utils import get_screen
 
-@dataclass
-class BoxModelSpacing:
-    top: int = 0
-    right: int = 0
-    bottom: int = 0
-    left: int = 0
-
-@dataclass
-class Margin(BoxModelSpacing):
-    pass
-
-@dataclass
-class Padding(BoxModelSpacing):
-    pass
-
-@dataclass
-class Border(BoxModelSpacing):
-    pass
-
 VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
     .union(set(NodeTextOptionsDict.__annotations__.keys()))
     .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
 )
-
-def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
-    model = model_type()
-    model_name = model_type.__name__.lower()
-    model_name_x = f'{model_name}_x'
-    model_name_y = f'{model_name}_y'
-
-    if "border_width" in kwargs:
-        model.top = model.right = model.bottom = model.left = kwargs["border_width"]
-    elif model_name in kwargs:
-        all_sides_value = kwargs[model_name]
-        model.top = model.right = model.bottom = model.left = all_sides_value
-
-    if model_name_x in kwargs:
-        model.left = model.right = kwargs[model_name_x]
-    if model_name_y in kwargs:
-        model.top = model.bottom = kwargs[model_name_y]
-
-    for side in ['top', 'right', 'bottom', 'left']:
-        side_key = f'{model_name}_{side}'
-        if side_key in kwargs:
-            setattr(model, side, kwargs[side_key])
-
-    return model
 
 VALID_PROPS = {f.name for f in fields(UIProps)}
 EXPECTED_TYPES = {f.name: f.type for f in fields(UIProps)}
@@ -149,10 +105,6 @@ def screen(*args, **additional_props):
 
     options = get_props(props, additional_props)
 
-    # if updating_root_id:
-    #     # try reusing the root instead
-    #     options["id"] = updating_root_id
-
     options["width"] = ref_screen.width
     options["height"] = ref_screen.height
 
@@ -160,7 +112,6 @@ def screen(*args, **additional_props):
         "screen",
         UIOptions(**options)
     )
-    # roots_core[root.id] = root
     return root
 
 # def component(func):
@@ -250,16 +201,42 @@ def set_state(key: str, value: Any):
     _, set_value = state_manager.set_state_value(key, value)
     return set_value
 
-def use_effect(callback, state_dependencies: list[str] = []):
+def use_effect(callback, arg1, arg2=None):
+    """
+    Register callbacks on state change or on mount/unmount.
+
+    Usage #1: `effect(callback, dependencies)`
+
+    Usage #2: `effect(callback, cleanup, dependencies)`
+
+    Dependencies are `str` state keys, or empty `[]` for mount/unmount effects.
+    """
+    dependencies: list[str] = []
+    cleanup = None
+
+    if arg2 is not None:
+        cleanup = arg1
+        dependencies = arg2
+    else:
+        dependencies = arg1
+
     tree = state_manager.get_processing_tree()
+
     if not tree:
         raise ValueError("""
-            use_effect() must be called during render of a tree, such as during ui_elements_show(ui).
-            For mounting, you can also optionally use ui_elements_show(ui, on_mount=callback)
+            effect(callback, [cleanup], dependencies) must be called during render of a tree, such as during ui_elements_show(ui).
+            You can also optionally use register on_mount and on_unmount effects directly with ui_elements_show(ui, on_mount=callback, on_unmount=callback)
         """)
 
     if not tree.is_mounted:
-        state_manager.register_effect(tree, callback, state_dependencies)
+        effect = Effect(
+            name=callback.__name__,
+            callback=callback,
+            cleanup=cleanup,
+            dependencies=dependencies,
+            tree=tree
+        )
+        state_manager.register_effect(effect)
 
 def div(props=None, **additional_props):
     options = get_props(props, additional_props)
@@ -333,3 +310,21 @@ input_text = UIElementsNoChildrenProxy(input_text)
 state = State()
 effect = use_effect
 ref = Ref
+
+def ui_elements(elements: List[str]) -> tuple[callable]:
+    element_mapping: Dict[str, callable] = {
+        'button': button,
+        'div': div,
+        'input_text': input_text,
+        'screen': screen,
+        'text': text,
+        'state': state,
+        'ref': ref,
+        'effect': effect,
+    }
+    if not all(element in element_mapping for element in elements):
+        raise ValueError(
+            f"\nInvalid elements {elements} provided to ui_elements"
+            f"\nValid elements are {list(element_mapping.keys())}"
+        )
+    return tuple(element_mapping[element] for element in elements) if len(elements) > 1 else element_mapping[elements[0]]

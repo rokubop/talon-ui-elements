@@ -1,8 +1,8 @@
+from dataclasses import dataclass
 from talon.experimental.textarea import DarkThemeLabels, TextArea
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
-from dataclasses import dataclass
 from ..constants import ELEMENT_ENUM_TYPE
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
@@ -31,30 +31,6 @@ class NodeInputText(Node):
         self.value = self.options.value or ""
         if self.options.gap is None:
             self.options.gap = 16
-
-    # def init_state(self, root_options: dict[str, any], scroll_region_key: int = None):
-    #     global ids, state, buttons
-    #     render_now = True
-    #     # if self.id:
-    #         # ids[self.id] = {
-    #         #     "key": self.key,
-    #         #     "box_model": self.box_model,
-    #         #     "options": self.options,
-    #         #     "root_id": root_options["id"],
-    #         #     "scroll_region_key": scroll_region_key
-    #         # }
-    #         # if self.type == "button" and not buttons.get(self.id):
-    #         #     buttons[self.id] = {
-    #         #         "key": self.key,
-    #         #         "root_id": root_options["id"],
-    #         #         "is_hovering": False,
-    #         #         "on_click": self.options.on_click or (lambda: None),
-    #         #         "scroll_region_key": scroll_region_key
-    #         #     }
-    #         # if not state["text"].get(self.id):
-    #         #     state["text"][self.id] = self.text
-    #         # render_now = False
-    #     return render_now
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         self.box_model = BoxModelLayout(
@@ -123,16 +99,6 @@ class NodeInputText(Node):
         text_area_input.rect = Rect(cursor.x, cursor.y, self.box_model.content_rect.width, self.box_model.content_rect.height)
         text_area_input.show()
         self.input = text_area_input
-
-        # self.cursor_pre_draw_text = (cursor.x, cursor.y + self.text_line_height)
-
-        # if render_now:
-        #     if self.text_multiline:
-        #         gap = self.options.gap or 16
-        #         for i, line in enumerate(self.text_multiline):
-        #             draw_text_simple(c, line, self.options, cursor.x, cursor.y + (self.text_line_height * (i + 1)) + (gap * i))
-        #     else:
-        #         draw_text_simple(c, self.text, self.options, cursor.x, cursor.y + self.text_line_height)
 
         return self.box_model.margin_rect
 

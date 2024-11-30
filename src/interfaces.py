@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, List, Optional, TypedDict, Union
 from talon.canvas import Canvas
+from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
 
 class CursorType:
@@ -18,11 +19,13 @@ class CursorType:
     def reset(self):
         pass
 
-class EffectType(TypedDict):
+@dataclass
+class Effect:
     name: str
-    callback: Callable[[], Callable]
+    callback: Callable[[], Optional[Callable]]
+    cleanup: Optional[Callable[[], None]]
     dependencies: Optional[List[str]]
-    component_node: Optional[object]
+    tree: 'TreeType'
 
 StateValueType = Union[int, float, str, bool, dict, list, None]
 StateValueOrCallableType = Union[StateValueType, Callable[[StateValueType], StateValueType]]
@@ -156,12 +159,12 @@ class MetaStateType(ABC):
         pass
 
 class NodeRootStateStoreType(ABC):
-    effects: List[EffectType]
-    state_to_effects: dict[str, List[EffectType]]
+    effects: List[Effect]
+    state_to_effects: dict[str, List[Effect]]
     state_to_components: dict[str, List['NodeComponentType']]
 
     @abstractmethod
-    def add_effect(self, effect: EffectType):
+    def add_effect(self, effect: Effect):
         pass
 
     @abstractmethod
@@ -329,8 +332,9 @@ class TreeType(ABC):
     canvas_decorator: Canvas
     canvas_mouse: Canvas
     cursor: CursorType
-    effects: List[EffectType]
+    effects: List[Effect]
     meta_state: MetaStateType
+    processing_states: List[str]
     _renderer: callable
     surfaces: List[object]
     update_renderer: str

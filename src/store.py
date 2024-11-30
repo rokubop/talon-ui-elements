@@ -1,5 +1,5 @@
 from typing import Optional, TypedDict, Tuple
-from .interfaces import TreeType, NodeType, EffectType, ReactiveStateType
+from .interfaces import TreeType, NodeType, Effect, ReactiveStateType
 
 class MouseState(TypedDict):
     hovered_id: Optional[str]
@@ -12,10 +12,11 @@ class Store():
     def __init__(self):
         self.trees: list[TreeType] = []
         self.processing_tree: Optional[TreeType] = None
+        self.processing_states: list[str] = []
         self.root_nodes: list[NodeType] = []
         self.id_to_node: dict[str, NodeType] = {}
         self.reactive_state: dict[str, ReactiveStateType] = {}
-        self.staged_effects: list[EffectType] = []
+        self.staged_effects: list[Effect] = []
         self.mouse_state: MouseState = {
             "hovered_id": None,
             "mousedown_start_id": None,

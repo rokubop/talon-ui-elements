@@ -1,5 +1,5 @@
 from talon import cron
-from .interfaces import NodeType, ReactiveStateType, TreeType, EffectType
+from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
 from .store import store
 from typing import Callable
 
@@ -39,6 +39,14 @@ class ReactiveState(ReactiveStateType):
         self.next_state_queue.clear()
 
         self._value = next_state
+
+class DeprecatedLifecycleEvent:
+    def __init__(self, event_type: str, tree: TreeType):
+        self.type = event_type
+        self.builder_id = tree.root_node.id or tree.root_node.guid
+        self.children_ids = tree.meta_state.id_to_node.keys()
+
+_deprecated_event_subscribers = {}
 
 class StateManager:
     def __init__(self):
@@ -81,12 +89,16 @@ class StateManager:
             state.activate_next_state_value()
 
         for tree in store.trees:
+            tree.processing_states.extend(store.processing_states)
             tree.render()
+
+        store.processing_states.clear()
         self.debounce_render_job = None
 
     def set_state_value(self, key, value):
         self.init_state(key, value)
         store.reactive_state[key].set_value(value)
+        store.processing_states.append(key)
 
         if not self.debounce_render_job:
             # Let the current event loop finish before rendering
@@ -131,17 +143,12 @@ class StateManager:
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 
-    def register_effect(self, tree, callback, dependencies):
-        effect: EffectType = {
-            'name': callback.__name__,
-            'callback': callback,
-            'dependencies': dependencies,
-            'tree': tree
-        }
+    def register_effect(self, effect: Effect):
         store.staged_effects.append(effect)
 
     def clear_state(self):
         store.reactive_state.clear()
+        store.processing_states.clear()
         store.reset_mouse_state()
 
     def highlight(self, id, color=None):
@@ -158,5 +165,23 @@ class StateManager:
         node = store.id_to_node.get(id)
         if node:
             node.tree.highlight_briefly(id, color)
+
+    def deprecated_event_register_on_lifecycle(self, callback):
+        if callback not in _deprecated_event_subscribers:
+            _deprecated_event_subscribers.append(callback)
+
+    def deprecated_event_unregister_on_lifecycle(self, callback):
+        if callback in _deprecated_event_subscribers:
+            _deprecated_event_subscribers.remove(callback)
+
+    def deprecated_event_fire_on_lifecycle(self, event: DeprecatedLifecycleEvent):
+        for callback in _deprecated_event_subscribers:
+            callback(event)
+
+    def deprecated_event_fire_on_mount(self, tree):
+        self.deprecated_event_fire_on_lifecycle(DeprecatedLifecycleEvent("mount", tree))
+
+    def deprecated_event_fire_on_unmount(self, tree):
+        self.deprecated_event_fire_on_lifecycle(DeprecatedLifecycleEvent("unmount", tree))
 
 state_manager = StateManager()

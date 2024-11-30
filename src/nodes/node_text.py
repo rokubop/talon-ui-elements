@@ -82,21 +82,6 @@ class TextBlock():
     def __str__(self):
         return self.value
 
-# @dataclass
-# class NodeTextOptions(UIOptions):
-#     id: str = None
-#     font_size: int = 16
-#     font_weight: str = "normal"
-#     on_click: any = None
-
-#     def __init__(self, **kwargs):
-#         super().__init__(**kwargs)
-
-# class NodeTextOptionsDict(UIOptionsDict):
-#     id: str
-#     font_size: int
-#     font_weight: str
-
 ElementType = Literal['button', 'text']
 
 class NodeText(Node):
@@ -119,30 +104,6 @@ class NodeText(Node):
             self.is_hovering = False
             if not self.id:
                 self.id = f"button_{text.replace(' ', '_')}_{self.guid}"
-
-    # def init_state(self, root_options: dict[str, any], scroll_region_key: int = None):
-    #     global ids, state, buttons
-    #     render_now = True
-    #     # if self.id:
-    #         # ids[self.id] = {
-    #         #     "key": self.key,
-    #         #     "box_model": self.box_model,
-    #         #     "options": self.options,
-    #         #     "root_id": root_options["id"],
-    #         #     "scroll_region_key": scroll_region_key
-    #         # }
-    #         # if self.type == "button" and not buttons.get(self.id):
-    #         #     buttons[self.id] = {
-    #         #         "key": self.key,
-    #         #         "root_id": root_options["id"],
-    #         #         "is_hovering": False,
-    #         #         "on_click": self.options.on_click or (lambda: None),
-    #         #         "scroll_region_key": scroll_region_key
-    #         #     }
-    #         # if not state["text"].get(self.id):
-    #         #     state["text"][self.id] = self.text
-    #         # render_now = False
-    #     return render_now
 
     def measure_and_account_for_multiline(self, c: SkiaCanvas, cursor: Cursor):
         text_cleansed = re.sub(r'\s{2,}', ' ', self.text)

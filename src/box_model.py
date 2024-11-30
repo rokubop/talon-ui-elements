@@ -10,6 +10,18 @@ class BoxModelSpacing:
     bottom: int = 0
     left: int = 0
 
+@dataclass
+class Margin(BoxModelSpacing):
+    pass
+
+@dataclass
+class Padding(BoxModelSpacing):
+    pass
+
+@dataclass
+class Border(BoxModelSpacing):
+    pass
+
 def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
     model = model_type()
     model_name = model_type.__name__.lower()
@@ -239,15 +251,3 @@ class BoxModelLayout:
                         thumb_width,
                         thumb_height)
                 )
-
-@dataclass
-class Margin(BoxModelSpacing):
-    pass
-
-@dataclass
-class Padding(BoxModelSpacing):
-    pass
-
-@dataclass
-class Border(BoxModelSpacing):
-    pass
