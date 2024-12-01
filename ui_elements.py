@@ -145,11 +145,19 @@ class Actions:
         hint_clear_state()
 
     def ui_elements_register_on_lifecycle(callback: callable):
-        """Register a callback to be called on mount or unmount"""
-        print("ui_elements_register_on_lifecycle is deprecated.")
+        """
+        DEPRECATED: Register a callback to be called on mount or unmount.
+
+        Deprecated note: Use `effect` instead inside your renderer, or use `on_mount` and `on_unmount` kwargs in `ui_elements_show`.
+        """
+        print("ui_elements_register_on_lifecycle is deprecated. Use effects instead.")
         state_manager.deprecated_event_register_on_lifecycle(callback)
 
     def ui_elements_unregister_on_lifecycle(callback: callable):
-        """Unregister a lifecycle callback"""
-        print("ui_elements_unregister_on_lifecycle is deprecated.")
+        """
+        DEPRECATED: Unregister a lifecycle callback.
+
+        Deprecated note: Use `effect` instead inside your renderer, or use `on_mount` and `on_unmount` kwargs in `ui_elements_show`.
+        """
+        print("ui_elements_unregister_on_lifecycle is deprecated. Use effects instead.")
         state_manager.deprecated_event_unregister_on_lifecycle(callback)

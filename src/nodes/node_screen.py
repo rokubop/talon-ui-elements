@@ -15,7 +15,11 @@ def print_deprecated_hide():
     )
 
 class DeprecatedRenderer:
-    # UI used to be rendered by calling .show() on the screen element.
+    """
+    `show()` used to be called on the `screen` ui_element
+    but now we wrap it in a function and pass it to
+    actions.user.ui_elements_show(...)
+    """
     def __init__(self, obj):
         self.obj = obj
         self._unique_id = id(self)
