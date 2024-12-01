@@ -293,7 +293,15 @@ class RenderCauseStateType(ABC):
         pass
 
     @abstractmethod
+    def input_focus_change(self):
+        pass
+
+    @abstractmethod
     def is_state_change(self):
+        pass
+
+    @abstractmethod
+    def is_input_focus_change(self):
         pass
 
     @abstractmethod
