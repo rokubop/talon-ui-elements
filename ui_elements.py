@@ -3,6 +3,7 @@ from typing import List, Any, Union
 from .src.elements import ui_elements
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
+from .src.hints import hint_clear_state
 from .src.tree import render_ui
 from .src.utils import get_version
 
@@ -136,6 +137,12 @@ class Actions:
     def ui_elements_version():
         """Get the current version of `talon-ui-elements`"""
         return get_version()
+
+    def ui_elements_reset():
+        """Destroy all UIs, trees, nodes, and reset all states"""
+        entity_manager.hide_all_trees()
+        state_manager.clear_state()
+        hint_clear_state()
 
     def ui_elements_register_on_lifecycle(callback: callable):
         """Register a callback to be called on mount or unmount"""

@@ -423,6 +423,7 @@ class TreeType(ABC):
     screen_index: int
     _renderer: callable
     render_cause: RenderCauseStateType
+    render_version: int
     is_mounted: bool
 
     @abstractmethod

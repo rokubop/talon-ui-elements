@@ -54,29 +54,37 @@ class NodeContainer(Node, NodeContainerType):
             gaps = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
             self.justify_between_gaps = gaps
 
-    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
+    def virtual_gap_between_elements(self, node, i):
         gap = self.options.gap or 0
-        if self.options.gap is None and self.options.flex_direction == "column" and child.element_type == ELEMENT_ENUM_TYPE["text"] and \
+
+        if self.options.gap is None and node.element_type == ELEMENT_ENUM_TYPE["text"] and \
                 self.children_nodes[i - 1].element_type == ELEMENT_ENUM_TYPE["text"] \
                 and not self.options.justify_content == "space_between":
-            gap = 16
+            if self.tree.render_version == 1:
+                gap = 16
+            elif self.tree.render_version == 2 and self.options.flex_direction == "column":
+                gap = 16
+
+        return gap
+
+    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
+        gap = self.virtual_gap_between_elements(child, i)
         a_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
         rect = child.virtual_render(c, cursor)
+
         cursor.virtual_move_to(a_cursor.x, a_cursor.y)
         if move_after_last_child or i != len(self.children_nodes) - 1:
             if self.options.flex_direction == "column":
                 cursor.virtual_move_to(cursor.virtual_x, cursor.virtual_y + rect.height + gap)
             elif self.options.flex_direction == "row":
                 cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
-        # print(f"rect: {rect}")
+
         self.box_model.accumulate_content_dimensions(rect)
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
         growable_counter_axis = []
         growable_primary_axis = []
         growable_primary_axis_flex = []
-
-        # self.set_children_align_items_stretch()
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
@@ -116,20 +124,16 @@ class NodeContainer(Node, NodeContainerType):
                     child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
 
         if growable_primary_axis_flex:
-            # print("FOUND FLEX")
             remaining_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
             remaining_height = self.box_model.content_rect.height - self.box_model.content_children_rect.height
-            # print(f"remaining_width: {remaining_width}, remaining_height: {remaining_height}")
             flex_weights = self.calculate_flex_weights(growable_primary_axis_flex)
 
             for i, child in enumerate(growable_primary_axis_flex):
                 if self.options.flex_direction == "row":
                     additional_width = remaining_width * flex_weights[i]
-                    # print(f"accumulate_outer_dimensions_width: {remaining_width * flex_weights[i]}")
                     child.box_model.accumulate_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
                 elif self.options.flex_direction == "column":
                     additional_height = remaining_height * flex_weights[i]
-                    # print(f"accumulate_outer_dimensions_height: {remaining_height * flex_weights[i]}")
                     child.box_model.accumulate_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
 
         for i, child in enumerate(self.children_nodes):
@@ -140,9 +144,6 @@ class NodeContainer(Node, NodeContainerType):
         return self.box_model.margin_rect
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
-        # global unique_key
-        # self.key = unique_key
-        # unique_key += 1
         resolved_width = self.options.width
         resolved_height = self.options.height
 
@@ -341,6 +342,20 @@ class NodeContainer(Node, NodeContainerType):
                 cursor.move_to(cursor.x + child.box_model.margin_rect.width, cursor.y)
             cursor.move_to(cursor.x, cursor.y + rect.height + gap)
 
+    def gap_between_elements(self, node, i):
+        gap = self.justify_between_gaps or self.options.gap or 0
+
+        if not gap and node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+                self.children_nodes[i + 1].element_type == ELEMENT_ENUM_TYPE["text"] and \
+                not node.options.flex and not self.children_nodes[i + 1].options.flex and \
+                not self.options.justify_content == "space_between":
+            if self.tree.render_version == 1:
+                gap = 16
+            elif self.tree.render_version == 2 and self.options.flex_direction == "column":
+                gap = 16
+
+        return gap
+
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
         global ids
 
@@ -378,13 +393,7 @@ class NodeContainer(Node, NodeContainerType):
             # if self.debugger_should_continue(c, cursor):
             #     continue
 
-            gap = self.justify_between_gaps or self.options.gap or 0
-            if not gap and child.element_type == ELEMENT_ENUM_TYPE["text"] and self.options.flex_direction == "column" and \
-                    self.children_nodes[i + 1].element_type == ELEMENT_ENUM_TYPE["text"] and \
-                    not child.options.flex and not self.children_nodes[i + 1].options.flex and \
-                    not self.options.justify_content == "space_between":
-                gap = 16
-
+            gap = self.gap_between_elements(child, i)
             self.move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, rect, gap)
             # self.debugger(c, cursor)
 

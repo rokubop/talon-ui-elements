@@ -48,7 +48,7 @@ class DeprecatedLifecycleEvent:
         self.builder_id = tree.root_node.id or tree.root_node.guid
         self.children_ids = tree.meta_state.id_to_node.keys()
 
-_deprecated_event_subscribers = {}
+_deprecated_event_subscribers = []
 
 class StateManager:
     def __init__(self):

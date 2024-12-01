@@ -208,6 +208,7 @@ class Tree(TreeType):
         self.props = props
         self.render_cause = RenderCauseState()
         self._renderer = renderer
+        self.render_version = 2
         self.root_node = None
         self.screen = None
         self.screen_index = None
@@ -541,6 +542,9 @@ class Tree(TreeType):
                 constraint_nodes = []
             constraint_nodes = constraint_nodes + [current_node]
 
+        if current_node.element_type == ELEMENT_ENUM_TYPE["screen"] and current_node.deprecated_ui:
+            self.render_version = 1
+
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
 
@@ -626,6 +630,16 @@ def render_ui(
         initial_state = dict[str, Any],
     ):
 
+    # to hash or not not to hash...
+    # - pro: hash ensures if the user accidentally creates new references for their
+    #   renderer every time (e.g. defined inside of a talon action), it will treat
+    #   it as the same reference.
+    # - pro: hash ensures during development and saving files which changes references
+    #   of the renderer, it will treat it as the same reference.
+    # - pro: if you accidentally get into a state where the UI is visible but you
+    #   lost the reference to the renderer, you can still hide it.
+    # - con: if two renderers are the same, it can't distinguish between them
+    # - con: minimally slower to hash
     hash = generate_hash(renderer)
     tree = None
     for t in entity_manager.get_all_trees():
