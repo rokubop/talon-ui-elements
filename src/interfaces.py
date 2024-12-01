@@ -394,11 +394,6 @@ class TreeManagerType(ABC):
 
     @abstractmethod
     def render(self, renderer: callable):
-        # hash = generate_hash_id_for_updater(renderer)
-        # iterate trees to check hash
-        # for tree in trees:
-        #   if tree.update_renderer_id != hash:
-        #     tree.process_tree(renderer)
         pass
 
     @abstractmethod
