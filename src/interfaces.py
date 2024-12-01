@@ -229,6 +229,7 @@ class NodeType(ABC):
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
+    interactive: bool
     is_dirty: bool
     tree: 'TreeType'
     root_node: object
@@ -451,20 +452,7 @@ class TreeManagerType(ABC):
         pass
 
     @abstractmethod
-    def get_tree_with_hash(self, hash: str):
-        pass
-
-    @abstractmethod
     def generate_hash_for_updater(self, renderer: callable):
-        pass
-
-
-    @abstractmethod
-    def set_processing_tree(self, tree: TreeType):
-        pass
-
-    @abstractmethod
-    def destroy_all(self):
         pass
 
 class NodeScreenType(NodeContainerType):

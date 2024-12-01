@@ -16,9 +16,11 @@ def print_deprecated_hide():
 
 class DeprecatedRenderer:
     """
-    `show()` used to be called on the `screen` ui_element
+    `screen` used to be the primary thing you interact with for
+    .show(), .hide(), and highlighting ui_elements,
     but now we wrap it in a function and pass it to
-    actions.user.ui_elements_show(...)
+    actions.user.ui_elements_show(...), and have a higher level
+    "tree" which manages everything now.
     """
     def __init__(self, obj):
         self.obj = obj
@@ -44,13 +46,27 @@ class NodeScreen(NodeContainer, NodeScreenType):
         self.deprecated_ui = None
 
     def show(self):
+        """DEPRECATED: Use `actions.user.ui_elements_show(...)` instead"""
         print_deprecated_show()
         if not self.deprecated_ui:
             self.deprecated_ui = DeprecatedRenderer(self)
         actions.user.ui_elements_show(self.deprecated_ui)
 
     def hide(self):
+        """DEPRECATED: Use `actions.user.ui_elements_hide(...)` or `actions.user.ui_elements_hide_all()` instead"""
         print_deprecated_hide()
         if not self.deprecated_ui:
             self.deprecated_ui = DeprecatedRenderer(self)
         actions.user.ui_elements_hide(self.deprecated_ui)
+
+    def highlight(self, key):
+        """DEPRECATED: Use `actions.user.ui_elements_highlight(...)` instead"""
+        actions.user.ui_elements_highlight(key)
+
+    def highlight_briefly(self, key):
+        """DEPRECATED: Use `actions.user.ui_elements_highlight_briefly(...)` instead"""
+        actions.user.ui_elements_highlight_briefly(key)
+
+    def unhighlight(self, key):
+        """DEPRECATED: Use `actions.user.ui_elements_unhighlight(...)` instead"""
+        actions.user.ui_elements_unhighlight(key)

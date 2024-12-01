@@ -24,6 +24,7 @@ class NodeInputText(Node):
             options=options
         )
         self.input = None
+        self.interactive = True
         self.options.width = self.options.width or round(self.options.font_size * 15)
         self.options.height = self.options.height or round(self.options.font_size * 2.2)
         self.options.background_color = self.options.background_color or "333333"

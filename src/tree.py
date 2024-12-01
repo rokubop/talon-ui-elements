@@ -21,7 +21,7 @@ from .hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_st
 from .state_manager import state_manager
 from .store import store
 from .constants import HIGHLIGHT_COLOR, CLICK_COLOR
-from .utils import generate_hash, get_screen, draw_text_simple
+from .utils import get_screen, draw_text_simple
 import inspect
 
 class ScrollRegion(ScrollRegionType):
@@ -530,9 +530,14 @@ class Tree(TreeType):
         hint_clear_state()
         state_manager.clear_state()
 
-    def init_node_hierarchy(self, current_node: NodeType, depth = 0, constraint_nodes: list[NodeType] = None):
+    def init_node_hierarchy(
+            self,
+            current_node: NodeType,
+            index_path = [], # [1, 2, 0]
+            constraint_nodes: list[NodeType] = None
+        ):
         current_node.tree = self
-        current_node.depth = depth
+        current_node.depth = len(index_path)
 
         if constraint_nodes:
             current_node.constraint_nodes = constraint_nodes
@@ -544,6 +549,9 @@ class Tree(TreeType):
 
         if current_node.element_type == ELEMENT_ENUM_TYPE["screen"] and current_node.deprecated_ui:
             self.render_version = 1
+
+        if current_node.interactive and not current_node.id:
+            current_node.id = "-".join(map(str, index_path)) # "1-2-0"
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
@@ -557,8 +565,8 @@ class Tree(TreeType):
                     self.meta_state.focused_id = current_node.id
                 self.meta_state.add_input(current_node.id, initial_value=current_node.value)
 
-        for child_node in current_node.children_nodes:
-            self.init_node_hierarchy(child_node, depth + 1, constraint_nodes)
+        for i, child_node in enumerate(current_node.children_nodes):
+            self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
 
         entity_manager.synchronize_global_ids()
 
@@ -630,22 +638,9 @@ def render_ui(
         initial_state = dict[str, Any],
     ):
 
-    # to hash or not not to hash...
-    # - pro: hash ensures if the user accidentally creates new references for their
-    #   renderer every time (e.g. defined inside of a talon action), it will treat
-    #   it as the same reference.
-    # - pro: hash ensures during development and saving files which changes references
-    #   of the renderer, it will treat it as the same reference.
-    # - pro: if you accidentally get into a state where the UI is visible but you
-    #   lost the reference to the renderer, you can still hide it.
-    # - con: if two renderers are the same, it can't distinguish between them
-    # - con: minimally slower to hash
-    hash = generate_hash(renderer)
-    tree = None
-    for t in entity_manager.get_all_trees():
-        if t.hashed_renderer == hash:
-            tree = t
-            break
+    t = entity_manager.get_tree_with_hash_for_renderer(renderer)
+    tree = t["tree"]
+    hash = t["hash"]
 
     if not tree:
         tree = Tree(renderer, hash, props, initial_state)

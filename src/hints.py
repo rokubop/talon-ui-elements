@@ -58,7 +58,7 @@ def trigger_hint_action(hint_trigger: str):
                 if node.element_type == "button":
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
-                    cron.after("100ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
+                    cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
                 elif node.element_type == "input_text":
                     node.tree.focus_input(node.id)
             break

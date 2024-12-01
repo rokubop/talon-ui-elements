@@ -22,6 +22,7 @@ class Node(NodeType):
         self.constraint_nodes = []
         self.parent_node = None
         self.is_dirty: bool = False
+        self.interactive = False
         self.root_node = None
         self.depth: int = None
 

@@ -103,8 +103,7 @@ class NodeText(Node):
         if element_type == "button":
             self.on_click = self.options.on_click or (lambda: None)
             self.is_hovering = False
-            if not self.id:
-                self.id = f"button_{sanitize_string(text)}_{generate_hash(self.on_click)}"
+            self.interactive = True
 
     def measure_and_account_for_multiline(self, c: SkiaCanvas, cursor: Cursor):
         text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
