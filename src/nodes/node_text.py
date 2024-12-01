@@ -180,9 +180,3 @@ class NodeText(Node):
                 draw_text_simple(c, self.text, self.options, cursor.x, cursor.y + self.text_line_height)
 
         return self.box_model.margin_rect
-
-    def show(self):
-        raise NotImplementedError(f"text/button cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
-
-    def hide(self):
-        raise NotImplementedError(f"text/button cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")

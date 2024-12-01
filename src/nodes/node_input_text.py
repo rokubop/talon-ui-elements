@@ -104,9 +104,3 @@ class NodeInputText(Node):
         self.input = text_area_input
 
         return self.box_model.margin_rect
-
-    def show(self):
-        raise NotImplementedError(f"input_text cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
-
-    def hide(self):
-        raise NotImplementedError(f"input_text cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")

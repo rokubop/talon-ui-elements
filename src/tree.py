@@ -322,14 +322,16 @@ class Tree(TreeType):
             self.render_cause.highlight_change()
             self.meta_state.set_unhighlighted(id)
 
-            if self.meta_state.unhighlight_jobs.get(id):
-                cron.cancel(self.meta_state.unhighlight_jobs[id][0])
-                self.meta_state.unhighlight_jobs[id][1]()
-                self.meta_state.unhighlight_jobs[id] = None
+            job = self.meta_state.unhighlight_jobs.pop(id, None)
+            if job:
+                cron.cancel(job[0])
 
             self.canvas_decorator.freeze()
 
     def highlight_briefly(self, id: str, color: str = None, duration: int = 150):
+        if id in self.meta_state.unhighlight_jobs:
+            job, _ = self.meta_state.unhighlight_jobs.pop(id)
+            cron.cancel(job)
         self.highlight(id, color)
         pending_unhighlight = lambda: self.unhighlight(id)
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)

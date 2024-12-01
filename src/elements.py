@@ -261,6 +261,15 @@ def input_text(props=None, **additional_props):
         raise ValueError("input_text must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
     return NodeInputText(input_options)
 
+def css_deprecated(props=None, **additional_props):
+    return get_props(props, additional_props)
+
+deprecated_elements = {
+    # Just use a dictionary instead
+    # Wrapping with a class doesn't help with intellisense
+    "css": css_deprecated,
+}
+
 class UIElementsContainerProxy:
     def __init__(self, func):
         self.func = func
@@ -304,20 +313,32 @@ state = State()
 effect = use_effect
 ref = Ref
 
+element_collection: Dict[str, callable] = {
+    'button': button,
+    'div': div,
+    'input_text': input_text,
+    'screen': screen,
+    'text': text,
+    'state': state,
+    'ref': ref,
+    'effect': effect,
+}
+
+element_collection_full = {
+    **element_collection,
+    **deprecated_elements
+}
+
 def ui_elements(elements: List[str]) -> tuple[callable]:
-    element_mapping: Dict[str, callable] = {
-        'button': button,
-        'div': div,
-        'input_text': input_text,
-        'screen': screen,
-        'text': text,
-        'state': state,
-        'ref': ref,
-        'effect': effect,
-    }
-    if not all(element in element_mapping for element in elements):
+    if not all(element in element_collection_full for element in elements):
         raise ValueError(
             f"\nInvalid elements {elements} provided to ui_elements"
-            f"\nValid elements are {list(element_mapping.keys())}"
+            f"\nValid elements are {list(element_collection.keys())}"
         )
-    return tuple(element_mapping[element] for element in elements) if len(elements) > 1 else element_mapping[elements[0]]
+
+    if len(elements) > 1:
+        return tuple(
+            element_collection_full[element] for element in elements
+        )
+    else:
+        return element_collection_full[elements[0]]

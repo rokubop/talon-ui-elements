@@ -407,9 +407,3 @@ class NodeContainer(Node, NodeContainerType):
         # self.crop_scrollable_region_end(c)
 
         return self.box_model.margin_rect
-
-    def show(self):
-        raise NotImplementedError(f"div cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
-
-    def hide(self):
-        raise NotImplementedError(f"div cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")

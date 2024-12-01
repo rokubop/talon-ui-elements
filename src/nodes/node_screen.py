@@ -6,12 +6,12 @@ from .node_container import NodeContainer
 
 def print_deprecated_show():
     print(
-        f"\n\nWARNING: .show() directly on ui_elements is deprecated. {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}"
+        f"\n\nDeprecationWarning: .show() directly on `screen` ui_element is deprecated. {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}"
     )
 
 def print_deprecated_hide():
     print(
-        f"\n\nWARNING: .hide() directly on ui_elements is deprecated. {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}"
+        f"\n\nDeprecationWarning: .hide() directly on `screen` ui_element is deprecated. {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}"
     )
 
 class DeprecatedRenderer:

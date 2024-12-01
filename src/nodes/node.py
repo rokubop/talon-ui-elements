@@ -1,5 +1,5 @@
 import uuid
-from ..constants import NODE_TYPE_MAP
+from ..constants import NODE_TYPE_MAP, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..box_model import BoxModelLayout
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
 from ..options import UIOptions
@@ -66,10 +66,10 @@ class Node(NodeType):
         pass
 
     def show(self):
-        raise NotImplementedError(f"{self.element_type} cannot use .show() directly.")
+        raise NotImplementedError(f"DeprecationWarning: {self.element_type} cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
 
     def hide(self):
-        raise NotImplementedError(f"{self.element_type} cannot use .hide() directly.")
+        raise NotImplementedError(f"DeprecationWarning: {self.element_type} cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")
 
     def check_invalid_child(self, c):
         if isinstance(c, str):
