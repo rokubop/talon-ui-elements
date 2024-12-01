@@ -3,11 +3,11 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.skia import RoundRect
 from talon.types import Rect
-from talon import cron
+from talon import cron, settings
 from typing import Any
 from .constants import ELEMENT_ENUM_TYPE
 from .cursor import Cursor
-from .interfaces import TreeType, NodeType, MetaStateType, Effect, ScrollRegionType
+from .interfaces import TreeType, NodeType, MetaStateType, Effect, ClickEvent, ScrollRegionType
 from .entity_manager import entity_manager
 from .state_manager import state_manager
 from .store import store
@@ -19,10 +19,6 @@ class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int, scroll_x: int):
         self.scroll_y = scroll_y
         self.scroll_x = scroll_x
-
-@dataclass
-class ClickEvent:
-    id: str
 
 class MetaState(MetaStateType):
     def __init__(self):
@@ -151,11 +147,23 @@ class RenderCauseState:
     def ref_change(self):
         self.state = "ref"
 
+    def set_text_change(self):
+        self.state = "text"
+
+    def highlight_change(self):
+        self.state = "highlight"
+
     def is_state_change(self):
         return self.state == "state"
 
     def is_ref_change(self):
         return self.state == "ref"
+
+    def is_highlight_change(self):
+        return self.state == "highlight"
+
+    def is_text_change(self):
+        return self.state == "text"
 
     def clear(self):
         self.state = None
@@ -260,23 +268,33 @@ class Tree(TreeType):
                 draw_text_simple(canvas, text_value, node.options, x, y)
 
     def draw_hints(self, canvas: SkiaCanvas):
-        for node in list(self.meta_state.id_to_node.values()):
-            if node.element_type in ["button", "input_text"]:
-                hint_generator = state_manager.get_hint_generator()
-                draw_hint(canvas, node, hint_generator(node))
+        if self.meta_state.inputs or self.meta_state.buttons:
+            state_manager.hint_tag_enable()
+            for node in list(self.meta_state.id_to_node.values()):
+                if node.element_type in ["button", "input_text"]:
+                    hint_generator = state_manager.get_hint_generator()
+                    draw_hint(canvas, node, hint_generator(node))
+
+    def render_text_mutation(self):
+        if self.canvas_decorator:
+            self.render_cause.set_text_change()
+            self.canvas_decorator.freeze()
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
             self.canvas_decorator.freeze()
 
     def highlight(self, id: str, color: str = None):
-        self.render_cause.ref_change()
+        if id in self.meta_state.highlighted:
+            return
+
+        self.render_cause.highlight_change()
         self.meta_state.set_highlighted(id, color)
         self.canvas_decorator.freeze()
 
     def unhighlight(self, id: str):
         if id in self.meta_state.highlighted:
-            self.render_cause.ref_change()
+            self.render_cause.highlight_change()
             self.meta_state.set_unhighlighted(id)
 
             if self.meta_state.unhighlight_jobs.get(id):
@@ -294,18 +312,23 @@ class Tree(TreeType):
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         # start = time.time()
+        # if self.render_cause.is_highlight_change():
         self.draw_highlights(canvas)
+        # self.render_cause.clear()
+        # return
+
+        # if self.render_cause.is_text_change():
         self.draw_text_mutations(canvas)
+        # self.render_cause.clear()
+        # return
 
         if self.show_hints:
             self.draw_hints(canvas)
 
-        # if self.render_cause.is_state_change():
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
 
         self.on_fully_rendered()
-        # print(f"on_draw_decorator_canvas: {time.time() - start}")
 
     def render_decorator_canvas(self):
         if not self.canvas_decorator:
@@ -558,6 +581,7 @@ def render_ui(
         show_hints: bool = None,
         initial_state = dict[str, Any],
     ):
+
     hash = generate_hash(renderer)
     tree = None
     for t in entity_manager.get_all_trees():
@@ -569,6 +593,7 @@ def render_ui(
         tree = Tree(renderer, hash, props, initial_state)
         entity_manager.add_tree(tree)
 
-    # start = time.time()
-    # print(f"props: {props}")
+    if show_hints is None:
+        show_hints = settings.get("user.ui_elements_show_hints")
+
     tree.render(props, on_mount, on_unmount, show_hints)

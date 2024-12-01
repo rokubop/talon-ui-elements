@@ -3,7 +3,7 @@ from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
-from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
+from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType
@@ -43,10 +43,6 @@ class NodeContainer(Node, NodeContainerType):
         if self.options.justify_content == "space_between":
             total_children_width = None
             total_children_height = None
-
-            # for child in self.children_nodes:
-            #     if child.element_type == ELEMENT_ENUM_TYPE["text"]:
-            #         print(child.text)
 
             if self.options.flex_direction == "row":
                 total_children_width = sum(child.box_model.margin_rect.width for child in self.children_nodes)
@@ -353,14 +349,6 @@ class NodeContainer(Node, NodeContainerType):
 
         self.box_model.position_for_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
 
-        # if self.id:
-        #     ids[self.id] = {
-        #         "box_model": self.box_model,
-        #         "options": self.options,
-        #         "root_id": root_options["id"],
-        #         "scroll_region_key": scroll_region_key
-        #     }
-
         # self.debugger(c, cursor)
         self.render_borders(c, cursor)
         # self.adjust_for_scroll_y_start(c)
@@ -412,7 +400,7 @@ class NodeContainer(Node, NodeContainerType):
         return self.box_model.margin_rect
 
     def show(self):
-        raise NotImplementedError(f"div cannot use .show() directly. Wrap it in a screen()[..] like this: \nmy_ui = None\n\n#show def\nglobal my_ui\n(screen, div, text) = actions.user.ui_elements(['screen', 'div', 'text'])\nmy_ui = screen()[\n  div()[\n    text('hello world')\n  ]\n]\nmy_ui.show()\n\n#hide def\nglobal my_ui\nmy_ui.hide()")
+        raise NotImplementedError(f"div cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
 
     def hide(self):
-        raise NotImplementedError(f"div cannot use .hide() directly. Wrap it in a screen()[..] like this: \nmy_ui = None\n\n#show def\nglobal my_ui\n(screen, div, text) = actions.user.ui_elements(['screen', 'div', 'text'])\nmy_ui = screen()[\n  div()[\n    text('hello world')\n  ]\n]\nmy_ui.show()\n\n#hide def\nglobal my_ui\nmy_ui.hide()")
+        raise NotImplementedError(f"div cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")

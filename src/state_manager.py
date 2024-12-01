@@ -1,7 +1,9 @@
-from talon import cron
-from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
-from .store import store
+from talon import Context, actions, cron
+from talon.experimental.textarea import TextArea
 from typing import Callable
+from .interfaces import NodeType, ReactiveStateType, TreeType, Effect, ClickEvent
+from .store import store
+from .utils import safe_callback, get_center
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -50,28 +52,46 @@ _deprecated_event_subscribers = {}
 
 class HintGenerator:
     def __init__(self):
+        c_char = 99
+        d_char = 100
+        z_char = 123
+
+        # Arbitrary decisions:
+        # - Start buttons with 'b' and input_text with 'i'
+        # - Second character start is based on personal
+        #   preference for better recognition
         self.char_map = {
-            "input_text": ("i", [chr(i) for i in range(97, 123)]),  # 'a' to 'z'
-            "button": ("b", [chr(i) for i in range(97, 123)])
+            "button": ("b", [chr(i) for i in range(c_char, z_char)]),
+            "input_text": ("i", [chr(i) for i in range(d_char, z_char)])
         }
-        self.state = {key: 0 for key in self.char_map}
+
+        # rather than using a generator, we increment char index
+        self.state = {
+            "button": 0,
+            "input_text": 0
+        }
 
     def generate_hint(self, node: NodeType):
+        if node.id in store.id_to_hint:
+            return store.id_to_hint[node.id]
+
         if node.element_type in self.char_map:
             first_char, second_char_list = self.char_map[node.element_type]
             index = self.state[node.element_type]
             if index < len(second_char_list):
                 hint = f"{first_char}{second_char_list[index]}"
                 self.state[node.element_type] += 1
-                store.hint_to_id[hint] = node.id
+                store.id_to_hint[node.id] = hint
                 return hint
             else:
-                raise ValueError("Ran out of hints values")
+                print("Ran out of hint values while generating hints.")
+                return ""
 
 class StateManager:
     def __init__(self):
         self.hint_generator = HintGenerator()
         self.debounce_render_job = None
+        self.ctx = Context()
 
     def get_hovered_id(self):
         return store.mouse_state['hovered_id']
@@ -138,7 +158,7 @@ class StateManager:
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
             else:
                 node.tree.meta_state.text_mutations[id] = text_or_callable
-            node.tree.refresh_decorator_canvas()
+            node.tree.render_text_mutation()
         else:
             print(f"Node with ID '{id}' not found.")
 
@@ -171,7 +191,9 @@ class StateManager:
         store.reactive_state.clear()
         store.processing_states.clear()
         store.reset_mouse_state()
+        store.id_to_hint.clear()
         self.reset_hint_generator()
+        self.hint_tag_disable()
 
     def highlight(self, id, color=None):
         node = store.id_to_node.get(id)
@@ -193,6 +215,27 @@ class StateManager:
 
     def get_hint_generator(self):
         return self.hint_generator.generate_hint
+
+    def hint_tag_enable(self):
+        self.ctx.tags = ["user.ui_elements_hints_active"]
+
+    def hint_tag_disable(self):
+        self.ctx.tags = []
+
+    def trigger_hint_action(self, hint_trigger: str):
+        for id, hint in store.id_to_hint.items():
+            if hint == hint_trigger:
+                node = store.id_to_node.get(id)
+                if node:
+                    if node.element_type == "button":
+                        self.highlight_briefly(id)
+                        safe_callback(node.on_click, ClickEvent(id=id, cause="hint"))
+                    elif node.element_type == "input_text":
+                        # probably prefer TextArea focus if it becomes available
+                        x, y = get_center(node.box_model.padding_rect)
+                        actions.mouse_move(x, y)
+                        actions.mouse_click()
+                break
 
     def deprecated_event_register_on_lifecycle(self, callback):
         if callback not in _deprecated_event_subscribers:

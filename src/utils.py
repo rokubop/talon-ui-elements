@@ -4,9 +4,11 @@ from talon.canvas import Canvas
 from talon.screen import Screen
 from talon.skia import RoundRect
 from talon.types import Rect
-from typing import Union, Callable
+from typing import Any, Union, Callable, TypeVar
 from .interfaces import NodeType
 import json
+import inspect
+import re
 import os
 import hashlib
 
@@ -72,3 +74,19 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         hint_padding_rect.x + hint_padding / 2,
         hint_padding_rect.y + hint_padding / 2 + hint_text_height
     )
+
+def sanitize_string(text: str) -> str:
+    return re.sub(r'[^a-zA-Z0-9_]', '_', text)
+
+E = TypeVar("E")
+
+def safe_callback(callback: Callable[[E], None], event: E) -> None:
+    """If the callback has no parameters, call it without any arguments"""
+    sig = inspect.signature(callback)
+    if len(sig.parameters) == 0:
+        callback()
+    else:
+        callback(event)
+
+def get_center(rect: Rect) -> tuple[int, int]:
+    return rect.x + rect.width // 2, rect.y + rect.height // 2

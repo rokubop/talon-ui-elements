@@ -114,12 +114,6 @@ def screen(*args, **additional_props):
     )
     return root
 
-# def component(func):
-#     # TODO: args and kwargs
-#     def create_node_component():
-#         return NodeComponent(func)
-#     return create_node_component
-
 class State:
     def get(self, key: str, initial_state: Any = None):
         return get_state(key, initial_state)
@@ -180,7 +174,6 @@ class Ref:
 
     def highlight_briefly(self, color=None):
         state_manager.highlight_briefly(self.id, color)
-
 
 def use_state(key: str, initial_state: Any = None):
     tree = state_manager.get_processing_tree()

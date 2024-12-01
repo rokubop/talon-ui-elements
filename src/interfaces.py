@@ -3,6 +3,7 @@ from typing import Callable, List, Optional, TypedDict, Union
 from talon.canvas import Canvas
 from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
+from talon.types import Rect, Point2d
 
 class CursorType:
     x: int
@@ -21,11 +22,11 @@ class CursorType:
 
 @dataclass
 class Effect:
-    name: str
     callback: Callable[[], Optional[Callable]]
-    cleanup: Optional[Callable[[], None]]
     dependencies: Optional[List[str]]
     tree: 'TreeType'
+    cleanup: Optional[Callable[[], None]] = None
+    name: Optional[str] = None
 
 StateValueType = Union[int, float, str, bool, dict, list, None]
 StateValueOrCallableType = Union[StateValueType, Callable[[StateValueType], StateValueType]]
@@ -182,6 +183,40 @@ class TreeNodeRefsType(ABC):
     def clear(self):
         pass
 
+@dataclass
+class BoxModelSpacingType(ABC):
+    top: int = 0
+    right: int = 0
+    bottom: int = 0
+    left: int = 0
+
+class BoxModelLayoutType(ABC):
+    margin_spacing: BoxModelSpacingType
+    padding_spacing: BoxModelSpacingType
+    border_spacing: BoxModelSpacingType
+    margin_rect: Rect
+    padding_rect: Rect
+    border_rect: Rect
+    content_rect: Rect
+    content_children_rect: Rect
+    scroll_box_rect: Union[Rect, None] = None
+
+    @abstractmethod
+    def accumulate_outer_dimensions_width(self, new_width: int):
+        pass
+
+    @abstractmethod
+    def accumulate_outer_dimensions_height(self, new_height: int):
+        pass
+
+    @abstractmethod
+    def accumulate_content_dimensions(self, rect: Rect, axis: str = None):
+        pass
+
+    @abstractmethod
+    def position_for_render(self, cursor: Point2d, flex_direction: str, align_items: str, justify_content: str):
+        pass
+
 class NodeType(ABC):
     options: object
     guid: str
@@ -189,7 +224,7 @@ class NodeType(ABC):
     key: str
     node_type: NodeEnumType
     element_type: ElementEnumType
-    box_model: object
+    box_model: BoxModelLayoutType
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
@@ -527,3 +562,8 @@ class NodeComponentType(ABC):
     @abstractmethod
     def __getitem__(self):
         pass
+
+@dataclass
+class ClickEvent:
+    id: str
+    cause: str = "click"

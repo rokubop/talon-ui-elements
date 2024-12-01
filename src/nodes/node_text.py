@@ -3,9 +3,10 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
 from typing import Literal
 from ..box_model import BoxModelLayout
+from ..constants import LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..cursor import Cursor
 from ..options import NodeTextOptions
-from ..utils import draw_text_simple
+from ..utils import draw_text_simple, generate_hash, sanitize_string
 from ..state_manager import state_manager
 from .node import Node
 import re
@@ -103,7 +104,7 @@ class NodeText(Node):
             self.on_click = self.options.on_click or (lambda: None)
             self.is_hovering = False
             if not self.id:
-                self.id = f"button_{text.replace(' ', '_')}_{self.guid}"
+                self.id = f"button_{sanitize_string(text)}_{generate_hash(self.on_click)}"
 
     def measure_and_account_for_multiline(self, c: SkiaCanvas, cursor: Cursor):
         text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
@@ -182,7 +183,7 @@ class NodeText(Node):
         return self.box_model.margin_rect
 
     def show(self):
-        raise NotImplementedError(f"text cannot use .show() directly. Wrap it in a screen()[..] like this: \nmy_ui = None\n\n#show def\nglobal my_ui\n(screen, div, text) = actions.user.ui_elements(['screen', 'div', 'text'])\nmy_ui = screen()[\n  div()[\n    text('hello world')\n  ]\n]\nmy_ui.show()\n\n#hide def\nglobal my_ui\nmy_ui.hide()")
+        raise NotImplementedError(f"text/button cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
 
     def hide(self):
-        raise NotImplementedError(f"text cannot use .hide() directly. Wrap it in a screen()[..] like this: \nmy_ui = None\n\n#show def\nglobal my_ui\n(screen, div, text) = actions.user.ui_elements(['screen', 'div', 'text'])\nmy_ui = screen()[\n  div()[\n    text('hello world')\n  ]\n]\nmy_ui.show()\n\n#hide def\nglobal my_ui\nmy_ui.hide()")
+        raise NotImplementedError(f"text/button cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")

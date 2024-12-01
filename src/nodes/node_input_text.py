@@ -3,7 +3,7 @@ from talon.experimental.textarea import DarkThemeLabels, TextArea
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import ELEMENT_ENUM_TYPE, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
 from ..options import NodeInputTextOptions
@@ -103,7 +103,7 @@ class NodeInputText(Node):
         return self.box_model.margin_rect
 
     def show(self):
-        raise NotImplementedError(f"text cannot use .show() directly. Wrap it in a screen()[..] like this: \nmy_ui = None\n\n#show def\nglobal my_ui\n(screen, div, text) = actions.user.ui_elements(['screen', 'div', 'text'])\nmy_ui = screen()[\n  div()[\n    text('hello world')\n  ]\n]\nmy_ui.show()\n\n#hide def\nglobal my_ui\nmy_ui.hide()")
+        raise NotImplementedError(f"input_text cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")
 
     def hide(self):
-        raise NotImplementedError(f"text cannot use .hide() directly. Wrap it in a screen()[..] like this: \nmy_ui = None\n\n#show def\nglobal my_ui\n(screen, div, text) = actions.user.ui_elements(['screen', 'div', 'text'])\nmy_ui = screen()[\n  div()[\n    text('hello world')\n  ]\n]\nmy_ui.show()\n\n#hide def\nglobal my_ui\nmy_ui.hide()")
+        raise NotImplementedError(f"input_text cannot use .hide(). {LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION}")

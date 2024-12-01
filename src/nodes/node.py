@@ -3,6 +3,7 @@ from ..constants import NODE_TYPE_MAP
 from ..box_model import BoxModelLayout
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
 from ..options import UIOptions
+from ..utils import sanitize_string
 
 class Node(NodeType):
     def __init__(self,
@@ -11,7 +12,7 @@ class Node(NodeType):
         ):
         self.options: UIOptions = options or UIOptions()
         self.guid: str = uuid.uuid4().hex
-        self.id: str = self.options.id
+        self.id: str = sanitize_string(self.options.id) if self.options.id else None
         self.key: str = self.options.key
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
