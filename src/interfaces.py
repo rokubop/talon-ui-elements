@@ -73,6 +73,7 @@ class MetaStateType(ABC):
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _scroll_regions: dict[str, ScrollRegionType]
     _id_to_node: dict[str, 'NodeType']
+    focused_id: Optional[str]
     unhighlight_jobs: dict[str, callable]
 
     @property
@@ -274,6 +275,42 @@ class NodeType(ABC):
     def __init__(self, element_type: ElementEnumType, options: object):
         pass
 
+class RenderCauseStateType(ABC):
+    @abstractmethod
+    def state_change(self):
+        pass
+
+    @abstractmethod
+    def ref_change(self):
+        pass
+
+    @abstractmethod
+    def set_text_change(self):
+        pass
+
+    @abstractmethod
+    def highlight_change(self):
+        pass
+
+    @abstractmethod
+    def is_state_change(self):
+        pass
+
+    @abstractmethod
+    def is_ref_change(self):
+        pass
+
+    @abstractmethod
+    def is_highlight_change(self):
+        pass
+
+    @abstractmethod
+    def is_text_change(self):
+        pass
+
+    @abstractmethod
+    def clear(self):
+        pass
 
 class NodeContainerType(NodeType):
     scroll_y: int
@@ -374,6 +411,10 @@ class TreeType(ABC):
     surfaces: List[object]
     update_renderer: str
     root_node: NodeType
+    show_hints: bool
+    screen_index: int
+    _renderer: callable
+    render_cause: RenderCauseStateType
     is_mounted: bool
 
     @abstractmethod

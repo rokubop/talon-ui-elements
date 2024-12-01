@@ -7,12 +7,21 @@ from talon import cron, settings
 from typing import Any
 from .constants import ELEMENT_ENUM_TYPE
 from .cursor import Cursor
-from .interfaces import TreeType, NodeType, MetaStateType, Effect, ClickEvent, ScrollRegionType
+from .interfaces import (
+    TreeType,
+    NodeType,
+    MetaStateType,
+    Effect,
+    ClickEvent,
+    ScrollRegionType,
+    RenderCauseStateType
+)
 from .entity_manager import entity_manager
+from .hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from .state_manager import state_manager
 from .store import store
 from .constants import HIGHLIGHT_COLOR, CLICK_COLOR
-from .utils import generate_hash, get_screen, draw_text_simple, draw_hint
+from .utils import generate_hash, get_screen, draw_text_simple
 import inspect
 
 class ScrollRegion(ScrollRegionType):
@@ -29,6 +38,7 @@ class MetaState(MetaStateType):
         self._scroll_regions = {}
         self._style_mutations = {}
         self._text_mutations = {}
+        self.focused_id = None
         self.unhighlight_jobs = {}
 
     @property
@@ -134,10 +144,10 @@ class MetaState(MetaStateType):
         self._style_mutations.clear()
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
-        self.active_button = None
+        self.focused_id = None
         entity_manager.synchronize_global_ids()
 
-class RenderCauseState:
+class RenderCauseState(RenderCauseStateType):
     def __init__(self):
         self.state = None
 
@@ -153,8 +163,14 @@ class RenderCauseState:
     def highlight_change(self):
         self.state = "highlight"
 
+    def input_focus_change(self):
+        self.state = "input_focus"
+
     def is_state_change(self):
         return self.state == "state"
+
+    def is_input_focus_change(self):
+        return self.state == "input_focus"
 
     def is_ref_change(self):
         return self.state == "ref"
@@ -243,6 +259,7 @@ class Tree(TreeType):
         self.root_node.render(canvas, self.cursor)
         # print(f"on_draw_base_canvas: {time.time() - start}")
 
+        self.show_inputs()
         self.render_decorator_canvas()
         # print(f"on_draw_base_canvas + decorator: {time.time() - start}")
 
@@ -269,10 +286,10 @@ class Tree(TreeType):
 
     def draw_hints(self, canvas: SkiaCanvas):
         if self.meta_state.inputs or self.meta_state.buttons:
-            state_manager.hint_tag_enable()
+            hint_tag_enable()
             for node in list(self.meta_state.id_to_node.values()):
                 if node.element_type in ["button", "input_text"]:
-                    hint_generator = state_manager.get_hint_generator()
+                    hint_generator = get_hint_generator()
                     draw_hint(canvas, node, hint_generator(node))
 
     def render_text_mutation(self):
@@ -283,6 +300,13 @@ class Tree(TreeType):
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
             self.canvas_decorator.freeze()
+
+    def focus_input(self, id: str):
+        focused_node = self.meta_state.id_to_node.get(id)
+        if focused_node and focused_node.input:
+            # workaround for focus
+            focused_node.input.hide()
+            focused_node.input.show()
 
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
@@ -308,6 +332,23 @@ class Tree(TreeType):
         self.highlight(id, color)
         pending_unhighlight = lambda: self.unhighlight(id)
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
+
+    def show_inputs(self):
+        if self.meta_state.inputs and not self.is_mounted:
+            focused_node = None
+
+            for id in list(self.meta_state.inputs.keys()):
+                node = self.meta_state.id_to_node[id]
+                if id == self.meta_state.focused_id:
+                    focused_node = node
+                    continue
+                if node.input:
+                    node.input.show()
+
+            # do this last so that focused input is on top
+            if focused_node and focused_node.input:
+                focused_node.input.show()
+
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
@@ -485,6 +526,7 @@ class Tree(TreeType):
         self.effects.clear()
         self.processing_states.clear()
         self.is_mounted = False
+        hint_clear_state()
         state_manager.clear_state()
 
     def init_node_hierarchy(self, current_node: NodeType, depth = 0, constraint_nodes: list[NodeType] = None):
@@ -507,6 +549,8 @@ class Tree(TreeType):
             elif current_node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
             elif current_node.element_type == ELEMENT_ENUM_TYPE["input_text"]:
+                if not self.meta_state.focused_id:
+                    self.meta_state.focused_id = current_node.id
                 self.meta_state.add_input(current_node.id, initial_value=current_node.value)
 
         for child_node in current_node.children_nodes:

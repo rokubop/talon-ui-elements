@@ -97,7 +97,9 @@ class NodeInputText(Node):
                     )
         text_area_input.register("label", on_change)
         text_area_input.rect = Rect(cursor.x, cursor.y, self.box_model.content_rect.width, self.box_model.content_rect.height)
-        text_area_input.show()
+        # defer show to the tree, because the last to
+        # show will be the focused element
+        # text_area_input.show()
         self.input = text_area_input
 
         return self.box_model.margin_rect

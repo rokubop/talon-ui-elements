@@ -45,36 +45,6 @@ def get_version() -> str:
 
     return data['version']
 
-def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
-    c.paint.textsize = 12
-    box_model = node.box_model.padding_rect
-    hint_text_width = c.paint.measure_text(text)[1].width
-    hint_text_height = c.paint.measure_text("X")[1].height
-    hint_padding = 6
-    hint_padding_width = hint_text_width + hint_padding
-    hint_padding_height = hint_text_height + hint_padding
-    hint_padding_rect = Rect(box_model.x - 4, box_model.y - 4, hint_padding_width, hint_padding_height)
-
-    # border
-    c.paint.color = node.options.color or "555555"
-    c.paint.style = c.paint.Style.STROKE
-    c.paint.stroke_width = 1
-    c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
-
-    # background
-    c.paint.color = node.options.background_color or "333333"
-    c.paint.style = c.paint.Style.FILL
-    c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
-
-    # text
-    c.paint.color = node.options.color or "FFFFFF"
-    c.paint.style = c.paint.Style.FILL
-    c.draw_text(
-        text,
-        hint_padding_rect.x + hint_padding / 2,
-        hint_padding_rect.y + hint_padding / 2 + hint_text_height
-    )
-
 def sanitize_string(text: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_]', '_', text)
 
