@@ -1,21 +1,16 @@
 # ui_elements
 
-This is an experimental repository for making any generic UI in HTML-like syntax.
+ui_elements is an experimental Talon library for building overlays and interactive UIs on your screen.
 
-## Elements
-- `screen`
-- `div`
-- `text`
-- `button`
-- `input_text`
-- `use_state`
-- `use_effect`
+- Syntax inspired by HTML, CSS, and React
+- Supports highlighting, buttons, inputs, dynamic state, and effects
+- Voice accessible
 
 ## Usage
-Choose elements from `actions.user.ui_elements`. Wrap in a function and pass to `actions.user.ui_elements_show`.
+Choose [elements](#elements) from `actions.user.ui_elements` and create a renderer function
 
 ```py
-def my_ui():
+def hello_world_ui():
     (screen, div, text) = actions.user.ui_elements(["screen", "div", "text"])
 
     return screen()[
@@ -24,10 +19,10 @@ def my_ui():
         ]
     ]
 
-actions.user.ui_elements_show(my_ui)
+actions.user.ui_elements_show(hello_world_ui)
 ```
 
-To define styles, we put it inside of the **parentheses**. To define children, we put it inside the **square brackets**. Styles mimic HTML/CSS properties.
+To define styles, we put it inside of the **parentheses**. To define children, we put it inside the **square brackets**.
 ```py
 def my_ui():
     (screen, div, text) = actions.user.ui_elements(["screen", "div", "text"])
@@ -46,6 +41,16 @@ actions.user.ui_elements_show(my_ui)
 actions.user.ui_elements_hide(my_ui)
 actions.user.ui_elements_hide_all()
 ```
+
+## Elements
+- `screen` - The root element. Basically a div the size of your screen.
+- `div` - Standard container element.
+- `text`
+- `button`
+- `input_text`
+- `state` - global reactive state that rerenders when changed. `state.get`, `state.use`, `state.set`, as well as `actions.user.ui_elements_set_state`
+- `effect` - similar to React's `useEffect`. It runs a function when the component mounts or updates, or on state change, and can return a cleanup function.
+- `ref` - Refer to an id in your UI to access values or trigger id specific actions, for example getting an input value.
 
 ## Box Model
 ui_elements have the same box model as normal HTML, with `padding`, `margin`, `border`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning padding and border are included in the width and height.
