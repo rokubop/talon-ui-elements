@@ -21,13 +21,13 @@ class Ref:
         return entity_manager.get_node(self.id)
 
     def clear(self):
-        node: NodeInputText = self.get_node()
-        node.input.erase(Span(0, len(node.input.value)))
+        input_data = entity_manager.get_input_data(self.id)
+        input_data.input.erase(Span(0, len(input_data.input.value)))
 
     def focus(self):
-        node: NodeInputText = self.get_node()
-        node.input.hide()
-        node.input.show()
+        input_data = entity_manager.get_input_data(self.id)
+        input_data.input.hide()
+        input_data.input.show()
 
     def set_text(self, new_value: Any):
         state_manager.set_text_mutation(self.id, new_value)
@@ -54,7 +54,8 @@ class Ref:
                 return self.text
         if prop == "value":
             if self.element_type == "input_text":
-                return self.value
+                input_data = entity_manager.get_input_data(self.id)
+                return input_data.input.value
 
         if node := self.get_node():
             return node.options.get(prop)
