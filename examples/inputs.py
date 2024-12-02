@@ -1,17 +1,20 @@
 from talon import actions
 
-def on_submit(e):
-    first = actions.user.ui_elements_get_input_value("first")
-    last = actions.user.ui_elements_get_input_value("last")
-    print(f"Submitted - First: {first}, Last: {last}")
-    actions.user.ui_elements_hide_all()
-
-def on_change(e):
-    print(e)
-
 def inputs_ui():
-    elements = actions.user.ui_elements(["div", "text", "screen", "input_text", "button"])
-    div, text, screen, input_text, button = elements
+    elements = ["div", "text", "screen", "input_text", "button", "ref", "state"]
+    div, text, screen, input_text, button, ref, state = actions.user.ui_elements(elements)
+
+    is_valid, set_is_valid = state.use("is_valid", False)
+    first_input = ref("first")
+    last_input = ref("last")
+
+    def on_submit(e):
+        if is_valid:
+            print(f"Submitted - First: {first_input.value}, Last: {last_input.value}")
+            actions.user.ui_elements_hide_all()
+
+    def on_change(e):
+        set_is_valid(bool(first_input.value and last_input.value))
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
@@ -23,7 +26,7 @@ def inputs_ui():
             text("Last"),
             input_text(id="last", background_color="444444", on_change=on_change),
             div(flex_direction="row", justify_content="flex_end", margin_top=8)[
-                button("Submit", on_click=on_submit, background_color="42A5F5", border_radius=8, padding=12, padding_left=24, padding_right=24)
+                button("Submit", on_click=on_submit, background_color="42A5F5" if is_valid else "444444", border_radius=8, padding=12, padding_left=24, padding_right=24)
             ]
         ]
     ]

@@ -111,6 +111,8 @@ def hint_clear_state():
     reset_hint_generator()
     hint_tag_disable()
 
+# TODO: can we make this so only currently shown hints
+#  are captured instead of any two characters?
 @mod.capture(rule="<user.letter> <user.letter>")
 def ui_elements_hint_target(m) -> list[str]:
     return "".join(m.letter_list)
