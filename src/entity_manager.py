@@ -1,6 +1,14 @@
+from talon.experimental.textarea import DarkThemeLabels, TextArea
+from dataclasses import dataclass
 from .interfaces import NodeType, TreeType
 from .store import store
 from .utils import generate_hash
+
+@dataclass
+class ChangeEvent:
+    value: str
+    id: str = None
+    previous_value: str = None
 
 class EntityManager:
     def add_tree(self, tree: TreeType):
@@ -22,6 +30,50 @@ class EntityManager:
             flattened.extend(self.get_node_tree_flattened(tree.root_node))
 
         return flattened
+
+    def get_input_data(self, id: str):
+        node = store.id_to_node.get(id)
+        if node:
+            return node.tree.meta_state.inputs.get(id)
+
+    def create_input(self, node: NodeType):
+        if not self.get_input_data(node.id):
+            text_area_input = TextArea()
+            text_area_input.theme = DarkThemeLabels(
+                title_size=0,
+                padding=0, # Keep this 0. Manage our own padding because this adds to the top hidden title as well
+                text_size=node.options.font_size,
+                title_bg=node.options.background_color,
+                line_spacing=-8, # multiline text is too spaced out
+                bg=node.options.background_color,
+                fg=node.options.color
+            )
+            text_area_input.value = node.options.value or ""
+
+            def on_change(new_value):
+                input_data = self.get_input_data(node.id)
+                if not input_data or new_value == input_data.value:
+                    return
+
+                previous_value = input_data.value
+                input_data.previous_value = input_data.value
+                input_data.value = new_value
+                if node.options.on_change:
+                    node.options.on_change(
+                        ChangeEvent(
+                            value=new_value,
+                            id=node.id,
+                            previous_value=previous_value
+                        )
+                    )
+
+            text_area_input.register("label", on_change)
+            node.tree.meta_state.add_input(node.id, text_area_input, node.options.value)
+
+    def update_input_rect(self, id, rect):
+        input_data = self.get_input_data(id)
+        if input_data:
+            input_data.input.rect = rect
 
     def get_tree_with_hash_for_renderer(self, renderer: callable) -> TreeType:
         # to hash or not not to hash...

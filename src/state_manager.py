@@ -133,14 +133,10 @@ class StateManager:
     def get_input_value(self, id):
         node = store.id_to_node.get(id)
         if node:
-            return node.tree.meta_state.inputs.get(id)
+            input_data = node.tree.meta_state.inputs.get(id)
+            if input_data:
+                return input_data.value
         return ""
-
-    def use_input_value(self, node: NodeType):
-        if node.tree.meta_state.inputs.get(node.id):
-            return node.tree.meta_state.inputs[node.id]
-        node.tree.meta_state.inputs[node.id] = node.options.value or ""
-        return node.options.value
 
     def use_state(self, key, initial_value):
         self.init_state(key, initial_value)

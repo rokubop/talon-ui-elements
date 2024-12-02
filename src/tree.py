@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from talon.experimental.textarea import TextArea
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.skia import RoundRect
@@ -10,6 +10,7 @@ from .cursor import Cursor
 from .interfaces import (
     TreeType,
     NodeType,
+    MetaStateInput,
     MetaStateType,
     Effect,
     ClickEvent,
@@ -69,8 +70,12 @@ class MetaState(MetaStateType):
     def text_mutations(self):
         return self._text_mutations
 
-    def add_input(self, id, initial_value):
-        self._inputs[id] = initial_value
+    def add_input(self, id, input, initial_value = None):
+        self._inputs[id] = MetaStateInput(
+            value=initial_value,
+            input=input,
+            previous_value=None
+        )
 
     def add_button(self, id):
         self._buttons.add(id)
@@ -88,10 +93,6 @@ class MetaState(MetaStateType):
     def set_unhighlighted(self, id):
         if id in self._id_to_node and id in self._highlighted:
             self._highlighted.pop(id)
-
-    def set_input_value(self, id, value):
-        if id in self._id_to_node:
-            self._inputs[id] = value
 
     def scroll_y_increment(self, id, y):
         if id in self._id_to_node:
@@ -128,9 +129,9 @@ class MetaState(MetaStateType):
         entity_manager.synchronize_global_ids()
 
     def clear(self):
-        for id in list(self._inputs.keys()):
-            if id in self._id_to_node and self._id_to_node[id].input:
-                self.id_to_node[id].input.hide()
+        for input_data in list(self._inputs.values()):
+            if input_data:
+                input_data.input.hide()
 
         for job in list(self.unhighlight_jobs.values()):
             if job:
@@ -338,19 +339,18 @@ class Tree(TreeType):
 
     def show_inputs(self):
         if self.meta_state.inputs and not self.is_mounted:
-            focused_node = None
+            focused_input = None
 
-            for id in list(self.meta_state.inputs.keys()):
-                node = self.meta_state.id_to_node[id]
+            for id, input_data in list(self.meta_state.inputs.items()):
                 if id == self.meta_state.focused_id:
-                    focused_node = node
+                    focused_input = input_data.input
                     continue
-                if node.input:
-                    node.input.show()
+                if input_data.input:
+                    input_data.input.show()
 
             # do this last so that focused input is on top
-            if focused_node and focused_node.input:
-                focused_node.input.show()
+            if focused_input:
+                focused_input.show()
 
 
     @with_tree
@@ -565,7 +565,7 @@ class Tree(TreeType):
             elif current_node.element_type == ELEMENT_ENUM_TYPE["input_text"]:
                 if not self.meta_state.focused_id:
                     self.meta_state.focused_id = current_node.id
-                self.meta_state.add_input(current_node.id, initial_value=current_node.value)
+                # no need to add input to meta state, it is managed on render
 
         for i, child_node in enumerate(current_node.children_nodes):
             self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
@@ -599,9 +599,10 @@ class Tree(TreeType):
 
             if self.meta_state.inputs:
                 bottom_rect = None
-                for input_id in list(self.meta_state.inputs.keys()):
-                    input_node = self.meta_state.id_to_node[input_id]
-                    input = input_node.input
+                for input_data in list(self.meta_state.inputs.values()):
+                    if not input_data.input:
+                        continue
+                    input = input_data.input
                     current_rect = bottom_rect or full_rect
 
                     top_rect = Rect(current_rect.x, current_rect.y, current_rect.width, input.rect.y - current_rect.y)

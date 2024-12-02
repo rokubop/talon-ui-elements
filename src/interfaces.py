@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, TypedDict, Union
+from typing import Callable, List, Optional, Union
+from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
 from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
@@ -65,8 +66,14 @@ class ScrollRegionType(ABC):
     scroll_y: int
     scroll_x: int
 
+@dataclass
+class MetaStateInput:
+    value: str
+    previous_value: str
+    input: TextArea
+
 class MetaStateType(ABC):
-    _inputs: dict[str, str]
+    _inputs: dict[str, MetaStateInput]
     _highlighted: dict[str, str]
     _buttons: set[str]
     _text_mutations: dict[str, str]
@@ -77,7 +84,7 @@ class MetaStateType(ABC):
     unhighlight_jobs: dict[str, callable]
 
     @property
-    def inputs(self) -> dict[str, str]:
+    def inputs(self) -> dict[str, MetaStateInput]:
         pass
 
     @property
@@ -113,11 +120,7 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
-    def add_input(self, id: str, initial_value: str):
-        pass
-
-    @abstractmethod
-    def set_input_value(self, id: str, value: str):
+    def add_input(self, id: str, input: TextArea, initial_value: str):
         pass
 
     @abstractmethod

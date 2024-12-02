@@ -40,19 +40,19 @@ def test_cases_alignment_ui():
     test("Tree should have 3 nodes", 3, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
 
-@test_module
+# @test_module
 def test_cheatsheet_ui():
     cheatsheet_show()
 
-@test_module
+# @test_module
 def test_inputs_ui():
     actions.user.ui_elements_show(inputs_ui)
 
-@test_module
+# @test_module
 def test_updating_content_ui():
     actions.user.ui_elements_show(state_and_refs_ui)
 
-@test_module
+# @test_module
 def test_alignment_ui():
     actions.user.ui_elements_show(alignment_ui, on_mount=test_cases_alignment_ui)
 

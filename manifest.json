@@ -1,6 +1,6 @@
 {
   "name": "ui_elements",
-  "description": "This is an experimental repository for making any generic UI in HTML-like syntax.",
+  "description": "Create UIs using HTML/CSS/React-like syntax.",
   "version": "0.4.0",
   "contributes": {
     "actions": [
