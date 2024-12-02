@@ -6,7 +6,7 @@ from .nodes.node_container import NodeContainer
 from .nodes.node_screen import NodeScreen
 from .nodes.node_text import NodeText
 from .nodes.node_input_text import NodeInputText
-from .entity_manager import entity_manager
+from .ref import Ref
 from .state_manager import state_manager
 from .options import (
     UIOptions,
@@ -16,6 +16,8 @@ from .options import (
     NodeTextOptionsDict,
     NodeInputTextOptions,
     NodeInputTextOptionsDict,
+    NodeScreenOptions,
+    NodeScreenOptionsDict,
 )
 from .utils import get_screen
 
@@ -23,6 +25,7 @@ VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
     .union(set(NodeTextOptionsDict.__annotations__.keys()))
     .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
+    .union(set(NodeScreenOptionsDict.__annotations__.keys()))
 )
 
 VALID_PROPS = {f.name for f in fields(UIProps)}
@@ -91,7 +94,6 @@ def screen(*args, **additional_props):
     screen({"justify_content": "center", "align_items": "center"})
     ```
     """
-    # global roots_core, updating_root_id
     props = None
     if len(args) == 1 and isinstance(args[0], dict):
         props = args[0]
@@ -110,7 +112,7 @@ def screen(*args, **additional_props):
 
     root = NodeScreen(
         "screen",
-        UIOptions(**options)
+        NodeScreenOptions(**options)
     )
     return root
 
@@ -123,57 +125,6 @@ class State:
 
     def set(self, key: str, value: Any):
         return set_state(key, value)
-
-class Ref:
-    def __init__(self, id: str):
-        self.id = id
-        self.element_type = None
-
-    def get_node(self):
-        return entity_manager.get_node(self.id)
-
-    @property
-    def text(self):
-        return state_manager.get_text_mutation(self.id)
-
-    @property
-    def value(self):
-        return state_manager.get_input_value(self.id)
-
-    def set_text(self, new_value: Any):
-        state_manager.set_text_mutation(self.id, new_value)
-
-    def set(self, prop: str, new_value: Any):
-        if prop == "text":
-            return self.set_text(new_value)
-
-        raise ValueError(f"ref set does not support '{prop}' for element type '{self.element_type}'")
-
-    def get(self, prop: str):
-        if not self.element_type:
-            node = self.get_node()
-            self.element_type = node.element_type
-
-        if prop == "text":
-            if self.element_type == "text":
-                return self.text
-        if prop == "value":
-            if self.element_type == "input_text":
-                return self.value
-
-        if node := self.get_node():
-            return node.options.get(prop)
-
-        raise ValueError(f"ref get does not support '{prop}' for element type '{self.element_type}'")
-
-    def highlight(self, color=None):
-        state_manager.highlight(self.id, color)
-
-    def unhighlight(self):
-        state_manager.unhighlight(self.id)
-
-    def highlight_briefly(self, color=None):
-        state_manager.highlight_briefly(self.id, color)
 
 def use_state(key: str, initial_state: Any = None):
     tree = state_manager.get_processing_tree()
@@ -294,7 +245,21 @@ class UIElementsProxy:
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-class UIElementsNoChildrenProxy:
+class UIElementsInputTextProxy:
+    def __init__(self, func):
+        self.func = func
+
+    def __getitem__(self, item):
+        raise TypeError(f"{self.func.__name__} does not support children. Use {self.func.__name__}().")
+
+    def __call__(self, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str):
+                raise ValueError(f"Cannot provide a string argument to a input_text. To create a label, use text() next to the input_text.")
+
+        return self.func(*args, **kwargs)
+
+class UIElementsTextProxy:
     def __init__(self, func):
         self.func = func
 
@@ -305,10 +270,10 @@ class UIElementsNoChildrenProxy:
         return self.func(*args, **kwargs)
 
 div = UIElementsContainerProxy(div)
-text = UIElementsNoChildrenProxy(text)
+text = UIElementsTextProxy(text)
 screen = UIElementsContainerProxy(screen)
-button = UIElementsNoChildrenProxy(button)
-input_text = UIElementsNoChildrenProxy(input_text)
+button = UIElementsTextProxy(button)
+input_text = UIElementsInputTextProxy(input_text)
 state = State()
 effect = use_effect
 ref = Ref

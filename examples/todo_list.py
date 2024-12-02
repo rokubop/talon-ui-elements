@@ -1,13 +1,17 @@
 from talon import actions
 
 def todo_list_ui():
-    div, text, button, screen, state = actions.user.ui_elements(["div", "text", "button", "screen", "state"])
+    elements = ["div", "text", "button", "screen", "state", "input_text", "ref"]
+    div, text, button, screen, state, input_text, ref = actions.user.ui_elements(elements)
 
     items, set_items = state.use('items', [])
+    add_input = ref('add')
 
     def add_item():
-        new_item = f"Item {len(items)}"
+        item_name = add_input.value
+        new_item = item_name or f"Item {len(items)}"
         set_items(items + [new_item])
+        add_input.clear()
 
     def delete_item(item_name):
         set_items([item for item in items if item != item_name])
@@ -24,6 +28,8 @@ def todo_list_ui():
             div(gap=8, max_height=300)[
                 *(item(item_name) for item_name in items)
             ],
+            text("New Item", font_size=12),
+            input_text(id="add", background_color="111111", border_radius=4),
             button("Add Item", font_size=16, on_click=add_item)
         ]
     ]

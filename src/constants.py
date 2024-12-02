@@ -35,7 +35,8 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["screen"]: NODE_ENUM_TYPE["root"],
     ELEMENT_ENUM_TYPE["text"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
 }
 
-LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION = "Use actions.user.ui_elements_show(...) instead, passing it a function that returns an element tree composed of `screen, div, text, etc = actions.user.ui_elements(...)`."
+LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION = "Use actions.user.ui_elements_show(...) instead, passing it a function that returns an element tree composed of `screen`, `div`, `text`, etc."
 LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION = "Use actions.user.ui_elements_hide(...) or actions.user.ui_elements_hide_all() instead."

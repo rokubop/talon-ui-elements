@@ -1,6 +1,6 @@
 from talon import actions
 from ..interfaces import NodeScreenType
-from ..options import UIOptions
+from ..options import UIOptions, NodeScreenOptions
 from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
 from .node_container import NodeContainer
 
@@ -37,12 +37,12 @@ class DeprecatedRenderer:
         return self is other
 
 class NodeScreen(NodeContainer, NodeScreenType):
-    def __init__(self, element_type, options: UIOptions = None):
+    def __init__(self, element_type, options: NodeScreenOptions = None):
         super().__init__(
             element_type=element_type,
             options=options
         )
-        self.screen_index = 0
+        self.screen_index = self.options.screen or 0
         self.deprecated_ui = None
 
     def show(self):

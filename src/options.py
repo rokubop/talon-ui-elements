@@ -36,7 +36,6 @@ class UIOptions:
     opacity: float = None
     padding: Padding = Padding(0, 0, 0, 0)
     right: Optional[int] = None
-    screen: int = 0
     top: Optional[int] = None
     type: str = None
     value: str = None
@@ -106,7 +105,6 @@ class UIOptionsDict(TypedDict):
     opacity: float
     padding: Padding
     right: int
-    screen: int
     top: int
     value: str
     width: Union[int, str]
@@ -122,6 +120,16 @@ class NodeTextOptions(UIOptions):
     font_size: int = 16
     font_weight: str = "normal"
     on_click: any = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class NodeScreenOptionsDict(UIOptionsDict):
+    screen: int
+
+@dataclass
+class NodeScreenOptions(UIOptions):
+    screen: int = 0
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -154,6 +162,7 @@ VALID_PROPS = (
     set(UIOptionsDict.__annotations__.keys())
     .union(set(NodeTextOptionsDict.__annotations__.keys()))
     .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
+    .union(set(NodeScreenOptionsDict.__annotations__.keys()))
 )
 
 @dataclass

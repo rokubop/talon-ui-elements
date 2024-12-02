@@ -18,7 +18,6 @@ class ChangeEvent:
 
 class NodeInputText(Node):
     def __init__(self, options: NodeInputTextOptions = None):
-        print(f"input options: {options}")
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["input_text"],
             options=options
