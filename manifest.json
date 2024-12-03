@@ -1,6 +1,6 @@
 {
   "name": "ui_elements",
-  "description": "Create UIs using HTML/CSS/React-like syntax.",
+  "description": "Create stateful UIs using HTML/CSS/React-like syntax",
   "version": "0.4.0",
   "contributes": {
     "settings": ["user.ui_elements_hints_show"],
