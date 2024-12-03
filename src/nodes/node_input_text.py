@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-from talon import cron
-from talon.experimental.textarea import DarkThemeLabels, TextArea
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
@@ -8,24 +5,23 @@ from ..constants import ELEMENT_ENUM_TYPE
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
 from ..entity_manager import entity_manager
-from ..options import NodeInputTextOptions
-from ..state_manager import state_manager
+from ..properties import NodeInputTextProperties
 from .node import Node
 
 class NodeInputText(Node):
-    def __init__(self, options: NodeInputTextOptions = None):
+    def __init__(self, properties: NodeInputTextProperties = None):
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["input_text"],
-            options=options
+            properties=properties
         )
         self.interactive = True
-        self.options.width = self.options.width or round(self.options.font_size * 15)
-        self.options.height = self.options.height or round(self.options.font_size * 2.2)
-        self.options.background_color = self.options.background_color or "333333"
-        self.options.color = self.options.color or "FFFFFF"
-        self.options.value = self.options.value or ""
-        if self.options.gap is None:
-            self.options.gap = 16
+        self.properties.width = self.properties.width or round(self.properties.font_size * 15)
+        self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
+        self.properties.background_color = self.properties.background_color or "333333"
+        self.properties.color = self.properties.color or "FFFFFF"
+        self.properties.value = self.properties.value or ""
+        if self.properties.gap is None:
+            self.properties.gap = 16
 
     @property
     def input(self):
@@ -38,15 +34,15 @@ class NodeInputText(Node):
         self.box_model = BoxModelLayout(
             cursor.virtual_x,
             cursor.virtual_y,
-            self.options.margin,
-            self.options.padding,
-            self.options.border,
-            self.options.width,
-            self.options.height)
+            self.properties.margin,
+            self.properties.padding,
+            self.properties.border,
+            self.properties.width,
+            self.properties.height)
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        c.paint.textsize = self.options.font_size
-        self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.options.width, self.options.height))
+        c.paint.textsize = self.properties.font_size
+        self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.properties.width, self.properties.height))
         return self.box_model.margin_rect
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
@@ -54,18 +50,18 @@ class NodeInputText(Node):
 
     def render_background(self, c: SkiaCanvas, cursor: Cursor):
         cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)
-        if self.options.background_color:
+        if self.properties.background_color:
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.options.background_color
+            c.paint.color = self.properties.background_color
 
-            if self.options.border_radius:
-                options = RoundRect.from_rect(self.box_model.padding_rect, x=self.options.border_radius, y=self.options.border_radius)
-                c.draw_rrect(options)
+            if self.properties.border_radius:
+                properties = RoundRect.from_rect(self.box_model.padding_rect, x=self.properties.border_radius, y=self.properties.border_radius)
+                c.draw_rrect(properties)
             else:
                 c.draw_rect(self.box_model.padding_rect)
 
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
-        self.box_model.position_for_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
+        self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         self.render_background(c, cursor)
 

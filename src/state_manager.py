@@ -1,9 +1,7 @@
-from talon import Context, actions, cron
-from talon.experimental.textarea import TextArea
+from talon import Context, cron
 from typing import Callable
 from .interfaces import NodeType, ReactiveStateType, TreeType, Effect, ClickEvent
 from .store import store
-from .utils import safe_callback, get_center
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -142,10 +140,10 @@ class StateManager:
                 return input_data.value
         return ""
 
-    def set_ref_option_override(self, id, property_name, new_value):
+    def set_ref_property_override(self, id, property_name, new_value):
         node = store.id_to_node.get(id)
         if node:
-            node.tree.meta_state.set_ref_option_override(id, property_name, new_value)
+            node.tree.meta_state.set_ref_property_override(id, property_name, new_value)
             node.tree.render_debounced()
 
     def use_state(self, key, initial_value):

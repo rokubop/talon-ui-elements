@@ -2,20 +2,18 @@ from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.screen import Screen
-from talon.skia import RoundRect
 from talon.types import Rect
-from typing import Any, Union, Callable, TypeVar
-from .interfaces import NodeType
+from typing import Union, Callable, TypeVar
 import json
 import inspect
 import re
 import os
 import hashlib
 
-def draw_text_simple(c, text, options, x, y):
-    c.paint.color = options.color
-    c.paint.textsize = options.font_size
-    c.paint.font.embolden = True if options.font_weight == "bold" else False
+def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
+    c.paint.color = properties.color
+    c.paint.textsize = properties.font_size
+    c.paint.font.embolden = True if properties.font_weight == "bold" else False
     c.draw_text(str(text), x, y)
 
 def get_screen(index: int = None) -> Screen:

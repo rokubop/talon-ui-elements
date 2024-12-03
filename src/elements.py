@@ -3,29 +3,29 @@ from typing import Optional, List, Dict, get_origin, get_args, Any
 from talon.screen import Screen
 from .interfaces import Effect
 from .nodes.node_container import NodeContainer
+from .nodes.node_input_text import NodeInputText
 from .nodes.node_screen import NodeScreen
 from .nodes.node_text import NodeText
-from .nodes.node_input_text import NodeInputText
+from .properties import (
+    NodeInputTextProperties,
+    NodeInputTextPropertiesDict,
+    NodeScreenProperties,
+    NodeScreenPropertiesDict,
+    NodeTextProperties,
+    NodeTextPropertiesDict,
+    Properties,
+    PropertiesDict,
+    UIProps,
+)
 from .ref import Ref
 from .state_manager import state_manager
-from .options import (
-    UIOptions,
-    NodeTextOptions,
-    UIProps,
-    UIOptionsDict,
-    NodeTextOptionsDict,
-    NodeInputTextOptions,
-    NodeInputTextOptionsDict,
-    NodeScreenOptions,
-    NodeScreenOptionsDict,
-)
 from .utils import get_screen
 
 VALID_PROPS = (
-    set(UIOptionsDict.__annotations__.keys())
-    .union(set(NodeTextOptionsDict.__annotations__.keys()))
-    .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
-    .union(set(NodeScreenOptionsDict.__annotations__.keys()))
+    set(PropertiesDict.__annotations__.keys())
+    .union(set(NodeTextPropertiesDict.__annotations__.keys()))
+    .union(set(NodeInputTextPropertiesDict.__annotations__.keys()))
+    .union(set(NodeScreenPropertiesDict.__annotations__.keys()))
 )
 
 VALID_PROPS = {f.name for f in fields(UIProps)}
@@ -105,14 +105,14 @@ def screen(*args, **additional_props):
 
     ref_screen: Screen = get_screen(props.get("screen") if props else None)
 
-    options = get_props(props, additional_props)
+    properties = get_props(props, additional_props)
 
-    options["width"] = ref_screen.width
-    options["height"] = ref_screen.height
+    properties["width"] = ref_screen.width
+    properties["height"] = ref_screen.height
 
     root = NodeScreen(
         "screen",
-        NodeScreenOptions(**options)
+        NodeScreenProperties(**properties)
     )
     return root
 
@@ -183,14 +183,14 @@ def use_effect(callback, arg1, arg2=None):
         state_manager.register_effect(effect)
 
 def div(props=None, **additional_props):
-    options = get_props(props, additional_props)
-    box_options = UIOptions(**options)
-    return NodeContainer('div', box_options)
+    properties = get_props(props, additional_props)
+    box_properties = Properties(**properties)
+    return NodeContainer('div', box_properties)
 
 def text(text_str: str, props=None, **additional_props):
-    options = get_props(props, additional_props)
-    text_options = NodeTextOptions(**options)
-    return NodeText("text", text_str, text_options)
+    properties = get_props(props, additional_props)
+    text_properties = NodeTextProperties(**properties)
+    return NodeText("text", text_str, text_properties)
 
 def button(text_str: str, props=None, **additional_props):
     default_props = {
@@ -201,16 +201,16 @@ def button(text_str: str, props=None, **additional_props):
         **(props or {})
     }
 
-    options = get_props(default_props, additional_props)
-    text_options = NodeTextOptions(**options)
-    return NodeText("button", text_str, text_options)
+    properties = get_props(default_props, additional_props)
+    text_properties = NodeTextProperties(**properties)
+    return NodeText("button", text_str, text_properties)
 
 def input_text(props=None, **additional_props):
-    options = get_props(props, additional_props)
-    input_options = NodeInputTextOptions(**options)
-    if not input_options.id:
+    properties = get_props(props, additional_props)
+    input_properties = NodeInputTextProperties(**properties)
+    if not input_properties.id:
         raise ValueError("input_text must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
-    return NodeInputText(input_options)
+    return NodeInputText(input_properties)
 
 def css_deprecated(props=None, **additional_props):
     return get_props(props, additional_props)

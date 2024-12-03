@@ -1,6 +1,6 @@
 from talon import actions
 from ..interfaces import NodeScreenType
-from ..options import UIOptions, NodeScreenOptions
+from ..properties import NodeScreenProperties
 from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
 from .node_container import NodeContainer
 
@@ -16,11 +16,10 @@ def print_deprecated_hide():
 
 class DeprecatedRenderer:
     """
-    `screen` used to be the primary thing you interact with for
-    .show(), .hide(), and highlighting ui_elements,
-    but now we wrap it in a function and pass it to
-    actions.user.ui_elements_show(...), and have a higher level
-    "tree" which manages everything now.
+    Previously, `screen` was the main interface for .show(), .hide(),
+    and highlighting UI elements. Now, it is wrapped in a function
+    and passed to actions.user.ui_elements_show(...). A higher-level
+    "tree" now manages these interactions.
     """
     def __init__(self, obj):
         self.obj = obj
@@ -37,12 +36,12 @@ class DeprecatedRenderer:
         return self is other
 
 class NodeScreen(NodeContainer, NodeScreenType):
-    def __init__(self, element_type, options: NodeScreenOptions = None):
+    def __init__(self, element_type, properties: NodeScreenProperties = None):
         super().__init__(
             element_type=element_type,
-            options=options
+            properties=properties
         )
-        self.screen_index = self.options.screen or 0
+        self.screen_index = self.properties.screen or 0
         self.deprecated_ui = None
 
     def show(self):

@@ -74,18 +74,18 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
     hint_padding_rect = Rect(box_model.x - 10, box_model.y - 4, hint_padding_width, hint_padding_height)
 
     # border
-    c.paint.color = node.options.color or "555555"
+    c.paint.color = node.properties.color or "555555"
     c.paint.style = c.paint.Style.STROKE
     c.paint.stroke_width = 1
     c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
 
     # background
-    c.paint.color = node.options.background_color or "333333"
+    c.paint.color = node.properties.background_color or "333333"
     c.paint.style = c.paint.Style.FILL
     c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
 
     # text
-    c.paint.color = node.options.color or "FFFFFF"
+    c.paint.color = node.properties.color or "FFFFFF"
     c.paint.style = c.paint.Style.FILL
     c.draw_text(
         text,

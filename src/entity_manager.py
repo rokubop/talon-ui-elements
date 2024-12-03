@@ -42,13 +42,13 @@ class EntityManager:
             text_area_input.theme = DarkThemeLabels(
                 title_size=0,
                 padding=0, # Keep this 0. Manage our own padding because this adds to the top hidden title as well
-                text_size=node.options.font_size,
-                title_bg=node.options.background_color,
+                text_size=node.properties.font_size,
+                title_bg=node.properties.background_color,
                 line_spacing=-8, # multiline text is too spaced out
-                bg=node.options.background_color,
-                fg=node.options.color
+                bg=node.properties.background_color,
+                fg=node.properties.color
             )
-            text_area_input.value = node.options.value or ""
+            text_area_input.value = node.properties.value or ""
 
             def on_change(new_value):
                 input_data = self.get_input_data(node.id)
@@ -58,8 +58,8 @@ class EntityManager:
                 previous_value = input_data.value
                 input_data.previous_value = input_data.value
                 input_data.value = new_value
-                if node.options.on_change:
-                    node.options.on_change(
+                if node.properties.on_change:
+                    node.properties.on_change(
                         ChangeEvent(
                             value=new_value,
                             id=node.id,
@@ -68,7 +68,7 @@ class EntityManager:
                     )
 
             text_area_input.register("label", on_change)
-            node.tree.meta_state.add_input(node.id, text_area_input, node.options.value)
+            node.tree.meta_state.add_input(node.id, text_area_input, node.properties.value)
 
     def update_input_rect(self, id, rect):
         input_data = self.get_input_data(id)

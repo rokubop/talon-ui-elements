@@ -80,7 +80,7 @@ class MetaStateType(ABC):
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _scroll_regions: dict[str, ScrollRegionType]
     _id_to_node: dict[str, 'NodeType']
-    ref_option_overrides: dict[str, dict[str, Union[str, int]]]
+    ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     focused_id: Optional[str]
     unhighlight_jobs: dict[str, callable]
 
@@ -149,11 +149,11 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
-    def get_ref_option_overrides(self, id: str) -> dict[str, Union[str, int]]:
+    def get_ref_property_overrides(self, id: str) -> dict[str, Union[str, int]]:
         pass
 
     @abstractmethod
-    def set_ref_option_override(self, id: str, property_name: str, value: Union[str, int]):
+    def set_ref_property_override(self, id: str, property_name: str, value: Union[str, int]):
         pass
 
     @abstractmethod
@@ -231,7 +231,7 @@ class BoxModelLayoutType(ABC):
         pass
 
 class NodeType(ABC):
-    options: object
+    properties: object
     guid: str
     id: str
     key: str
@@ -285,7 +285,7 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
-    def __init__(self, element_type: ElementEnumType, options: object):
+    def __init__(self, element_type: ElementEnumType, properties: object):
         pass
 
 class RenderCauseStateType(ABC):
@@ -584,7 +584,7 @@ class NodeComponentType(ABC):
     element_type: ElementEnumType
     guid: str
     func: Callable
-    options: object
+    properties: object
     inner_node: NodeType
     is_initialized: bool
     children_nodes: List[NodeType]

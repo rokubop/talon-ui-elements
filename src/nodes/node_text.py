@@ -1,13 +1,12 @@
+from typing import Literal
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
-from typing import Literal
 from ..box_model import BoxModelLayout
-from ..constants import LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..cursor import Cursor
-from ..options import NodeTextOptions
-from ..utils import draw_text_simple, generate_hash, sanitize_string
+from ..properties import NodeTextProperties
 from ..state_manager import state_manager
+from ..utils import draw_text_simple
 from .node import Node
 import re
 
@@ -68,9 +67,9 @@ class TextBlock():
     #     self.text_line_height = c.paint.measure_text("X")[1].height
     #     self.text_body_height = self.text_line_height
 
-    #     if (self.options.width or self.options.max_width) and self.text_width > self.box_model.content_width:
+    #     if (self.properties.width or self.properties.max_width) and self.text_width > self.box_model.content_width:
     #         self.text_multiline = split_lines(text_cleansed, self.box_model.content_width, c.paint.measure_text)
-    #         gap = self.options.gap or 16
+    #         gap = self.properties.gap or 16
     #         self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
 
     def update_value_with_reevaluation(self, c, value):
@@ -86,10 +85,10 @@ class TextBlock():
 ElementType = Literal['button', 'text']
 
 class NodeText(Node):
-    def __init__(self, element_type, text: str, options: NodeTextOptions = None):
+    def __init__(self, element_type, text: str, properties: NodeTextProperties = None):
         super().__init__(
             element_type=element_type,
-            options=options
+            properties=properties
         )
         # self.text = TextBlock(text)
         self.text = str(text)
@@ -101,7 +100,7 @@ class NodeText(Node):
         self.text_body_height = 0
 
         if element_type == "button":
-            self.on_click = self.options.on_click or (lambda: None)
+            self.on_click = self.properties.on_click or (lambda: None)
             self.is_hovering = False
             self.interactive = True
 
@@ -117,27 +116,27 @@ class NodeText(Node):
         self.text_line_height = c.paint.measure_text("X")[1].height
         self.text_body_height = self.text_line_height
 
-        if (self.options.width or self.options.max_width) and self.text_width > self.box_model.content_width:
+        if (self.properties.width or self.properties.max_width) and self.text_width > self.box_model.content_width:
             self.text_multiline = split_lines(text_cleansed, self.box_model.content_width, c.paint.measure_text)
-            gap = self.options.gap or 16
+            gap = self.properties.gap or 16
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         self.box_model = BoxModelLayout(
             cursor.virtual_x,
             cursor.virtual_y,
-            self.options.margin,
-            self.options.padding,
-            self.options.border,
-            self.options.width,
-            self.options.height)
+            self.properties.margin,
+            self.properties.padding,
+            self.properties.border,
+            self.properties.width,
+            self.properties.height)
 
         if self.element_type == "text" and self.id:
             self.text = str(state_manager.use_text_mutation(self))
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        c.paint.textsize = self.options.font_size
-        c.paint.font.embolden = True if self.options.font_weight == "bold" else False
+        c.paint.textsize = self.properties.font_size
+        c.paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
         self.measure_and_account_for_multiline(c, cursor)
         self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.text_width, self.text_body_height))
@@ -148,20 +147,20 @@ class NodeText(Node):
 
     def render_background(self, c: SkiaCanvas, cursor: Cursor):
         cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)
-        if self.options.background_color:
+        if self.properties.background_color:
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.options.background_color
+            c.paint.color = self.properties.background_color
 
-            if self.options.border_radius:
-                options = RoundRect.from_rect(self.box_model.padding_rect, x=self.options.border_radius, y=self.options.border_radius)
-                c.draw_rrect(options)
+            if self.properties.border_radius:
+                properties = RoundRect.from_rect(self.box_model.padding_rect, x=self.properties.border_radius, y=self.properties.border_radius)
+                c.draw_rrect(properties)
             else:
                 c.draw_rect(self.box_model.padding_rect)
 
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
         global ids
 
-        self.box_model.position_for_render(cursor, self.options.flex_direction, self.options.align_items, self.options.justify_content)
+        self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         render_now = False if self.id and self.element_type == "text" else True
 
@@ -173,10 +172,10 @@ class NodeText(Node):
 
         if render_now:
             if self.text_multiline:
-                gap = self.options.gap or 16
+                gap = self.properties.gap or 16
                 for i, line in enumerate(self.text_multiline):
-                    draw_text_simple(c, line, self.options, cursor.x, cursor.y + (self.text_line_height * (i + 1)) + (gap * i))
+                    draw_text_simple(c, line, self.properties, cursor.x, cursor.y + (self.text_line_height * (i + 1)) + (gap * i))
             else:
-                draw_text_simple(c, self.text, self.options, cursor.x, cursor.y + self.text_line_height)
+                draw_text_simple(c, self.text, self.properties, cursor.x, cursor.y + self.text_line_height)
 
         return self.box_model.margin_rect

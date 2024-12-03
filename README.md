@@ -184,9 +184,9 @@ my_ui = screen()[
 my_ui.show(on_mount)
 ```
 
-## CSS Options
+## Properties
 
-| CSS Property | Type |
+| Property | Type |
 | -- | -- |
 | align_items | `'flex_start'`, `'flex_end'`, `'center'` |
 | background_color | `str` - 6-digit hexadecimal with 2 optional digits for opacity e.g. `'FF0000'` or `FF000088` for opacity of `88` from `00` to `FF` |

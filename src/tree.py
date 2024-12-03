@@ -1,4 +1,3 @@
-from talon.experimental.textarea import TextArea
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 from talon.skia import RoundRect
@@ -39,7 +38,7 @@ class MetaState(MetaStateType):
         self._scroll_regions = {}
         self._style_mutations = {}
         self._text_mutations = {}
-        self.ref_option_overrides = {}
+        self.ref_property_overrides = {}
         self.focused_id = None
         self.unhighlight_jobs = {}
 
@@ -125,13 +124,13 @@ class MetaState(MetaStateType):
         if id in self._id_to_node:
             self._style_mutations[id] = style
 
-    def get_ref_option_overrides(self, id):
-        return self.ref_option_overrides.get(id)
+    def get_ref_property_overrides(self, id):
+        return self.ref_property_overrides.get(id)
 
-    def set_ref_option_override(self, id, property_name, value):
-        if not self.ref_option_overrides.get(id):
-            self.ref_option_overrides[id] = {}
-        self.ref_option_overrides[id][property_name] = value
+    def set_ref_property_override(self, id, property_name, value):
+        if not self.ref_property_overrides.get(id):
+            self.ref_property_overrides[id] = {}
+        self.ref_property_overrides[id][property_name] = value
 
     def clear_nodes(self):
         self._id_to_node.clear()
@@ -155,7 +154,7 @@ class MetaState(MetaStateType):
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
         self.focused_id = None
-        self.ref_option_overrides.clear()
+        self.ref_property_overrides.clear()
         entity_manager.synchronize_global_ids()
 
 class RenderCauseState(RenderCauseStateType):
@@ -284,8 +283,8 @@ class Tree(TreeType):
                 box_model = node.box_model
                 canvas.paint.color = color or HIGHLIGHT_COLOR
 
-                if hasattr(node.options, 'border_radius'):
-                    border_radius = node.options.border_radius
+                if hasattr(node.properties, 'border_radius'):
+                    border_radius = node.properties.border_radius
                     canvas.draw_rrect(RoundRect.from_rect(box_model.padding_rect, x=border_radius, y=border_radius))
                 else:
                     canvas.draw_rect(box_model.padding_rect)
@@ -295,7 +294,7 @@ class Tree(TreeType):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
                 x, y = node.cursor_pre_draw_text
-                draw_text_simple(canvas, text_value, node.options, x, y)
+                draw_text_simple(canvas, text_value, node.properties, x, y)
 
     def draw_hints(self, canvas: SkiaCanvas):
         if self.meta_state.inputs or self.meta_state.buttons:
@@ -571,8 +570,8 @@ class Tree(TreeType):
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
 
-            if overrides := self.meta_state.get_ref_option_overrides(current_node.id):
-                current_node.options.update_overrides(overrides)
+            if overrides := self.meta_state.get_ref_property_overrides(current_node.id):
+                current_node.properties.update_overrides(overrides)
 
             if current_node.element_type == ELEMENT_ENUM_TYPE["button"]:
                 self.meta_state.add_button(current_node.id)
@@ -586,7 +585,7 @@ class Tree(TreeType):
         if constraint_nodes:
             current_node.constraint_nodes = constraint_nodes
 
-        if current_node.options.width is not None or current_node.options.max_width is not None:
+        if current_node.properties.width is not None or current_node.properties.max_width is not None:
             if constraint_nodes is None:
                 constraint_nodes = []
             constraint_nodes = constraint_nodes + [current_node]

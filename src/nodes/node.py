@@ -1,20 +1,19 @@
 import uuid
-from ..constants import NODE_TYPE_MAP, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..box_model import BoxModelLayout
+from ..constants import NODE_TYPE_MAP, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
-from ..options import UIOptions
-from ..state_manager import state_manager
+from ..properties import Properties
 from ..utils import sanitize_string
 
 class Node(NodeType):
     def __init__(self,
             element_type: ElementEnumType,
-            options: UIOptions = None,
+            properties: Properties = None,
         ):
-        self.options: UIOptions = options or UIOptions()
+        self.properties: Properties = properties or Properties()
         self.guid: str = uuid.uuid4().hex
-        self.id: str = sanitize_string(self.options.id) if self.options.id else None
-        self.key: str = self.options.key
+        self.id: str = sanitize_string(self.properties.id) if self.properties.id else None
+        self.key: str = self.properties.key
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
         self.box_model: BoxModelLayout = None

@@ -3,7 +3,7 @@ from typing import Optional, TypedDict, Union
 from typing import TypedDict, Optional, get_origin, get_args
 from .box_model import Border, Margin, Padding, parse_box_model
 
-class UIOptions:
+class Properties:
     align_items: str = "stretch"
     align: str = "start"
     align_self: str = None
@@ -81,7 +81,7 @@ class UIOptions:
             if hasattr(self, key):
                 setattr(self, key, value)
 
-class UIOptionsDict(TypedDict):
+class PropertiesDict(TypedDict):
     align_items: str
     align: str
     align_self: str
@@ -114,13 +114,13 @@ class UIOptionsDict(TypedDict):
     value: str
     width: Union[int, str]
 
-class NodeTextOptionsDict(UIOptionsDict):
+class NodeTextPropertiesDict(PropertiesDict):
     id: str
     font_size: int
     font_weight: str
 
 @dataclass
-class NodeTextOptions(UIOptions):
+class NodeTextProperties(Properties):
     id: str = None
     font_size: int = 16
     font_weight: str = "normal"
@@ -129,18 +129,18 @@ class NodeTextOptions(UIOptions):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class NodeScreenOptionsDict(UIOptionsDict):
+class NodeScreenPropertiesDict(PropertiesDict):
     screen: int
 
 @dataclass
-class NodeScreenOptions(UIOptions):
+class NodeScreenProperties(Properties):
     screen: int = 0
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 @dataclass
-class NodeInputTextOptions(UIOptions):
+class NodeInputTextProperties(Properties):
     id: str = None
     font_size: int = 16
     value = ""
@@ -157,17 +157,17 @@ class NodeInputTextOptions(UIOptions):
         ) + max(8, kwargs.get('border_radius', 0))
         super().__init__(**kwargs)
 
-class NodeInputTextOptionsDict(UIOptionsDict):
+class NodeInputTextPropertiesDict(PropertiesDict):
     id: str
     font_size: int
     value: str
     on_change: callable
 
 VALID_PROPS = (
-    set(UIOptionsDict.__annotations__.keys())
-    .union(set(NodeTextOptionsDict.__annotations__.keys()))
-    .union(set(NodeInputTextOptionsDict.__annotations__.keys()))
-    .union(set(NodeScreenOptionsDict.__annotations__.keys()))
+    set(PropertiesDict.__annotations__.keys())
+    .union(set(NodeTextPropertiesDict.__annotations__.keys()))
+    .union(set(NodeInputTextPropertiesDict.__annotations__.keys()))
+    .union(set(NodeScreenPropertiesDict.__annotations__.keys()))
 )
 
 @dataclass

@@ -117,7 +117,7 @@ class Actions:
         actions.user.ui_elements_set_property("my_id", "justify_content", "flex_start")
         ```
         """
-        state_manager.set_ref_option_override(id, property_name, value)
+        state_manager.set_ref_property_override(id, property_name, value)
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""

@@ -66,7 +66,7 @@ class Ref:
             else:
                 raise ValueError(f"Element type '{element_type}' does not support 'value' property")
         else:
-            state_manager.set_ref_option_override(self._get("id"), name, new_value)
+            state_manager.set_ref_property_override(self._get("id"), name, new_value)
 
     def get(self, name: str):
         element_type = self.get_element_type()
@@ -83,9 +83,9 @@ class Ref:
                 raise ValueError(f"Element type '{element_type}' does not support 'value' property")
         else:
             if node := self.get_node():
-                if overrides := node.tree.meta_state.get_ref_option_overrides(self._get("id")):
+                if overrides := node.tree.meta_state.get_ref_property_overrides(self._get("id")):
                     return overrides.get(name)
-                return getattr(node.options, name, None)
+                return getattr(node.properties, name, None)
 
     def highlight(self, color=None):
         state_manager.highlight(self._get("id"), color)
