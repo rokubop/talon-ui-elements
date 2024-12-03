@@ -1,2 +1,2 @@
-elements [hide | reset]: user.ui_elements_reset()
-elements test: user.private_ui_elements_test()
+elements [hide all | reset]: user.ui_elements_reset()
+elements test: user.ui_elements_test()

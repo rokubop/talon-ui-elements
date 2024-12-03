@@ -153,11 +153,6 @@ class StateManager:
     def register_effect(self, effect: Effect):
         store.staged_effects.append(effect)
 
-    def clear_state(self):
-        store.reactive_state.clear()
-        store.processing_states.clear()
-        store.reset_mouse_state()
-
     def highlight(self, id, color=None):
         node = store.id_to_node.get(id)
         if node:
@@ -172,6 +167,14 @@ class StateManager:
         node = store.id_to_node.get(id)
         if node:
             node.tree.highlight_briefly(id, color)
+
+    def clear_state(self):
+        store.reactive_state.clear()
+        store.processing_states.clear()
+        store.reset_mouse_state()
+
+    def clear_all(self):
+        store.clear()
 
     def deprecated_event_register_on_lifecycle(self, callback):
         if callback not in _deprecated_event_subscribers:

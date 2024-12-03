@@ -41,4 +41,15 @@ class Store():
             new_id_to_node.update(tree.meta_state.id_to_node)
         self.id_to_node = new_id_to_node
 
+    def clear(self):
+        self.trees = []
+        self.processing_tree = None
+        self.processing_states = []
+        self.root_nodes = []
+        self.id_to_node = {}
+        self.id_to_hint = {}
+        self.reactive_state = {}
+        self.staged_effects = []
+        self.reset_mouse_state()
+
 store = Store()

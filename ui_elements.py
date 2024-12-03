@@ -6,6 +6,7 @@ from .src.state_manager import state_manager
 from .src.hints import hint_clear_state
 from .src.tree import render_ui
 from .src.utils import get_version
+from .examples._tests import ui_elements_test
 
 mod = Module()
 
@@ -146,8 +147,13 @@ class Actions:
     def ui_elements_reset():
         """Destroy all UIs, trees, nodes, and reset all states"""
         entity_manager.hide_all_trees()
-        state_manager.clear_state()
+        state_manager.clear_all()
         hint_clear_state()
+        print("ui elements reset")
+
+    def ui_elements_test():
+        """Test examples"""
+        ui_elements_test()
 
     def ui_elements_register_on_lifecycle(callback: callable):
         """

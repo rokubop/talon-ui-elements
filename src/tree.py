@@ -676,6 +676,6 @@ def render_ui(
         entity_manager.add_tree(tree)
 
     if show_hints is None:
-        show_hints = settings.get("user.ui_elements_show_hints")
+        show_hints = settings.get("user.ui_elements_hints_show")
 
     tree.render(props, on_mount, on_unmount, show_hints)

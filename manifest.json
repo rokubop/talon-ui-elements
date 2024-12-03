@@ -3,19 +3,27 @@
   "description": "Create UIs using HTML/CSS/React-like syntax.",
   "version": "0.4.0",
   "contributes": {
+    "settings": ["user.ui_elements_hints_show"],
+    "tags": ["user.ui_elements_hints_active"],
     "actions": [
       "user.ui_elements",
-      "user.ui_elements_get",
-      "user.ui_elements_get_value",
+      "user.ui_elements_get_input_value",
+      "user.ui_elements_get_node",
       "user.ui_elements_hide",
       "user.ui_elements_hide_all",
       "user.ui_elements_highlight",
       "user.ui_elements_highlight_briefly",
+      "user.ui_elements_hint_action",
       "user.ui_elements_register_on_lifecycle",
-      "user.ui_elements_screen",
+      "user.ui_elements_reset",
+      "user.ui_elements_set_property",
+      "user.ui_elements_set_state",
       "user.ui_elements_set_text",
+      "user.ui_elements_show",
+      "user.ui_elements_test",
       "user.ui_elements_unhighlight",
-      "user.ui_elements_unregister_on_lifecycle"
+      "user.ui_elements_unregister_on_lifecycle",
+      "user.ui_elements_version"
     ]
   },
   "depends": {}

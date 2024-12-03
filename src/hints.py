@@ -1,4 +1,4 @@
-from talon import Module, Context, cron
+from talon import Module, Context, cron, settings
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
@@ -64,7 +64,7 @@ def trigger_hint_action(hint_trigger: str):
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
-    c.paint.textsize = 12
+    c.paint.textsize = settings.get("user.ui_elements_hints_size", 12)
     box_model = node.box_model.padding_rect
     hint_text_width = c.paint.measure_text(text)[1].width
     hint_text_height = c.paint.measure_text("X")[1].height

@@ -124,26 +124,14 @@ def create_test_runner():
     return (test_fn for test_fn in test_cases)
 test_gen = create_test_runner()
 
-@mod.action_class
-class Actions:
-    def private_ui_elements_test():
-        """Test the UI elements"""
-        global test_gen
+def ui_elements_test():
+    global test_gen
 
-        try:
-            actions.user.ui_elements_hide_all()
-            next_test = next(test_gen)
-            next_test()
-        except StopIteration:
-            actions.user.ui_elements_hide_all()
-            print("All tests have been run.")
-            test_gen = create_test_runner()
-
-    def private_ui_elements_trigger():
-        """Trigger the next test"""
-        actions.user.ui_elements_set_state("count", lambda c: c + 1)
-
-    def private_ui_elements_get_value():
-        """Get the value of an input element"""
-        v = actions.user.ui_elements_get_input_value("the_input")
-        print(f"Value: {v}")
+    try:
+        actions.user.ui_elements_hide_all()
+        next_test = next(test_gen)
+        next_test()
+    except StopIteration:
+        actions.user.ui_elements_hide_all()
+        print("All tests have been run.")
+        test_gen = create_test_runner()
