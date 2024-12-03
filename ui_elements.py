@@ -15,28 +15,13 @@ class Actions:
         """
         Provides elements and utilities to build your UI.
 
-        Elements:
-        - `div`, `text`, `screen`, `button`, `input_text`
-
-        Utilities:
-        - `state`, `ref`, `effect`
-
-        Usage:
         ```
+        # Example 1
         div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
-        def ui():
-            return screen()[
-                div()[
-                    text("Hello world"),
-                ]
-            ]
-
-        actions.user.ui_elements_show(ui)
-
-        # To hide and destroy the UI
-        actions.user.ui_elements_hide(ui)
-        actions.user.ui_elements_hide_all()
+        # Example 2 - All elements
+        elements = ["screen", "div", "text", "button", "input_text", "state", "ref", "effect"]
+        screen, div, text, button, input_text, state, ref, effect = actions.user.ui_elements(elements)
         ```
         """
         return ui_elements(elements)
@@ -83,17 +68,21 @@ class Actions:
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = None):
         """
-        Set state which will cause a rerender
+        Set global state which will cause a rerender to any respective UIs using the state.
 
         ```
-        actions.user.ui_elements_set_state("color", "red")
+        actions.user.ui_elements_set_state("active_tab", 1)
         ```
 
         Set multiple states at once:
         ```
         actions.user.ui_elements_set_state({
-            "color": "red",
-            "align": "left"
+            "title": "Notes",
+            "subtitle": "Write a note"
+            "actions": {
+                "text": "Action 1",
+                "action": lambda: print("Action 1 clicked")
+            }
         })
         ```
         """
@@ -105,34 +94,50 @@ class Actions:
 
     def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
         """
-        Set text based on its `id`. Does not trigger a relayout. Faster than using `ui_elements_set_state`.
+        Set text based on its `id`. Renders on a decoration layer, and faster than using `ui_elements_set_state`.
 
         ```
-        actions.user.ui_elements_set_text("my_text", "Hello world")
-        actions.user.ui_elements_set_text("my_text", lambda current_text: current_text + "!")
+        text("Hello", id="my_id")[...]
+
+        actions.user.ui_elements_set_text("my_id", "Hello world")
+        actions.user.ui_elements_set_text("my_id", lambda current_text: current_text + "!")
         ```
         """
         state_manager.set_text_mutation(id, text_or_callable)
 
+    def ui_elements_set_property(id: str, property_name: str, value: Any):
+        """
+        Set a property of an element based on its `id`. Will cause a rerender.
+
+        For example: `color`, `background_color`, `font_size`, `flex_direction`, `justify_content`, `align_items`, `width`, etc...
+        ```
+        div(id="my_id")[...]
+
+        actions.user.ui_elements_set_property("my_id", "background_color", "red")
+        actions.user.ui_elements_set_property("my_id", "justify_content", "flex_start")
+        ```
+        """
+        state_manager.set_ref_option_override(id, property_name, value)
+
+    def ui_elements_get_input_value(id: str):
+        """Get the value of a `input_text` element based on its id"""
+        return state_manager.get_input_value(id)
+
     def ui_elements_highlight(id: str, color: str = None):
-        """Highlight element based on its id. Does not trigger a relayout"""
+        """Highlight element based on its id. Renders on a decoration layer."""
         state_manager.highlight(id, color)
 
     def ui_elements_unhighlight(id: str):
-        """Unhighlight element based on its id. Does not trigger a relayout"""
+        """Unhighlight element based on its id. Renders on a decoration layer."""
         state_manager.unhighlight(id)
 
     def ui_elements_highlight_briefly(id: str, color: str = None):
-        """Highlight element briefly based on its id. Does not trigger a relayout"""
+        """Highlight element briefly based on its id. Renders on a decoration layer."""
         state_manager.highlight_briefly(id, color)
 
     def ui_elements_get_node(id: str):
         """Get node for informational purposes e.g. to access `.box_model`, `.tree`, `.parent_node`, `.children_nodes`, or other properties"""
         return entity_manager.get_node(id)
-
-    def ui_elements_get_input_value(id: str):
-        """Get the value of a `input_text` element based on its id"""
-        return state_manager.get_input_value(id)
 
     def ui_elements_version():
         """Get the current version of `talon-ui-elements`"""

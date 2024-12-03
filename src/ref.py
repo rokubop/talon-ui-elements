@@ -2,7 +2,6 @@ from typing import Any
 from talon.experimental.textarea import Span
 from .entity_manager import entity_manager
 from .state_manager import state_manager
-# from .nodes.node_input_text import NodeInputText
 
 class Ref:
     def __init__(self, id: str):

@@ -142,10 +142,10 @@ class StateManager:
                 return input_data.value
         return ""
 
-    def set_ref_option_override(self, id, name, new_value):
+    def set_ref_option_override(self, id, property_name, new_value):
         node = store.id_to_node.get(id)
         if node:
-            node.tree.meta_state.set_ref_option_override(id, name, new_value)
+            node.tree.meta_state.set_ref_option_override(id, property_name, new_value)
             node.tree.render_debounced()
 
     def use_state(self, key, initial_value):
