@@ -4,6 +4,24 @@ from .entity_manager import entity_manager
 from .state_manager import state_manager
 
 class Ref:
+    """
+    A reference to an element in the UI tree. Provides a way to
+    imperatively get and set properties of the element. Setting
+    properties will trigger a reactive update in the UI (batched).
+
+    ```
+    input_ref = ref("input_id")
+    input_ref.value = "new value" # reactive update
+    input_ref.focus()
+
+    text_ref = ref("text_id")
+    text_ref.text = "new text" # reactive update (batched)
+    text_ref.font_size = 20 # reactive update (batched)
+
+    div_ref = ref("div_id")
+    div_ref.align_items = "flex_start"  # reactive update
+    ```
+    """
     def __init__(self, id: str):
         self._set("id", id)
         self._set("element_type", None)
