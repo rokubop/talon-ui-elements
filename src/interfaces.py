@@ -448,6 +448,10 @@ class TreeType(ABC):
         pass
 
     @abstractmethod
+    def render_debounced(self):
+        pass
+
+    @abstractmethod
     def destroy(self):
         pass
 

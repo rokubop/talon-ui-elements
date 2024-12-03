@@ -19,6 +19,33 @@ def test_module(fn):
         fn()
     return wrapper
 
+@test_module
+def test_cheatsheet_ui():
+    cheatsheet_show()
+
+@test_module
+def test_inputs_ui():
+    actions.user.ui_elements_show(inputs_ui)
+
+@test_module
+def test_updating_content_ui():
+    actions.user.ui_elements_show(state_and_refs_ui)
+
+@test_module
+def test_alignment_ui():
+    actions.user.ui_elements_show(alignment_ui, on_mount=test_cases_alignment_ui)
+
+@test_module
+def test_todo_list_ui():
+    actions.user.ui_elements_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
+
+# @test_module
+def test_hello_world_ui():
+    actions.user.ui_elements_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
+@test_module
+def test_counter_ui():
+    actions.user.ui_elements_show(counter_ui, on_mount=test_cases_counter_ui)
+
 def test(test_name, expect, actual):
     if expect == actual:
         print(f"✅ {test_name}")
@@ -40,32 +67,12 @@ def test_cases_alignment_ui():
     test("Tree should have 3 nodes", 3, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
 
-# @test_module
-def test_cheatsheet_ui():
-    cheatsheet_show()
-
-# @test_module
-def test_inputs_ui():
-    actions.user.ui_elements_show(inputs_ui)
-
-# @test_module
-def test_updating_content_ui():
-    actions.user.ui_elements_show(state_and_refs_ui)
-
-# @test_module
-def test_alignment_ui():
-    actions.user.ui_elements_show(alignment_ui, on_mount=test_cases_alignment_ui)
-
 def test_cases_todo_list_ui():
     trees = entity_manager.get_all_trees()
     nodes = entity_manager.get_all_nodes()
     test("There should be 1 tree", 1, len(trees))
     test("Tree should have 8 nodes", 8, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
-
-@test_module
-def test_todo_list_ui():
-    actions.user.ui_elements_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
 
 def test_cases_hello_world_ui():
     trees = entity_manager.get_all_trees()
@@ -106,20 +113,12 @@ def test_cases_hello_world_ui():
     test("div should have reference to tree", tree, div_node.tree)
     test("text should have reference to tree", tree, text_node.tree)
 
-# @test_module
-def test_hello_world_ui():
-    actions.user.ui_elements_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
-
 def test_cases_counter_ui():
     trees = entity_manager.get_all_trees()
     nodes = entity_manager.get_all_nodes()
     test("There should be 1 tree", 1, len(trees))
     test("Tree should have 6 nodes", 6, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
-
-# @test_module
-def test_counter_ui():
-    actions.user.ui_elements_show(counter_ui, on_mount=test_cases_counter_ui)
 
 def create_test_runner():
     return (test_fn for test_fn in test_cases)

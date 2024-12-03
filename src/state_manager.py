@@ -146,7 +146,7 @@ class StateManager:
         node = store.id_to_node.get(id)
         if node:
             node.tree.meta_state.set_ref_option_override(id, name, new_value)
-            node.tree.render()
+            node.tree.render_debounced()
 
     def use_state(self, key, initial_value):
         self.init_state(key, initial_value)

@@ -220,6 +220,7 @@ class Tree(TreeType):
         self.render_cause = RenderCauseState()
         self._renderer = renderer
         self.render_version = 2
+        self.render_debounce_job = None
         self.root_node = None
         self.screen = None
         self.screen_index = None
@@ -426,6 +427,15 @@ class Tree(TreeType):
 
         self.render_base_canvas()
 
+    def _render_debounced_execute(self, *args):
+        self.render(*args)
+        self.render_debounce_job = None
+
+    def render_debounced(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
+        if self.render_debounce_job:
+            cron.cancel(self.render_debounce_job)
+        self.render_debounce_job = cron.after("1ms", lambda: self._render_debounced_execute(props, on_mount, on_unmount, show_hints))
+
     def hide(self):
         self.destroy()
 
@@ -517,6 +527,10 @@ class Tree(TreeType):
                 effect.cleanup()
 
         state_manager.deprecated_event_fire_on_unmount(self)
+
+        if self.render_debounce_job:
+            cron.cancel(self.render_debounce_job)
+            self.render_debounce_job = None
 
         if self.canvas_base:
             self.canvas_base.unregister("draw", self.on_draw_base_canvas)

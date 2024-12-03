@@ -6,18 +6,12 @@ def todo_list_ui():
 
     items, set_items = state.use('items', [])
     add_input = ref('add_input')
-    label = ref('label')
-
 
     def add_item():
-        print("add_input.value", add_input.value)
-        print("add_input.font_size", add_input.font_size)
-        add_input.value = "test"
-        label.font_size = 20
-        # new_item = add_input.value
-        # if new_item:
-        #     set_items(items + [new_item])
-        #     add_input.clear()
+        new_item = add_input.value
+        if new_item:
+            set_items(items + [new_item])
+            add_input.clear()
 
     def delete_item(item_name):
         set_items([item for item in items if item != item_name])
