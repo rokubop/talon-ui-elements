@@ -3,6 +3,7 @@ from ..constants import NODE_TYPE_MAP, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, 
 from ..box_model import BoxModelLayout
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
 from ..options import UIOptions
+from ..state_manager import state_manager
 from ..utils import sanitize_string
 
 class Node(NodeType):

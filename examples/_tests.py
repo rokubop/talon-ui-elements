@@ -44,7 +44,7 @@ def test_cases_alignment_ui():
 def test_cheatsheet_ui():
     cheatsheet_show()
 
-@test_module
+# @test_module
 def test_inputs_ui():
     actions.user.ui_elements_show(inputs_ui)
 
@@ -63,7 +63,7 @@ def test_cases_todo_list_ui():
     test("Tree should have 8 nodes", 8, len(nodes))
     test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
 
-# @test_module
+@test_module
 def test_todo_list_ui():
     actions.user.ui_elements_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
 

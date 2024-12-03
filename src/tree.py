@@ -39,6 +39,7 @@ class MetaState(MetaStateType):
         self._scroll_regions = {}
         self._style_mutations = {}
         self._text_mutations = {}
+        self.ref_option_overrides = {}
         self.focused_id = None
         self.unhighlight_jobs = {}
 
@@ -124,6 +125,14 @@ class MetaState(MetaStateType):
         if id in self._id_to_node:
             self._style_mutations[id] = style
 
+    def get_ref_option_overrides(self, id):
+        return self.ref_option_overrides.get(id)
+
+    def set_ref_option_override(self, id, property_name, value):
+        if not self.ref_option_overrides.get(id):
+            self.ref_option_overrides[id] = {}
+        self.ref_option_overrides[id][property_name] = value
+
     def clear_nodes(self):
         self._id_to_node.clear()
         entity_manager.synchronize_global_ids()
@@ -146,6 +155,7 @@ class MetaState(MetaStateType):
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
         self.focused_id = None
+        self.ref_option_overrides.clear()
         entity_manager.synchronize_global_ids()
 
 class RenderCauseState(RenderCauseStateType):
@@ -541,6 +551,24 @@ class Tree(TreeType):
         current_node.tree = self
         current_node.depth = len(index_path)
 
+        if current_node.interactive and not current_node.id:
+            current_node.id = "-".join(map(str, index_path)) # "1-2-0"
+
+        if current_node.id:
+            self.meta_state.map_id_to_node(current_node.id, current_node)
+
+            if overrides := self.meta_state.get_ref_option_overrides(current_node.id):
+                current_node.options.update_overrides(overrides)
+
+            if current_node.element_type == ELEMENT_ENUM_TYPE["button"]:
+                self.meta_state.add_button(current_node.id)
+            elif current_node.element_type == ELEMENT_ENUM_TYPE["text"]:
+                self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
+            elif current_node.element_type == ELEMENT_ENUM_TYPE["input_text"]:
+                if not self.meta_state.focused_id:
+                    self.meta_state.focused_id = current_node.id
+                # no need to add input to meta state, it is managed on render
+
         if constraint_nodes:
             current_node.constraint_nodes = constraint_nodes
 
@@ -551,21 +579,6 @@ class Tree(TreeType):
 
         if current_node.element_type == ELEMENT_ENUM_TYPE["screen"] and current_node.deprecated_ui:
             self.render_version = 1
-
-        if current_node.interactive and not current_node.id:
-            current_node.id = "-".join(map(str, index_path)) # "1-2-0"
-
-        if current_node.id:
-            self.meta_state.map_id_to_node(current_node.id, current_node)
-
-            if current_node.element_type == ELEMENT_ENUM_TYPE["button"]:
-                self.meta_state.add_button(current_node.id)
-            elif current_node.element_type == ELEMENT_ENUM_TYPE["text"]:
-                self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
-            elif current_node.element_type == ELEMENT_ENUM_TYPE["input_text"]:
-                if not self.meta_state.focused_id:
-                    self.meta_state.focused_id = current_node.id
-                # no need to add input to meta state, it is managed on render
 
         for i, child_node in enumerate(current_node.children_nodes):
             self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)

@@ -80,6 +80,7 @@ class MetaStateType(ABC):
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _scroll_regions: dict[str, ScrollRegionType]
     _id_to_node: dict[str, 'NodeType']
+    ref_option_overrides: dict[str, dict[str, Union[str, int]]]
     focused_id: Optional[str]
     unhighlight_jobs: dict[str, callable]
 
@@ -145,6 +146,14 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def set_style_mutation(self, id: str, style: dict[str, Union[str, int]]):
+        pass
+
+    @abstractmethod
+    def get_ref_option_overrides(self, id: str) -> dict[str, Union[str, int]]:
+        pass
+
+    @abstractmethod
+    def set_ref_option_override(self, id: str, property_name: str, value: Union[str, int]):
         pass
 
     @abstractmethod

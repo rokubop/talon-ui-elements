@@ -76,6 +76,11 @@ class UIOptions:
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
 
+    def update_overrides(self, overrides):
+        for key, value in overrides.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+
 class UIOptionsDict(TypedDict):
     align_items: str
     align: str
