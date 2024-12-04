@@ -1,10 +1,6 @@
 # ui_elements
 
-ui_elements is an experimental Talon library for building overlays and interactive UIs on your screen.
-
-- Syntax inspired by HTML, CSS, and React
-- Supports highlighting, buttons, inputs, dynamic state, and effects
-- Voice accessible
+ui_elements is an experimental Talon library for building stateful overlays and interactive UIs on your screen, using HTML/CSS/React-like syntax.
 
 ## Usage
 Choose [elements](#elements) from `actions.user.ui_elements` and create a renderer function
@@ -24,7 +20,7 @@ actions.user.ui_elements_show(hello_world_ui)
 
 To define styles, we put it inside of the **parentheses**. To define children, we put it inside the **square brackets**.
 ```py
-def my_ui():
+def hello_world_ui():
     (screen, div, text) = actions.user.ui_elements(["screen", "div", "text"])
 
     return screen(align_items="flex_end", justify_content="center")[
@@ -33,33 +29,39 @@ def my_ui():
             text("Cool")
         ]
     ]
+
+actions.user.ui_elements_show(hello_world_ui)
 ```
 
-Show and hide
+To hide and destroy the UI:
 ```py
-actions.user.ui_elements_show(my_ui)
-actions.user.ui_elements_hide(my_ui)
+actions.user.ui_elements_hide(hello_world_ui)
+# or
 actions.user.ui_elements_hide_all()
 ```
+
 
 ## Elements
 - `screen` - The root element. Basically a div the size of your screen.
 - `div` - Standard container element.
 - `text`
 - `button`
-- `input_text`
-- `state` - global reactive state that rerenders when changed. `state.get`, `state.use`, `state.set`, as well as `actions.user.ui_elements_set_state`
-- `effect` - similar to React's `useEffect`. It runs a function when the component mounts or updates, or on state change, and can return a cleanup function.
-- `ref` - Refer to an id in your UI to access values or trigger id specific actions, for example getting an input value.
+- `input_text` - Uses Talon's experimental `TextArea` for input.
+- `state` - Global reactive state that rerenders respective UIs when changed.
+- `effect` - Run side effects on mount, unmount, or state change.
+- `ref` - Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates.
+
+## Examples
+Say 'elements test' to view live examples.
+Checkout the examples here: [examples.py](./examples.py)
 
 ## Box Model
 ui_elements have the same box model as normal HTML, with `padding`, `margin`, `border`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning padding and border are included in the width and height.
 
-## Alignment
-all ui_elements operate under `display: flex` assumption, and default to `flex_direction="column"`. This means when you don't provide anything, it will act like normal HTML where children are stacked vertically.
+## Flex by default
+Most ui_elements operate under `display: flex` assumption, and default to `flex_direction="column"`with `align_items="stretch"`. This means when you don't provide anything, it will act similarly to `display: block`.
 
-You can look up CSS flexbox guide for learning more about alignment. Here are some examples:
-
+## Alignment examples
 ```py
 # children of screen will be bottom right
 screen(align_items="flex_end", justify_content="flex_end")
