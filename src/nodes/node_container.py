@@ -15,7 +15,6 @@ class NodeContainer(Node, NodeContainerType):
         super().__init__(element_type=element_type, properties=properties)
         self.scroll_y = 0
         self.scroll_y_percentage = 0
-        self.highlight_color = self.properties.highlight_color or None
         self.is_uniform_border = True
         self.justify_between_gaps = None
         self.debug_number = 0

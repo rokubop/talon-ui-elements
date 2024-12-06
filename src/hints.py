@@ -65,13 +65,23 @@ def trigger_hint_action(hint_trigger: str):
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
     c.paint.textsize = settings.get("user.ui_elements_hints_size", 12)
-    box_model = node.box_model.padding_rect
+
     hint_text_width = c.paint.measure_text(text)[1].width
     hint_text_height = c.paint.measure_text("X")[1].height
     hint_padding = 6
     hint_padding_width = hint_text_width + hint_padding
     hint_padding_height = hint_text_height + hint_padding
-    hint_padding_rect = Rect(box_model.x - 10, box_model.y - 4, hint_padding_width, hint_padding_height)
+
+    if node.element_type == "button":
+        box_model = node.box_model.content_rect
+        offset_x = -hint_padding_width
+        offset_y = -hint_padding_height
+    else:
+        box_model = node.box_model.padding_rect
+        offset_x = -10
+        offset_y = -4
+
+    hint_padding_rect = Rect(box_model.x + offset_x, box_model.y + offset_y, hint_padding_width, hint_padding_height)
 
     # border
     c.paint.color = node.properties.color or "555555"

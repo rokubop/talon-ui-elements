@@ -20,7 +20,7 @@ from .entity_manager import entity_manager
 from .hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from .state_manager import state_manager
 from .store import store
-from .constants import HIGHLIGHT_COLOR, CLICK_COLOR
+from .constants import CLICK_COLOR
 from .utils import get_screen, draw_text_simple
 import inspect
 
@@ -86,7 +86,7 @@ class MetaState(MetaStateType):
     def add_scroll_region(self, id):
         self._scroll_regions[id] = ScrollRegion(0, 0)
 
-    def set_highlighted(self, id, color = HIGHLIGHT_COLOR):
+    def set_highlighted(self, id, color = None):
         if id in self._id_to_node:
             self._highlighted[id] = color
 
@@ -281,7 +281,7 @@ class Tree(TreeType):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
                 box_model = node.box_model
-                canvas.paint.color = color or HIGHLIGHT_COLOR
+                canvas.paint.color = color or node.properties.highlight_color
 
                 if hasattr(node.properties, 'border_radius'):
                     border_radius = node.properties.border_radius
@@ -478,7 +478,7 @@ class Tree(TreeType):
                 if new_hovered_id != prev_hovered_id:
                     state_manager.set_hovered_id(button_id)
                     self.unhighlight(prev_hovered_id)
-                    self.highlight(button_id, color=HIGHLIGHT_COLOR)
+                    self.highlight(button_id, color=node.properties.highlight_color)
                 break
 
         if not new_hovered_id and prev_hovered_id:
@@ -498,7 +498,7 @@ class Tree(TreeType):
 
         if mousedown_start_id and hovered_id == mousedown_start_id:
             node = self.meta_state.id_to_node[mousedown_start_id]
-            self.highlight(mousedown_start_id, color=HIGHLIGHT_COLOR)
+            self.highlight(mousedown_start_id, color=node.properties.highlight_color)
 
             sig = inspect.signature(node.on_click)
             if len(sig.parameters) == 0:

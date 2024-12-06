@@ -168,6 +168,52 @@ class NodeText(Node):
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
         return self.box_model.margin_rect
 
+    def render_borders(self, c: SkiaCanvas, cursor: Cursor):
+        cursor.move_to(self.box_model.border_rect.x, self.box_model.border_rect.y)
+        self.is_uniform_border = True
+        border_spacing = self.box_model.border_spacing
+        has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
+        if has_border:
+            self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
+            inner_rect = self.box_model.padding_rect
+            if self.is_uniform_border:
+                border_width = border_spacing.left
+                c.paint.color = self.properties.border_color
+                c.paint.style = c.paint.Style.STROKE
+                c.paint.stroke_width = border_width
+
+                bordered_rect = Rect(
+                    inner_rect.x - border_width / 2,
+                    inner_rect.y - border_width / 2,
+                    inner_rect.width + border_width,
+                    inner_rect.height + border_width,
+                )
+
+                if self.properties.border_radius:
+                    c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
+                else:
+                    c.draw_rect(bordered_rect)
+            else:
+                c.paint.color = self.properties.border_color
+                c.paint.style = c.paint.Style.STROKE
+                b_rect, p_rect = self.box_model.border_rect, inner_rect
+                if border_spacing.left:
+                    c.paint.stroke_width = border_spacing.left
+                    half = border_spacing.left / 2
+                    c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
+                if border_spacing.right:
+                    c.paint.stroke_width = border_spacing.right
+                    half = border_spacing.right / 2
+                    c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
+                if border_spacing.top:
+                    c.paint.stroke_width = border_spacing.top
+                    half = border_spacing.top / 2
+                    c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
+                if border_spacing.bottom:
+                    c.paint.stroke_width = border_spacing.bottom
+                    half = border_spacing.bottom / 2
+                    c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
+
     def render_background(self, c: SkiaCanvas, cursor: Cursor):
         cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)
         if self.properties.background_color:
@@ -187,6 +233,7 @@ class NodeText(Node):
 
         render_now = False if self.id and self.element_type == "text" else True
 
+        self.render_borders(c, cursor)
         self.render_background(c, cursor)
 
         cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)

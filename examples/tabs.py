@@ -1,1 +1,2 @@
-# TODO
+def tabs_ui():
+    return ""

@@ -9,5 +9,5 @@ mod.setting("ui_elements_font_size", type=int, default=16)
 mod.setting("ui_elements_border_color", type=str, default="555555")
 
 # Requires Talon restart
-mod.setting("ui_elements_highlight_color", type=str, default="FFFFFF66")
-mod.setting("ui_elements_click_color", type=str, default="FFFFFF88")
+mod.setting("ui_elements_highlight_color", type=str, default="FFFFFF33")
+mod.setting("ui_elements_click_color", type=str, default="FFFFFF55")

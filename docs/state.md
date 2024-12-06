@@ -11,6 +11,7 @@ mode, set_mode = state.use("mode", "default")
 return screen()[
     div()[
         text("Mode: " + mode),
+        button("Change mode", on_click=lambda: set_mode("new_mode")),
     ],
 ]
 ```

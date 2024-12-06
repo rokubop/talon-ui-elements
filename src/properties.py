@@ -46,6 +46,7 @@ class Properties:
         self.font_size = settings.get("user.ui_elements_font_size")
         self.color = settings.get("user.ui_elements_color")
         self.border_color = settings.get("user.ui_elements_border_color")
+        self.highlight_color = settings.get("user.ui_elements_highlight_color")
 
         for key, value in kwargs.items():
             if hasattr(self, key):

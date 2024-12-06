@@ -24,11 +24,11 @@ mode, set_mode = state.use("mode", "default")
 effect(lambda: print("Mode changed to", mode), ["mode"])
 ```
 
-Dependencies are strings, not values, and refer to the any global state key. Every time the global state `"mode"` changes, the effect will be called.
+Dependencies are strings, not values, and refer to any global state key. For example, every time the global state `"mode"` changes, the effect above will be called.
 
 ## Cleanup/Unmount
 
-We can optionally include a cleanup function:
+We can optionally include a cleanup function by passing 3 arguments to effect.
 ### Example 1
 ```py
 def on_unmount():
@@ -37,9 +37,10 @@ def on_unmount():
 def on_mount():
     print("Mounted")
 
-# 3 arguments instead of 2
 effect(on_mount, on_unmount, [])
 ```
+
+Or by returning a cleanup function from the mount function.
 
 ### Example 2
 ```py
@@ -49,7 +50,6 @@ def on_unmount():
 def on_mount():
     print("Mounted")
 
-    # return an optional cleanup function
     return on_unmount
 
 effect(on_mount, [])
