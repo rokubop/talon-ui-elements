@@ -4,8 +4,9 @@ from .cheatsheet import cheatsheet_show
 from .state_and_refs import state_and_refs_ui
 from .dashboard import dashboard_ui
 from .inputs import inputs_ui
-from .game_keys import game_keys_ui
+from .game_keys import game_keys_ui, set_game_keys_actions_state
 from .todo_list import todo_list_ui
+from .actions import actions_ui
 
 def on_go_back():
     actions.user.ui_elements_hide_all()
@@ -22,16 +23,27 @@ def go_back_ui():
         ]
     ]
 
-def show_example(ui):
+def show_example(ui1, ui2=None, ui3=None):
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(ui)
+    actions.user.ui_elements_show(ui1)
+    if ui2:
+        actions.user.ui_elements_show(ui2)
+    if ui3:
+        actions.user.ui_elements_show(ui3)
+    actions.user.ui_elements_show(go_back_ui)
+
+def show_game_keys():
+    actions.user.ui_elements_hide_all()
+    set_game_keys_actions_state()
+    actions.user.ui_elements_show(game_keys_ui)
+    actions.user.ui_elements_show(actions_ui)
     actions.user.ui_elements_show(go_back_ui)
 
 button_action = {
     "Alignment": lambda: show_example(alignment_ui),
     "Cheatsheet": lambda: (actions.user.ui_elements_hide_all(), cheatsheet_show(), actions.user.ui_elements_show(go_back_ui)),
     "Dashboard": lambda: show_example(dashboard_ui),
-    "Game keys": lambda: show_example(game_keys_ui),
+    "Game keys": show_game_keys,
     "Input Prompt": lambda: show_example(inputs_ui),
     "State vs Ref": lambda: show_example(state_and_refs_ui),
     "Todo List": lambda: show_example(todo_list_ui),

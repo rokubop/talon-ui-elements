@@ -29,6 +29,7 @@ Same as `state.use`, but only gets the value.
 ## `state.set`
 ```py
 state.set("mode", "new_mode")
+state.set("mode", lambda prev: "new_mode")
 ```
 
 Just the setter. No return value.

@@ -145,7 +145,26 @@ def set_state(key: str, value: Any):
     _, set_value = state_manager.set_state_value(key, value)
     return set_value
 
-def use_effect(callback, arg1, arg2=None):
+def use_effect_without_tree(callback, arg2, arg3=None):
+    dependencies: list[str] = []
+    cleanup = None
+
+    if arg3 is not None:
+        cleanup = arg2
+        dependencies = arg3
+    else:
+        dependencies = arg2
+
+    effect = Effect(
+        name=callback.__name__,
+        callback=callback,
+        cleanup=cleanup,
+        dependencies=dependencies,
+        tree=None
+    )
+    state_manager.register_effect(effect)
+
+def use_effect(callback, arg2, arg3=None):
     """
     Register callbacks on state change or on mount/unmount.
 
@@ -158,11 +177,11 @@ def use_effect(callback, arg1, arg2=None):
     dependencies: list[str] = []
     cleanup = None
 
-    if arg2 is not None:
-        cleanup = arg1
-        dependencies = arg2
+    if arg3 is not None:
+        cleanup = arg2
+        dependencies = arg3
     else:
-        dependencies = arg1
+        dependencies = arg2
 
     tree = state_manager.get_processing_tree()
 
@@ -195,9 +214,7 @@ def text(text_str: str, props=None, **additional_props):
 def button(text_str: str, props=None, **additional_props):
     default_props = {
         "type": "button",
-        "color": "FFFFFF",
         "padding": 8,
-        "background_color": "444444",
         **(props or {})
     }
 

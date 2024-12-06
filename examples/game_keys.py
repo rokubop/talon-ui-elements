@@ -51,3 +51,47 @@ def game_keys_ui():
             ],
         ],
     ]
+
+def unhighlight_all_dir():
+    for key in ["up", "down", "left", "right"]:
+        actions.user.ui_elements_unhighlight(key)
+
+def highlight_dir(dir):
+    unhighlight_all_dir()
+    actions.user.ui_elements_highlight(dir)
+
+def set_game_keys_actions_state():
+    actions.user.ui_elements_set_state("actions", [{
+        "text": 'Go left',
+        "action": lambda: highlight_dir("left")
+    }, {
+        "text": 'Go right',
+        "action": lambda: highlight_dir("right")
+    }, {
+        "text": 'Go up',
+        "action": lambda: highlight_dir("up")
+    }, {
+        "text": 'Go down',
+        "action": lambda: highlight_dir("down")
+    }, {
+        "text": 'Stop',
+        "action": lambda: unhighlight_all_dir()
+    }, {
+        "text": 'Jump',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("c")
+    }, {
+        "text": 'Jump 2',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("p")
+    }, {
+        "text": 'Foot 1',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("foot_left")
+    }, {
+        "text": 'Dash',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("x")
+    }, {
+        "text": 'Demo',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("t")
+    }, {
+        "text": 'Foot 2',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("foot_center")
+    }])

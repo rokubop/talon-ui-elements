@@ -1,4 +1,5 @@
 from talon import actions
+from .actions import actions_ui
 
 def on_mount():
     print("hello mount")
@@ -36,19 +37,6 @@ def cheatsheet_show():
 
 def cheatsheet_hide():
     actions.user.ui_elements_hide(cheatsheet_ui)
-
-def actions_ui():
-    elements = actions.user.ui_elements(["div", "screen", "text", "state", "button"])
-    div, screen, text, state, button = elements
-
-    ui_actions = state.get("actions", [])
-
-    return screen(flex_direction="row", align_items="center", justify_content="center")[
-        div(flex_direction="column", background_color="333333", padding=16, gap=16)[
-            text("Actions", font_weight="bold", color="FFCC00"),
-            *(button(action["text"], on_click=action["action"], padding=12, border_radius=4) for action in ui_actions)
-        ]
-    ]
 
 def cheatsheet_set_command_set_1():
     actions.user.ui_elements_set_state("commands", [
@@ -91,22 +79,22 @@ def cheatsheet_align_right():
 
 def cheatsheet_actions():
     actions.user.ui_elements_set_state("actions", [{
-        "text": 'ui_elements_set_state("background_color", "456456")',
+        "text": 'actions.user.ui_elements_set_state("background_color", "456456")',
         "action": lambda: actions.user.ui_elements_set_state("background_color", "456456")
     }, {
-        "text": 'ui_elements_set_state("background_color", "333333")',
+        "text": 'actions.user.ui_elements_set_state("background_color", "333333")',
         "action": lambda: actions.user.ui_elements_set_state("background_color", "333333")
     }, {
-        "text": 'ui_elements_set_state("commands", commands_1)',
+        "text": 'actions.user.ui_elements_set_state("commands", commands_1)',
         "action": cheatsheet_set_command_set_1
     }, {
-        "text": 'ui_elements_set_state("commands", commands_2)',
+        "text": 'actions.user.ui_elements_set_state("commands", commands_2)',
         "action": cheatsheet_set_command_set_2
     }, {
-        "text": 'ui_elements_set_state("align", "left")',
+        "text": 'actions.user.ui_elements_set_state("align", "left")',
         "action": cheatsheet_align_left
     }, {
-        "text": 'ui_elements_set_state("align", "right")',
+        "text": 'actions.user.ui_elements_set_state("align", "right")',
         "action": cheatsheet_align_right
     }])
     actions.user.ui_elements_show(actions_ui)

@@ -125,6 +125,10 @@ class NodeText(Node):
         resolved_width = self.properties.width
         resolved_height = self.properties.height
 
+        if self.tree.render_version == 1 and not self.properties.background_color:
+            # render_version 2+ we don't add a default background color
+            self.properties.background_color = "444444"
+
         if self.properties.width == "100%":
             resolved_width = self.parent_node.box_model.content_rect.width
         if self.properties.height == "100%":

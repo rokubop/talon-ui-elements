@@ -1,6 +1,6 @@
 from talon import Module
 from typing import List, Any, Union
-from .src.elements import ui_elements
+from .src.elements import ui_elements, use_effect_without_tree
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
 from .src.hints import hint_clear_state
@@ -162,13 +162,28 @@ class Actions:
         """Test examples"""
         ui_elements_test()
 
+    def ui_elements_register_effect(callback: callable, arg2: Any, arg3: Any = None):
+        """
+        Same as `effect`, but can be registered independently, and will be attached to the next renderer.
+
+        `ui_elements_register_effect(on_mount, [])`
+
+        `ui_elements_register_effect(on_mount, on_unmount, [])`
+
+        `ui_elements_register_effect(on_change, [state_key])`
+
+        Dependencies are `str` state keys, or empty `[]` for mount/unmount effects.
+        ```
+        """
+        use_effect_without_tree(callback, arg2, arg3)
+
     def ui_elements_register_on_lifecycle(callback: callable):
         """
         DEPRECATED: Register a callback to be called on mount or unmount.
 
-        Deprecated note: Use `effect` instead inside your renderer, or use `on_mount` and `on_unmount` kwargs in `ui_elements_show`.
+        Deprecated note: Use `ui_elements_register_effect` instead.
         """
-        print("ui_elements_register_on_lifecycle is deprecated. Use effects instead.")
+        print("actions.user.ui_elements_register_on_lifecycle is deprecated. Use `actions.user.ui_elements_register_effect` or `effect` from `actions.user.ui_elements` instead.")
         state_manager.deprecated_event_register_on_lifecycle(callback)
 
     def ui_elements_unregister_on_lifecycle(callback: callable):
@@ -177,5 +192,5 @@ class Actions:
 
         Deprecated note: Use `effect` instead inside your renderer, or use `on_mount` and `on_unmount` kwargs in `ui_elements_show`.
         """
-        print("ui_elements_unregister_on_lifecycle is deprecated. Use effects instead.")
+        print("actions.user.ui_elements_unregister_on_lifecycle is deprecated. Use `actions.user.ui_elements_register_effect` or `effect` from `actions.user.ui_elements` instead.")
         state_manager.deprecated_event_unregister_on_lifecycle(callback)

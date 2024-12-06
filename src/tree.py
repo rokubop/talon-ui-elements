@@ -259,6 +259,10 @@ class Tree(TreeType):
             self.root_node = self._renderer(self.props)
         else:
             self.root_node = self._renderer()
+
+        if not isinstance(self.root_node, NodeType):
+            raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
+
         self.init_screen()
 
     @with_tree
@@ -603,7 +607,7 @@ class Tree(TreeType):
 
     def consume_effects(self):
         for effect in list(store.staged_effects):
-            if effect.tree == self:
+            if effect.tree == self or effect.tree is None:
                 self.effects.append(effect)
                 store.staged_effects.remove(effect)
 
