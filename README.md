@@ -1,6 +1,6 @@
 # ui_elements
 
-ui_elements is an experimental Talon library for building stateful overlays and interactive UIs on your screen, using HTML/CSS/React-like syntax.
+ui_elements is an experimental Talon library for building stateful overlays and interactive UIs on your screen, using HTML/CSS/React-like syntax
 
 ## Usage
 Choose [elements](#elements) from `actions.user.ui_elements` and create a renderer function

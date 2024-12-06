@@ -1,4 +1,5 @@
 from dataclasses import dataclass, fields
+from talon import settings
 from typing import Optional, TypedDict, Union
 from typing import TypedDict, Optional, get_origin, get_args
 from .box_model import Border, Margin, Padding, parse_box_model
@@ -42,6 +43,10 @@ class Properties:
     width: Union[int, str] = 0
 
     def __init__(self, **kwargs):
+        self.font_size = settings.get("user.ui_elements_font_size")
+        self.color = settings.get("user.ui_elements_color")
+        self.border_color = settings.get("user.ui_elements_border_color")
+
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -127,6 +132,7 @@ class NodeTextProperties(Properties):
     on_click: any = None
 
     def __init__(self, **kwargs):
+        self.font_size = settings.get("user.ui_elements_font_size")
         super().__init__(**kwargs)
 
 class NodeScreenPropertiesDict(PropertiesDict):
@@ -147,6 +153,7 @@ class NodeInputTextProperties(Properties):
     on_change: callable = None
 
     def __init__(self, **kwargs):
+        self.font_size = settings.get("user.ui_elements_font_size")
         kwargs['padding_left'] = max(
             kwargs.get('padding_left', 0),
             kwargs.get('padding', 0)

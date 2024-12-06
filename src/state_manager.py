@@ -96,6 +96,11 @@ class StateManager:
         store.processing_states.clear()
         self.debounce_render_job = None
 
+    def get_state_value(self, key):
+        if key in store.reactive_state:
+            return store.reactive_state[key].value
+        return None
+
     def set_state_value(self, key, new_value):
         if key in store.reactive_state:
             if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):

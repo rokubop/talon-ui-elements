@@ -93,6 +93,13 @@ class Actions:
         else:
             state_manager.set_state_value(name, value)
 
+    def ui_elements_get_state(name: str):
+        """
+        Get global state value by its name.
+        ```
+        """
+        state_manager.get_state_value(name)
+
     def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
         """
         Set text based on its `id`. Renders on a decoration layer, and faster than using `ui_elements_set_state`.

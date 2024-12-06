@@ -1,3 +1,4 @@
+from talon import app, settings
 from typing import TypedDict
 
 HIGHLIGHT_COLOR = "FFFFFF66"
@@ -40,3 +41,10 @@ NODE_TYPE_MAP = {
 
 LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION = "Use actions.user.ui_elements_show(...) instead, passing it a function that returns an element tree composed of `screen`, `div`, `text`, etc."
 LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION = "Use actions.user.ui_elements_hide(...) or actions.user.ui_elements_hide_all() instead."
+
+def on_ready():
+    global HIGHLIGHT_COLOR, CLICK_COLOR
+    HIGHLIGHT_COLOR = settings.get("user.ui_elements_highlight_color")
+    CLICK_COLOR = settings.get("user.ui_elements_click_color")
+
+app.register("ready", on_ready)
