@@ -24,7 +24,7 @@ def todo_list_ui():
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=16, border_radius=8, gap=16)[
-            text("Todo List", font_size=24),
+            text("Todo list", font_size=24, padding=8),
             div(gap=8, max_height=300, margin_top=8)[
                 *(item(item_name) for item_name in items)
             ],

@@ -91,6 +91,8 @@ def example2_ui():
     title = div(flex_direction="row")[
         text('flex_direction=', color=WHITE),
         text('"row"', color=YELLOW),
+        text(', height=', color=WHITE),
+        text('"100%"', color=YELLOW),
     ]
 
     return example_ui(2, title, content=div(padding=8, gap=8, flex_direction="row", height="100%")[
@@ -133,7 +135,7 @@ def example5_ui():
         text('"center"', color=YELLOW),
     ]
 
-    return example_ui(5, title, content=div(padding=8, gap=8, flex_direction="row", height="100%", align_items="center", justify_content="center")[
+    return example_ui(5, title, content=div(padding=8, gap=8, height="100%", flex_direction="row", align_items="center", justify_content="center")[
         *items(),
     ])
 
@@ -157,6 +159,8 @@ def example7_ui():
     title = div(flex_direction="row")[
         text('justify_content=', color=WHITE),
         text('"center"', color=YELLOW),
+        text(', height=', color=WHITE),
+        text('"100%"', color=YELLOW),
     ]
 
     return example_ui(7, title, content=div(padding=8, gap=8, flex_direction="row", justify_content="center", height="100%")[

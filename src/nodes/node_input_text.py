@@ -31,14 +31,15 @@ class NodeInputText(Node):
         return None
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
-        self.box_model = BoxModelLayout(
-            cursor.virtual_x,
-            cursor.virtual_y,
-            self.properties.margin,
-            self.properties.padding,
-            self.properties.border,
-            self.properties.width,
-            self.properties.height)
+        if not self.tree.redistribute_box_model:
+            self.box_model = BoxModelLayout(
+                cursor.virtual_x,
+                cursor.virtual_y,
+                self.properties.margin,
+                self.properties.padding,
+                self.properties.border,
+                self.properties.width,
+                self.properties.height)
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.properties.font_size

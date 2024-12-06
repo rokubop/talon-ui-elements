@@ -24,30 +24,31 @@ def test_module(fn):
 def test_dashboard_ui():
     show_dashboard_ui()
 
-# @test_module
+@test_module
 def test_cheatsheet_ui():
     cheatsheet_show()
 
-# @test_module
+@test_module
 def test_inputs_ui():
     actions.user.ui_elements_show(inputs_ui)
 
-# @test_module
+@test_module
 def test_updating_content_ui():
     actions.user.ui_elements_show(state_and_refs_ui)
 
-# @test_module
+@test_module
 def test_alignment_ui():
     actions.user.ui_elements_show(alignment_ui, on_mount=test_cases_alignment_ui)
 
-# @test_module
+@test_module
 def test_todo_list_ui():
     actions.user.ui_elements_show(todo_list_ui, on_mount=test_cases_todo_list_ui)
 
-# @test_module
+@test_module
 def test_hello_world_ui():
     actions.user.ui_elements_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
-# @test_module
+
+@test_module
 def test_counter_ui():
     actions.user.ui_elements_show(counter_ui, on_mount=test_cases_counter_ui)
 

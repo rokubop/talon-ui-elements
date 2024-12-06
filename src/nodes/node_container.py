@@ -92,41 +92,43 @@ class NodeContainer(Node, NodeContainerType):
         self.set_justify_between_gaps()
 
         # Intristic sizing phase
+        all_growable_counter_axis = self.properties.align_items == "stretch" or \
+            (self.properties.flex_direction == "row" and \
+             isinstance(self.properties.height, str) and "%" in self.properties.height) or \
+            (self.properties.flex_direction == "column" and \
+             isinstance(self.properties.width, str) and "%" in self.properties.width)
+
         for i, child in enumerate(self.children_nodes):
-            if self.properties.align_items == "stretch" or child.properties.align_self == "stretch" or \
+            # if child.node_type != "leaf":
+            if all_growable_counter_axis or child.properties.align_self == "stretch" or \
                     (self.properties.flex_direction == "row" and \
-                     isinstance(child.properties.height, str) and "%" in child.properties.height) or \
+                    isinstance(child.properties.height, str) and "%" in child.properties.height) or \
                     (self.properties.flex_direction == "column" and \
-                     isinstance(child.properties.width, str) and "%" in child.properties.width):
+                    isinstance(child.properties.width, str) and "%" in child.properties.width):
                 growable_counter_axis.append(child)
 
-            if child.properties.flex:
-                growable_primary_axis_flex.append(child)
+            if self.properties.flex_direction == "row" and isinstance(child.properties.width, str) and "%" in child.properties.width:
+                child.flex_evaluated = self.normalize_to_flex(child.properties.width)
+            elif self.properties.flex_direction == "column" and isinstance(child.properties.height, str) and "%" in child.properties.height:
+                child.flex_evaluated = self.normalize_to_flex(child.properties.height)
 
-            if (self.properties.flex_direction == "row" and child.properties.width == "100%") or \
-                    (self.properties.flex_direction == "column" and child.properties.height == "100%"):
-                growable_primary_axis.append(child)
+            if child.properties.flex or child.flex_evaluated:
+                growable_primary_axis_flex.append(child)
 
         # Second pass grow children
         if growable_counter_axis:
             for i, child in enumerate(growable_counter_axis):
                 if child.node_type != NODE_ENUM_TYPE["leaf"]:
-                    if self.properties.flex_direction == "row" and not child.box_model.fixed_height:
-                        child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
-                    elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
-                        child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
-
-        if growable_primary_axis:
-            for i, child in enumerate(growable_primary_axis):
-                if child.properties.width == "100%":
-                    child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
-                elif child.properties.height == "100%":
-                    child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
+                    if self.properties.align_items == "stretch":
+                        if self.properties.flex_direction == "row" and not child.box_model.fixed_height:
+                            child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
+                        elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
+                            child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
 
         if growable_primary_axis_flex:
             remaining_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
             remaining_height = self.box_model.content_rect.height - self.box_model.content_children_rect.height
-            flex_weights = self.calculate_flex_weights(growable_primary_axis_flex)
+            flex_weights = self.calculate_justify_flex_weights(growable_primary_axis_flex)
 
             for i, child in enumerate(growable_primary_axis_flex):
                 if self.properties.flex_direction == "row":
@@ -147,10 +149,13 @@ class NodeContainer(Node, NodeContainerType):
         resolved_width = self.properties.width
         resolved_height = self.properties.height
 
+        # resolve in next block
         if self.properties.width == "100%":
-            resolved_width = self.parent_node.box_model.content_rect.width
+            # resolved_width = self.parent_node.box_model.content_rect.width
+            resolved_width = 0
         if self.properties.height == "100%":
-            resolved_height = self.parent_node.box_model.content_rect.height
+            # resolved_height = self.parent_node.box_model.content_rect.height
+            resolved_height = 0
 
         if self.parent_node and self.parent_node.box_model:
             if self.parent_node.properties.align_items == "stretch":
@@ -159,18 +164,26 @@ class NodeContainer(Node, NodeContainerType):
                 elif self.parent_node.properties.flex_direction == "column" and not resolved_width:
                     resolved_width = self.parent_node.box_model.content_rect.width
 
-        self.box_model = BoxModelLayout(
-            cursor.virtual_x,
-            cursor.virtual_y,
-            self.properties.margin,
-            self.properties.padding,
-            self.properties.border,
-            width=resolved_width,
-            height=resolved_height,
-            min_width=self.properties.min_width,
-            min_height=self.properties.min_height,
-            max_width=self.properties.max_width,
-            max_height=self.properties.max_height)
+        if self.tree.redistribute_box_model:
+            print("hi")
+            self.box_model.redistribute_from_rect(
+                Rect(cursor.virtual_x, cursor.virtual_y, resolved_width, resolved_height)
+            )
+        else:
+            self.box_model = BoxModelLayout(
+                cursor.virtual_x,
+                cursor.virtual_y,
+                self.properties.margin,
+                self.properties.padding,
+                self.properties.border,
+                width=resolved_width,
+                height=resolved_height,
+                fixed_width=bool(self.properties.width and not isinstance(self.properties.width, str)),
+                fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)),
+                min_width=self.properties.min_width,
+                min_height=self.properties.min_height,
+                max_width=self.properties.max_width,
+                max_height=self.properties.max_height)
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
 
@@ -182,9 +195,23 @@ class NodeContainer(Node, NodeContainerType):
 
         return self.box_model.margin_rect
 
-    def calculate_flex_weights(self, flex_children):
-        total_flex = sum(child.properties.flex for child in flex_children)
-        return [child.properties.flex / total_flex for child in flex_children]
+    def normalize_to_flex(self, percentage):
+        if percentage and isinstance(percentage, str) and "%" in percentage:
+            return float(percentage.replace("%", "")) / 100
+        return 0
+
+    def calculate_justify_flex_weights(self, flex_children):
+        flex_values = []
+
+        for child in flex_children:
+            if child.properties.flex:
+                flex_values.append(child.properties.flex)
+            elif child.flex_evaluated:
+                flex_values.append(child.flex_evaluated)
+
+        total_flex = sum(flex_values)
+
+        return [flex / total_flex for flex in flex_values]
 
     def draw_debug_number(self, c: SkiaCanvas, cursor: Cursor, new_color = False):
         if new_color:

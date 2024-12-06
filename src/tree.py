@@ -220,6 +220,7 @@ class Tree(TreeType):
         self._renderer = renderer
         self.render_version = 2
         self.render_debounce_job = None
+        self.redistribute_box_model = False
         self.root_node = None
         self.screen = None
         self.screen_index = None
@@ -260,20 +261,19 @@ class Tree(TreeType):
 
     @with_tree
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
-        # start = time.time()
         self.reset_cursor()
         self.init_node_hierarchy(self.root_node)
         self.consume_effects()
-        # print(f"init_node_hierarchy: {time.time() - start}")
+        self.redistribute_box_model = False
         self.root_node.virtual_render(canvas, self.cursor)
-        # print(f"virtual_render: {time.time() - start}")
         self.root_node.grow_intrinsic_size(canvas, self.cursor)
+        # Do we need another pass here for redistribution?
+        # self.redistribute_box_model = True
+        # self.root_node.virtual_render(canvas, self.cursor)
+        # self.root_node.grow_intrinsic_size(canvas, self.cursor)
         self.root_node.render(canvas, self.cursor)
-        # print(f"on_draw_base_canvas: {time.time() - start}")
-
         self.show_inputs()
         self.render_decorator_canvas()
-        # print(f"on_draw_base_canvas + decorator: {time.time() - start}")
 
     def draw_highlights(self, canvas: SkiaCanvas):
         canvas.paint.style = canvas.paint.Style.FILL

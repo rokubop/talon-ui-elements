@@ -213,6 +213,15 @@ class BoxModelLayoutType(ABC):
     content_rect: Rect
     content_children_rect: Rect
     scroll_box_rect: Union[Rect, None] = None
+    scrollable: bool
+    fixed_width: bool
+    fixed_height: bool
+    min_width: int
+    min_height: int
+    max_width: int
+    max_height: int
+    width: int
+    height: int
 
     @abstractmethod
     def accumulate_outer_dimensions_width(self, new_width: int):
@@ -357,10 +366,6 @@ class NodeContainerType(NodeType):
         pass
 
     @abstractmethod
-    def calculate_flex_weights(self, flex_children: List[NodeType]):
-        pass
-
-    @abstractmethod
     def draw_debug_number(self, c: object, cursor: object, new_color: bool):
         pass
 
@@ -429,6 +434,7 @@ class TreeType(ABC):
     meta_state: MetaStateType
     processing_states: List[str]
     _renderer: callable
+    requires_measure_redistribution: bool
     surfaces: List[object]
     update_renderer: str
     root_node: NodeType

@@ -122,14 +122,37 @@ class NodeText(Node):
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
-        self.box_model = BoxModelLayout(
-            cursor.virtual_x,
-            cursor.virtual_y,
-            self.properties.margin,
-            self.properties.padding,
-            self.properties.border,
-            self.properties.width,
-            self.properties.height)
+        resolved_width = self.properties.width
+        resolved_height = self.properties.height
+
+        if self.properties.width == "100%":
+            resolved_width = self.parent_node.box_model.content_rect.width
+        if self.properties.height == "100%":
+            resolved_height = self.parent_node.box_model.content_rect.height
+
+        if self.parent_node and self.parent_node.box_model:
+            if self.parent_node.properties.align_items == "stretch":
+                if self.parent_node.properties.flex_direction == "row" and not resolved_height:
+                    if not self.element_type == "button":
+                        resolved_height = self.parent_node.box_model.content_rect.height
+                elif self.parent_node.properties.flex_direction == "column" and not resolved_width:
+                    resolved_width = self.parent_node.box_model.content_rect.width
+
+        if self.tree.redistribute_box_model:
+            self.box_model.redistribute_from_rect(
+                Rect(cursor.virtual_x, cursor.virtual_y, resolved_width, resolved_height)
+            )
+        else:
+            self.box_model = BoxModelLayout(
+                cursor.virtual_x,
+                cursor.virtual_y,
+                self.properties.margin,
+                self.properties.padding,
+                self.properties.border,
+                width=resolved_width,
+                height=resolved_height,
+                fixed_width=bool(self.properties.width and not isinstance(self.properties.width, str)),
+                fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)))
 
         if self.element_type == "text" and self.id:
             self.text = str(state_manager.use_text_mutation(self))

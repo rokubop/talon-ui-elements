@@ -1,3 +1,4 @@
+from typing import Union
 import uuid
 from ..box_model import BoxModelLayout
 from ..constants import NODE_TYPE_MAP, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
@@ -16,6 +17,7 @@ class Node(NodeType):
         self.key: str = self.properties.key
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
+        self.flex_evaluated: Union[int, float] = None
         self.box_model: BoxModelLayout = None
         self.tree: TreeType
         self.children_nodes = []

@@ -91,10 +91,12 @@ class BoxModelLayout(BoxModelLayoutType):
         min_height: int = None,
         max_width: int = None,
         max_height: int = None,
+        fixed_width: bool = None,
+        fixed_height: bool = None,
     ):
         self.scrollable = False
-        self.fixed_width = True if width else False
-        self.fixed_height = True if height else False
+        self.fixed_width = fixed_width if fixed_width is not None else width is not None
+        self.fixed_height = fixed_height if fixed_height is not None else height is not None
         self.min_width = min_width
         self.min_height = min_height
         self.max_width = max_width
@@ -132,6 +134,13 @@ class BoxModelLayout(BoxModelLayoutType):
 
         if self.scrollable:
             self.scroll_box_rect = Rect(self.padding_rect.x, self.padding_rect.y, self.padding_rect.width, self.padding_rect.height)
+
+    def redistribute_from_rect(self, rect: Rect):
+        self.margin_rect = rect
+        self.border_rect = Rect(rect.x + self.margin_spacing.left, rect.y + self.margin_spacing.top, rect.width, rect.height)
+        self.padding_rect = Rect(rect.x + self.margin_spacing.left + self.border_spacing.left, rect.y + self.margin_spacing.top + self.border_spacing.top, rect.width - self.border_spacing.left - self.border_spacing.right, rect.height - self.border_spacing.top - self.border_spacing.bottom)
+        self.content_rect = Rect(self.padding_rect.x + self.padding_spacing.left, self.padding_rect.y + self.padding_spacing.top, self.padding_rect.width - self.padding_spacing.left - self.padding_spacing.right, self.padding_rect.height - self.padding_spacing.top - self.padding_spacing.bottom)
+        self.content_children_rect = Rect(self.content_rect.x, self.content_rect.y, 0, 0)
 
     def accumulate_outer_dimensions_width(self, new_width: int):
         if not self.fixed_width and new_width > self.margin_rect.width:
