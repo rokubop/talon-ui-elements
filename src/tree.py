@@ -23,6 +23,7 @@ from .store import store
 from .constants import CLICK_COLOR
 from .utils import get_screen, draw_text_simple
 import inspect
+import uuid
 
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int, scroll_x: int):
@@ -211,6 +212,7 @@ class Tree(TreeType):
         self.cursor = None
         self.effects = []
         self.processing_states = []
+        self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
         self.is_blockable_canvas_init = False
         self.is_mounted = False
@@ -299,9 +301,9 @@ class Tree(TreeType):
     def draw_hints(self, canvas: SkiaCanvas):
         if self.meta_state.inputs or self.meta_state.buttons:
             hint_tag_enable()
+            hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
                 if node.element_type in ["button", "input_text"]:
-                    hint_generator = get_hint_generator()
                     draw_hint(canvas, node, hint_generator(node))
 
     def render_text_mutation(self):
@@ -565,7 +567,8 @@ class Tree(TreeType):
         current_node.depth = len(index_path)
 
         if current_node.interactive and not current_node.id:
-            current_node.id = "-".join(map(str, index_path)) # "1-2-0"
+            index_path_str = "-".join(map(str, index_path)) # "1-2-0"
+            current_node.id = self.guid + index_path_str
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)

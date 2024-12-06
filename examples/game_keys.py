@@ -9,7 +9,7 @@ key_css = {
     "margin": 1,
     "width": 60,
     "height": 60,
-    "opacity": 0.5,
+    "opacity": 0.8,
 }
 
 def key(key_name, text_content, width=30):
@@ -22,13 +22,13 @@ def key(key_name, text_content, width=30):
 def blank_key():
     div, text = actions.user.ui_elements(["div", "text"])
 
-    return div(key_css)[text(" ")]
+    return div(key_css, opacity=0.5)[text(" ")]
 
 def game_keys_ui():
     screen, div = actions.user.ui_elements(["screen", "div"])
 
     return screen(justify_content="flex_end", highlight_color="FFFFFF55")[
-        div(flex_direction="row", margin_bottom=20, margin_left=20, opacity=0.1)[
+        div(flex_direction="row", margin_bottom=20, margin_left=20)[
             div(flex_direction="column")[
                 div(flex_direction="row")[
                     blank_key(), key("up", "↑", 60), blank_key()

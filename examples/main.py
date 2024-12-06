@@ -5,7 +5,6 @@ from .state_and_refs import state_and_refs_ui
 from .dashboard import dashboard_ui
 from .inputs import inputs_ui
 from .game_keys import game_keys_ui
-from .tabs import tabs_ui
 from .todo_list import todo_list_ui
 
 def on_go_back():
@@ -32,11 +31,10 @@ button_action = {
     "Alignment": lambda: show_example(alignment_ui),
     "Cheatsheet": lambda: (actions.user.ui_elements_hide_all(), cheatsheet_show(), actions.user.ui_elements_show(go_back_ui)),
     "Dashboard": lambda: show_example(dashboard_ui),
-    "Prompt": lambda: show_example(inputs_ui),
     "Game keys": lambda: show_example(game_keys_ui),
+    "Input Prompt": lambda: show_example(inputs_ui),
     "State vs Ref": lambda: show_example(state_and_refs_ui),
-    "Tabs": lambda: show_example(tabs_ui),
-    "TODO List": lambda: show_example(todo_list_ui),
+    "Todo List": lambda: show_example(todo_list_ui),
 }
 
 def examples_ui():
