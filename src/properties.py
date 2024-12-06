@@ -142,6 +142,7 @@ class NodeScreenPropertiesDict(PropertiesDict):
 @dataclass
 class NodeScreenProperties(Properties):
     screen: int = 0
+    align_items: str = "flex_start"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

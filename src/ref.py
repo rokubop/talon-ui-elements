@@ -44,8 +44,10 @@ class Ref:
         element_type = self._get("element_type")
         if not element_type:
             node = self.get_node()
-            self._set("element_type", node.element_type)
-            return node.element_type
+            if node:
+                self._set("element_type", node.element_type)
+                return node.element_type
+            return None
         return element_type
 
     def get_node(self):
@@ -73,6 +75,8 @@ class Ref:
 
     def set(self, name: str, new_value: Any):
         element_type = self.get_element_type()
+        if not element_type:
+            return
         if name == "text":
             if element_type == "text":
                 self.set_text(new_value)
@@ -88,6 +92,8 @@ class Ref:
 
     def get(self, name: str):
         element_type = self.get_element_type()
+        if not element_type:
+            return ""
         if name == "text":
             if element_type == "text":
                 return state_manager.get_text_mutation(self._get("id"))

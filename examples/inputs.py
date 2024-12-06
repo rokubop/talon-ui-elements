@@ -8,6 +8,8 @@ def inputs_ui():
     first_input = ref("first")
     last_input = ref("last")
 
+    print(f"First: {first_input.value}, Last: {last_input.value}")
+
     def on_submit(e):
         if is_valid:
             print(f"Submitted - First: {first_input.value}, Last: {last_input.value}")

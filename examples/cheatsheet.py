@@ -1,5 +1,4 @@
 from talon import actions
-from .actions import actions_ui
 
 def on_mount():
     print("hello mount")
@@ -12,7 +11,7 @@ def cheatsheet_ui():
 
     align = state.get("align", "right")
     commands = state.get("commands", [])
-    background_color = state.get("background_color", "04732A")
+    background_color = state.get("background_color", "456456")
 
     effect(on_mount, on_unmount, [])
 
@@ -22,7 +21,7 @@ def cheatsheet_ui():
         justify_content = "flex_start"
 
     return screen(flex_direction="row", align_items="center", justify_content=justify_content)[
-        div(flex_direction="row", background_color=background_color, padding=16, gap=16)[
+        div(flex_direction="row", opacity=0.7, background_color=background_color, padding=16, gap=16)[
             div()[
                 text("Commands", font_weight="bold"),
                 *(text(command) for command in commands)
@@ -37,6 +36,19 @@ def cheatsheet_show():
 
 def cheatsheet_hide():
     actions.user.ui_elements_hide(cheatsheet_ui)
+
+def actions_ui():
+    elements = actions.user.ui_elements(["div", "screen", "text", "state", "button"])
+    div, screen, text, state, button = elements
+
+    ui_actions = state.get("actions", [])
+
+    return screen(flex_direction="row", align_items="center", justify_content="center")[
+        div(flex_direction="column", background_color="333333", padding=16, gap=16)[
+            text("Actions", font_weight="bold", color="FFCC00"),
+            *(button(action["text"], on_click=action["action"], padding=12, border_radius=4) for action in ui_actions)
+        ]
+    ]
 
 def cheatsheet_set_command_set_1():
     actions.user.ui_elements_set_state("commands", [
@@ -79,11 +91,11 @@ def cheatsheet_align_right():
 
 def cheatsheet_actions():
     actions.user.ui_elements_set_state("actions", [{
-        "text": 'ui_elements_set_state("background_color", "04732A")',
-        "action": lambda: actions.user.ui_elements_set_state("background_color", "04732A")
+        "text": 'ui_elements_set_state("background_color", "456456")',
+        "action": lambda: actions.user.ui_elements_set_state("background_color", "456456")
     }, {
-        "text": 'ui_elements_set_state("background_color", "000000")',
-        "action": lambda: actions.user.ui_elements_set_state("background_color", "000000")
+        "text": 'ui_elements_set_state("background_color", "333333")',
+        "action": lambda: actions.user.ui_elements_set_state("background_color", "333333")
     }, {
         "text": 'ui_elements_set_state("commands", commands_1)',
         "action": cheatsheet_set_command_set_1
@@ -97,4 +109,4 @@ def cheatsheet_actions():
         "text": 'ui_elements_set_state("align", "right")',
         "action": cheatsheet_align_right
     }])
-    actions.user.ui_elements_show(actions_ui, show_hints=True)
+    actions.user.ui_elements_show(actions_ui)

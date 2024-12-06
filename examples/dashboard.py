@@ -29,8 +29,8 @@ def dashboard_ui():
                 text("talon-ui-elements", font_size=24, color="FFCC00"),
             ],
             div(flex_direction="row", height="100%")[
-                div(width=150, padding=16, border_right=1)[
-                    *[button(name, on_click=on_click(name)) for name in user_lists]
+                div(width=150, border_right=1)[
+                    *[button(name, on_click=on_click(name), padding=16, background_color="272727") for name in user_lists]
                 ],
                 div(flex_direction="row", padding=16, gap=8)[
                     div()[

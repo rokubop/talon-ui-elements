@@ -54,7 +54,7 @@ def state_and_refs_ui():
     return screen(justify_content="center", align_items="center")[
         div(background_color="222222", border_width=1, border_radius=8, padding=32)[
             div( flex_direction='row', justify_content="space_between", padding_bottom=16, border_bottom=1, border_color="555555")[
-                text("state and refs", font_size=32),
+                text("state vs ref", font_size=32),
                 text("talon-ui-elements", font_size=32, color=YELLOW),
             ],
             div(flex_direction="row", gap=16, margin_top=32)[
