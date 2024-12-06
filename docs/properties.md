@@ -1,4 +1,8 @@
-# Supported properties
+# Properties
+
+Properties go inside parentheses after the element name. For example, `div(width="100%", background_color="red")[...]`. If there are no properties, use an empty call `div()[...]`.
+
+Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |

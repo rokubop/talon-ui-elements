@@ -6,7 +6,7 @@ Example:
 ```py
 screen, div, text, ref = actions.user.ui_elements(["screen", "div", "text", "ref"])
 
-hello_ref = ref("hello")
+hello_ref = ref("hello") # id="hello"
 
 return screen()[
     div()[
@@ -15,18 +15,20 @@ return screen()[
 ]
 ```
 
-We can now get any property from the `hello_ref`:
+We can now get any attribute/property from the `hello_ref`:
 ```py
 print(hello_ref.text) # "Hello world"
 print(hello_ref.color) # "FFFFFF"
 print(hello_ref.background_color) # None
 ```
 
-And we can set any property on the `hello_ref`, which will cause a reactive update:
+If we set an attribute/property on `hello_ref`, it will cause a reactive update:
 ```py
 hello_ref.text = "New text"
 hello_ref.color = "red"
 hello_ref.background_color = "blue"
+
+# Rerenders
 ```
 
 ## `user.actions` vs `ref`
