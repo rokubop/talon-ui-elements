@@ -40,16 +40,19 @@ class EntityManager:
     def create_input(self, node: NodeType):
         if not self.get_input_data(node.id):
             text_area_input = TextArea()
-            text_area_input.theme = DarkThemeLabels(
-                title_size=0,
-                padding=0, # Keep this 0. Manage our own padding because this adds to the top hidden title as well
-                text_size=node.properties.font_size,
-                title_bg=node.properties.background_color,
-                line_spacing=-8, # multiline text is too spaced out
-                bg=node.properties.background_color,
-                fg=node.properties.color,
-                typeface=Typeface.from_name(node.properties.font_family)
-            )
+            args = {
+                "title_size": 0,
+                "padding": 0,
+                "text_size": node.properties.font_size,
+                "title_bg": node.properties.background_color,
+                "line_spacing": -8,
+                "bg": node.properties.background_color,
+                "fg": node.properties.color,
+            }
+            if node.properties.font_family:
+                args["typeface"] = Typeface.from_name(node.properties.font_family)
+
+            text_area_input.theme = DarkThemeLabels(**args)
             text_area_input.value = node.properties.value or ""
 
             def on_change(new_value):
@@ -106,11 +109,14 @@ class EntityManager:
         if tree:
             tree.destroy()
             store.trees.remove(tree)
+        if not store.trees:
+            store.clear()
 
     def hide_all_trees(self):
         for tree in list(store.trees):
             tree.destroy()
             store.trees.remove(tree)
+        store.clear()
 
     def get_node_tree_flattened(self, node) -> list[NodeType]:
         flattened = [node]

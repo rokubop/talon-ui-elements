@@ -1,4 +1,4 @@
-from talon import actions
+from talon import actions, app
 
 key_css = {
     "padding": 8,
@@ -12,23 +12,22 @@ key_css = {
     "opacity": 0.8,
 }
 
-def key(key_name, text_content, width=30):
+def get_additional_props(text_content):
+    if app.platform == "mac" and text_content in ["↑", "↓", "←", "→"]:
+        return {"font_family": "symbol"}
+    return {}
+
+def key(key_name, text_content):
     div, text = actions.user.ui_elements(["div", "text"])
 
-    return div(key_css, id=key_name, width=width, background_color="333333")[
-        text(text_content)
-    ]
+    extra_props = get_additional_props(text_content)
 
-def arrow_key(key_name, text_content, width=30):
-    div, text = actions.user.ui_elements(["div", "text"])
-
-    return div(key_css, id=key_name, width=width, background_color="333333")[
-        text(text_content, font_family="symbol")
+    return div(key_css, id=key_name, background_color="333333")[
+        text(text_content, extra_props)
     ]
 
 def blank_key():
     div, text = actions.user.ui_elements(["div", "text"])
-
     return div(key_css, opacity=0.5)[text(" ")]
 
 def game_keys_ui():
@@ -38,22 +37,22 @@ def game_keys_ui():
         div(flex_direction="row", margin_bottom=20, margin_left=20)[
             div(flex_direction="column")[
                 div(flex_direction="row")[
-                    blank_key(), arrow_key("up", "↑", 60), blank_key()
+                    blank_key(), key("up", "↑"), blank_key()
                 ],
                 div(flex_direction="row")[
-                    arrow_key("left", "←", 60), arrow_key("down", "↓", 60), arrow_key("right", "→", 60)
+                    key("left", "←"), key("down", "↓"), key("right", "→")
                 ]
             ],
             div()[
                 div(flex_direction="row")[
-                    key("c", "jump", 60),
-                    key("p", "jump 2", 60),
-                    key("foot_left", "foot1: grab", 60),
+                    key("space", "jump"),
+                    key("lmb", "LMB"),
+                    key("rmb", "RMB"),
                 ],
                 div(flex_direction="row")[
-                    key("x", "dash", 60),
-                    key("t", "demo", 60),
-                    key("foot_center", "foot2: move", 60)
+                    key("q", "dash"),
+                    key("e", "heal"),
+                    key("shift", "sprint"),
                 ]
             ],
         ],
@@ -82,23 +81,23 @@ def set_game_keys_actions_state():
         "action": lambda: highlight_dir("down")
     }, {
         "text": 'Stop',
-        "action": lambda: unhighlight_all_dir()
+        "action": lambda: (unhighlight_all_dir(), actions.user.ui_elements_unhighlight("shift"))
     }, {
         "text": 'Jump',
-        "action": lambda: actions.user.ui_elements_highlight_briefly("c")
+        "action": lambda: actions.user.ui_elements_highlight_briefly("space")
     }, {
-        "text": 'Jump 2',
-        "action": lambda: actions.user.ui_elements_highlight_briefly("p")
+        "text": 'LMB',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("lmb")
     }, {
-        "text": 'Foot 1',
-        "action": lambda: actions.user.ui_elements_highlight_briefly("foot_left")
+        "text": 'RMB',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("rmb")
     }, {
         "text": 'Dash',
-        "action": lambda: actions.user.ui_elements_highlight_briefly("x")
+        "action": lambda: actions.user.ui_elements_highlight_briefly("q")
     }, {
-        "text": 'Demo',
-        "action": lambda: actions.user.ui_elements_highlight_briefly("t")
+        "text": 'Heal',
+        "action": lambda: actions.user.ui_elements_highlight_briefly("e")
     }, {
-        "text": 'Foot 2',
-        "action": lambda: actions.user.ui_elements_highlight_briefly("foot_center")
+        "text": 'Sprint',
+        "action": lambda: actions.user.ui_elements_highlight("shift")
     }])

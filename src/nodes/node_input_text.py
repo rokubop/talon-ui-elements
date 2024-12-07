@@ -1,3 +1,4 @@
+from talon import app
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.typeface import Typeface
@@ -79,7 +80,14 @@ class NodeInputText(Node):
         if not entity_manager.get_input_data(self.id):
             entity_manager.create_input(self)
 
-        input_rect = Rect(cursor.x, cursor.y + 6, self.box_model.content_rect.width, self.box_model.content_rect.height - 6)
+        platform_adjustment_x = 0
+        platform_adjustment_height = 0
+
+        if app.platform == "mac":
+            platform_adjustment_x = 6
+            platform_adjustment_height = -6
+
+        input_rect = Rect(cursor.x, cursor.y + platform_adjustment_x, self.box_model.content_rect.width, self.box_model.content_rect.height - platform_adjustment_height)
         entity_manager.update_input_rect(self.id, input_rect)
 
         return self.box_model.margin_rect
