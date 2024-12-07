@@ -23,7 +23,6 @@ class Properties:
     color: str = DEFAULT_COLOR
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
-    font_family: str = None
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str] = 0
@@ -132,9 +131,6 @@ class NodeTextProperties(Properties):
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
-        if app.platform == "mac":
-            # Defaults to "courier", so change it to "Helvetica"
-            self.font_family = "Helvetica"
         super().__init__(**kwargs)
 
 class NodeScreenPropertiesDict(PropertiesDict):
@@ -151,12 +147,17 @@ class NodeScreenProperties(Properties):
 @dataclass
 class NodeInputTextProperties(Properties):
     id: str = None
+    font_family: str = None
     font_size: int = DEFAULT_FONT_SIZE
     value = ""
     on_change: callable = None
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
+        if app.platform == "mac":
+            # Talon TextArea for mac defaults to a text that looks like code,
+            # so change it to something that looks more like normal prose
+            self.font_family = "Helvetica"
         kwargs['padding_left'] = max(
             kwargs.get('padding_left', 0),
             kwargs.get('padding', 0)

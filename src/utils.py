@@ -1,5 +1,6 @@
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.typeface import Typeface
 from talon.canvas import Canvas
 from talon.screen import Screen
 from talon.types import Rect
@@ -14,7 +15,7 @@ def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
     c.paint.color = properties.color
     c.paint.textsize = properties.font_size
     if properties.font_family:
-        c.paint.fontface = properties.font_family
+        c.paint.typeface = Typeface.from_name(properties.font_family)
     c.paint.font.embolden = True if properties.font_weight == "bold" else False
     c.draw_text(str(text), x, y)
 

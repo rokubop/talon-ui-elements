@@ -1,6 +1,7 @@
 from typing import Literal
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.typeface import Typeface
 from talon.types import Rect
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
@@ -164,7 +165,7 @@ class NodeText(Node):
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.properties.font_size
         if self.properties.font_family:
-            c.paint.fontface = self.properties.font_family
+            c.paint.typeface = Typeface.from_name(self.font_family)
         c.paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
         self.measure_and_account_for_multiline(c, cursor)

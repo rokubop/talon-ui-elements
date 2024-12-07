@@ -1,5 +1,6 @@
 from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
+from talon.skia.typeface import Typeface
 from .interfaces import NodeType, TreeType
 from .store import store
 from .utils import generate_hash
@@ -46,7 +47,8 @@ class EntityManager:
                 title_bg=node.properties.background_color,
                 line_spacing=-8, # multiline text is too spaced out
                 bg=node.properties.background_color,
-                fg=node.properties.color
+                fg=node.properties.color,
+                typeface=Typeface.from_name(self.font_family)
             )
             text_area_input.value = node.properties.value or ""
 

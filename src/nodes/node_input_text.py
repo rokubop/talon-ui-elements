@@ -1,5 +1,6 @@
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.typeface import Typeface
 from talon.types import Rect
 from ..constants import ELEMENT_ENUM_TYPE
 from ..box_model import BoxModelLayout
@@ -43,6 +44,9 @@ class NodeInputText(Node):
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.properties.font_size
+        if self.font_family:
+            c.paint.typeface = Typeface.from_name(self.font_family)
+
         self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.properties.width, self.properties.height))
         return self.box_model.margin_rect
 
