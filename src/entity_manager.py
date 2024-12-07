@@ -48,7 +48,7 @@ class EntityManager:
                 line_spacing=-8, # multiline text is too spaced out
                 bg=node.properties.background_color,
                 fg=node.properties.color,
-                typeface=Typeface.from_name(self.font_family)
+                typeface=Typeface.from_name(node.properties.font_family)
             )
             text_area_input.value = node.properties.value or ""
 
