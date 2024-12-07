@@ -19,7 +19,7 @@ Properties mostly match standard CSS properties.
 | color | str | "FFFFFF" | Text color |
 | flex_direction | "row" or "column" | "column" | "row" to align items horizontally, "column" to align items vertically. Note that the default is "column", which is different than HTML/CSS which defaults to "row". |
 | flex | int | None | `1` to stretch fully. |
-| font_family | str |  | Font family |
+| font_family | str | "" | Font family |
 | font_size | int | 16 | Font size |
 | font_weight | "normal", "bold" | "normal" | Font weight |
 | gap | int | None | Gap between children |

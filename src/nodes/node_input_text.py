@@ -16,7 +16,6 @@ class NodeInputText(Node):
             element_type=ELEMENT_ENUM_TYPE["input_text"],
             properties=properties
         )
-        self.font_family = None
         self.interactive = True
         self.properties.width = self.properties.width or round(self.properties.font_size * 15)
         self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
@@ -46,8 +45,7 @@ class NodeInputText(Node):
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.properties.font_size
-        if self.font_family:
-            c.paint.typeface = Typeface.from_name(self.font_family)
+        c.paint.typeface = Typeface.from_name(self.properties.font_family)
 
         self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.properties.width, self.properties.height))
         return self.box_model.margin_rect

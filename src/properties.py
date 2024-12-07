@@ -124,7 +124,7 @@ class NodeTextPropertiesDict(PropertiesDict):
 @dataclass
 class NodeTextProperties(Properties):
     id: str = None
-    font_family: str = None
+    font_family: str = ""
     font_size: int = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
     on_click: any = None
@@ -147,7 +147,7 @@ class NodeScreenProperties(Properties):
 @dataclass
 class NodeInputTextProperties(Properties):
     id: str = None
-    font_family: str = None
+    font_family: str = ""
     font_size: int = DEFAULT_FONT_SIZE
     value = ""
     on_change: callable = None

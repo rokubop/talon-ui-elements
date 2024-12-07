@@ -12,7 +12,6 @@ def cheatsheet_ui():
 
     align = state.get("align", "right")
     commands = state.get("commands", [])
-    background_color = state.get("background_color", "333333")
 
     effect(on_mount, on_unmount, [])
 
@@ -22,11 +21,9 @@ def cheatsheet_ui():
         justify_content = "flex_start"
 
     return screen(flex_direction="row", align_items="center", justify_content=justify_content)[
-        div(flex_direction="row", opacity=0.7, background_color=background_color, padding=16, gap=16)[
-            div()[
-                text("Commands", font_weight="bold"),
-                *(text(command) for command in commands)
-            ],
+        div(id="cheatsheet", flex_direction="column", opacity=0.7, background_color="333333", padding=16, gap=16)[
+            text("Commands", font_weight="bold"),
+            *[text(command) for command in commands]
         ]
     ]
 
@@ -79,11 +76,11 @@ def cheatsheet_align_right():
 
 def cheatsheet_actions():
     actions.user.ui_elements_set_state("actions", [{
-        "text": 'actions.user.ui_elements_set_state("background_color", "333333")',
-        "action": lambda: actions.user.ui_elements_set_state("background_color", "333333")
+        "text": 'actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")',
+        "action": lambda: actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")
     }, {
-        "text": 'actions.user.ui_elements_set_state("background_color", "1434A4")',
-        "action": lambda: actions.user.ui_elements_set_state("background_color", "1434A4")
+        "text": 'actions.user.ui_elements_set_property("cheatsheet", "background_color", "1434A499")',
+        "action": lambda: actions.user.ui_elements_set_property("cheatsheet", "background_color", "1434A499")
     }, {
         "text": 'actions.user.ui_elements_set_state("commands", commands_1)',
         "action": cheatsheet_set_command_set_1

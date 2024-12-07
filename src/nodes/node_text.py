@@ -164,8 +164,7 @@ class NodeText(Node):
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.properties.font_size
-        if self.properties.font_family:
-            c.paint.typeface = Typeface.from_name(self.properties.font_family)
+        c.paint.typeface = Typeface.from_name(self.properties.font_family)
         c.paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
         self.measure_and_account_for_multiline(c, cursor)
