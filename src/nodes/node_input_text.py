@@ -85,7 +85,7 @@ class NodeInputText(Node):
             platform_adjustment_x = 6
             platform_adjustment_height = -6
 
-        input_rect = Rect(cursor.x, cursor.y + platform_adjustment_x, self.box_model.content_rect.width, self.box_model.content_rect.height - platform_adjustment_height)
+        input_rect = Rect(cursor.x, cursor.y + platform_adjustment_x, self.box_model.content_rect.width, self.box_model.content_rect.height + platform_adjustment_height)
         entity_manager.update_input_rect(self.id, input_rect)
 
         return self.box_model.margin_rect

@@ -14,8 +14,7 @@ import hashlib
 def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
     c.paint.color = properties.color
     c.paint.textsize = properties.font_size
-    if properties.font_family:
-        c.paint.typeface = Typeface.from_name(properties.font_family)
+    c.paint.typeface = Typeface.from_name(properties.font_family)
     c.paint.font.embolden = True if properties.font_weight == "bold" else False
     c.draw_text(str(text), x, y)
 
