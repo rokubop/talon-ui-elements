@@ -15,6 +15,7 @@ class NodeInputText(Node):
             element_type=ELEMENT_ENUM_TYPE["input_text"],
             properties=properties
         )
+        self.font_family = None
         self.interactive = True
         self.properties.width = self.properties.width or round(self.properties.font_size * 15)
         self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
