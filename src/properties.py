@@ -13,27 +13,22 @@ from .constants import (
 
 class Properties:
     align_items: str = DEFAULT_ALIGN_ITEMS
-    align: str = "start"
     align_self: str = None
     background_color: str = None
     border_color: str = DEFAULT_BORDER_COLOR
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
-    bottom: Optional[int] = None
     color: str = DEFAULT_COLOR
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
-    guid: str = None
     height: Union[int, str] = 0
     highlight_color: str = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
-    justify: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
-    left: Optional[int] = None
     margin: Margin = Margin(0, 0, 0, 0)
     max_height: int = None
     max_width: int = None
@@ -43,9 +38,6 @@ class Properties:
     on_click: callable = None
     opacity: float = None
     padding: Padding = Padding(0, 0, 0, 0)
-    right: Optional[int] = None
-    top: Optional[int] = None
-    type: str = None
     value: str = None
     width: Union[int, str] = 0
 
@@ -98,14 +90,12 @@ class Properties:
 
 class PropertiesDict(TypedDict):
     align_items: str
-    align: str
     align_self: str
     background_color: str
     border_color: str
     border_radius: int
     border_width: int
     border: Border
-    bottom: int
     color: str
     flex_direction: str
     flex: int
@@ -113,8 +103,6 @@ class PropertiesDict(TypedDict):
     highlight_color: str
     id: str
     justify_content: str
-    justify: str
-    left: int
     margin: Margin
     max_height: int
     max_width: int
@@ -124,8 +112,6 @@ class PropertiesDict(TypedDict):
     on_click: callable
     opacity: float
     padding: Padding
-    right: int
-    top: int
     value: str
     width: Union[int, str]
 
@@ -191,7 +177,6 @@ VALID_PROPS = (
 @dataclass
 class UIProps:
     align_items: str
-    align: str
     align_self: str
     background_color: str
     border_bottom: int
@@ -201,7 +186,6 @@ class UIProps:
     border_right: int
     border_top: int
     border_width: int
-    bottom: int
     color: str
     flex_direction: str
     flex: int
@@ -212,8 +196,6 @@ class UIProps:
     highlight_color: str
     id: str
     justify_content: str
-    justify: str
-    left: int
     margin_bottom: int
     margin_left: int
     margin_right: int
@@ -231,9 +213,7 @@ class UIProps:
     padding_right: int
     padding_top: int
     padding: int
-    right: int
     screen: int
-    top: int
     value: str
     width: Union[int, str]
 

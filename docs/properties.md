@@ -16,7 +16,6 @@ Properties mostly match standard CSS properties.
 | border_bottom | int | None | Bottom border width |
 | border_radius | int | 0 | For rounded corners |
 | border_width | int | None | Uniform border width value |
-| bottom | Optional[int] | None | Bottom position |
 | color | str | "FFFFFF" | Text color |
 | flex_direction | "row" or "column" | "column" | "row" to align items horizontally, "column" to align items vertically. Note that the default is "column", which is different than HTML/CSS which defaults to "row". |
 | flex | int | None | `1` to stretch fully. |
@@ -27,7 +26,6 @@ Properties mostly match standard CSS properties.
 | id | str | None | ID |
 | justify_content | "center", "flex_start", "flex_end", "justify_between" | "flex_start" | Justify content in the main axis |
 | key | str | None | Key |
-| left | Optional[int] | None | Left position |
 | margin | Margin | 0 | Uniform margin width |
 | margin_bottom | int | 0 | Bottom margin |
 | margin_left | int | 0 | Left margin |
@@ -45,7 +43,5 @@ Properties mostly match standard CSS properties.
 | padding_left | int | 0 | Left padding |
 | padding_right | int | 0 | Right padding |
 | padding_top | int | 0 | Top padding |
-| right | Optional[int] | None | Right position |
-| top | Optional[int] | None | Top position |
 | value | str | None | Value of `input_text` |
 | width | Union[int, str] | 0 | Width |

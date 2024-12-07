@@ -76,7 +76,7 @@ class BoxModelLayout(BoxModelLayoutType):
     content_rect: Rect
     content_children_rect: Rect
     scroll_box_rect: Union[Rect, None] = None
-    # Margin > Border > Sbcrollbox > Padding > Content > Content children
+    # Margin > Border > Padding > Content > Content children
 
     def __init__(
         self,
@@ -170,7 +170,7 @@ class BoxModelLayout(BoxModelLayoutType):
             grow_rect_x(self.content_rect, rect, self.max_content_width)
             self.padding_rect.width = self.content_rect.width + self.padding_spacing.left + self.padding_spacing.right
             self.border_rect.width = self.padding_rect.width + self.border_spacing.left + self.border_spacing.right
-            self.margin_rect.width = self.padding_rect.width + self.margin_spacing.left + self.margin_spacing.right
+            self.margin_rect.width = self.border_rect.width + self.margin_spacing.left + self.margin_spacing.right
             self.width = self.margin_rect.width
 
         if not axis or axis == "y" and not self.fixed_height:
@@ -178,7 +178,7 @@ class BoxModelLayout(BoxModelLayoutType):
             grow_rect_y(self.content_rect, rect, self.max_content_height)
             self.padding_rect.height = self.content_rect.height + self.padding_spacing.top + self.padding_spacing.bottom
             self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
-            self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
+            self.margin_rect.height = self.border_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
             self.height = self.margin_rect.height
 
         # If the box is scrollable, the height of the margin/border is static
