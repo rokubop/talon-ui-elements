@@ -1,4 +1,5 @@
 from dataclasses import dataclass, fields
+from talon import app
 from typing import Optional, TypedDict, Union
 from typing import TypedDict, Optional, get_origin, get_args
 from .box_model import Border, Margin, Padding, parse_box_model
@@ -22,6 +23,7 @@ class Properties:
     color: str = DEFAULT_COLOR
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
+    font_family: str = None
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str] = 0
@@ -126,9 +128,13 @@ class NodeTextProperties(Properties):
     font_size: int = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
     on_click: any = None
+    font_family: str = None
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
+        if app.platform == "mac":
+            # Defaults to "courier", so change it to "Helvetica"
+            self.font_family = "Helvetica"
         super().__init__(**kwargs)
 
 class NodeScreenPropertiesDict(PropertiesDict):
@@ -189,6 +195,7 @@ class UIProps:
     color: str
     flex_direction: str
     flex: int
+    font_family: str
     font_size: int
     font_weight: str
     gap: int
