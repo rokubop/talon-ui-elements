@@ -58,3 +58,13 @@ def safe_callback(callback: Callable[[E], None], event: E) -> None:
 
 def get_center(rect: Rect) -> tuple[int, int]:
     return rect.x + rect.width // 2, rect.y + rect.height // 2
+
+def get_active_color_from_highlight_color(highlight_color: str) -> str:
+    """If highlightcolor is "FFFFFF66", return "FFFFFF88"."""
+    base_color = highlight_color[:-2]  # "FFFFFF"
+    alpha = highlight_color[-2:]       # "66"
+
+    new_alpha = max(0, min(255, int(alpha, 16) + 20))
+    new_alpha_hex = f"{new_alpha:02X}"
+
+    return base_color + new_alpha_hex

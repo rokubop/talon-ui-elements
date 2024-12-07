@@ -21,9 +21,11 @@ class HintGenerator:
         # - Start buttons with 'b' and input_text with 'i'
         # - Second character start is based on personal
         #   preference for better recognition
+        b_char = settings.get("user.ui_elements_hints_button_first_char")
+        i_char = settings.get("user.ui_elements_hints_input_text_first_char")
         self.char_map = {
-            "button": ("b", [chr(i) for i in range(c_char, z_char)]),
-            "input_text": ("i", [chr(i) for i in range(d_char, z_char)])
+            "button": (b_char, [chr(i) for i in range(c_char, z_char)]),
+            "input_text": (i_char, [chr(i) for i in range(d_char, z_char)])
         }
 
         # rather than using a generator, we increment char index
@@ -48,7 +50,7 @@ class HintGenerator:
                 print("Ran out of hint values while generating hints.")
                 return ""
 
-hint_generator = HintGenerator()
+hint_generator = None
 
 def trigger_hint_action(hint_trigger: str):
     for id, hint in store.id_to_hint.items():
@@ -108,6 +110,8 @@ def reset_hint_generator():
     hint_generator = HintGenerator()
 
 def get_hint_generator():
+    if not hint_generator:
+        reset_hint_generator()
     return hint_generator.generate_hint
 
 def hint_tag_enable():

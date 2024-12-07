@@ -20,8 +20,7 @@ from .entity_manager import entity_manager
 from .hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from .state_manager import state_manager
 from .store import store
-from .constants import CLICK_COLOR
-from .utils import get_screen, draw_text_simple
+from .utils import get_screen, draw_text_simple, get_active_color_from_highlight_color
 import inspect
 import uuid
 
@@ -256,7 +255,10 @@ class Tree(TreeType):
     @with_tree
     def init_nodes_and_screen(self):
         if len(inspect.signature(self._renderer).parameters) > 0:
-            self.root_node = self._renderer(self.props)
+            if not isinstance(self.props, dict):
+                print(f"props: {self.props}")
+                raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
+            self.root_node = self._renderer(self.props or {})
         else:
             self.root_node = self._renderer()
 
@@ -495,8 +497,10 @@ class Tree(TreeType):
         hovered_id = state_manager.get_hovered_id()
 
         if hovered_id in list(self.meta_state.buttons):
+            node = self.meta_state.id_to_node[hovered_id]
             state_manager.set_mousedown_start_id(hovered_id)
-            self.highlight(hovered_id, color=CLICK_COLOR)
+            active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
+            self.highlight(hovered_id, color=active_color)
 
     def on_mouseup(self, gpos):
         hovered_id = state_manager.get_hovered_id()

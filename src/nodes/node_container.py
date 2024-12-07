@@ -3,7 +3,7 @@ from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
-from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
+from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType

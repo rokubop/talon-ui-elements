@@ -1,30 +1,37 @@
 from dataclasses import dataclass, fields
-from talon import settings
 from typing import Optional, TypedDict, Union
 from typing import TypedDict, Optional, get_origin, get_args
 from .box_model import Border, Margin, Padding, parse_box_model
+from .constants import (
+    DEFAULT_COLOR,
+    DEFAULT_BORDER_COLOR,
+    DEFAULT_FONT_SIZE,
+    DEFAULT_FLEX_DIRECTION,
+    DEFAULT_ALIGN_ITEMS,
+    DEFAULT_JUSTIFY_CONTENT
+)
 
 class Properties:
-    align_items: str = "stretch"
+    align_items: str = DEFAULT_ALIGN_ITEMS
     align: str = "start"
     align_self: str = None
     background_color: str = None
-    border_color: str = "555555"
+    border_color: str = DEFAULT_BORDER_COLOR
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
     bottom: Optional[int] = None
-    color: str = "FFFFFF"
-    flex_direction: str = "column"
+    color: str = DEFAULT_COLOR
+    flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
-    font_size: int = 16
+    font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     guid: str = None
     height: Union[int, str] = 0
     highlight_color: str = None
     id: str = None
-    justify_content: str = "flex_start"
-    justify: str = "flex_start"
+    justify_content: str = DEFAULT_JUSTIFY_CONTENT
+    justify: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
     left: Optional[int] = None
     margin: Margin = Margin(0, 0, 0, 0)
@@ -43,14 +50,16 @@ class Properties:
     width: Union[int, str] = 0
 
     def __init__(self, **kwargs):
-        self.font_size = settings.get("user.ui_elements_font_size")
-        self.color = settings.get("user.ui_elements_color")
-        self.border_color = settings.get("user.ui_elements_border_color")
-        self.highlight_color = settings.get("user.ui_elements_highlight_color")
+        self.font_size = DEFAULT_FONT_SIZE
+        self.color = DEFAULT_COLOR
+        self.border_color = DEFAULT_BORDER_COLOR
 
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+
+        if not self.highlight_color:
+            self.highlight_color = f"{self.color}33"
 
         if self.justify_content:
             if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center']:
@@ -128,12 +137,12 @@ class NodeTextPropertiesDict(PropertiesDict):
 @dataclass
 class NodeTextProperties(Properties):
     id: str = None
-    font_size: int = 16
+    font_size: int = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
     on_click: any = None
 
     def __init__(self, **kwargs):
-        self.font_size = settings.get("user.ui_elements_font_size")
+        self.font_size = DEFAULT_FONT_SIZE
         super().__init__(**kwargs)
 
 class NodeScreenPropertiesDict(PropertiesDict):
@@ -150,12 +159,12 @@ class NodeScreenProperties(Properties):
 @dataclass
 class NodeInputTextProperties(Properties):
     id: str = None
-    font_size: int = 16
+    font_size: int = DEFAULT_FONT_SIZE
     value = ""
     on_change: callable = None
 
     def __init__(self, **kwargs):
-        self.font_size = settings.get("user.ui_elements_font_size")
+        self.font_size = DEFAULT_FONT_SIZE
         kwargs['padding_left'] = max(
             kwargs.get('padding_left', 0),
             kwargs.get('padding', 0)

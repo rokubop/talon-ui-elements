@@ -12,7 +12,7 @@ def cheatsheet_ui():
 
     align = state.get("align", "right")
     commands = state.get("commands", [])
-    background_color = state.get("background_color", "456456")
+    background_color = state.get("background_color", "333333")
 
     effect(on_mount, on_unmount, [])
 
@@ -79,11 +79,11 @@ def cheatsheet_align_right():
 
 def cheatsheet_actions():
     actions.user.ui_elements_set_state("actions", [{
-        "text": 'actions.user.ui_elements_set_state("background_color", "456456")',
-        "action": lambda: actions.user.ui_elements_set_state("background_color", "456456")
-    }, {
         "text": 'actions.user.ui_elements_set_state("background_color", "333333")',
         "action": lambda: actions.user.ui_elements_set_state("background_color", "333333")
+    }, {
+        "text": 'actions.user.ui_elements_set_state("background_color", "1434A4")',
+        "action": lambda: actions.user.ui_elements_set_state("background_color", "1434A4")
     }, {
         "text": 'actions.user.ui_elements_set_state("commands", commands_1)',
         "action": cheatsheet_set_command_set_1

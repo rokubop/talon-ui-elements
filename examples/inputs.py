@@ -1,6 +1,6 @@
 from talon import actions
 
-def inputs_ui():
+def inputs_ui(props):
     elements = ["div", "text", "screen", "input_text", "button", "ref", "state"]
     div, text, screen, input_text, button, ref, state = actions.user.ui_elements(elements)
 
@@ -13,7 +13,7 @@ def inputs_ui():
     def on_submit(e):
         if is_valid:
             print(f"Submitted - First: {first_input.value}, Last: {last_input.value}")
-            actions.user.ui_elements_hide_all()
+            props["on_submitted"]()
 
     def on_change(e):
         set_is_valid(bool(first_input.value and last_input.value))
@@ -32,9 +32,3 @@ def inputs_ui():
             ]
         ]
     ]
-
-def show_inputs_ui():
-    actions.user.ui_elements_show(inputs_ui)
-
-def hide_inputs_ui():
-    actions.user.ui_elements_hide(inputs_ui)

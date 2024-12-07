@@ -23,7 +23,7 @@ def state_ui():
         text("Global reactive state, causes full rerender every time."),
         div(align_items="center", margin_top=8)[
             text(text_state, font_size=32, margin=16),
-            button("Increment", on_click=on_increment, padding=12, border_radius=4),
+            button("Increment", on_click=on_increment, padding=12, border_radius=4, background_color="555555"),
         ]
     ]
 
@@ -44,7 +44,7 @@ def ref_ui():
         text("of properties. Faster if only modifying text."),
         div(align_items="center", margin_top=8)[
             text("0", id="text_with_id", font_size=32, margin=16),
-            button("Increment", on_click=on_increment, padding=12, border_radius=4),
+            button("Increment", on_click=on_increment, padding=12, border_radius=4, background_color="555555"),
         ],
     ]
 

@@ -1,7 +1,13 @@
-from talon import app, settings
 from typing import TypedDict
 
-CLICK_COLOR = "FFFFFF88"
+# Don't make these a talon setting
+# Shared UI's should be consistent from user to user
+DEFAULT_COLOR = "FFFFFF"
+DEFAULT_BORDER_COLOR = "555555"
+DEFAULT_FONT_SIZE = 16
+DEFAULT_FLEX_DIRECTION = "column"
+DEFAULT_ALIGN_ITEMS = "stretch"
+DEFAULT_JUSTIFY_CONTENT = "flex_start"
 
 class ElementEnumType(TypedDict):
     button: str
@@ -40,9 +46,3 @@ NODE_TYPE_MAP = {
 
 LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION = "Use actions.user.ui_elements_show(...) instead, passing it a function that returns an element tree composed of `screen`, `div`, `text`, etc."
 LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION = "Use actions.user.ui_elements_hide(...) or actions.user.ui_elements_hide_all() instead."
-
-def on_ready():
-    global CLICK_COLOR
-    CLICK_COLOR = settings.get("user.ui_elements_click_color")
-
-app.register("ready", on_ready)
