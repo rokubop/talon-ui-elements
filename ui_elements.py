@@ -147,6 +147,10 @@ class Actions:
         """Get node for informational purposes e.g. to access `.box_model`, `.tree`, `.parent_node`, `.children_nodes`, or other properties"""
         return entity_manager.get_node(id)
 
+    def ui_elements_get_trees():
+        """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
+        return entity_manager.get_all_trees()
+
     def ui_elements_version():
         """Get the current version of `talon-ui-elements`"""
         return get_version()
@@ -159,7 +163,7 @@ class Actions:
         print("ui elements reset")
 
     def ui_elements_test():
-        """Test examples"""
+        """Test/preview example UIs"""
         ui_elements_test()
 
     def ui_elements_register_effect(callback: callable, arg2: Any, arg3: Any = None):

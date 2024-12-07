@@ -30,7 +30,7 @@ def dashboard_ui():
             ],
             div(flex_direction="row", height="100%")[
                 div(width=150, border_right=1)[
-                    *[button(name, on_click=on_click(name), padding=16, background_color="272727") for name in user_lists]
+                    *[button(name, on_click=on_click(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
                 ],
                 div(flex_direction="row", padding=16, gap=8)[
                     div()[

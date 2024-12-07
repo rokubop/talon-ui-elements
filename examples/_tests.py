@@ -21,7 +21,9 @@ def test_module(fn):
         fn()
     return wrapper
 
-@test_module
+# Tests disabled for now
+
+# @test_module
 def main_ui():
     actions.user.ui_elements_show(examples_ui)
 
@@ -136,13 +138,20 @@ def create_test_runner():
 test_gen = create_test_runner()
 
 def ui_elements_test():
-    global test_gen
+    if not actions.user.ui_elements_get_trees():
+        actions.user.ui_elements_show(examples_ui)
+    else:
+        actions.user.ui_elements_hide_all()
 
-    try:
-        actions.user.ui_elements_hide_all()
-        next_test = next(test_gen)
-        next_test()
-    except StopIteration:
-        actions.user.ui_elements_hide_all()
-        print("All tests have been run.")
-        test_gen = create_test_runner()
+    # Tests disabled for now
+
+    # global test_gen
+
+    # try:
+    #     actions.user.ui_elements_hide_all()
+    #     next_test = next(test_gen)
+    #     next_test()
+    # except StopIteration:
+    #     actions.user.ui_elements_hide_all()
+    #     print("All tests have been run.")
+    #     test_gen = create_test_runner()

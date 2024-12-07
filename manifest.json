@@ -4,11 +4,8 @@
   "version": "0.4.0",
   "contributes": {
     "settings": [
-      "user.ui_elements_border_color",
-      "user.ui_elements_click_color",
-      "user.ui_elements_color",
-      "user.ui_elements_font_size",
-      "user.ui_elements_highlight_color",
+      "user.ui_elements_hints_button_first_char",
+      "user.ui_elements_hints_input_text_first_char",
       "user.ui_elements_hints_show",
       "user.ui_elements_hints_size"
     ],
@@ -18,6 +15,7 @@
       "user.ui_elements_get_input_value",
       "user.ui_elements_get_node",
       "user.ui_elements_get_state",
+      "user.ui_elements_get_trees",
       "user.ui_elements_hide",
       "user.ui_elements_hide_all",
       "user.ui_elements_highlight",

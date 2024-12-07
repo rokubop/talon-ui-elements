@@ -126,8 +126,8 @@ class NodeText(Node):
         resolved_width = self.properties.width
         resolved_height = self.properties.height
 
-        if self.tree.render_version == 1 and not self.properties.background_color:
-            # render_version 2+ we don't add a default background color
+        if self.element_type == "button" and self.tree.render_version == 1 and not self.properties.background_color:
+            # render_version 2+ we don't add a default background color for button
             self.properties.background_color = "444444"
 
         if self.properties.width == "100%":
@@ -173,6 +173,14 @@ class NodeText(Node):
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
         return self.box_model.margin_rect
+
+    def move_cursor_to_text_align(self, cursor: Cursor):
+        cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
+        available_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
+        if self.properties.text_align == "center":
+            cursor.move_to(cursor.x + available_width // 2, cursor.y)
+        elif self.properties.text_align == "right":
+            cursor.move_to(cursor.x + available_width, cursor.y)
 
     def render_borders(self, c: SkiaCanvas, cursor: Cursor):
         cursor.move_to(self.box_model.border_rect.x, self.box_model.border_rect.y)
@@ -233,8 +241,6 @@ class NodeText(Node):
                 c.draw_rect(self.box_model.padding_rect)
 
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
-        global ids
-
         self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         render_now = False if self.id and self.element_type == "text" else True
@@ -242,8 +248,7 @@ class NodeText(Node):
         self.render_borders(c, cursor)
         self.render_background(c, cursor)
 
-        cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-
+        self.move_cursor_to_text_align(cursor)
         self.cursor_pre_draw_text = (cursor.x, cursor.y + self.text_line_height)
 
         if render_now:

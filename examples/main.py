@@ -1,12 +1,13 @@
 from talon import actions
+from .actions import actions_ui
 from .alignment import alignment_ui
 from .cheatsheet import cheatsheet_show
-from .state_and_refs import state_and_refs_ui
 from .dashboard import dashboard_ui
-from .inputs import inputs_ui
 from .game_keys import game_keys_ui, set_game_keys_actions_state
+from .hello_world import hello_world_ui
+from .inputs import inputs_ui
+from .state_and_refs import state_and_refs_ui
 from .todo_list import todo_list_ui
-from .actions import actions_ui
 
 def go_back():
     actions.user.ui_elements_hide_all()
@@ -28,13 +29,9 @@ def show_cheatsheet():
     cheatsheet_show()
     actions.user.ui_elements_show(go_back_ui)
 
-def show_example(ui1, ui2=None, ui3=None):
+def show_example(ui):
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(ui1)
-    if ui2:
-        actions.user.ui_elements_show(ui2)
-    if ui3:
-        actions.user.ui_elements_show(ui3)
+    actions.user.ui_elements_show(ui)
     actions.user.ui_elements_show(go_back_ui)
 
 def show_game_keys():
@@ -56,6 +53,7 @@ button_action = {
     "Cheatsheet": show_cheatsheet,
     "Dashboard": lambda: show_example(dashboard_ui),
     "Game keys": show_game_keys,
+    "Hello world": lambda: show_example(hello_world_ui),
     "Input Prompt": show_inputs,
     "State vs Ref": lambda: show_example(state_and_refs_ui),
     "Todo List": lambda: show_example(todo_list_ui),

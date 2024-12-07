@@ -76,17 +76,17 @@ def cheatsheet_align_right():
 
 def cheatsheet_actions():
     actions.user.ui_elements_set_state("actions", [{
-        "text": 'actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")',
-        "action": lambda: actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")
-    }, {
         "text": 'actions.user.ui_elements_set_property("cheatsheet", "background_color", "1434A499")',
         "action": lambda: actions.user.ui_elements_set_property("cheatsheet", "background_color", "1434A499")
     }, {
-        "text": 'actions.user.ui_elements_set_state("commands", commands_1)',
-        "action": cheatsheet_set_command_set_1
+        "text": 'actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")',
+        "action": lambda: actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")
     }, {
         "text": 'actions.user.ui_elements_set_state("commands", commands_2)',
         "action": cheatsheet_set_command_set_2
+    }, {
+        "text": 'actions.user.ui_elements_set_state("commands", commands_1)',
+        "action": cheatsheet_set_command_set_1
     }, {
         "text": 'actions.user.ui_elements_set_state("align", "left")',
         "action": cheatsheet_align_left

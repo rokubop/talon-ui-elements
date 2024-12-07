@@ -28,7 +28,7 @@ def key(key_name, text_content):
 
 def blank_key():
     div, text = actions.user.ui_elements(["div", "text"])
-    return div(key_css, opacity=0.5)[text(" ")]
+    return div(key_css, opacity=0.6)[text(" ")]
 
 def game_keys_ui():
     screen, div = actions.user.ui_elements(["screen", "div"])
@@ -58,13 +58,25 @@ def game_keys_ui():
         ],
     ]
 
+sprinting = False
+
 def unhighlight_all_dir():
+    global sprinting
     for key in ["up", "down", "left", "right"]:
         actions.user.ui_elements_unhighlight(key)
+    sprinting = False
 
 def highlight_dir(dir):
     unhighlight_all_dir()
     actions.user.ui_elements_highlight(dir)
+
+def sprint_toggle():
+    global sprinting
+    sprinting = not sprinting
+    if sprinting:
+        actions.user.ui_elements_highlight("shift")
+    else:
+        actions.user.ui_elements_unhighlight("shift")
 
 def set_game_keys_actions_state():
     actions.user.ui_elements_set_state("actions", [{
@@ -98,6 +110,6 @@ def set_game_keys_actions_state():
         "text": 'Heal',
         "action": lambda: actions.user.ui_elements_highlight_briefly("e")
     }, {
-        "text": 'Sprint',
-        "action": lambda: actions.user.ui_elements_highlight("shift")
+        "text": 'Sprint toggle',
+        "action": sprint_toggle
     }])

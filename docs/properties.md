@@ -45,5 +45,6 @@ Properties mostly match standard CSS properties.
 | padding_left | int | 0 | Left padding |
 | padding_right | int | 0 | Right padding |
 | padding_top | int | 0 | Top padding |
+| text_align | "left", "center", "right" | "left" | Text alignment |
 | value | str | None | Value of `input_text` |
 | width | Union[int, str] | 0 | Width |
