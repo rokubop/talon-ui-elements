@@ -79,7 +79,7 @@ class NodeInputText(Node):
         if not entity_manager.get_input_data(self.id):
             entity_manager.create_input(self)
 
-        input_rect = Rect(cursor.x, cursor.y, self.box_model.content_rect.width, self.box_model.content_rect.height)
+        input_rect = Rect(cursor.x, cursor.y + 6, self.box_model.content_rect.width, self.box_model.content_rect.height - 6)
         entity_manager.update_input_rect(self.id, input_rect)
 
         return self.box_model.margin_rect

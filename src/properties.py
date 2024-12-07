@@ -124,10 +124,10 @@ class NodeTextPropertiesDict(PropertiesDict):
 @dataclass
 class NodeTextProperties(Properties):
     id: str = None
+    font_family: str = None
     font_size: int = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
     on_click: any = None
-    font_family: str = None
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -157,7 +157,7 @@ class NodeInputTextProperties(Properties):
         if app.platform == "mac":
             # Talon TextArea for mac defaults to a text that looks like code,
             # so change it to something that looks more like normal prose
-            self.font_family = "Helvetica"
+            self.font_family = "helvetica"
         kwargs['padding_left'] = max(
             kwargs.get('padding_left', 0),
             kwargs.get('padding', 0)

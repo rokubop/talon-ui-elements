@@ -19,6 +19,13 @@ def key(key_name, text_content, width=30):
         text(text_content)
     ]
 
+def arrow_key(key_name, text_content, width=30):
+    div, text = actions.user.ui_elements(["div", "text"])
+
+    return div(key_css, id=key_name, width=width, background_color="333333")[
+        text(text_content, font_family="symbol")
+    ]
+
 def blank_key():
     div, text = actions.user.ui_elements(["div", "text"])
 
@@ -31,10 +38,10 @@ def game_keys_ui():
         div(flex_direction="row", margin_bottom=20, margin_left=20)[
             div(flex_direction="column")[
                 div(flex_direction="row")[
-                    blank_key(), key("up", "↑", 60), blank_key()
+                    blank_key(), arrow_key("up", "↑", 60), blank_key()
                 ],
                 div(flex_direction="row")[
-                    key("left", "←", 60), key("down", "↓", 60), key("right", "→", 60)
+                    arrow_key("left", "←", 60), arrow_key("down", "↓", 60), arrow_key("right", "→", 60)
                 ]
             ],
             div()[
