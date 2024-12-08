@@ -48,10 +48,10 @@ actions.user.ui_elements_show(hello_world_ui, initial_state={"mode": "default"})
 ```
 
 ## Complex state
-State is not restricted to simple values. You can store objects, arrays, or any other data structure, except for functions. If you use a callback in the setter, it will give you the previous value, and you can return the new value.
+State is not restricted to simple values. You can store objects, arrays, or any other data structure. If you use a callback in the setter, it will give you the previous value, and you can return the new value.
 
 ## Rerenders
-State changes will do a full rerender. If you just need to change the text or highlight, use those respective actions instead, as they render on a separate decoration layer and do not cause a relayout.
+State changes do a full rerender every time (for now). If you just need to change the text, use `actions.user.ui_elements_set_text` or a `ref`, as those text updates render on a separate decoration layer and do not cause a relayout.
 
 ## Lifecycle
 States are cleared when the UI is hidden/destroyed.

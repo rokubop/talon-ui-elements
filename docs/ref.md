@@ -31,6 +31,33 @@ hello_ref.background_color = "blue"
 # Rerenders
 ```
 
+## With inputs
+
+refs are especially useful with `input_text`
+
+```py
+screen, div, input_text, ref = actions.user.ui_elements(["screen", "div", "input_text", "ref"])
+
+input_ref = ref("input")
+
+def submit():
+    print(input_ref.value)
+
+return screen()[
+    div()[
+        input_text("Type here", id="input"),
+        button("Submit", on_click=submit),
+    ],
+]
+```
+
+To clear the input, we can set the value to an empty string, or use the `clear` method:
+```py
+input_ref.value = ""
+# or
+input_ref.clear()
+```
+
 ## `user.actions` vs `ref`
 ```py
 text("Hello world", id="hello"),
@@ -43,5 +70,3 @@ text("Hello world", id="hello"),
 | `ui_elements_highlight()` | `hello_ref.highlight()` |
 | `ui_elements_highlight_briefly()` | `hello_ref.highlight_briefly()` |
 | `ui_elements_unhighlight()` | `hello_ref.unhighlight()` |
-
-Note: Updating text or highlighting renders on a separate decoration layer, and is more efficient than updating other properties. Other properties may cause a full rerender.

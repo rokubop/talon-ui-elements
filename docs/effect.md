@@ -15,7 +15,7 @@ return screen()[
 ]
 ```
 
-`effect` takes a function and a list of dependencies. The function will be called when the dependencies change. If the dependencies are empty, the function will only be called on mount.
+`effect` takes a function and a list of dependencies. In this case, because there are no dependencies, the `effect`  above will only be called only on mount, after the UI is rendered.
 
 ## On state change
 ```py
@@ -24,7 +24,7 @@ mode, set_mode = state.use("mode", "default")
 effect(lambda: print("Mode changed to", mode), ["mode"])
 ```
 
-Dependencies are strings, not values, and refer to any global state key. For example, every time the global state `"mode"` changes, the effect above will be called.
+Dependencies are strings, not values, and refer to any global state key. In this case, the lambda function will be called on mount, and on every time the global state `"mode"` changes.
 
 ## Cleanup/Unmount
 
@@ -40,7 +40,7 @@ def on_mount():
 effect(on_mount, on_unmount, [])
 ```
 
-Or by returning a cleanup function from the mount function.
+Or by RETURNING a cleanup function from the mount function.
 
 ### Example 2
 ```py
