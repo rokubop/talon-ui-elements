@@ -1,6 +1,6 @@
 from talon import Context, cron
 from typing import Callable
-from .interfaces import NodeType, ReactiveStateType, TreeType, Effect, ClickEvent
+from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
 from .store import store
 
 class ReactiveState(ReactiveStateType):

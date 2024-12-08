@@ -150,10 +150,8 @@ class NodeContainer(Node, NodeContainerType):
 
         # resolve in next block
         if self.properties.width == "100%":
-            # resolved_width = self.parent_node.box_model.content_rect.width
             resolved_width = 0
         if self.properties.height == "100%":
-            # resolved_height = self.parent_node.box_model.content_rect.height
             resolved_height = 0
 
         if self.parent_node and self.parent_node.box_model:
@@ -164,7 +162,6 @@ class NodeContainer(Node, NodeContainerType):
                     resolved_width = self.parent_node.box_model.content_rect.width
 
         if self.tree.redistribute_box_model:
-            print("hi")
             self.box_model.redistribute_from_rect(
                 Rect(cursor.virtual_x, cursor.virtual_y, resolved_width, resolved_height)
             )

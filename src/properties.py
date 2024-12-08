@@ -13,6 +13,10 @@ from .constants import (
 )
 
 class Properties:
+    """
+    These are base properties and not all inclusive.
+    Other property classes inherit from this class.
+    """
     align_items: str = DEFAULT_ALIGN_ITEMS
     align_self: str = None
     background_color: str = None

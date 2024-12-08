@@ -1,12 +1,11 @@
 from talon import Module
-from typing import List, Any, Union
+from typing import List, Any, Union, Callable
 from .src.elements import ui_elements, use_effect_without_tree
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
-from .src.hints import hint_clear_state
 from .src.tree import render_ui
 from .src.utils import get_version
-from .examples._tests import ui_elements_test
+from .examples.examples_ui import toggle_elements_examples
 
 mod = Module()
 
@@ -59,8 +58,8 @@ class Actions:
         """
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
-    def ui_elements_hide(renderer: callable):
-        """Destroy and hide a specific ui (compliments `ui_elements_show`)"""
+    def ui_elements_hide(renderer: Union[str, Callable]):
+        """Destroy and hide a specific ui based on its renderer function or an id on the root node (screen)"""
         entity_manager.hide_tree(renderer)
 
     def ui_elements_hide_all():
@@ -113,7 +112,7 @@ class Actions:
         """
         state_manager.set_text_mutation(id, text_or_callable)
 
-    def ui_elements_set_property(id: str, property_name: str, value: Any):
+    def ui_elements_set_property(id: str, property_name: Union[str, dict], value: Any):
         """
         Set a property of an element based on its `id`. Will cause a rerender.
 
@@ -123,9 +122,17 @@ class Actions:
 
         actions.user.ui_elements_set_property("my_id", "background_color", "red")
         actions.user.ui_elements_set_property("my_id", "justify_content", "flex_start")
+        actions.user.ui_elements_set_property("my_id", {
+            "background_color": "red",
+            "justify_content": "flex_start"
+        })
         ```
         """
-        state_manager.set_ref_property_override(id, property_name, value)
+        if isinstance(property_name, dict):
+            for key, val in property_name.items():
+                state_manager.set_property_override(id, key, val)
+        else:
+            state_manager.set_ref_property_override(id, property_name, value)
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""
@@ -155,16 +162,9 @@ class Actions:
         """Get the current version of `talon-ui-elements`"""
         return get_version()
 
-    def ui_elements_reset():
-        """Destroy all UIs, trees, nodes, and reset all states"""
-        entity_manager.hide_all_trees()
-        state_manager.clear_all()
-        hint_clear_state()
-        print("ui elements reset")
-
-    def ui_elements_test():
-        """Test/preview example UIs"""
-        ui_elements_test()
+    def ui_elements_examples():
+        """Test example UIs"""
+        toggle_elements_examples()
 
     def ui_elements_register_effect(callback: callable, arg2: Any, arg3: Any = None):
         """

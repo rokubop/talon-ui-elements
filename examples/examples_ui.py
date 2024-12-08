@@ -1,13 +1,12 @@
 from talon import actions
-from .actions import actions_ui
-from .alignment import alignment_ui
-from .cheatsheet import cheatsheet_show
-from .dashboard import dashboard_ui
-from .game_keys import game_keys_ui, set_game_keys_actions_state
-from .hello_world import hello_world_ui
-from .inputs import inputs_ui
-from .state_and_refs import state_and_refs_ui
-from .todo_list import todo_list_ui
+from .alignment_ui import alignment_ui
+from .cheatsheet_actions import cheatsheet_show
+from .dashboard_ui import dashboard_ui
+from .game_keys_actions import game_keys_show
+from .hello_world_ui import hello_world_ui
+from .inputs_ui import inputs_ui
+from .state_and_refs_ui import state_and_refs_ui
+from .todo_list_ui import todo_list_ui
 
 def go_back():
     actions.user.ui_elements_hide_all()
@@ -36,9 +35,7 @@ def show_example(ui):
 
 def show_game_keys():
     actions.user.ui_elements_hide_all()
-    set_game_keys_actions_state()
-    actions.user.ui_elements_show(game_keys_ui)
-    actions.user.ui_elements_show(actions_ui)
+    game_keys_show()
     actions.user.ui_elements_show(go_back_ui)
 
 def show_inputs():
@@ -74,3 +71,9 @@ def examples_ui():
             ],
         ]
     ]
+
+def toggle_elements_examples():
+    if not actions.user.ui_elements_get_trees():
+        actions.user.ui_elements_show(examples_ui)
+    else:
+        actions.user.ui_elements_hide_all()

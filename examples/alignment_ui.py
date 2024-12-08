@@ -4,20 +4,26 @@ YELLOW = "FFCC00"
 LIGHT_BLUE = "87CEEB"
 WHITE = "CCCCCC"
 
+item_style = {
+    "border_width": 1,
+    "border_color": WHITE,
+    "padding": 8,
+}
+
 def items():
     div, text = actions.user.ui_elements(["div", "text"])
 
     return [
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("Hello")
         ],
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("to")
         ],
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("the")
         ],
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("world")
         ],
     ]
@@ -26,16 +32,16 @@ def items_first_flex():
     div, text = actions.user.ui_elements(["div", "text"])
 
     return [
-        div(border_width=1, border_color=WHITE, padding=8, flex=1)[
+        div(item_style, flex=1)[
             text("Hello")
         ],
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("to")
         ],
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("the")
         ],
-        div(border_width=1, border_color=WHITE, padding=8)[
+        div(item_style)[
             text("world")
         ],
     ]
@@ -44,16 +50,16 @@ def items_all_flex():
     div, text = actions.user.ui_elements(["div", "text"])
 
     return [
-        div(border_width=1, border_color=WHITE, padding=8, flex=1)[
+        div(item_style, flex=1)[
             text("Hello")
         ],
-        div(border_width=1, border_color=WHITE, padding=8, flex=1)[
+        div(item_style, flex=1)[
             text("to")
         ],
-        div(border_width=1, border_color=WHITE, padding=8, flex=1)[
+        div(item_style, flex=1)[
             text("the")
         ],
-        div(border_width=1, border_color=WHITE, padding=8, flex=1)[
+        div(item_style, flex=1)[
             text("world")
         ],
     ]
@@ -75,10 +81,8 @@ def example1_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('flex_direction=', color=WHITE),
-        text('"column"', color=YELLOW),
-        text(', align_items=', color=WHITE),
-        text('"stretch"', color=YELLOW),
+        text('flex_direction=', color=WHITE), text('"column"', color=YELLOW),
+        text(', align_items=', color=WHITE), text('"stretch"', color=YELLOW),
     ]
 
     return example_ui(1, title, content=div(padding=8, gap=8)[
@@ -89,10 +93,8 @@ def example2_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('flex_direction=', color=WHITE),
-        text('"row"', color=YELLOW),
-        text(', height=', color=WHITE),
-        text('"100%"', color=YELLOW),
+        text('flex_direction=', color=WHITE), text('"row"', color=YELLOW),
+        text(', height=', color=WHITE), text('"100%"', color=YELLOW),
     ]
 
     return example_ui(2, title, content=div(padding=8, gap=8, flex_direction="row", height="100%")[
@@ -103,8 +105,7 @@ def example3_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('justify_content=', color=WHITE),
-        text('"space_between"', color=YELLOW),
+        text('justify_content=', color=WHITE), text('"space_between"', color=YELLOW),
     ]
 
     return example_ui(3, title, content=div(padding=8, gap=8, flex_direction="row", height="100%", justify_content="space_between")[
@@ -115,10 +116,8 @@ def example4_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('flex_direction=', color=WHITE),
-        text('"row"', color=YELLOW),
-        text(', align_items=', color=WHITE),
-        text('"flex_start"', color=YELLOW),
+        text('flex_direction=', color=WHITE), text('"row"', color=YELLOW),
+        text(', align_items=', color=WHITE), text('"flex_start"', color=YELLOW),
     ]
 
     return example_ui(4, title, content=div(padding=8, gap=8, flex_direction="row", align_items="flex_start")[
@@ -129,10 +128,8 @@ def example5_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('align_items=', color=WHITE),
-        text('"center"', color=YELLOW),
-        text(', justify_content=', color=WHITE),
-        text('"center"', color=YELLOW),
+        text('align_items=', color=WHITE), text('"center"', color=YELLOW),
+        text(', justify_content=', color=WHITE), text('"center"', color=YELLOW),
     ]
 
     return example_ui(5, title, content=div(padding=8, gap=8, height="100%", flex_direction="row", align_items="center", justify_content="center")[
@@ -143,10 +140,8 @@ def example6_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('flex_direction=', color=WHITE),
-        text('"column"', color=YELLOW),
-        text(', align_items=', color=WHITE),
-        text('"flex_end"', color=YELLOW),
+        text('flex_direction=', color=WHITE), text('"column"', color=YELLOW),
+        text(', align_items=', color=WHITE), text('"flex_end"', color=YELLOW),
     ]
 
     return example_ui(6, title, content=div(padding=8, gap=8, flex_direction="column", align_items="flex_end")[
@@ -157,10 +152,8 @@ def example7_ui():
     div, text = actions.user.ui_elements(["div", "text"])
 
     title = div(flex_direction="row")[
-        text('justify_content=', color=WHITE),
-        text('"center"', color=YELLOW),
-        text(', height=', color=WHITE),
-        text('"100%"', color=YELLOW),
+        text('justify_content=', color=WHITE), text('"center"', color=YELLOW),
+        text(', height=', color=WHITE), text('"100%"', color=YELLOW),
     ]
 
     return example_ui(7, title, content=div(padding=8, gap=8, flex_direction="row", justify_content="center", height="100%")[
@@ -232,9 +225,3 @@ def alignment_ui():
             ]
         ]
     ]
-
-def show_alignment_ui():
-    actions.user.ui_elements_show(alignment_ui)
-
-def hide_alignment_ui():
-    actions.user.ui_elements_hide(alignment_ui)

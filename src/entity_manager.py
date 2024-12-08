@@ -1,6 +1,7 @@
 from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
 from talon.skia.typeface import Typeface
+from typing import Union
 from .interfaces import NodeType, TreeType
 from .store import store
 from .utils import generate_hash
@@ -103,12 +104,21 @@ class EntityManager:
             "hash": hash
         }
 
-    def hide_tree(self, renderer: callable):
-        t = self.get_tree_with_hash_for_renderer(renderer)
-        tree = t["tree"]
-        if tree:
-            tree.destroy()
-            store.trees.remove(tree)
+    def hide_tree(self, renderer: Union[str, callable]):
+        """Hide based on the renderer or an id on the root node (screen)"""
+        if isinstance(renderer, str):
+            for tree in store.trees:
+                if tree.root_node.id == renderer:
+                    tree.destroy()
+                    store.trees.remove(tree)
+                    break
+        else:
+            t = self.get_tree_with_hash_for_renderer(renderer)
+            tree = t["tree"]
+            if tree:
+                tree.destroy()
+                store.trees.remove(tree)
+
         if not store.trees:
             store.clear()
 

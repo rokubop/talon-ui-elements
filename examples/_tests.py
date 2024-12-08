@@ -1,14 +1,13 @@
 from talon import Module, actions
 from ..src.entity_manager import entity_manager
-from .counter import counter_ui
-from .hello_world import hello_world_ui
-from .todo_list import todo_list_ui
-from .alignment import alignment_ui
-from .state_and_refs import state_and_refs_ui
-from .cheatsheet import cheatsheet_show
-from .inputs import inputs_ui
-from .dashboard import show_dashboard_ui
-from .main import examples_ui
+from .hello_world_ui import hello_world_ui
+from .todo_list_ui import todo_list_ui
+from .alignment_ui import alignment_ui
+from .state_and_refs_ui import state_and_refs_ui
+from .cheatsheet_actions import cheatsheet_show
+from .inputs_ui import inputs_ui
+from .dashboard_ui import show_dashboard_ui
+from .examples_ui import examples_ui
 
 mod = Module()
 
@@ -24,7 +23,7 @@ def test_module(fn):
 # Tests disabled for now
 
 # @test_module
-def main_ui():
+def examples_ui():
     actions.user.ui_elements_show(examples_ui)
 
 # @test_module
@@ -54,10 +53,6 @@ def test_todo_list_ui():
 # @test_module
 def test_hello_world_ui():
     actions.user.ui_elements_show(hello_world_ui, on_mount=test_cases_hello_world_ui)
-
-# @test_module
-def test_counter_ui():
-    actions.user.ui_elements_show(counter_ui, on_mount=test_cases_counter_ui)
 
 def test(test_name, expect, actual):
     if expect == actual:
@@ -126,22 +121,15 @@ def test_cases_hello_world_ui():
     test("div should have reference to tree", tree, div_node.tree)
     test("text should have reference to tree", tree, text_node.tree)
 
-def test_cases_counter_ui():
-    trees = entity_manager.get_all_trees()
-    nodes = entity_manager.get_all_nodes()
-    test("There should be 1 tree", 1, len(trees))
-    test("Tree should have 6 nodes", 6, len(nodes))
-    test("Tree should have one button ref", 1, len(trees[0].meta_state.buttons))
-
 def create_test_runner():
     return (test_fn for test_fn in test_cases)
 test_gen = create_test_runner()
 
-def ui_elements_test():
-    if not actions.user.ui_elements_get_trees():
-        actions.user.ui_elements_show(examples_ui)
-    else:
-        actions.user.ui_elements_hide_all()
+# def ui_elements_test():
+#     if not actions.user.ui_elements_get_trees():
+#         actions.user.ui_elements_show(examples_ui)
+#     else:
+#         actions.user.ui_elements_hide_all()
 
     # Tests disabled for now
 

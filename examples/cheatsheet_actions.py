@@ -1,41 +1,16 @@
 from talon import actions
-from .actions import actions_ui
-
-def on_mount():
-    print("hello mount")
-
-def on_unmount():
-    print("hello unmount")
-
-def cheatsheet_ui():
-    div, screen, text, state, effect = actions.user.ui_elements(['div', 'screen', 'text', 'state', 'effect'])
-
-    align = state.get("align", "right")
-    commands = state.get("commands", [])
-
-    effect(on_mount, on_unmount, [])
-
-    if align == "right":
-        justify_content = "flex_end"
-    else:
-        justify_content = "flex_start"
-
-    return screen(flex_direction="row", align_items="center", justify_content=justify_content)[
-        div(id="cheatsheet", flex_direction="column", opacity=0.7, background_color="333333", padding=16, gap=16)[
-            text("Commands", font_weight="bold"),
-            *[text(command) for command in commands]
-        ]
-    ]
+from .actions_ui import actions_ui
+from .cheatsheet_ui import cheatsheet_ui
 
 def cheatsheet_show():
-    cheatsheet_set_command_set_1()
+    cheatsheet_set_commands_1()
     cheatsheet_actions()
     actions.user.ui_elements_show(cheatsheet_ui)
 
 def cheatsheet_hide():
     actions.user.ui_elements_hide(cheatsheet_ui)
 
-def cheatsheet_set_command_set_1():
+def cheatsheet_set_commands_1():
     actions.user.ui_elements_set_state("commands", [
         "up",
         "down",
@@ -47,7 +22,7 @@ def cheatsheet_set_command_set_1():
         "back",
     ])
 
-def cheatsheet_set_command_set_2():
+def cheatsheet_set_commands_2():
     actions.user.ui_elements_set_state("commands", [
         "up",
         "down",
@@ -83,10 +58,10 @@ def cheatsheet_actions():
         "action": lambda: actions.user.ui_elements_set_property("cheatsheet", "background_color", "33333399")
     }, {
         "text": 'actions.user.ui_elements_set_state("commands", commands_2)',
-        "action": cheatsheet_set_command_set_2
+        "action": cheatsheet_set_commands_2
     }, {
         "text": 'actions.user.ui_elements_set_state("commands", commands_1)',
-        "action": cheatsheet_set_command_set_1
+        "action": cheatsheet_set_commands_1
     }, {
         "text": 'actions.user.ui_elements_set_state("align", "left")',
         "action": cheatsheet_align_left
