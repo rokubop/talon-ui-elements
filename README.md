@@ -136,7 +136,7 @@ commands = [
 ]
 div(gap=8)[
     text("Commands", font_weight="bold"),
-    *(text(command) for command in commands)
+    *[text(command) for command in commands]
 ],
 ```
 

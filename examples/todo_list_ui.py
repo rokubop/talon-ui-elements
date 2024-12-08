@@ -26,7 +26,7 @@ def todo_list_ui():
         div(background_color="333333", padding=16, border_radius=8, gap=16)[
             text("Todo list", font_size=24, padding=8),
             div(gap=8, max_height=300, margin_top=8)[
-                *(item(item_name) for item_name in items)
+                *[item(item_name) for item_name in items]
             ],
             div(border_top=1, margin_top=8, padding_top=16, gap=16)[
                 text("New Item", font_size=12, id="label"),
