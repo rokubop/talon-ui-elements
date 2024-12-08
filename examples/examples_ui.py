@@ -5,7 +5,7 @@ from .dashboard_ui import dashboard_ui
 from .game_keys_actions import game_keys_show
 from .hello_world_ui import hello_world_ui
 from .inputs_ui import inputs_ui
-from .state_and_refs_ui import state_and_refs_ui
+from .state_vs_refs_ui import state_vs_refs_ui
 from .todo_list_ui import todo_list_ui
 
 def go_back():
@@ -52,7 +52,7 @@ button_action = {
     "Game keys": show_game_keys,
     "Hello world": lambda: show_example(hello_world_ui),
     "Input Prompt": show_inputs,
-    "State vs Ref": lambda: show_example(state_and_refs_ui),
+    "State vs Ref": lambda: show_example(state_vs_refs_ui),
     "Todo List": lambda: show_example(todo_list_ui),
 }
 

@@ -8,6 +8,9 @@ All elements default to `flex_direction: column` and `align_items: stretch` to m
 ## Box model
 The box model is based on `box-sizing: border-box`, meaning if you define width or height, the border and padding are included in the size, not added in addition to the size.
 
+## Gap
+`gap` is `0` by default, but if two text elements are vertically aligned, the default gap is `16`.
+
 ## Default Properties
 | Property | Default |
 | --- | --- |

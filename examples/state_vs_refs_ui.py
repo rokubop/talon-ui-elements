@@ -48,7 +48,7 @@ def ref_ui():
         ],
     ]
 
-def state_and_refs_ui():
+def state_vs_refs_ui():
     screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
 
     return screen(justify_content="center", align_items="center")[

@@ -1,6 +1,29 @@
 # ui_elements
 
-ui_elements is an experimental library for building stateful voice activated overlays and UIs using HTML/CSS/React-like syntax. For use with Talon.
+[ui_elements](.) is an experimental library for building stateful voice activated overlays and UIs using HTML/CSS/React-like syntax, for use with [Talon](https://talonvoice.com/).
+
+![ui_elements](./examples/ui_elements_preview.png)
+
+- 8 Example UIs
+- Control state with your voice
+- Interactive hints displayed on all buttons and text inputs
+- Standard HTML and CSS like properties such as `width`, `background_color`, `margin`, `padding`, etc, but for python.
+- Familiar syntax for web developers
+
+## Installation
+Clone this repository into your Talon user directory.
+
+```sh
+# mac and linux
+cd ~/.talon/user
+
+# windows
+cd ~/AppData/Roaming/talon/user
+
+git clone https://github.com/rokubop/talon-ui-elements.git
+```
+
+Done! 🎉 Now you can build UIs in Talon using `actions.user.ui_elements(...), actions.user.ui_elements_show(...)`, `actions.user.ui_elements_hide(...)`, etc...
 
 ## Usage
 Choose [elements](#elements) from `actions.user.ui_elements` and create a renderer function
@@ -23,15 +46,19 @@ To define styles, we put it inside of the **parentheses**. To define children, w
 def hello_world_ui():
     (screen, div, text) = actions.user.ui_elements(["screen", "div", "text"])
 
-    return screen(align_items="flex_end", justify_content="center")[
-        div(gap=24)[
-            text("Hello world", font_size=24, color="FF0000"),
-            text("Cool")
+    return screen(justify_content="center", align_items="center")[
+        div(background_color="333333", padding=16, border_radius=8, border_width=1)[
+            text("Hello world", font_size=24)
         ]
     ]
 
 actions.user.ui_elements_show(hello_world_ui)
 ```
+
+<p align="center">
+  <img src="./examples/hello_world_preview.png" alt="hello_world" width="200"/>
+</p>
+
 
 To hide and destroy the UI:
 ```py
@@ -40,8 +67,24 @@ actions.user.ui_elements_hide(hello_world_ui)
 actions.user.ui_elements_hide_all()
 ```
 
+## Examples
+
+Checkout out examples in the [examples](./examples) folder. Or say "elements test" to view live examples.
+| Example | Preview | Description |
+|----|----|----|
+| [alignment_ui](./examples/alignment_ui.py) | [preview](./examples/alignment_preview.png) |Demonstrates alignment options |
+| [cheatsheet_ui](./examples/cheatsheet_ui.py) | [preview](./examples/cheatsheet_preview.png) | A list of commands on the left or right of your screen |
+| [dashboard_ui](./examples/dashboard_ui.py) | [preview](./examples/dashboard_preview.png) | Has a title bar, a side bar, and a reactive body |
+| [game_keys_ui](./examples/game_keys_ui.py) | [preview](./examples/game_keys_preview.png) | Game keys overlay for gaming, that highlights respective keys |
+| [hello_world_ui](./examples/hello_world_ui.py) | [preview](./examples/hello_world_preview.png) | Simple hello world UI from above |
+| [inputs_ui](./examples/inputs_ui.py) | [preview](./examples/inputs_preview.png) | Demonstrates text input interaction and submit with a button |
+| [state_vs_refs_ui](examples/state_vs_refs_ui.py) | [preview](./examples/state_vs_refs_preview.png) | Two versions of a counter using state or ref |
+| [todo_list_ui](./examples/todo_list_ui.py) | [preview](./examples/todo_list_preview.png) | A todo list with an input, and add and remove functionality |
+
 
 ## Elements
+returned from `actions.user.ui_elements`:
+
 - `screen` - The root element. Basically a div the size of your screen.
 - `div` - Standard container element.
 - `text`
@@ -49,19 +92,28 @@ actions.user.ui_elements_hide_all()
 - `input_text` - Uses Talon's experimental `TextArea` for input.
 - `state` - Global reactive state that rerenders respective UIs when changed.
 - `effect` - Run side effects on mount, unmount, or state change.
-- `ref` - Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates.
-
-## Examples
-Say 'elements test' to view live examples.
-Checkout the examples here: [examples.py](./examples.py)
+- `ref` - Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates. Useful for `input_text` value.
 
 ## Box Model
-ui_elements have the same box model as normal HTML, with `padding`, `margin`, `border`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning padding and border are included in the width and height.
+ui_elements have the same box model as normal HTML, with `margin`, `border`, `padding`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning border and padding are included in the width and height.
 
 ## Flex by default
 Most ui_elements operate under `display: flex` assumption, and default to `flex_direction="column"`with `align_items="stretch"`. This means when you don't provide anything, it will act similarly to `display: block`.
 
+## Documentation
+| Documentation | Description |
+|---------------|-------------|
+| [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
+| [Defaults](./docs/defaults.md) | Default values for all properties |
+| [Properties](./docs/properties.md) | List of all properties you can use |
+| [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |
+| [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
+| [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |
+
 ## Alignment examples
+If you aren't familiar with flexbox, check out this [guide](https://css-tricks.com/snippets/css/a-guide-to-flexbox/). This will help with alignment and justification.
+
+Some examples:
 ```py
 # children of screen will be bottom right
 screen(align_items="flex_end", justify_content="flex_end")
@@ -79,6 +131,8 @@ screen(flex_direction="row", align_items="flex_start", justify_content="flex_end
 div(flex=1)
 ```
 
+See [alignment_ui](./examples/alignment_ui.py) for more.
+
 ## Updating text
 We must give a unique id to the thing we want to update.
 ```py
@@ -87,7 +141,7 @@ text("Hello world", id="test"),
 
 Then we can use this action to update the text:
 ```py
-actions.user.ui_elements_update_text("test", "New text")
+actions.user.ui_elements_set_text("test", "New text")
 ```
 
 ## Highlighting elements
@@ -117,16 +171,9 @@ button("Click me", on_click=actions.user.hide_my_custom_ui),
 ```
 
 ## Text inputs
-```py
-div()[
-    input_text(id="your_name", on_change=lambda value: print(value)),
-],
+See [inputs_ui](./examples/inputs_ui.py) for example.
 
-# later
-actions.user.ui_elements_get_value("your_name")
-```
-
-## Unpacking a list into elements
+## Unpacking a list
 ```py
 commands = [
     "left",
@@ -171,81 +218,15 @@ screen(screen=2, align_items="flex_end", justify_content="center")[
 
 ## On mount
 
-It it takes time to render the UI, you can use `on_mount` to know when it's done.
-
-```py
-def on_mount():
-    print("Mounted")
-
-my_ui = screen()[
-    div()[
-        text("Hello world")
-    ]
-]
-
-my_ui.show(on_mount)
-```
+See [effect](./docs/effect.md) for more.
 
 ## Properties
 
-| Property | Type |
-| -- | -- |
-| align_items | `'flex_start'`, `'flex_end'`, `'center'` |
-| background_color | `str` - 6-digit hexadecimal with 2 optional digits for opacity e.g. `'FF0000'` or `FF000088` for opacity of `88` from `00` to `FF` |
-| border_color | `str` |
-| border_radius | `int` - for rounded corners |
-| border_bottom | `int` - border bottom only width |
-| border_left | `int` - border left only width |
-| border_right | `int` - border right only width |
-| border_top | `int` - border top only width |
-| border_width | `int` - for border on all sides |
-| bottom | `int` |
-| color | `str` - 6-digit hexadecimal with 2 optional digits for opacity e.g. `'FF0000'` or `FF000088` for opacity of `88` from `00` to `FF` |
-| flex | `int` - 1 for full width |
-| flex_direction | `'row'`, `'column'` |
-| font_size | `int` - for text |
-| font_weight | `str` - e.g. `'bold'` |
-| gap | `int` - gap between children |
-| height | `int` |
-| highlight_color | `str` - 6-digit hexadecimal with 2 optional digits for opacity e.g. `'FF0000'` or `FF000088` for opacity of `88` from `00` to `FF`. Only works for screen component at the moment. |
-| id | `str` - Required on builder, and for 'highlight' feature to work on a div |
-| justify | `str` |
-| justify_content | `'flex_start'`, `'flex_end'`, `'center'` |
-| left | `int` |
-| margin | `int` - Margin in every direction |
-| margin_bottom | `int` |
-| margin_left | `int` |
-| margin_right | `int` |
-| margin_top | `int` |
-| on_click | `Callable[[], None]` - Callback function to call when button is clicked. Takes 0 arguments. |
-| on_change | `Callable[[str], None]` - Callback function to call when value of input changes. Takes 1 argument for the current value. |
-| opacity | `float` - 0.0 to 1.0. Or you can use the last 2 digits of the color instead of opacity |
-| padding | `int` - Padding in every direction |
-| padding_bottom | `int` |
-| padding_left | `int` |
-| padding_right | `int` |
-| padding_top | `int` |
-| right | `int` |
-| screen | `int` - Screen number (only applicable to screen element). Defaults to main screen if omitted. |
-| top | `int` |
-| value | `str` - For input |
-| width | `int` |
+See [properties](./docs/properties.md) for more.
 
 ## Actions
-| **Action** | **Description** |
-|------------|-----------------|
-| `ui_elements` | This acts like an import for the components you want to use. div, text, screen, button, input_text. |
-| `ui_elements_screen` | Only the screen ui element. Has .show() method. Give it an id if you want to specifically hide it later with actions.user.ui_elements_hide(id) |
-| `ui_elements_hide` | Hide and destroys a ui_element based on the id assigned to the screen ui_element |
-| `ui_elements_hide_all` | Hide and destroys all currently active ui_elements |
-| `ui_elements_set_text` | set text based on id |
-| `ui_elements_highlight` | highlight based on id |
-| `ui_elements_unhighlight` | unhighlight based on id |
-| `ui_elements_highlight_briefly` | highlight briefly based on id |
-| `ui_elements_get` | Get the UI builder with the given ID. Only for informational purposes. Not for mutation. |
-| `ui_elements_get_value` | Get value of an input based on id |
-| `ui_elements_register_on_lifecycle` | Register a callback to be called on mount or unmount |
-| `ui_elements_unregister_on_lifecycle` | Unregister a lifecycle callback |
+
+See [actions](./ui_elements.py) for more.
 
 ## Dependencies
 none

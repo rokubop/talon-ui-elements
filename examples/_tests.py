@@ -3,7 +3,7 @@ from ..src.entity_manager import entity_manager
 from .hello_world_ui import hello_world_ui
 from .todo_list_ui import todo_list_ui
 from .alignment_ui import alignment_ui
-from .state_and_refs_ui import state_and_refs_ui
+from .state_vs_refs_ui import state_vs_refs_ui
 from .cheatsheet_actions import cheatsheet_show
 from .inputs_ui import inputs_ui
 from .dashboard_ui import show_dashboard_ui
@@ -40,7 +40,7 @@ def test_inputs_ui():
 
 # @test_module
 def test_updating_content_ui():
-    actions.user.ui_elements_show(state_and_refs_ui)
+    actions.user.ui_elements_show(state_vs_refs_ui)
 
 # @test_module
 def test_alignment_ui():
