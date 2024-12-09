@@ -16,7 +16,7 @@ return screen()[
 ]
 ```
 
-`state.use` behaves like React’s `use_state`. It returns a tuple `(value, set_value)`. You must define a state key (e.g. `"mode"` in this case), so that `user.actions` can also target it, and optionally a default value.
+`state.use` behaves like React’s `use_state`. It returns a tuple `(value, set_value)`. You must define a state key (e.g. `"mode"` in this case), so that `actions.user.ui_elements*` can also target it, and optionally a default value.
 
 ## `state.get`
 ```py

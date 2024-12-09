@@ -5,10 +5,11 @@
 ![ui_elements](./examples/ui_elements_preview.png)
 
 - 8 Example UIs
-- Control state with your voice
-- Interactive hints displayed on all buttons and text inputs
-- Standard HTML and CSS like properties such as `width`, `background_color`, `margin`, `padding`, etc, but for python.
-- Familiar syntax for web developers
+- HTML like elements such as `div`, `text`, `button`, `input_text`
+- CSS like properties such as `width`, `background_color`, `margin`, `padding`, `flex_direction`
+- Reactive utilties `state`, `effect`, and `ref`
+- Talon actions for setting text, highlighting elements, and changing state
+- Voice activated hints displayed on all buttons and text inputs
 
 ## Installation
 Clone this repository into your Talon user directory.
@@ -59,6 +60,7 @@ actions.user.ui_elements_show(hello_world_ui)
   <img src="./examples/hello_world_preview.png" alt="hello_world" width="200"/>
 </p>
 
+See all supported [properties](./docs/properties.md) for styling.
 
 To hide and destroy the UI:
 ```py
@@ -69,17 +71,17 @@ actions.user.ui_elements_hide_all()
 
 ## Examples
 
-Checkout out examples in the [examples](./examples) folder. Or say "elements test" to view live examples.
+Checkout out examples in the [examples](./examples) folder. Or say "elements test" to view live interactive examples.
 | Example | Preview | Description |
 |----|----|----|
-| [alignment_ui](./examples/alignment_ui.py) | [preview](./examples/alignment_preview.png) |Demonstrates alignment options |
-| [cheatsheet_ui](./examples/cheatsheet_ui.py) | [preview](./examples/cheatsheet_preview.png) | A list of commands on the left or right of your screen |
+| [alignment_ui](./examples/alignment_ui.py) | [preview](./examples/alignment_preview.png) |Showcase 9 different flexbox arrangements |
+| [cheatsheet_ui](./examples/cheatsheet_ui.py) | [preview](./examples/cheatsheet_preview.png) | A list of commands on the left or right of your screen that can change state |
 | [dashboard_ui](./examples/dashboard_ui.py) | [preview](./examples/dashboard_preview.png) | Has a title bar, a side bar, and a reactive body |
 | [game_keys_ui](./examples/game_keys_ui.py) | [preview](./examples/game_keys_preview.png) | Game keys overlay for gaming, that highlights respective keys |
-| [hello_world_ui](./examples/hello_world_ui.py) | [preview](./examples/hello_world_preview.png) | Simple hello world UI from above |
-| [inputs_ui](./examples/inputs_ui.py) | [preview](./examples/inputs_preview.png) | Demonstrates text input interaction and submit with a button |
+| [hello_world_ui](./examples/hello_world_ui.py) | [preview](./examples/hello_world_preview.png) | Simple hello world UI |
+| [inputs_ui](./examples/inputs_ui.py) | [preview](./examples/inputs_preview.png) | Text input, ref, validation, and submit with a button |
 | [state_vs_refs_ui](examples/state_vs_refs_ui.py) | [preview](./examples/state_vs_refs_preview.png) | Two versions of a counter using state or ref |
-| [todo_list_ui](./examples/todo_list_ui.py) | [preview](./examples/todo_list_preview.png) | A todo list with an input, and add and remove functionality |
+| [todo_list_ui](./examples/todo_list_ui.py) | [preview](./examples/todo_list_preview.png) | A todo list with an input, add, and remove functionality |
 
 
 ## Elements
@@ -98,20 +100,10 @@ returned from `actions.user.ui_elements`:
 ui_elements have the same box model as normal HTML, with `margin`, `border`, `padding`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning border and padding are included in the width and height.
 
 ## Flex by default
-Most ui_elements operate under `display: flex` assumption, and default to `flex_direction="column"`with `align_items="stretch"`. This means when you don't provide anything, it will act similarly to `display: block`.
+ui_elements are all `display: flex`, and default to `flex_direction="column"`with `align_items="stretch"`. This means when you don't provide anything, it will act similarly to `display: block`.
 
-## Documentation
-| Documentation | Description |
-|---------------|-------------|
-| [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
-| [Defaults](./docs/defaults.md) | Default values for all properties |
-| [Properties](./docs/properties.md) | List of all properties you can use |
-| [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |
-| [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
-| [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |
-
-## Alignment examples
-If you aren't familiar with flexbox, check out this [guide](https://css-tricks.com/snippets/css/a-guide-to-flexbox/). This will help with alignment and justification.
+### Alignment examples
+If you aren't familiar with flexbox, check out this [CSS Tricks Guide to Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/).
 
 Some examples:
 ```py
@@ -132,6 +124,38 @@ div(flex=1)
 ```
 
 See [alignment_ui](./examples/alignment_ui.py) for more.
+## State
+
+```py
+..., state = actions.user.ui_elements([... "state"])
+
+tab, set_tab = state.use("tab", 1)
+
+# do conditional rendering with tab
+```
+
+`state.use` behaves like React’s `useState`. It returns a tuple (value, set_value). You must define a state key (e.g. `"tab"` in this case), so that `actions.user.ui_elements*` can also target it, and optionally a default value.
+
+To change state, we can use `set_tab` from above, or we can use Talon actions:
+```py
+actions.user.ui_elements_set_state("tab", 2)
+actions.user.ui_elements_set_state("tab", lambda tab: tab + 1)
+```
+
+State changes cause a full rerender (for now).
+
+
+If the UI doesn't need a setter, than we can use `state.get`, which is just the value.
+
+```py
+tab = state.get("tab", 1)
+```
+
+Read more about [state](./docs/state.md).
+
+### Disclaimer
+
+If you just need to update text or highlight, use the below methods instead, as those render on a separate decoration layer which are faster, and do not cause a full rerender.
 
 ## Updating text
 We must give a unique id to the thing we want to update.
@@ -163,11 +187,11 @@ actions.user.ui_elements_highlight_briefly("box", "FF0000aa")
 ```
 
 ## Buttons
-If you use a button, the UI will block the mouse instead of being pass through.
+If you use a button, the UI will block the mouse instead of being pass through, and voice activated hints will automatially appear on the button.
 ```py
 # button
-button("Click me", on_click=lambda: print("clicked")),
-button("Click me", on_click=actions.user.hide_my_custom_ui),
+button("Click me", on_click=lambda e: print("clicked")),
+button("Click me", on_click=actions.user.ui_elements_hide_all),
 ```
 
 ## Text inputs
@@ -216,17 +240,18 @@ screen(screen=2, align_items="flex_end", justify_content="center")[
 ]
 ```
 
-## On mount
+## Documentation
+| Documentation | Description |
+|---------------|-------------|
+| [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
+| [Defaults](./docs/defaults.md) | Default values for all properties |
+| [Properties](./docs/properties.md) | List of all properties you can use |
+| [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |
+| [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
+| [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |
 
-See [effect](./docs/effect.md) for more.
-
-## Properties
-
-See [properties](./docs/properties.md) for more.
-
-## Actions
-
-See [actions](./ui_elements.py) for more.
+## Under the hood
+Uses Talon's `Canvas` and Skia canvas integration under the hood, along with Talon's experimental `TextArea` for input.
 
 ## Dependencies
 none
