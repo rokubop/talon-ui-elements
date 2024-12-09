@@ -38,7 +38,7 @@ class Actions:
         Render and show the UI
 
         ```
-        (div, text, screen) = actions.user.ui_elements(["div", "text", "screen"])
+        div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
         def ui():
             return screen()[

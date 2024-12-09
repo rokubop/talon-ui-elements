@@ -24,14 +24,14 @@ cd ~/AppData/Roaming/talon/user
 git clone https://github.com/rokubop/talon-ui-elements.git
 ```
 
-Done! 🎉 Now you can build UIs in Talon using `actions.user.ui_elements(...), actions.user.ui_elements_show(...)`, `actions.user.ui_elements_hide(...)`, etc...
+Done! 🎉 Start learning below
 
 ## Usage
 Choose [elements](#elements) from `actions.user.ui_elements` and create a renderer function
 
 ```py
 def hello_world_ui():
-    (screen, div, text) = actions.user.ui_elements(["screen", "div", "text"])
+    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
 
     return screen()[
         div()[
@@ -45,7 +45,7 @@ actions.user.ui_elements_show(hello_world_ui)
 To define styles, we put it inside of the **parentheses**. To define children, we put it inside the **square brackets**.
 ```py
 def hello_world_ui():
-    (screen, div, text) = actions.user.ui_elements(["screen", "div", "text"])
+    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="333333", padding=16, border_radius=8, border_width=1)[
