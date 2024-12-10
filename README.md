@@ -5,8 +5,8 @@
 ![ui_elements](./examples/ui_elements_preview.png)
 
 - 8 Example UIs
-- HTML like elements such as `div`, `text`, `button`, `input_text`
-- CSS like properties such as `width`, `background_color`, `margin`, `padding`, `flex_direction`
+- HTML-like elements such as `div`, `text`, `button`, `input_text`
+- 40+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
 - Talon actions for setting text, highlighting elements, and changing state
 - Voice activated hints displayed on all buttons and text inputs
@@ -24,10 +24,10 @@ cd ~/AppData/Roaming/talon/user
 git clone https://github.com/rokubop/talon-ui-elements.git
 ```
 
-Done! 🎉 Start learning below
+Done! 🎉 Say "elements test" to try out examples. Start learning below.
 
 ## Usage
-Choose [elements](#elements) from `actions.user.ui_elements` and create a renderer function
+Choose [elements](#elements) from `actions.user.ui_elements` and create a **renderer function**
 
 ```py
 def hello_world_ui():
@@ -62,7 +62,7 @@ actions.user.ui_elements_show(hello_world_ui)
 
 See all supported [properties](./docs/properties.md) for styling.
 
-To hide and destroy the UI:
+## Hide and destroy
 ```py
 actions.user.ui_elements_hide(hello_world_ui)
 # or

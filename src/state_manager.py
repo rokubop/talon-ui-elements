@@ -78,7 +78,7 @@ class StateManager:
 
     def init_state(self, key, initial_value):
         if type(key) is not str:
-            raise ValueError("use_state must include a string name like this: use_state('my_state', initial_value)")
+            raise ValueError("state must include a string key like this: state.use('my_state', initial_value) or state.get('my_state')")
 
         if key not in store.reactive_state:
             store.reactive_state[key] = ReactiveState()

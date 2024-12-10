@@ -9,6 +9,8 @@ from .examples.examples_ui import toggle_elements_examples
 
 mod = Module()
 
+UNSET = object()
+
 @mod.action_class
 class Actions:
     def ui_elements(elements: List[str]) -> Union[tuple[callable], callable]:
@@ -66,7 +68,7 @@ class Actions:
         """Destroy and hide all UIs"""
         entity_manager.hide_all_trees()
 
-    def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = None):
+    def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """
         Set global state which will cause a rerender to any respective UIs using the state.
 
@@ -86,6 +88,8 @@ class Actions:
         })
         ```
         """
+        if value is UNSET:
+            raise TypeError("actions.user.ui_elements_set_state requires a string key and a value.")
         if isinstance(name, dict):
             for key, val in name.items():
                 state_manager.set_state_value(key, val)
@@ -168,7 +172,7 @@ class Actions:
 
     def ui_elements_register_effect(callback: callable, arg2: Any, arg3: Any = None):
         """
-        Same as `effect`, but can be registered independently, and will be attached to the next renderer.
+        Same as `effect`, but can be registered independently, and will be attached to current or upcoming renderer.
 
         `ui_elements_register_effect(on_mount, [])`
 

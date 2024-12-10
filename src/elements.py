@@ -72,9 +72,6 @@ def get_props(props, additional_props):
 
     return all_props
 
-roots_core = None
-updating_root_id = None
-
 def screen(*args, **additional_props):
     """
     ```py
@@ -107,8 +104,8 @@ def screen(*args, **additional_props):
 
     properties = get_props(props, additional_props)
 
-    properties["width"] = ref_screen.width
-    properties["height"] = ref_screen.height
+    properties["width"] = int(ref_screen.width)
+    properties["height"] = int(ref_screen.height)
 
     root = NodeScreen(
         "screen",

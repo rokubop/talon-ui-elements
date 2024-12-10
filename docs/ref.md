@@ -64,7 +64,7 @@ text("Hello world", id="hello"),
 ```
 | Talon `user.actions` | ref equivalent |
 | --- | --- |
-| `ui_elements_update_text("hello", "New text")` | `hello_ref.text = "New text"` |
+| `ui_elements_set_text("hello", "New text")` | `hello_ref.text = "New text"` |
 | `ui_elements_update_property("hello", "color", "red")` | `hello_ref.color = "red"` |
 | `ui_elements_get_input_value()` | `input_ref.value` |
 | `ui_elements_highlight()` | `hello_ref.highlight()` |
