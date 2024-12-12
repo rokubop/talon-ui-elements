@@ -26,7 +26,7 @@ Properties mostly match standard CSS properties.
 | height | Union[int, str] | 0 | Height |
 | highlight_color | str | None | Highlight color |
 | id | str | None | ID |
-| justify_content | "center", "flex_start", "flex_end", "justify_between" | "flex_start" | Justify content in the main axis |
+| justify_content | "center", "flex_start", "flex_end", "space_between" | "flex_start" | Justify content in the main axis |
 | key | str | None | Key |
 | margin | Margin | 0 | Uniform margin width |
 | margin_bottom | int | 0 | Bottom margin |
