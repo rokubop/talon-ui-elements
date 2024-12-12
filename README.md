@@ -259,6 +259,35 @@ screen(screen=2, align_items="flex_end", justify_content="center")[
 | [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
 | [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |
 
+## Development suggestions
+While developing, you might get into a state where the UI gets stuck on your screen and you need to restart Talon. For this reason, it's recommended to have a "talon restart" command.
+
+In a `.talon` file:
+```
+^talon restart$:            user.talon_restart()
+```
+
+Inside of a `.py` file:
+```py
+import os
+from talon import Module, actions, ui
+
+mod = Module()
+
+@mod.action_class
+class Actions:
+    def talon_restart():
+        """restart talon"""
+        # for windows only
+        talon_app = ui.apps(pid=os.getpid())[0]
+        os.startfile(talon_app.exe)
+        talon_app.quit()
+```
+
+- Sometimes the UI may not refresh after saving the file. Try hiding the UI, saving the file again, and showing again.
+
+- Recommend using "Andreas Talon" VSCode extension + its dependency pokey command server, so you can get autocomplete for talon user actions, and hover over hint documentation on things like `actions.user.ui_elements()` or `actions.user.ui_elements_show()`.
+
 ## Under the hood
 Uses Talon's `Canvas` and Skia canvas integration under the hood, along with Talon's experimental `TextArea` for input.
 
