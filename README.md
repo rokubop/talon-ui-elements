@@ -181,8 +181,17 @@ We can then use these actions to trigger a highlight or unhighlight:
 actions.user.ui_elements_highlight("box")
 actions.user.ui_elements_highlight_briefly("box")
 actions.user.ui_elements_unhighlight("box")
+```
 
-# highlight color FF0000 with transparency of aa
+To use a custom highlight color, we can use the following property:
+```py
+div(id="box", highlight_color="FF0000")[
+    text("Hello world"),
+]
+```
+
+or we can specify the highlight color in the action:
+```py
 actions.user.ui_elements_highlight_briefly("box", "FF0000aa")
 ```
 
