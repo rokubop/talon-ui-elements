@@ -1,4 +1,4 @@
-from talon import Module, Context, cron, settings
+from talon import Module, Context, cron, settings, registry
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
@@ -8,8 +8,15 @@ from .store import store
 from .utils import safe_callback
 
 mod = Module()
-ctx = Context()
+ctx, ctx_hints_active_browser = Context(), Context()
 mod.tag("ui_elements_hints_active", desc="tag for ui elements")
+
+ctx_hints_active_browser.matches = """
+tag: user.ui_elements_hints_active
+and tag: browser
+"""
+
+first_time_setup = False
 
 class HintGenerator:
     def __init__(self):
@@ -114,8 +121,26 @@ def get_hint_generator():
         reset_hint_generator()
     return hint_generator.generate_hint
 
+def rango_target(m) -> str:
+    return m.rango_target
+
+def init_rango_override():
+    """
+    If we have UI overlaying the screen with hints, then
+    that should take priority over the rango hints in the browser.
+    """
+    if registry.captures.get("user.rango_target"):
+        ctx_hints_active_browser.capture(
+            "user.rango_target",
+            rule="this is a workaround to make rango target match this really long sentence so that it doesnt match anything"
+        )(rango_target)
+
 def hint_tag_enable():
+    global first_time_setup
     ctx.tags = ["user.ui_elements_hints_active"]
+    if not first_time_setup:
+        first_time_setup = True
+        init_rango_override()
 
 def hint_tag_disable():
     ctx.tags = []
