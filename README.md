@@ -98,6 +98,8 @@ Congratulations! You've created your first UI. 🎉
 
 Start trying out properties to see how it changes. See all supported [properties](./docs/properties.md) for styling.
 
+> Note: It's a good idea to say "Talon open log" and watch the log while developing. This will help you if you make any mistakes.
+
 ## Examples
 
 Checkout out examples in the [examples](./examples) folder. Or say "elements test" to view live interactive examples.
