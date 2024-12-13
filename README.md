@@ -225,7 +225,7 @@ div(id="box")[
 ]
 ```
 
-We can then use these actions to trigger a highlight or unhighlight, targeting an element with the id `"box"`:
+We can use these actions to trigger a highlight or unhighlight, targeting an element with the id `"box"`. Highlights happen on a separate decoration layer, and are faster than a full rerender.
 ```py
 actions.user.ui_elements_highlight("box")
 actions.user.ui_elements_highlight_briefly("box")
