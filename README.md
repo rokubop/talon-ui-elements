@@ -11,8 +11,11 @@
 - Talon actions for setting text, highlighting elements, and changing state
 - Voice activated hints displayed on all buttons and text inputs
 
+## Prerequisites
+- [Talon](https://talonvoice.com/)
+
 ## Installation
-Clone this repository into your Talon user directory.
+Download or clone this repository into your Talon user directory.
 
 ```sh
 # mac and linux
@@ -27,7 +30,7 @@ git clone https://github.com/rokubop/talon-ui-elements.git
 Done! 🎉 Say "elements test" to try out examples. Start learning below.
 
 ## Usage
-Choose [elements](#elements) from `actions.user.ui_elements` and create a **renderer function**
+Choose [elements](#elements) from `actions.user.ui_elements` and create a **renderer function** in any `.py` file in your Talon user directory.
 
 ```py
 def hello_world_ui():
@@ -38,8 +41,6 @@ def hello_world_ui():
             text("Hello world")
         ]
     ]
-
-actions.user.ui_elements_show(hello_world_ui)
 ```
 
 To define styles, we put it inside of the **parentheses**. To define children, we put it inside the **square brackets**.
@@ -52,22 +53,50 @@ def hello_world_ui():
             text("Hello world", font_size=24)
         ]
     ]
-
-actions.user.ui_elements_show(hello_world_ui)
 ```
+
+Now we just need to show and hide it, so let's create two Talon actions. Here's the full `.py` code:
+```py
+from talon import Module, actions
+
+mod = Module()
+
+def hello_world_ui():
+    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
+
+    return screen(justify_content="center", align_items="center")[
+        div(background_color="333333", padding=16, border_radius=8, border_width=1)[
+            text("Hello world", font_size=24)
+        ]
+    ]
+
+@mod.action_class
+class Actions:
+    def show_hello_world():
+        """Show hello world UI"""
+        actions.user.ui_elements_show(hello_world_ui)
+
+    def hide_hello_world():
+        """Hide hello world UI"""
+        actions.user.ui_elements_hide_all()
+        # or actions.user.ui_elements_hide(hello_world_ui)
+```
+
+And in any `.talon` file:
+```talon
+show hello world: user.show_hello_world()
+hide hello world: user.hide_hello_world()
+```
+
+Now when you say "show hello world", the UI should appear.
 
 <p align="center">
   <img src="./examples/hello_world_preview.png" alt="hello_world" width="200"/>
 </p>
 
-See all supported [properties](./docs/properties.md) for styling.
+Congratulations! You've created your first UI. 🎉
 
-## Hide and destroy
-```py
-actions.user.ui_elements_hide(hello_world_ui)
-# or
-actions.user.ui_elements_hide_all()
-```
+Start trying out properties to see how it changes. See all supported [properties](./docs/properties.md) for styling.
 
 ## Examples
 
@@ -168,15 +197,35 @@ Then we can use this action to update the text:
 actions.user.ui_elements_set_text("test", "New text")
 ```
 
+Simple text updates like this render on a separate decoration layer, and are faster than a full rerender.
+
+## Updating properties
+We must give a unique id to the thing we want to update.
+
+```py
+div(id="box", background_color="FF0000")[
+    text("Hello world"),
+]
+```
+
+Then we can use `ui_elements_set_property` to update the properties.  Changes will cause a full rerender. (for now)
+```py
+actions.user.ui_elements_set_property("box", "background_color", "red")
+actions.user.ui_elements_set_property("box", "width", "400")
+actions.user.ui_elements_set_property("box", {
+    "background_color": "red",
+    "width": "400"
+})
+```
+
 ## Highlighting elements
-We must give a unique id to the thing we want to highlight.
 ```py
 div(id="box")[
     text("Hello world"),
 ]
 ```
 
-We can then use these actions to trigger a highlight or unhighlight:
+We can then use these actions to trigger a highlight or unhighlight, targeting an element with the id `"box"`:
 ```py
 actions.user.ui_elements_highlight("box")
 actions.user.ui_elements_highlight_briefly("box")
