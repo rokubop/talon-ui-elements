@@ -88,12 +88,12 @@ class Actions:
         })
         ```
         """
-        if value is UNSET:
-            raise TypeError("actions.user.ui_elements_set_state requires a string key and a value.")
         if isinstance(name, dict):
             for key, val in name.items():
                 state_manager.set_state_value(key, val)
         else:
+            if value is UNSET:
+                raise TypeError("actions.user.ui_elements_set_state requires a string key and a value.")
             state_manager.set_state_value(name, value)
 
     def ui_elements_get_state(name: str):
