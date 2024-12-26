@@ -5,11 +5,15 @@ from .interfaces import Effect
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
+from .nodes.node_svg import NodeSvg, NodeSvgPath
 from .nodes.node_text import NodeText
+from .nodes.node_button import NodeButton
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
     NodeTextProperties,
+    NodeSvgProperties,
+    NodeSvgPathProperties,
     Properties,
     validate_combined_props
 )
@@ -170,7 +174,13 @@ def text(text_str: str, props=None, **additional_props):
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
 
-def button(text_str: str, props=None, **additional_props):
+def button(*args, text=None, **additional_props):
+    if args and isinstance(args[0], str):
+        text = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
     default_props = {
         "padding": 8,
         **(props or {})
@@ -285,3 +295,44 @@ def ui_elements(elements: List[str]) -> tuple[callable]:
         )
     else:
         return element_collection_full[elements[0]]
+
+def placeholder(props=None, **additional_props):
+    properties = get_props(props, additional_props)
+    box_properties = Properties(**properties)
+    return NodeContainer('div', box_properties)
+
+def svg(props=None, **additional_props):
+    properties = get_props(props, additional_props)
+    svg_properties = NodeSvgProperties(**properties)
+    return NodeSvg(svg_properties)
+
+def svg_path(d: str, props=None, **additional_props):
+    properties = get_props(props, additional_props)
+    path_properties = NodeSvgPathProperties(**properties)
+    path_properties.d = d
+    return NodeSvgPath(path_properties)
+
+element_svg_collection_full = {
+    "svg": svg,
+    "path": svg_path,
+    "rect": placeholder,
+    "circle": placeholder,
+    "line": placeholder,
+    "polyline": placeholder,
+    "polygon": placeholder,
+    "ellipse": placeholder,
+}
+
+def ui_elements_svg(elements: List[str]) -> tuple[callable]:
+    if not all(element in element_svg_collection_full for element in elements):
+        raise ValueError(
+            f"\nInvalid elements {elements} provided to ui_elements_svg"
+            f"\nValid elements are {list(element_svg_collection_full.keys())}"
+        )
+
+    if len(elements) > 1:
+        return tuple(
+            element_svg_collection_full[element] for element in elements
+        )
+    else:
+        return element_svg_collection_full[elements[0]]

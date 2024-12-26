@@ -19,6 +19,9 @@ def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
     c.draw_text(str(text), x, y)
 
 def get_screen(index: int = None) -> Screen:
+    window = ui.active_window()
+    if window:
+        return window.rect
     return ui.main_screen() if index is None else ui.screens()[index]
 
 def generate_hash(obj: Union[Callable, dict]) -> str:

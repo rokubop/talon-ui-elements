@@ -1,6 +1,6 @@
 from talon import Module
 from typing import List, Any, Union, Callable
-from .src.elements import ui_elements, use_effect_without_tree
+from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
 from .src.tree import render_ui
@@ -169,6 +169,26 @@ class Actions:
     def ui_elements_examples():
         """Test example UIs"""
         toggle_elements_examples()
+
+    def ui_elements_svg(elements: List[str]) -> Union[tuple[callable], callable]:
+        """
+        Provides elements to create standard SVG elements, based on view_box 0 0 24 24.
+
+        ```
+        # Example 1
+        svg, path = actions.user.ui_elements_svg(["svg", "path"])
+
+        # Example 2 - All elements
+        elements = ["svg", "path", "rect", "circle", "line", "polyline", "polygon", "ellispse"]
+        svg, path, rect, circle, line, polyline, polygon, ellipse = actions.user.ui_elements_svg(elements)
+
+        svg()[
+            path(d="M150 0 L75 200 L225 200 Z", fill="red"),
+            rect(x=10, y=10, width=100, height=100, fill="blue"),
+        ]
+        ```
+        """
+        return ui_elements_svg(elements)
 
     def ui_elements_register_effect(callback: callable, arg2: Any, arg3: Any = None):
         """

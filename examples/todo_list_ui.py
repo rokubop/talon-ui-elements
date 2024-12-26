@@ -3,6 +3,7 @@ from talon import actions
 def todo_list_ui():
     elements = ["div", "text", "button", "screen", "state", "input_text", "ref"]
     div, text, button, screen, state, input_text, ref = actions.user.ui_elements(elements)
+    svg, path = actions.user.ui_elements_svg(["svg", "path"])
 
     items, set_items = state.use('items', [])
     add_input = ref('add_input')
@@ -19,7 +20,11 @@ def todo_list_ui():
     def item(item_name):
         return div(background_color="333333", justify_content="space_between", flex_direction="row", align_items="center", gap=8)[
             text(item_name, color="FFFFFF", font_size=16),
-            button("X", background_color="FF0000", font_size=10, on_click=lambda: delete_item(item_name), border_radius=2)
+            button(on_click=lambda: delete_item(item_name))[
+                svg(size=12)[
+                    path(d="M 6 6 L 18 18 M 18 6 L 6 18")
+                ],
+            ]
         ]
 
     return screen(justify_content="center", align_items="center")[

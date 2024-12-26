@@ -45,6 +45,7 @@ class Properties:
     on_click: callable = None
     opacity: float = None
     padding: Padding = Padding(0, 0, 0, 0)
+    text: str = None
     value: str = None
     width: Union[int, str] = 0
 
@@ -171,6 +172,39 @@ class NodeRootProperties(Properties):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+# class NodeSvgPropertiesDict(PropertiesDict):
+#     fill: str
+#     stroke: str
+#     stroke_width: int
+#     stroke_linejoin: str
+#     stroke_linecap: str
+#     view_box: str = "0 0 24 24"
+#     size: int = 24
+
+@dataclass
+class NodeSvgProperties(Properties):
+    fill: str = DEFAULT_COLOR
+    stroke: str = DEFAULT_COLOR
+    stroke_width: int = 2
+    stroke_linejoin: str = "round"
+    stroke_linecap: str = "round"
+    view_box: str = "0 0 24 24"
+    size: int = 24
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+# class NodeSvgPathPropertiesDict(PropertiesDict):
+#     d: str
+
+@dataclass
+class NodeSvgPathProperties(Properties):
+    d: str = ""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 
 @dataclass
 class NodeInputTextProperties(Properties):

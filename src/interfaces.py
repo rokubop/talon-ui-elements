@@ -425,6 +425,19 @@ class NodeContainerType(NodeType):
     def hide(self):
         pass
 
+class NodeSvgType(NodeType):
+    @abstractmethod
+    def grow_intrinsic_size(self, c: object, cursor: object):
+        pass
+
+    @abstractmethod
+    def virtual_render(self, c: object, cursor: object):
+        pass
+
+    @abstractmethod
+    def render(self, c: object, cursor: object, scroll_region_key: int):
+        pass
+
 class TreeType(ABC):
     canvas_base: Canvas
     canvas_decorator: Canvas
