@@ -20,7 +20,7 @@ from .entity_manager import entity_manager
 from .hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from .state_manager import state_manager
 from .store import store
-from .utils import get_screen, draw_text_simple, get_active_color_from_highlight_color
+from .utils import draw_text_simple, get_active_color_from_highlight_color
 import inspect
 import uuid
 
@@ -223,12 +223,10 @@ class Tree(TreeType):
         self.render_debounce_job = None
         self.redistribute_box_model = False
         self.root_node = None
-        self.screen = None
-        self.screen_index = None
         self.show_hints = False
         self.surfaces = []
         state_manager.init_states(initial_state)
-        self.init_nodes_and_screen()
+        self.init_nodes_and_boundary()
 
     def with_tree(func):
         def wrapper(self, *args, **kwargs):
@@ -240,20 +238,16 @@ class Tree(TreeType):
 
     def reset_cursor(self):
         if self.cursor is None:
-            self.cursor = Cursor(self.screen)
+            self.cursor = Cursor(self.root_node.boundary_rect)
         else:
             self.cursor.reset()
 
-    def init_screen(self):
-        if self.root_node.element_type != "screen":
-            raise Exception("Root node must be a screen element")
-
-        if not self.screen or self.screen_index != self.root_node.screen_index:
-            self.screen_index = self.root_node.screen_index
-            self.screen = get_screen(self.screen_index)
+    def init_boundary(self):
+        if self.root_node.element_type not in ["screen", "active_window"]:
+            raise Exception("Root node must be a screen or active_window element")
 
     @with_tree
-    def init_nodes_and_screen(self):
+    def init_nodes_and_boundary(self):
         if len(inspect.signature(self._renderer).parameters) > 0:
             if not isinstance(self.props, dict):
                 print(f"props: {self.props}")
@@ -265,7 +259,7 @@ class Tree(TreeType):
         if not isinstance(self.root_node, NodeType):
             raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
 
-        self.init_screen()
+        self.init_boundary()
 
     @with_tree
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
@@ -392,16 +386,19 @@ class Tree(TreeType):
 
         self.on_fully_rendered()
 
+    def create_canvas(self):
+        return Canvas.from_rect(self.root_node.boundary_rect)
+
     def render_decorator_canvas(self):
         if not self.canvas_decorator:
-            self.canvas_decorator = Canvas.from_screen(self.screen)
+            self.canvas_decorator = self.create_canvas()
             self.canvas_decorator.register("draw", self.on_draw_decorator_canvas)
 
         self.canvas_decorator.freeze()
 
     def render_base_canvas(self):
         if not self.canvas_base:
-            self.canvas_base = Canvas.from_screen(self.screen)
+            self.canvas_base = self.create_canvas()
             self.canvas_base.register("draw", self.on_draw_base_canvas)
 
         self.canvas_base.freeze()
@@ -419,7 +416,7 @@ class Tree(TreeType):
                     # canvas.unregister("mouse", self.on_scroll)
                     canvas.close()
                 self.is_blockable_canvas_init = False
-            self.init_nodes_and_screen()
+            self.init_nodes_and_boundary()
 
         if on_mount or on_unmount:
             state_manager.register_effect(Effect(

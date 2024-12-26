@@ -1,16 +1,17 @@
 from dataclasses import fields
 from typing import Optional, List, Dict, get_origin, get_args, Any
+from talon import ui
 from talon.screen import Screen
 from .interfaces import Effect
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
-from .nodes.node_screen import NodeScreen
+from .nodes.node_root import NodeRoot
 from .nodes.node_text import NodeText
 from .properties import (
     NodeInputTextProperties,
     NodeInputTextPropertiesDict,
-    NodeScreenProperties,
-    NodeScreenPropertiesDict,
+    NodeRootProperties,
+    NodeRootPropertiesDict,
     NodeTextProperties,
     NodeTextPropertiesDict,
     Properties,
@@ -25,7 +26,7 @@ VALID_PROPS = (
     set(PropertiesDict.__annotations__.keys())
     .union(set(NodeTextPropertiesDict.__annotations__.keys()))
     .union(set(NodeInputTextPropertiesDict.__annotations__.keys()))
-    .union(set(NodeScreenPropertiesDict.__annotations__.keys()))
+    .union(set(NodeRootPropertiesDict.__annotations__.keys()))
 )
 
 VALID_PROPS = {f.name for f in fields(UIProps)}
@@ -104,12 +105,28 @@ def screen(*args, **additional_props):
 
     properties = get_props(props, additional_props)
 
+    properties["boundary_rect"] = ref_screen.rect
     properties["width"] = int(ref_screen.width)
     properties["height"] = int(ref_screen.height)
 
-    root = NodeScreen(
+    root = NodeRoot(
         "screen",
-        NodeScreenProperties(**properties)
+        NodeRootProperties(**properties)
+    )
+    return root
+
+def active_window(props=None, **additional_props):
+    active_window = ui.active_window()
+
+    properties = get_props(props, additional_props)
+
+    properties["boundary_rect"] = active_window.rect
+    properties["width"] = int(active_window.rect.width)
+    properties["height"] = int(active_window.rect.height)
+
+    root = NodeRoot(
+        "active_window",
+        NodeRootProperties(**properties)
     )
     return root
 
@@ -286,6 +303,7 @@ class UIElementsTextProxy:
 div = UIElementsContainerProxy(div)
 text = UIElementsTextProxy(text)
 screen = UIElementsContainerProxy(screen)
+active_window = UIElementsContainerProxy(active_window)
 button = UIElementsTextProxy(button)
 input_text = UIElementsInputTextProxy(input_text)
 state = State()
@@ -294,6 +312,7 @@ ref = Ref
 
 element_collection: Dict[str, callable] = {
     'button': button,
+    'active_window': active_window,
     'div': div,
     'input_text': input_text,
     'screen': screen,

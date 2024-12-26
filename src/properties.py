@@ -1,5 +1,6 @@
 from dataclasses import dataclass, fields
 from talon import app
+from talon.types import Rect
 from typing import Optional, TypedDict, Union
 from typing import TypedDict, Optional, get_origin, get_args
 from .box_model import Border, Margin, Padding, parse_box_model
@@ -138,13 +139,15 @@ class NodeTextProperties(Properties):
         self.font_size = DEFAULT_FONT_SIZE
         super().__init__(**kwargs)
 
-class NodeScreenPropertiesDict(PropertiesDict):
+class NodeRootPropertiesDict(PropertiesDict):
     screen: int
+    boundary_rect: Rect
 
 @dataclass
-class NodeScreenProperties(Properties):
+class NodeRootProperties(Properties):
     screen: int = 0
     align_items: str = "flex_start"
+    boundary_rect: Rect = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -183,7 +186,7 @@ VALID_PROPS = (
     set(PropertiesDict.__annotations__.keys())
     .union(set(NodeTextPropertiesDict.__annotations__.keys()))
     .union(set(NodeInputTextPropertiesDict.__annotations__.keys()))
-    .union(set(NodeScreenPropertiesDict.__annotations__.keys()))
+    .union(set(NodeRootPropertiesDict.__annotations__.keys()))
 )
 
 @dataclass
