@@ -22,8 +22,8 @@ class Actions:
         div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
         # Example 2 - All elements
-        elements = ["screen", "div", "text", "button", "input_text", "state", "ref", "effect"]
-        screen, div, text, button, input_text, state, ref, effect = actions.user.ui_elements(elements)
+        elements = ["screen", "active_window", "div", "text", "button", "input_text", "state", "ref", "effect"]
+        screen, active_window, div, text, button, input_text, state, ref, effect = actions.user.ui_elements(elements)
         ```
         """
         return ui_elements(elements)

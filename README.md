@@ -118,7 +118,8 @@ Checkout out examples in the [examples](./examples) folder. Or say "elements tes
 ## Elements
 returned from `actions.user.ui_elements`:
 
-- `screen` - The root element. Basically a div the size of your screen.
+- `screen` - A root element. Basically a div the size of your screen.
+- `active_window` - A root element. Matches the dimensions of the active window.
 - `div` - Standard container element.
 - `text`
 - `button`
