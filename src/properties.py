@@ -1,8 +1,8 @@
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from talon import app
 from talon.types import Rect
-from typing import Optional, TypedDict, Union
-from typing import TypedDict, Optional, get_origin, get_args
+from typing import TypedDict, Union
+from typing import TypedDict
 from .box_model import Border, Margin, Padding, parse_box_model
 from .constants import (
     DEFAULT_COLOR,
@@ -10,7 +10,8 @@ from .constants import (
     DEFAULT_FONT_SIZE,
     DEFAULT_FLEX_DIRECTION,
     DEFAULT_ALIGN_ITEMS,
-    DEFAULT_JUSTIFY_CONTENT
+    DEFAULT_JUSTIFY_CONTENT,
+    ELEMENT_ENUM_TYPE
 )
 
 class Properties:
@@ -94,37 +95,54 @@ class Properties:
             if hasattr(self, key):
                 setattr(self, key, value)
 
-class PropertiesDict(TypedDict):
+class BoxModelValidationProperties(TypedDict):
+    border_bottom: int
+    border_left: int
+    border_right: int
+    border_top: int
+    border: int
+    margin_bottom: int
+    margin_left: int
+    margin_right: int
+    margin_top: int
+    margin: int
+    padding_bottom: int
+    padding_left: int
+    padding_right: int
+    padding_top: int
+    padding: int
+
+class ValidationProperties(TypedDict, BoxModelValidationProperties):
     align_items: str
     align_self: str
     background_color: str
     border_color: str
     border_radius: int
     border_width: int
-    border: Border
     color: str
     flex_direction: str
     flex: int
+    gap: int
     height: Union[int, str]
     highlight_color: str
     id: str
     justify_content: str
-    margin: Margin
     max_height: int
     max_width: int
     min_height: int
     min_width: int
-    on_change: callable
-    on_click: callable
     opacity: float
-    padding: Padding
     value: str
     width: Union[int, str]
 
-class NodeTextPropertiesDict(PropertiesDict):
-    id: str
+class NodeTextValidationProperties(ValidationProperties):
     font_size: int
+    font_family: str
     font_weight: str
+    text_align: str
+
+class NodeButtonValidationProperties(NodeTextValidationProperties):
+    on_click: callable
 
 @dataclass
 class NodeTextProperties(Properties):
@@ -139,7 +157,7 @@ class NodeTextProperties(Properties):
         self.font_size = DEFAULT_FONT_SIZE
         super().__init__(**kwargs)
 
-class NodeRootPropertiesDict(PropertiesDict):
+class NodeRootValidationProperties(ValidationProperties):
     screen: int
     boundary_rect: Rect
 
@@ -176,74 +194,22 @@ class NodeInputTextProperties(Properties):
         ) + max(8, kwargs.get('border_radius', 0))
         super().__init__(**kwargs)
 
-class NodeInputTextPropertiesDict(PropertiesDict):
+class NodeInputTextValidationProperties(ValidationProperties):
     id: str
     font_size: int
     value: str
     on_change: callable
 
-VALID_PROPS = (
-    set(PropertiesDict.__annotations__.keys())
-    .union(set(NodeTextPropertiesDict.__annotations__.keys()))
-    .union(set(NodeInputTextPropertiesDict.__annotations__.keys()))
-    .union(set(NodeRootPropertiesDict.__annotations__.keys()))
-)
+VALID_ELEMENT_PROP_TYPES = {
+    ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["active_window"]: NodeRootValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["div"]: ValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["screen"]: NodeRootValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
+}
 
-@dataclass
-class UIProps:
-    align_items: str
-    align_self: str
-    background_color: str
-    border_bottom: int
-    border_color: str
-    border_left: int
-    border_radius: int
-    border_right: int
-    border_top: int
-    border_width: int
-    color: str
-    flex_direction: str
-    flex: int
-    font_family: str
-    font_size: int
-    font_weight: str
-    gap: int
-    height: Union[int, str]
-    highlight_color: str
-    id: str
-    justify_content: str
-    margin_bottom: int
-    margin_left: int
-    margin_right: int
-    margin_top: int
-    margin: int
-    max_height: int
-    max_width: int
-    min_height: int
-    min_width: int
-    on_change: callable
-    on_click: callable
-    opacity: float
-    padding_bottom: int
-    padding_left: int
-    padding_right: int
-    padding_top: int
-    padding: int
-    screen: int
-    text_align: str
-    value: str
-    width: Union[int, str]
-
-VALID_PROPS = {f.name for f in fields(UIProps)}
-EXPECTED_TYPES = {f.name: f.type for f in fields(UIProps)}
-EXPECTED_TYPES["type"] = str
-
-def resolve_type(type_hint):
-    if get_origin(type_hint) is Optional:
-        return get_args(type_hint)[0]
-    return type_hint
-
-def get_props(props, additional_props):
+def validate_combined_props(props, additional_props, element_type):
     all_props = None
     if props is None:
         all_props = additional_props
@@ -252,18 +218,18 @@ def get_props(props, additional_props):
     else:
         all_props = {**props, **additional_props}
 
-    invalid_props = set(all_props.keys()) - VALID_PROPS - {'type'}
+    invalid_props = all_props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
-        valid_props_message = ",\n".join(sorted(VALID_PROPS))
+        valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))
         raise ValueError(
-            f"\nInvalid CSS property: {', '.join(sorted(invalid_props))}\n\n"
-            f"Valid CSS properties are:\n"
+            f"\nInvalid property for \"{element_type}\": {', '.join(sorted(invalid_props))}\n\n"
+            f"Valid properties for \"{element_type}\" are:\n"
             f"{valid_props_message}"
         )
 
     type_errors = []
     for key, value in all_props.items():
-        expected_type = EXPECTED_TYPES[key]
+        expected_type = VALID_ELEMENT_PROP_TYPES[element_type][key]
         if expected_type is callable:
             if not callable(value):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
@@ -272,7 +238,7 @@ def get_props(props, additional_props):
 
     if type_errors:
         raise ValueError(
-            f"\nInvalid CSS property type:\n" +
+            f"\nInvalid property type:\n" +
             "\n".join(type_errors)
         )
 
