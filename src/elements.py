@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 from talon import ui
 from talon.screen import Screen
-from .interfaces import Effect
+from .constants import ELEMENT_ENUM_TYPE
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
@@ -17,7 +17,8 @@ from .properties import (
     Properties,
     validate_combined_props
 )
-from .constants import ELEMENT_ENUM_TYPE
+from .icons import ICON_SVG_PATHS
+from .interfaces import Effect
 from .ref import Ref
 from .state_manager import state_manager
 from .utils import get_screen
@@ -187,9 +188,29 @@ def button(*args, text=None, **additional_props):
     }
 
     properties = validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["button"])
-    properties["type"] = "button"
-    text_properties = NodeTextProperties(**properties)
-    return NodeText(ELEMENT_ENUM_TYPE["button"], text_str, text_properties)
+
+    if text:
+        properties["type"] = "button"
+        text_properties = NodeTextProperties(**properties)
+        return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
+
+    button_properties = NodeTextProperties(**properties)
+    return NodeButton(button_properties)
+
+def icon(name: str, props=None, **additional_props):
+    default_props = {
+        "name": name,
+        **(props or {})
+    }
+
+    if name not in ICON_SVG_PATHS:
+        raise ValueError(f"Invalid icon name: {name}. Valid icon names are: \n{list(ICON_SVG_PATHS.keys())}")
+
+    validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["icon"])
+
+    return svg(props, **additional_props)[
+        svg_path(d=ICON_SVG_PATHS[name])
+    ]
 
 def input_text(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["input_text"])
@@ -245,7 +266,7 @@ class UIElementsInputTextProxy:
 
         return self.func(*args, **kwargs)
 
-class UIElementsTextProxy:
+class UIElementsLeafProxy:
     def __init__(self, func):
         self.func = func
 
@@ -256,10 +277,11 @@ class UIElementsTextProxy:
         return self.func(*args, **kwargs)
 
 div = UIElementsContainerProxy(div)
-text = UIElementsTextProxy(text)
+text = UIElementsLeafProxy(text)
 screen = UIElementsContainerProxy(screen)
 active_window = UIElementsContainerProxy(active_window)
-button = UIElementsTextProxy(button)
+button = UIElementsLeafProxy(button)
+icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
 state = State()
 effect = use_effect
@@ -269,6 +291,7 @@ element_collection: Dict[str, callable] = {
     'button': button,
     'active_window': active_window,
     'div': div,
+    'icon': icon,
     'input_text': input_text,
     'screen': screen,
     'text': text,
@@ -296,18 +319,18 @@ def ui_elements(elements: List[str]) -> tuple[callable]:
     else:
         return element_collection_full[elements[0]]
 
-def placeholder(props=None, **additional_props):
-    properties = get_props(props, additional_props)
+def placeholder_svg_child(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
     box_properties = Properties(**properties)
     return NodeContainer('div', box_properties)
 
 def svg(props=None, **additional_props):
-    properties = get_props(props, additional_props)
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
     svg_properties = NodeSvgProperties(**properties)
     return NodeSvg(svg_properties)
 
 def svg_path(d: str, props=None, **additional_props):
-    properties = get_props(props, additional_props)
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_path"])
     path_properties = NodeSvgPathProperties(**properties)
     path_properties.d = d
     return NodeSvgPath(path_properties)
@@ -315,19 +338,19 @@ def svg_path(d: str, props=None, **additional_props):
 element_svg_collection_full = {
     "svg": svg,
     "path": svg_path,
-    "rect": placeholder,
-    "circle": placeholder,
-    "line": placeholder,
-    "polyline": placeholder,
-    "polygon": placeholder,
-    "ellipse": placeholder,
+    "rect": placeholder_svg_child,
+    "circle": placeholder_svg_child,
+    "line": placeholder_svg_child,
+    "polyline": placeholder_svg_child,
+    "polygon": placeholder_svg_child,
+    "ellipse": placeholder_svg_child,
 }
 
 def ui_elements_svg(elements: List[str]) -> tuple[callable]:
     if not all(element in element_svg_collection_full for element in elements):
         raise ValueError(
             f"\nInvalid elements {elements} provided to ui_elements_svg"
-            f"\nValid elements are {list(element_svg_collection_full.keys())}"
+            f"\nValid svg elements are {list(element_svg_collection_full.keys())}"
         )
 
     if len(elements) > 1:

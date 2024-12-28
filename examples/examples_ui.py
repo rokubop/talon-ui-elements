@@ -57,11 +57,15 @@ button_action = {
 }
 
 def examples_ui():
-    div, text, screen, button = actions.user.ui_elements(["div", "text", "screen", "button"])
+    div, text, screen, button, icon = actions.user.ui_elements(["div", "text", "screen", "button", "icon"])
 
     return screen(justify_content="center", align_items="center")[
         div(background_color="272727", border_radius=16, border_width=1, width=200)[
             div(flex_direction='column', padding=16)[
+                # icon("hamburger"),
+                text("hi"),
+                # icon("download"),
+                icon("edit", color="FFCC00"),
                 text("Examples", font_size=24, margin_top=8),
                 text("talon-ui-elements", font_size=14, color="FFCC00"),
             ],

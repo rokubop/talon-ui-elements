@@ -45,7 +45,6 @@ class Properties:
     on_click: callable = None
     opacity: float = None
     padding: Padding = Padding(0, 0, 0, 0)
-    text: str = None
     value: str = None
     width: Union[int, str] = 0
 
@@ -137,6 +136,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     width: Union[int, str]
 
 class NodeTextValidationProperties(ValidationProperties):
+    text: str
     font_size: int
     font_family: str
     font_weight: str
@@ -173,14 +173,16 @@ class NodeRootProperties(Properties):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-# class NodeSvgPropertiesDict(PropertiesDict):
-#     fill: str
-#     stroke: str
-#     stroke_width: int
-#     stroke_linejoin: str
-#     stroke_linecap: str
-#     view_box: str = "0 0 24 24"
-#     size: int = 24
+class NodeSvgValidationProperties(TypedDict):
+    color: str
+    background_color: str
+    fill: str
+    stroke: str
+    stroke_width: int
+    stroke_linejoin: str
+    stroke_linecap: str
+    view_box: str
+    size: int
 
 @dataclass
 class NodeSvgProperties(Properties):
@@ -195,8 +197,12 @@ class NodeSvgProperties(Properties):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-# class NodeSvgPathPropertiesDict(PropertiesDict):
-#     d: str
+class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
+    d: str
+
+class NodeIconValidationProperties(ValidationProperties):
+    name: str
+    size: int
 
 @dataclass
 class NodeSvgPathProperties(Properties):
@@ -204,7 +210,6 @@ class NodeSvgPathProperties(Properties):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
 
 @dataclass
 class NodeInputTextProperties(Properties):
@@ -240,9 +245,12 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: ValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg"]: NodeSvgValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_path"]: NodeSvgPathValidationProperties.__annotations__,
 }
 
 def validate_combined_props(props, additional_props, element_type):

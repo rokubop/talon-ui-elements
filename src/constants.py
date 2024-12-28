@@ -13,6 +13,7 @@ class ElementEnumType(TypedDict):
     button: str
     active_window: str
     div: str
+    icon: str
     input_text: str
     screen: str
     text: str
@@ -23,6 +24,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "button": "button",
     "active_window": "active_window",
     "div": "div",
+    "icon": "icon",
     "input_text": "input_text",
     "screen": "screen",
     "text": "text",
@@ -45,6 +47,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["active_window"]: NODE_ENUM_TYPE["root"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["screen"]: NODE_ENUM_TYPE["root"],
     ELEMENT_ENUM_TYPE["text"]: NODE_ENUM_TYPE["leaf"],

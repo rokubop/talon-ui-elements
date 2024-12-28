@@ -1,13 +1,10 @@
-from itertools import cycle
-from itertools import cycle
-from talon.skia import RoundRect, Path
-from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.types import Rect, Point2d
-from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
+from talon.skia import Path
+from talon.skia.canvas import Canvas as SkiaCanvas, Paint
+from talon.types import Point2d
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
 from ..interfaces import NodeSvgType, NodeType
-from ..properties import Properties, NodeSvgProperties
+from ..properties import NodeSvgProperties
 from .node import Node
 
 def scale_path(path, scale_factor):
@@ -77,8 +74,6 @@ class NodeSvg(Node, NodeSvgType):
 
         last_cursor = Point2d(cursor.x, cursor.y)
 
-        print("rendering svg")
-
         for child in self.children_nodes:
             child.render(c, cursor)
 
@@ -91,10 +86,9 @@ class NodeSvgPath(Node, NodeType):
         super().__init__(element_type="svg_path", properties=properties)
 
     def virtual_render(self):
-        print("do nothing")
+        pass
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
-        print("rendering path")
         scale = self.parent_node.size / 24
         path = scale_path(self.properties.d, scale)
         translated_path = Path()
@@ -106,3 +100,5 @@ class NodeSvgPath(Node, NodeType):
         c.paint.color = self.properties.color
 
         c.draw_path(translated_path, c.paint)
+
+        c.paint = Paint() # Reset paint

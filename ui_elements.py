@@ -170,6 +170,10 @@ class Actions:
         """Test example UIs"""
         toggle_elements_examples()
 
+    def ui_elements_debug():
+        """Prints debug output to talon log"""
+        entity_manager.debug()
+
     def ui_elements_svg(elements: List[str]) -> Union[tuple[callable], callable]:
         """
         Provides elements to create standard SVG elements, based on view_box 0 0 24 24.
