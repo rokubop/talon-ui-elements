@@ -1,6 +1,6 @@
 from talon import actions
-from ..interfaces import NodeScreenType
-from ..properties import NodeScreenProperties
+from ..interfaces import NodeRootType
+from ..properties import NodeRootProperties
 from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
 from .node_container import NodeContainer
 
@@ -35,12 +35,13 @@ class DeprecatedRenderer:
     def __eq__(self, other):
         return self is other
 
-class NodeScreen(NodeContainer, NodeScreenType):
-    def __init__(self, element_type, properties: NodeScreenProperties = None):
+class NodeRoot(NodeContainer, NodeRootType):
+    def __init__(self, element_type, properties: NodeRootProperties = None):
         super().__init__(
             element_type=element_type,
             properties=properties
         )
+        self.boundary_rect = self.properties.boundary_rect
         self.screen_index = self.properties.screen or 0
         self.deprecated_ui = None
 
