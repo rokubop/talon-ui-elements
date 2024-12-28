@@ -7,8 +7,9 @@ def format_user_list(user_list):
 user_lists = [
     "user.letter",
     "user.symbol_key",
-    "user.formatters",
+    "user.code_formatter",
     "user.modifier_key",
+    "user.reformatter",
 ]
 
 def dashboard_ui():
@@ -16,7 +17,7 @@ def dashboard_ui():
 
     user_list, set_user_list = state.use("user_list", user_lists[0])
 
-    (keys, values) = format_user_list(user_list)
+    keys, values = format_user_list(user_list)
 
     def on_click(list_name):
         # wraps the click handler to avoid closure issues in the loop
