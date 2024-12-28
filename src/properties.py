@@ -157,9 +157,11 @@ class NodeTextProperties(Properties):
         self.font_size = DEFAULT_FONT_SIZE
         super().__init__(**kwargs)
 
-class NodeRootValidationProperties(ValidationProperties):
+class NodeScreenValidationProperties(ValidationProperties):
     screen: int
-    boundary_rect: Rect
+
+class NodeActiveWindowValidationProperties(ValidationProperties):
+    pass
 
 @dataclass
 class NodeRootProperties(Properties):
@@ -202,10 +204,10 @@ class NodeInputTextValidationProperties(ValidationProperties):
 
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["active_window"]: NodeRootValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: ValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["screen"]: NodeRootValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
 }
 
