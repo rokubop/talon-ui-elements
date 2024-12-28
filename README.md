@@ -118,15 +118,17 @@ Checkout out examples in the [examples](./examples) folder. Or say "elements tes
 ## Elements
 returned from `actions.user.ui_elements`:
 
-- `screen` - A root element. Basically a div the size of your screen.
-- `active_window` - A root element. Matches the dimensions of the active window.
-- `div` - Standard container element.
-- `text`
-- `button`
-- `input_text` - Uses Talon's experimental `TextArea` for input.
-- `state` - Global reactive state that rerenders respective UIs when changed.
-- `effect` - Run side effects on mount, unmount, or state change.
-- `ref` - Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates. Useful for `input_text` value.
+| Element | Description |
+|---------|-------------|
+| `screen` | Root element. A div the size of your screen. |
+| `active_window` | Root element. A div the size of the currently active window. |
+| `div` | Standard container element. |
+| `text` | Basic strings supported. Combine multiple together if you want to style differently. |
+| `button` | Accepts `on_click` |
+| `input_text` | Uses Talon's experimental `TextArea` for input. |
+| `state` | Global reactive state that rerenders respective UIs when changed. |
+| `effect` | Run side effects on mount, unmount, or state change. |
+| `ref` | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates. Useful for `input_text` value. |
 
 ## Box Model
 ui_elements have the same box model as normal HTML, with `margin`, `border`, `padding`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning border and padding are included in the width and height.
