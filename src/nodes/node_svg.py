@@ -93,12 +93,16 @@ class NodeSvgPath(Node, NodeType):
         path = scale_path(self.properties.d, scale)
         translated_path = Path()
         translated_path.add_path_offset(path, dx=cursor.x, dy=cursor.y, add_mode=Path.AddMode.APPEND)
+
+        prev_paint = c.paint.clone()
+
         c.paint.style = c.paint.Style.STROKE
         c.paint.stroke_cap = self.parent_node.stroke_cap
         c.paint.stroke_join = self.parent_node.stroke_join
         c.paint.stroke_width = self.parent_node.stroke_width * scale
+        # c.paint.style = c.paint.Style.FILL
         c.paint.color = self.properties.color
 
         c.draw_path(translated_path, c.paint)
 
-        c.paint = Paint() # Reset paint
+        c.paint = prev_paint

@@ -4,6 +4,7 @@ from .cheatsheet_actions import cheatsheet_show
 from .dashboard_ui import dashboard_ui
 from .game_keys_actions import game_keys_show
 from .hello_world_ui import hello_world_ui
+from .icons_svgs_ui import icons_svgs_ui
 from .inputs_ui import inputs_ui
 from .state_vs_refs_ui import state_vs_refs_ui
 from .todo_list_ui import todo_list_ui
@@ -51,6 +52,7 @@ button_action = {
     "Dashboard": lambda: show_example(dashboard_ui),
     "Game keys": show_game_keys,
     "Hello world": lambda: show_example(hello_world_ui),
+    "Icons and SVGs": lambda: show_example(icons_svgs_ui),
     "Input Prompt": show_inputs,
     "State vs Ref": lambda: show_example(state_vs_refs_ui),
     "Todo List": lambda: show_example(todo_list_ui),
@@ -62,10 +64,6 @@ def examples_ui():
     return screen(justify_content="center", align_items="center")[
         div(background_color="272727", border_radius=16, border_width=1, width=200)[
             div(flex_direction='column', padding=16)[
-                # icon("hamburger"),
-                text("hi"),
-                # icon("download"),
-                icon("edit", color="FFCC00"),
                 text("Examples", font_size=24, margin_top=8),
                 text("talon-ui-elements", font_size=14, color="FFCC00"),
             ],
