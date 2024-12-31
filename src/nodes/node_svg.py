@@ -37,29 +37,6 @@ def scale_d(path, scale_factor):
 
     return " ".join(scaled_path_segments)
 
-# def scale_path(path, scale_factor):
-#     # return Path.from_svg(path)
-#     scaled_path = Path()
-#     subpath_start = True
-
-#     commands = path.strip().split("M")[1:]
-
-#     for command in commands:
-#         subpath = f"M{command.strip()}"
-
-#         subpath_path = Path.from_svg(subpath)
-#         for i in range(subpath_path.count_points()):
-#             point = subpath_path.get_point(i)
-#             scaled_point = (point.x * scale_factor, point.y * scale_factor)
-
-#             if i == 0 or subpath_start:
-#                 scaled_path.move_to(*scaled_point)
-#                 subpath_start = False
-#             else:
-#                 scaled_path.line_to(*scaled_point)
-
-#     return scaled_path
-
 linecap = {
     "butt": 0,
     "round": 1,
