@@ -325,6 +325,7 @@ screen(screen=2, align_items="flex_end", justify_content="center")[
 | [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
 | [Defaults](./docs/defaults.md) | Default values for all properties |
 | [Properties](./docs/properties.md) | List of all properties you can use |
+| [Icons and SVGs](./docs/icons_and_svgs.md) | List of supported icons and how to use custom SVGs |
 | [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |
 | [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
 | [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |
