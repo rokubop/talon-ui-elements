@@ -37,8 +37,8 @@ class HintGenerator:
 
         # rather than using a generator, we increment char index
         self.state = {
-            "button": 0,
-            "input_text": 0
+            "button": (ord(b_char), 0),
+            "input_text": (ord(i_char), 0)
         }
 
     def generate_hint(self, node: NodeType):
@@ -47,15 +47,25 @@ class HintGenerator:
 
         if node.element_type in self.char_map:
             first_char, second_char_list = self.char_map[node.element_type]
-            index = self.state[node.element_type]
+            first_char_ascii, index = self.state[node.element_type]
+
             if index < len(second_char_list):
-                hint = f"{first_char}{second_char_list[index]}"
-                self.state[node.element_type] += 1
-                store.id_to_hint[node.id] = hint
-                return hint
+                # increment second char
+                second_char = second_char_list[index]
+                hint = f"{chr(first_char_ascii)}{second_char}"
+                self.state[node.element_type] = (first_char_ascii, index + 1)
             else:
-                print("Ran out of hint values while generating hints.")
-                return ""
+                # increment first char
+                index = 0
+                first_char_ascii += 1
+                if first_char_ascii > ord("z"):
+                    first_char_ascii = ord("a")
+                second_char = second_char_list[index]
+                hint = f"{chr(first_char_ascii)}{second_char}"
+                self.state[node.element_type] = (first_char_ascii, index + 1)
+
+            store.id_to_hint[node.id] = hint
+            return hint
 
 hint_generator = None
 

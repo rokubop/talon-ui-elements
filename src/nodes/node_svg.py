@@ -1,33 +1,64 @@
 from talon.skia import Path
 from talon.skia.canvas import Canvas as SkiaCanvas, Paint
-from talon.types import Point2d
+from talon.types import Point2d, Rect
 from ..box_model import BoxModelLayout
 from ..cursor import Cursor
 from ..interfaces import NodeSvgType, NodeType
 from ..properties import NodeSvgProperties
 from .node import Node
+import re
 
-def scale_path(path, scale_factor):
-    scaled_path = Path()
-    subpath_start = True
+def scale_d(path, scale_factor):
+    def scale_coordinates(coords):
+        return [float(c) * scale_factor if c.replace('.', '', 1).isdigit() else c for c in coords]
+
+    def process_subpath(subpath):
+        scaled_segments = []
+        pattern = re.compile(r"([a-zA-Z])([^a-zA-Z]*)")
+        matches = pattern.findall(subpath)
+
+        for command, parameters in matches:
+            params = re.findall(r"[-+]?\d*\.?\d+", parameters)
+            if params:
+                scaled_params = scale_coordinates(params)
+                scaled_segments.append(f"{command}{' '.join(map(str, scaled_params))}")
+            else:
+                scaled_segments.append(command)
+
+        return " ".join(scaled_segments)
 
     commands = path.strip().split("M")[1:]
+    scaled_path_segments = []
 
     for command in commands:
         subpath = f"M{command.strip()}"
+        scaled_subpath = process_subpath(subpath)
+        scaled_path_segments.append(scaled_subpath)
 
-        subpath_path = Path.from_svg(subpath)
-        for i in range(subpath_path.count_points()):
-            point = subpath_path.get_point(i)
-            scaled_point = (point.x * scale_factor, point.y * scale_factor)
+    return " ".join(scaled_path_segments)
 
-            if i == 0 or subpath_start:
-                scaled_path.move_to(*scaled_point)
-                subpath_start = False
-            else:
-                scaled_path.line_to(*scaled_point)
+# def scale_path(path, scale_factor):
+#     # return Path.from_svg(path)
+#     scaled_path = Path()
+#     subpath_start = True
 
-    return scaled_path
+#     commands = path.strip().split("M")[1:]
+
+#     for command in commands:
+#         subpath = f"M{command.strip()}"
+
+#         subpath_path = Path.from_svg(subpath)
+#         for i in range(subpath_path.count_points()):
+#             point = subpath_path.get_point(i)
+#             scaled_point = (point.x * scale_factor, point.y * scale_factor)
+
+#             if i == 0 or subpath_start:
+#                 scaled_path.move_to(*scaled_point)
+#                 subpath_start = False
+#             else:
+#                 scaled_path.line_to(*scaled_point)
+
+#     return scaled_path
 
 linecap = {
     "butt": 0,
@@ -47,7 +78,6 @@ class NodeSvg(Node, NodeSvgType):
         self.size = self.properties.size
         self.stroke_cap = linecap[self.properties.stroke_linecap]
         self.stroke_join = linejoin[self.properties.stroke_linejoin]
-        self.stroke_width = self.properties.stroke_width
         self.properties.width = self.properties.width or self.properties.size
         self.properties.height = self.properties.height or self.properties.size
 
@@ -90,19 +120,128 @@ class NodeSvgPath(Node, NodeType):
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         scale = self.parent_node.size / 24
-        path = scale_path(self.properties.d, scale)
+        new_d = scale_d(self.properties.d, scale)
+        path = Path.from_svg(new_d)
         translated_path = Path()
         translated_path.add_path_offset(path, dx=cursor.x, dy=cursor.y, add_mode=Path.AddMode.APPEND)
 
         prev_paint = c.paint.clone()
 
         c.paint.style = c.paint.Style.STROKE
-        c.paint.stroke_cap = self.parent_node.stroke_cap
-        c.paint.stroke_join = self.parent_node.stroke_join
-        c.paint.stroke_width = self.parent_node.stroke_width * scale
-        # c.paint.style = c.paint.Style.FILL
-        c.paint.color = self.properties.color
+        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        c.paint.stroke_width = self.parent_node.properties.stroke_width * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
         c.draw_path(translated_path, c.paint)
+
+        c.paint = prev_paint
+
+class NodeSvgRect(Node, NodeType):
+    def __init__(self, properties: NodeSvgProperties = None):
+        super().__init__(element_type="svg_rect", properties=properties)
+
+    def virtual_render(self):
+        pass
+
+    def render(self, c: SkiaCanvas, cursor: Cursor):
+        scale = self.parent_node.size / 24
+
+        x = self.properties.x * scale
+        y = self.properties.y * scale
+        width = self.properties.width * scale
+        height = self.properties.height * scale
+        rx = self.properties.rx * scale
+        ry = self.properties.ry * scale
+
+        prev_paint = c.paint.clone()
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = self.parent_node.stroke_cap
+        c.paint.stroke_join = self.parent_node.stroke_join
+        c.paint.stroke_width = self.parent_node.properties.stroke_width * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_round_rect(Rect(x + cursor.x, y + cursor.y, width, height), rx, ry)
+
+        c.paint = prev_paint
+
+class NodeSvgCircle(Node, NodeType):
+    def __init__(self, properties: NodeSvgProperties = None):
+        super().__init__(element_type="svg_circle", properties=properties)
+
+    def virtual_render(self):
+        pass
+
+    def render(self, c: SkiaCanvas, cursor: Cursor):
+        scale = self.parent_node.size / 24
+
+        cx = self.properties.cx * scale
+        cy = self.properties.cy * scale
+        r = self.properties.r * scale
+
+        prev_paint = c.paint.clone()
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = self.parent_node.stroke_cap
+        c.paint.stroke_join = self.parent_node.stroke_join
+        c.paint.stroke_width = self.parent_node.properties.stroke_width * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_circle(cx + cursor.x, cy + cursor.y, r)
+
+        c.paint = prev_paint
+
+class NodeSvgPolyline(Node, NodeType):
+    def __init__(self, element_type: str, properties: NodeSvgProperties = None):
+        super().__init__(element_type=element_type, properties=properties)
+
+    def virtual_render(self):
+        pass
+
+    def render(self, c: SkiaCanvas, cursor: Cursor):
+        scale = self.parent_node.size / 24
+
+        raw_points = self.properties.points.split(" ")
+        points = [
+            (
+                float(raw_points[i]) * scale + cursor.x,
+                float(raw_points[i + 1]) * scale + cursor.y
+            )
+            for i in range(0, len(raw_points), 2)
+        ]
+
+        prev_paint = c.paint.clone()
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = self.parent_node.stroke_cap
+        c.paint.stroke_join = self.parent_node.stroke_join
+        c.paint.stroke_width = self.parent_node.properties.stroke_width * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_points(mode=c.PointMode.POLYGON, points=points)
+
+        c.paint = prev_paint
+
+class NodeSvgLine(Node, NodeType):
+    def __init__(self, properties: NodeSvgProperties = None):
+        super().__init__(element_type="svg_line", properties=properties)
+
+    def virtual_render(self):
+        pass
+
+    def render(self, c: SkiaCanvas, cursor: Cursor):
+        scale = self.parent_node.size / 24
+
+        x1 = self.properties.x1 * scale + cursor.x
+        y1 = self.properties.y1 * scale + cursor.y
+        x2 = self.properties.x2 * scale + cursor.x
+        y2 = self.properties.y2 * scale + cursor.y
+
+        prev_paint = c.paint.clone()
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = self.parent_node.stroke_cap
+        c.paint.stroke_join = self.parent_node.stroke_join
+        c.paint.stroke_width = self.parent_node.properties.stroke_width * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_line(x1, y1, x2, y2)
 
         c.paint = prev_paint

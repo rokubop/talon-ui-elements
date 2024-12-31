@@ -199,16 +199,156 @@ class NodeSvgProperties(Properties):
 
 class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
     d: str
+    stroke_linecap: str
+    stroke_linejoin: str
+    stroke_width: int
+    stroke: str
+    fill: str
+
+class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
+    x: int
+    y: int
+    width: int
+    height: int
+    rx: int
+    ry: int
+    stroke_linecap: str
+    stroke_linejoin: str
+    stroke_width: int
+    stroke: str
+    fill: str
+
+class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
+    cx: int
+    cy: int
+    r: int
+    stroke_linecap: str
+    stroke_linejoin: str
+    stroke_width: int
+    stroke: str
+    fill: str
+
+class NodeSvgPolylineValidationProperties(NodeSvgValidationProperties):
+    points: str
+    stroke_linecap: str
+    stroke_linejoin: str
+    stroke_width: int
+    stroke: str
+    fill: str
+
+class NodeSvgPolygonValidationProperties(NodeSvgPolylineValidationProperties):
+    pass
+
+class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
+    x1: int
+    y1: int
+    x2: int
+    y2: int
+    stroke_linecap: str
+    stroke_linejoin: str
+    stroke_width: int
+    stroke: str
 
 class NodeIconValidationProperties(ValidationProperties):
     name: str
     size: int
+    stroke_width: int
 
 @dataclass
 class NodeSvgPathProperties(Properties):
     d: str = ""
+    stroke_linecap: str = None
+    stroke_linejoin: str = None
+    stroke_width: int = None
+    stroke: str = None
+    fill: str = None
 
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeSvgRectProperties(Properties):
+    x: int = 0
+    y: int = 0
+    width: int = 0
+    height: int = 0
+    rx: int = 0
+    ry: int = 0
+    stroke_linecap: str = None
+    stroke_linejoin: str = None
+    stroke_width: int = None
+    stroke: str = None
+    fill: str = None
+
+    def __init__(self, **kwargs):
+        if not kwargs.get('width') or not kwargs.get('height'):
+            raise ValueError(
+                f"\nInvalid property value for 'width' or 'height' for svg rect: {kwargs.get('width')}, {kwargs.get('height')}\n"
+                f"Must provide a value for 'width' and 'height'"
+            )
+
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeSvgCircleProperties(Properties):
+    cx: int = 0
+    cy: int = 0
+    r: int = 0
+    stroke_linecap: str = None
+    stroke_linejoin: str = None
+    stroke_width: int = None
+    stroke: str = None
+    fill: str = None
+
+    def __init__(self, **kwargs):
+        if not kwargs.get('r'):
+            raise ValueError(
+                f"\nInvalid property value for 'r' for svg circle: {kwargs.get('r')}\n"
+                f"Must provide a value for 'r'"
+            )
+
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeSvgPolylineProperties(Properties):
+    points: str = ""
+    stroke_linecap: str = None
+    stroke_linejoin: str = None
+    stroke_width: int = None
+    stroke: str = None
+    fill: str = None
+
+    def __init__(self, **kwargs):
+        if not kwargs.get('points'):
+            raise ValueError(
+                f"\nInvalid property value for 'points' for svg polyline: {kwargs.get('points')}\n"
+                f"Must provide a value for 'points'"
+            )
+
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeSvgPolygonProperties(NodeSvgPolylineProperties):
+    pass
+
+@dataclass
+class NodeSvgLineProperties(Properties):
+    x1: int = 0
+    y1: int = 0
+    x2: int = 0
+    y2: int = 0
+    stroke_linecap: str = None
+    stroke_linejoin: str = None
+    stroke_width: int = None
+    stroke: str = None
+
+    def __init__(self, **kwargs):
+        if not all(key in kwargs for key in ['x1', 'y1', 'x2', 'y2']):
+            raise ValueError(
+                f"\nInvalid property value for 'x1', 'y1', 'x2', 'y2' for svg line: {kwargs.get('x1')}, {kwargs.get('y1')}, {kwargs.get('x2')}, {kwargs.get('y2')}\n"
+                f"Must provide a value for 'x1', 'y1', 'x2', 'y2'"
+            )
+
         super().__init__(**kwargs)
 
 @dataclass
@@ -251,6 +391,11 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg"]: NodeSvgValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_path"]: NodeSvgPathValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_rect"]: NodeSvgRectValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_circle"]: NodeSvgCircleValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_polyline"]: NodeSvgPolylineValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_polygon"]: NodeSvgPolygonValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_line"]: NodeSvgLineValidationProperties.__annotations__,
 }
 
 def validate_combined_props(props, additional_props, element_type):

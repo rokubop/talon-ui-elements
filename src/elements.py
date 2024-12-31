@@ -1,11 +1,18 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from talon import ui
 from talon.screen import Screen
 from .constants import ELEMENT_ENUM_TYPE
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
-from .nodes.node_svg import NodeSvg, NodeSvgPath
+from .nodes.node_svg import (
+    NodeSvg,
+    NodeSvgPath,
+    NodeSvgRect,
+    NodeSvgCircle,
+    NodeSvgPolyline,
+    NodeSvgLine,
+)
 from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
 from .properties import (
@@ -14,9 +21,15 @@ from .properties import (
     NodeTextProperties,
     NodeSvgProperties,
     NodeSvgPathProperties,
+    NodeSvgRectProperties,
+    NodeSvgCircleProperties,
+    NodeSvgPolylineProperties,
+    NodeSvgPolygonProperties,
+    NodeSvgLineProperties,
     Properties,
     validate_combined_props
 )
+from .icons import icon
 from .interfaces import Effect
 from .ref import Ref
 from .state_manager import state_manager
@@ -196,46 +209,6 @@ def button(*args, text=None, **additional_props):
     button_properties = NodeTextProperties(**properties)
     return NodeButton(button_properties)
 
-ICON_SVG_SINGLE_PATH_STROKE = {
-    "chevron_down": "M 6 9 L 12 15 L 18 9",
-    "chevron_left": "M 15 6 L 9 12 L 15 18",
-    "chevron_right": "M 9 6 L 15 12 L 9 18",
-    "chevron_up": "M 6 15 L 12 9 L 18 15",
-    "close": "M 6 6 L 18 18 M 18 6 L 6 18",
-    "home": "M 12 4 L 20 10 V 20 H 4 V 10 L 12 4",
-    "arrow_down": "M 12 4 V 14 M 12 14 L 8 10 M 12 14 L 16 10",
-    "arrow_left": "M 20 12 H 10 M 10 12 L 14 8 M 10 12 L 14 16",
-    "arrow_right": "M 4 12 H 14 M 14 12 L 10 8 M 14 12 L 10 16",
-    "arrow_up": "M 12 20 V 10 M 12 10 L 8 14 M 12 10 L 16 14",
-    "plus": "M 12 5 V 19 M 5 12 H 19",
-    "edit": "M 16 3 L 21 8 L 8 21 L 3 21 L 3 16 L 16 3",
-    "menu": "M 3 6 H 18 M 3 12 H 18 M 3 18 H 18",
-    "settings": "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z",
-    "play": "M 5 3 L 19 12 L 5 21 Z",
-}
-
-
-VALID_ICON_NAMES = list(ICON_SVG_SINGLE_PATH_STROKE.keys())
-
-def icon_svg_single_path_stroke(name: str, props=None, **additional_props):
-    return svg(props, **additional_props)[
-        svg_path(d=ICON_SVG_SINGLE_PATH_STROKE[name])
-    ]
-
-def icon(name: str, props=None, **additional_props):
-    default_props = {
-        "name": name,
-        **(props or {})
-    }
-
-    if name not in VALID_ICON_NAMES:
-        raise ValueError(f"Invalid icon name: {name}. Valid icon names are: \n{list(ICON_SVG_SINGLE_PATH_STROKE.keys())}")
-
-    validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["icon"])
-
-    if name in ICON_SVG_SINGLE_PATH_STROKE:
-        return icon_svg_single_path_stroke(name, props, **additional_props)
-
 def input_text(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["input_text"])
     input_properties = NodeInputTextProperties(**properties)
@@ -305,7 +278,7 @@ text = UIElementsLeafProxy(text)
 screen = UIElementsContainerProxy(screen)
 active_window = UIElementsContainerProxy(active_window)
 button = UIElementsLeafProxy(button)
-# icon = UIElementsLeafProxy(icon)
+icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
 state = State()
 effect = use_effect
@@ -329,10 +302,16 @@ element_collection_full = {
     **deprecated_elements
 }
 
-def ui_elements(elements: List[str]) -> tuple[callable]:
+def ui_elements(elements: Union[str, List[str]]) -> tuple[callable]:
+    if not elements:
+        return element_collection_full
+
+    if type(elements) == str:
+        elements = [elements]
+
     if not all(element in element_collection_full for element in elements):
         raise ValueError(
-            f"\nInvalid elements {elements} provided to ui_elements"
+            f"\nInvalid elements `{elements}` provided to ui_elements"
             f"\nValid elements are {list(element_collection.keys())}"
         )
 
@@ -344,6 +323,7 @@ def ui_elements(elements: List[str]) -> tuple[callable]:
         return element_collection_full[elements[0]]
 
 def placeholder_svg_child(props=None, **additional_props):
+    print("No implementation for this SVG element yet.")
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
     box_properties = Properties(**properties)
     return NodeContainer('div', box_properties)
@@ -353,21 +333,51 @@ def svg(props=None, **additional_props):
     svg_properties = NodeSvgProperties(**properties)
     return NodeSvg(svg_properties)
 
-def svg_path(d: str, props=None, **additional_props):
+def svg_path(props=None, **additional_props):
+    if type(props) == str:
+        props = { "d": props }
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_path"])
     path_properties = NodeSvgPathProperties(**properties)
-    path_properties.d = d
     return NodeSvgPath(path_properties)
+
+def svg_rect(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_rect"])
+    properties = NodeSvgRectProperties(**properties)
+    return NodeSvgRect(properties)
+
+def svg_circle(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_circle"])
+    properties = NodeSvgCircleProperties(**properties)
+    return NodeSvgCircle(properties)
+
+def svg_polyline(props=None, **additional_props):
+    if type(props) == str:
+        props = { "points": props }
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_polyline"])
+    properties = NodeSvgPolylineProperties(**properties)
+    return NodeSvgPolyline("svg_polyline", properties)
+
+def svg_polygon(props=None, **additional_props):
+    if type(props) == str:
+        props = { "points": props }
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_polygon"])
+    properties = NodeSvgPolygonProperties(**properties)
+    return NodeSvgPolyline("svg_polygon", properties)
+
+def svg_line(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_line"])
+    box_properties = NodeSvgLineProperties(**properties)
+    return NodeSvgLine(box_properties)
+
 
 element_svg_collection_full = {
     "svg": svg,
     "path": svg_path,
-    "rect": placeholder_svg_child,
-    "circle": placeholder_svg_child,
-    "line": placeholder_svg_child,
-    "polyline": placeholder_svg_child,
-    "polygon": placeholder_svg_child,
-    "ellipse": placeholder_svg_child,
+    "rect": svg_rect,
+    "circle": svg_circle,
+    "polyline": svg_polyline,
+    "line": svg_line,
+    "polygon": svg_polygon,
 }
 
 def ui_elements_svg(elements: List[str]) -> tuple[callable]:

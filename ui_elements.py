@@ -3,7 +3,7 @@ from typing import List, Any, Union, Callable
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager
-from .src.tree import render_ui
+from .src.nodes.tree import render_ui
 from .src.utils import get_version
 from .examples.examples_ui import toggle_elements_examples
 
@@ -13,7 +13,7 @@ UNSET = object()
 
 @mod.action_class
 class Actions:
-    def ui_elements(elements: List[str]) -> Union[tuple[callable], callable]:
+    def ui_elements(elements: Union[str, List[str]]) -> Union[tuple[callable], callable]:
         """
         Provides elements and utilities to build your UI.
 
@@ -183,8 +183,8 @@ class Actions:
         svg, path = actions.user.ui_elements_svg(["svg", "path"])
 
         # Example 2 - All elements
-        elements = ["svg", "path", "rect", "circle", "line", "polyline", "polygon", "ellispse"]
-        svg, path, rect, circle, line, polyline, polygon, ellipse = actions.user.ui_elements_svg(elements)
+        elements = ["svg", "path", "rect", "circle", "line", "polyline", "polygon"]
+        svg, path, rect, circle, line, polyline, polygon = actions.user.ui_elements_svg(elements)
 
         svg()[
             path(d="M150 0 L75 200 L225 200 Z", fill="red"),
