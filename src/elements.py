@@ -1,19 +1,36 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from talon import ui
 from talon.screen import Screen
-from .interfaces import Effect
+from .constants import ELEMENT_ENUM_TYPE
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
+from .nodes.node_svg import (
+    NodeSvg,
+    NodeSvgPath,
+    NodeSvgRect,
+    NodeSvgCircle,
+    NodeSvgPolyline,
+    NodeSvgLine,
+)
 from .nodes.node_text import NodeText
+from .nodes.node_button import NodeButton
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
     NodeTextProperties,
+    NodeSvgProperties,
+    NodeSvgPathProperties,
+    NodeSvgRectProperties,
+    NodeSvgCircleProperties,
+    NodeSvgPolylineProperties,
+    NodeSvgPolygonProperties,
+    NodeSvgLineProperties,
     Properties,
     validate_combined_props
 )
-from .constants import ELEMENT_ENUM_TYPE
+from .icons import icon
+from .interfaces import Effect
 from .ref import Ref
 from .state_manager import state_manager
 from .utils import get_screen
@@ -170,16 +187,27 @@ def text(text_str: str, props=None, **additional_props):
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
 
-def button(text_str: str, props=None, **additional_props):
+def button(*args, text=None, **additional_props):
+    if args and isinstance(args[0], str):
+        text = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
     default_props = {
         "padding": 8,
         **(props or {})
     }
 
     properties = validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["button"])
-    properties["type"] = "button"
-    text_properties = NodeTextProperties(**properties)
-    return NodeText(ELEMENT_ENUM_TYPE["button"], text_str, text_properties)
+
+    if text:
+        properties["type"] = "button"
+        text_properties = NodeTextProperties(**properties)
+        return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
+
+    button_properties = NodeTextProperties(**properties)
+    return NodeButton(button_properties)
 
 def input_text(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["input_text"])
@@ -235,7 +263,7 @@ class UIElementsInputTextProxy:
 
         return self.func(*args, **kwargs)
 
-class UIElementsTextProxy:
+class UIElementsLeafProxy:
     def __init__(self, func):
         self.func = func
 
@@ -246,10 +274,11 @@ class UIElementsTextProxy:
         return self.func(*args, **kwargs)
 
 div = UIElementsContainerProxy(div)
-text = UIElementsTextProxy(text)
+text = UIElementsLeafProxy(text)
 screen = UIElementsContainerProxy(screen)
 active_window = UIElementsContainerProxy(active_window)
-button = UIElementsTextProxy(button)
+button = UIElementsLeafProxy(button)
+icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
 state = State()
 effect = use_effect
@@ -259,6 +288,7 @@ element_collection: Dict[str, callable] = {
     'button': button,
     'active_window': active_window,
     'div': div,
+    'icon': icon,
     'input_text': input_text,
     'screen': screen,
     'text': text,
@@ -272,10 +302,16 @@ element_collection_full = {
     **deprecated_elements
 }
 
-def ui_elements(elements: List[str]) -> tuple[callable]:
+def ui_elements(elements: Union[str, List[str]]) -> tuple[callable]:
+    if not elements:
+        return element_collection_full
+
+    if type(elements) == str:
+        elements = [elements]
+
     if not all(element in element_collection_full for element in elements):
         raise ValueError(
-            f"\nInvalid elements {elements} provided to ui_elements"
+            f"\nInvalid elements `{elements}` provided to ui_elements"
             f"\nValid elements are {list(element_collection.keys())}"
         )
 
@@ -285,3 +321,75 @@ def ui_elements(elements: List[str]) -> tuple[callable]:
         )
     else:
         return element_collection_full[elements[0]]
+
+def placeholder_svg_child(props=None, **additional_props):
+    print("No implementation for this SVG element yet.")
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
+    box_properties = Properties(**properties)
+    return NodeContainer('div', box_properties)
+
+def svg(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
+    svg_properties = NodeSvgProperties(**properties)
+    return NodeSvg(svg_properties)
+
+def svg_path(props=None, **additional_props):
+    if type(props) == str:
+        props = { "d": props }
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_path"])
+    path_properties = NodeSvgPathProperties(**properties)
+    return NodeSvgPath(path_properties)
+
+def svg_rect(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_rect"])
+    properties = NodeSvgRectProperties(**properties)
+    return NodeSvgRect(properties)
+
+def svg_circle(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_circle"])
+    properties = NodeSvgCircleProperties(**properties)
+    return NodeSvgCircle(properties)
+
+def svg_polyline(props=None, **additional_props):
+    if type(props) == str:
+        props = { "points": props }
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_polyline"])
+    properties = NodeSvgPolylineProperties(**properties)
+    return NodeSvgPolyline("svg_polyline", properties)
+
+def svg_polygon(props=None, **additional_props):
+    if type(props) == str:
+        props = { "points": props }
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_polygon"])
+    properties = NodeSvgPolygonProperties(**properties)
+    return NodeSvgPolyline("svg_polygon", properties)
+
+def svg_line(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg_line"])
+    box_properties = NodeSvgLineProperties(**properties)
+    return NodeSvgLine(box_properties)
+
+
+element_svg_collection_full = {
+    "svg": svg,
+    "path": svg_path,
+    "rect": svg_rect,
+    "circle": svg_circle,
+    "polyline": svg_polyline,
+    "line": svg_line,
+    "polygon": svg_polygon,
+}
+
+def ui_elements_svg(elements: List[str]) -> tuple[callable]:
+    if not all(element in element_svg_collection_full for element in elements):
+        raise ValueError(
+            f"\nInvalid elements {elements} provided to ui_elements_svg"
+            f"\nValid svg elements are {list(element_svg_collection_full.keys())}"
+        )
+
+    if len(elements) > 1:
+        return tuple(
+            element_svg_collection_full[element] for element in elements
+        )
+    else:
+        return element_svg_collection_full[elements[0]]

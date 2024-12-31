@@ -4,9 +4,9 @@ from talon.skia import RoundRect
 from talon.types import Rect
 from talon import cron, settings
 from typing import Any
-from .constants import ELEMENT_ENUM_TYPE
-from .cursor import Cursor
-from .interfaces import (
+from ..constants import ELEMENT_ENUM_TYPE
+from ..cursor import Cursor
+from ..interfaces import (
     TreeType,
     NodeType,
     MetaStateInput,
@@ -16,11 +16,11 @@ from .interfaces import (
     ScrollRegionType,
     RenderCauseStateType
 )
-from .entity_manager import entity_manager
-from .hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
-from .state_manager import state_manager
-from .store import store
-from .utils import draw_text_simple, get_active_color_from_highlight_color
+from ..entity_manager import entity_manager
+from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
+from ..state_manager import state_manager
+from ..store import store
+from ..utils import draw_text_simple, get_active_color_from_highlight_color
 import inspect
 import uuid
 
@@ -249,7 +249,7 @@ class Tree(TreeType):
     @with_tree
     def init_nodes_and_boundary(self):
         if len(inspect.signature(self._renderer).parameters) > 0:
-            if not isinstance(self.props, dict):
+            if self.props and not isinstance(self.props, dict):
                 print(f"props: {self.props}")
                 raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
             self.root_node = self._renderer(self.props or {})

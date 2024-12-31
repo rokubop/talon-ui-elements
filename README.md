@@ -4,7 +4,7 @@
 
 ![ui_elements](./examples/ui_elements_preview.png)
 
-- 8 Example UIs
+- 9 Example UIs
 - HTML-like elements such as `div`, `text`, `button`, `input_text`
 - 40+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
@@ -112,8 +112,8 @@ Checkout out examples in the [examples](./examples) folder. Or say "elements tes
 | [hello_world_ui](./examples/hello_world_ui.py) | [preview](./examples/hello_world_preview.png) | Simple hello world UI |
 | [inputs_ui](./examples/inputs_ui.py) | [preview](./examples/inputs_preview.png) | Text input, ref, validation, and submit with a button |
 | [state_vs_refs_ui](examples/state_vs_refs_ui.py) | [preview](./examples/state_vs_refs_preview.png) | Two versions of a counter using state or ref |
+| [icons_svgs_ui](./examples/icons_svgs_ui.py) | [preview](./examples/icons_svgs_preview.png) | Icons and custom SVGs |
 | [todo_list_ui](./examples/todo_list_ui.py) | [preview](./examples/todo_list_preview.png) | A todo list with an input, add, and remove functionality |
-
 
 ## Elements
 returned from `actions.user.ui_elements`:
@@ -125,6 +125,7 @@ returned from `actions.user.ui_elements`:
 | `div` | Standard container element. |
 | `text` | Basic strings supported. Combine multiple together if you want to style differently. |
 | `button` | Accepts `on_click` |
+| `icon` | See supported [icons](docs/icons_and_svgs.md) |
 | `input_text` | Uses Talon's experimental `TextArea` for input. |
 | `state` | Global reactive state that rerenders respective UIs when changed. |
 | `effect` | Run side effects on mount, unmount, or state change. |
@@ -287,6 +288,21 @@ div(background_color="FF000088")[
 ]
 ```
 
+## SVG Elements
+The following elements are supported for SVGs. For the most part it matches the HTML SVG spec.
+Based on a standard `view_box="0 0 24 24"`. You can use `size` to resize, and `stroke_width` to change the stroke width.
+
+returned from `actions.user.ui_elements_svg`
+| Element | Description |
+|---------|-------------|
+| `svg` | Wrapper for SVG elements. |
+| `path` | Accepts `d` attribute. |
+| `circle` | Accepts `cx`, `cy`, and `r` attributes. |
+| `rect` | Accepts `x`, `y`, `width`, `height`, `rx`, and `ry` attributes. |
+| `line` | Accepts `x1`, `y1`, `x2`, and `y2` attributes. |
+| `polyline` | Accepts `points` attribute. |
+| `polygon` | Accepts `points` attribute. |
+
 ## Alternate screen
 ```py
 # screen 1
@@ -309,6 +325,7 @@ screen(screen=2, align_items="flex_end", justify_content="center")[
 | [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
 | [Defaults](./docs/defaults.md) | Default values for all properties |
 | [Properties](./docs/properties.md) | List of all properties you can use |
+| [Icons and SVGs](./docs/icons_and_svgs.md) | List of supported icons and how to use custom SVGs |
 | [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |
 | [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
 | [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |

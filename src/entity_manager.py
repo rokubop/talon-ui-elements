@@ -137,4 +137,28 @@ class EntityManager:
 
         return flattened
 
+    def debug(self):
+        print("store.trees", store.trees)
+        print("store.processing_tree", store.processing_tree)
+        print("store.processing_states", store.processing_states)
+        print("store.root_nodes", store.root_nodes)
+        print("store.id_to_node", store.id_to_node)
+        print("store.id_to_hint", store.id_to_hint)
+        print("store.reactive_state", store.reactive_state)
+        print("store.staged_effects", store.staged_effects)
+        print("store.mouse_state", store.mouse_state)
+
+        for index, tree in enumerate(store.trees):
+            print(f"\n------------\nTree #{index}")
+            print("tree.meta_state._buttons", tree.meta_state._buttons)
+            print("tree.meta_state._highlighted", tree.meta_state._highlighted)
+            print("tree.meta_state._id_to_node", tree.meta_state._id_to_node)
+            print("tree.meta_state._inputs", tree.meta_state._inputs)
+            print("tree.meta_state._scroll_regions", tree.meta_state._scroll_regions)
+            print("tree.meta_state._style_mutations", tree.meta_state._style_mutations)
+            print("tree.meta_state._text_mutations", tree.meta_state._text_mutations)
+            print("tree.meta_state.ref_property_overrides", tree.meta_state.ref_property_overrides)
+            print("tree.meta_state.focused_id", tree.meta_state.focused_id)
+            print("tree.meta_state.unhighlight_jobs", tree.meta_state.unhighlight_jobs)
+
 entity_manager = EntityManager()
