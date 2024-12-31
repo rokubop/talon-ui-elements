@@ -125,7 +125,7 @@ returned from `actions.user.ui_elements`:
 | `div` | Standard container element. |
 | `text` | Basic strings supported. Combine multiple together if you want to style differently. |
 | `button` | Accepts `on_click` |
-| `icon` | See supported icons in [icons_svgs_ui](./examples/icons_svgs_ui.py) |
+| `icon` | See supported [icons](docs/icons_and_svgs.md) |
 | `input_text` | Uses Talon's experimental `TextArea` for input. |
 | `state` | Global reactive state that rerenders respective UIs when changed. |
 | `effect` | Run side effects on mount, unmount, or state change. |
