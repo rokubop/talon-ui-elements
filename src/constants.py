@@ -8,6 +8,7 @@ DEFAULT_FONT_SIZE = 16
 DEFAULT_FLEX_DIRECTION = "column"
 DEFAULT_ALIGN_ITEMS = "stretch"
 DEFAULT_JUSTIFY_CONTENT = "flex_start"
+DEFAULT_FOCUS_OUTLINE_COLOR = "FFCC00" # maybe could be a setting
 DRAG_INIT_THRESHOLD = 4
 
 class ElementEnumType(TypedDict):

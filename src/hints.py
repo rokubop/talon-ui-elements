@@ -78,8 +78,7 @@ def trigger_hint_action(hint_trigger: str):
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
-                elif node.element_type == "input_text":
-                    node.tree.focus_input(node.id)
+                node.tree.focus_node(node)
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
@@ -170,4 +169,9 @@ def ui_elements_hint_target(m) -> list[str]:
 class Actions:
     def ui_elements_hint_action(ui_elements_hint_target: str):
         """Trigger hint action"""
-        trigger_hint_action(ui_elements_hint_target)
+        if ui_elements_hint_target == "focus_next":
+            state_manager.focus_next()
+        elif ui_elements_hint_target == "focus_previous":
+            state_manager.focus_previous()
+        else:
+            trigger_hint_action(ui_elements_hint_target)

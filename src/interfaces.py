@@ -82,6 +82,7 @@ class MetaStateType(ABC):
     _id_to_node: dict[str, 'NodeType']
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     focused_id: Optional[str]
+    last_focused_id: Optional[str]
     unhighlight_jobs: dict[str, callable]
 
     @property

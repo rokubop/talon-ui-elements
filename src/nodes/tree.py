@@ -4,7 +4,7 @@ from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_FOCUS_OUTLINE_COLOR
 from ..cursor import Cursor
 from ..interfaces import (
     TreeType,
@@ -40,6 +40,7 @@ class MetaState(MetaStateType):
         self._text_mutations = {}
         self.ref_property_overrides = {}
         self.focused_id = None
+        self.last_focused_id = None
         self.unhighlight_jobs = {}
 
     @property
@@ -182,6 +183,12 @@ class RenderCauseState(RenderCauseStateType):
     def is_dragging(self):
         return self.state == "dragging"
 
+    def set_is_drag_end(self):
+        self.state = "drag_end"
+
+    def is_drag_end(self):
+        return self.state == "drag_end"
+
     def is_state_change(self):
         return self.state == "state"
 
@@ -213,6 +220,7 @@ class Tree(TreeType):
         ):
         self.canvas_base = None
         self.canvas_blockable = []
+        self.canvas_blockable_full_temporary = None
         self.canvas_decorator = None
         self.cursor = None
         self.effects = []
@@ -223,6 +231,8 @@ class Tree(TreeType):
         self.processing_states = []
         self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
+        self.interactive_node_list = []
+        self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
         self.is_mounted = False
         self.meta_state = MetaState()
@@ -325,13 +335,6 @@ class Tree(TreeType):
         if self.canvas_decorator:
             self.canvas_decorator.freeze()
 
-    def focus_input(self, id: str):
-        focused_node = self.meta_state.id_to_node.get(id)
-        if focused_node and focused_node.input:
-            # workaround for focus
-            focused_node.input.hide()
-            focused_node.input.show()
-
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
             return
@@ -374,6 +377,102 @@ class Tree(TreeType):
             if focused_input:
                 focused_input.show()
 
+    def focus_input(self, id: str):
+        focused_node = self.meta_state.id_to_node.get(id)
+        if focused_node and focused_node.input:
+            # workaround for focus
+            focused_node.input.hide()
+            focused_node.input.show()
+
+    def blur_input(self, node: NodeType):
+        # node.input._active = False
+        print("focusing canvas")
+        node.tree.canvas_decorator.focused = True
+
+    def focus_node(self, node: NodeType):
+        if self.meta_state.last_focused_id:
+            last_focused_node = self.meta_state.id_to_node.get(self.meta_state.last_focused_id)
+            if last_focused_node and last_focused_node.element_type == "input_text":
+                self.blur_input(last_focused_node)
+
+        if node.element_type == "input_text":
+            node.tree.focus_input(node.id)
+
+        self.meta_state.last_focused_id = node.id
+        self.meta_state.focused_id = node.id
+        self.render_decorator_canvas()
+
+    def focus_next(self):
+        if self.meta_state.focused_id:
+            focused_id = self.meta_state.focused_id
+            focused_node = self.meta_state.id_to_node.get(focused_id)
+            focused_index = self.interactive_node_list.index(focused_node)
+            next_index = (focused_index + 1) % len(self.interactive_node_list)
+            next_node = self.interactive_node_list[next_index]
+            self.focus_node(next_node)
+
+    def focus_previous(self):
+        if self.meta_state.focused_id:
+            focused_id = self.meta_state.focused_id
+            focused_node = self.meta_state.id_to_node.get(focused_id)
+            focused_index = self.interactive_node_list.index(focused_node)
+            prev_index = (focused_index - 1) % len(self.interactive_node_list)
+            prev_node = self.interactive_node_list[prev_index]
+            self.focus_node(prev_node)
+
+    def on_key(self, e):
+        key_string = e.key.lower() if e.key is not None else ""
+        for mod in e.mods:
+            key_string = mod.lower() + "-" + key_string
+
+        # if key_string == "tab":
+        #     if e.down:
+        #         self.focus_next()
+        # elif key_string == "shift-tab":
+        #     if e.down:
+        #         self.focus_previous()
+        if key_string == "space":
+            focused_id = self.meta_state.focused_id
+            focused_node = self.meta_state.id_to_node.get(focused_id)
+            if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
+                if e.down:
+                    self.click_node(focused_node)
+
+    def draw_focus_outline(self, canvas: SkiaCanvas):
+        if self.interactive_node_list and self.meta_state.focused_id:
+            focused_id = self.meta_state.focused_id
+            if focused_id in self.meta_state.id_to_node:
+                node = self.meta_state.id_to_node[focused_id]
+                border_rect = node.box_model.border_rect
+                stroke_width = 2
+                focus_outline_rect = Rect(
+                    border_rect.x - stroke_width,
+                    border_rect.y - stroke_width,
+                    border_rect.width + stroke_width * 2,
+                    border_rect.height + stroke_width * 2
+                )
+
+                canvas.paint.style = canvas.paint.Style.STROKE
+                canvas.paint.color = DEFAULT_FOCUS_OUTLINE_COLOR
+                canvas.paint.stroke_width = stroke_width
+
+                if node.properties.border_radius:
+                    border_radius = node.properties.border_radius
+                    canvas.draw_rrect(RoundRect.from_rect(focus_outline_rect, x=border_radius, y=border_radius))
+                else:
+                    canvas.draw_rect(focus_outline_rect)
+
+            if not self.is_key_controls_init:
+                self.is_key_controls_init = True
+                self.canvas_decorator.register("key", self.on_key)
+                self.canvas_decorator.focused = True
+
+    def transition_blockable_canvas(self):
+        def callback():
+            self.destroy_blockable_canvas()
+            self.init_blockable_canvases()
+
+        self.temporary_block_full_canvas(True, callback)
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
@@ -385,11 +484,16 @@ class Tree(TreeType):
 
         # if self.render_cause.is_text_change():
         self.draw_text_mutations(canvas)
+        self.draw_focus_outline(canvas)
         # self.render_cause.clear()
         # return
 
         if self.show_hints:
             self.draw_hints(canvas)
+
+        if self.is_blockable_canvas_init:
+            if self.render_cause.is_state_change() or self.render_cause.is_drag_end():
+                self.transition_blockable_canvas()
 
         if not self.is_blockable_canvas_init:
             self.init_blockable_canvases()
@@ -415,12 +519,10 @@ class Tree(TreeType):
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
         self.props = self.props or props
-        self.render_cause.state_change()
 
         if self.is_mounted:
             self.on_state_change_effect_cleanups()
             self.meta_state.clear_nodes()
-            self.destroy_blockable_canvas()
             self.init_nodes_and_boundary()
 
         if on_mount or on_unmount:
@@ -538,7 +640,15 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node[hovered_id]
             state_manager.set_mousedown_start_id(hovered_id)
             active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
+            self.focus_node(node)
             self.highlight(hovered_id, color=active_color)
+
+    def click_node(self, node: NodeType):
+        sig = inspect.signature(node.on_click)
+        if len(sig.parameters) == 0:
+            node.on_click()
+        else:
+            node.on_click(ClickEvent(id=node.id))
 
     def on_mouseup(self, gpos):
         hovered_id = state_manager.get_hovered_id()
@@ -547,12 +657,7 @@ class Tree(TreeType):
         if mousedown_start_id and hovered_id == mousedown_start_id:
             node = self.meta_state.id_to_node[mousedown_start_id]
             self.highlight(mousedown_start_id, color=node.properties.highlight_color)
-
-            sig = inspect.signature(node.on_click)
-            if len(sig.parameters) == 0:
-                node.on_click()
-            else:
-                node.on_click(ClickEvent(id=mousedown_start_id))
+            self.click_node(node)
 
         state_manager.set_mousedown_start_id(None)
 
@@ -560,9 +665,11 @@ class Tree(TreeType):
             state_manager.set_drag_relative_offset(None)
             state_manager.set_mousedown_start_pos(None)
             state_manager.set_drag_active(False)
-            print("destroying blockable canvas")
-            self.destroy_blockable_canvas()
-            cron.after("16ms", self.render_base_canvas)
+
+            cron.after("17ms", lambda: (
+                self.render_cause.set_is_drag_end(),
+                self.render_base_canvas()
+            ))
 
     def on_mouse(self, e: MouseEvent):
         found_clickable = False
@@ -602,11 +709,15 @@ class Tree(TreeType):
             self.canvas_base = None
 
         if self.canvas_decorator:
+            if self.is_key_controls_init:
+                self.canvas_decorator.unregister("key", self.on_key)
+                self.is_key_controls_init = False
             self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
             self.canvas_decorator.close()
             self.canvas_decorator = None
 
         self.destroy_blockable_canvas()
+        self.temporary_block_full_canvas(False)
 
         self.meta_state.clear()
         self.effects.clear()
@@ -635,9 +746,15 @@ class Tree(TreeType):
         if current_node.properties.drag_handle:
             self.drag_handle_node = current_node
 
-        if current_node.interactive and not current_node.id:
-            index_path_str = "-".join(map(str, index_path)) # "1-2-0"
-            current_node.id = self.guid + index_path_str
+        if current_node.interactive:
+            self.interactive_node_list.append(current_node)
+
+            if not current_node.id:
+                index_path_str = "-".join(map(str, index_path)) # "1-2-0"
+                current_node.id = self.guid + index_path_str
+
+            if len(self.interactive_node_list) == 1:
+                self.meta_state.focused_id = current_node.id
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
@@ -649,10 +766,6 @@ class Tree(TreeType):
                 self.meta_state.add_button(current_node.id)
             elif current_node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
-            elif current_node.element_type == ELEMENT_ENUM_TYPE["input_text"]:
-                if not self.meta_state.focused_id:
-                    self.meta_state.focused_id = current_node.id
-                # no need to add input to meta state, it is managed on render
 
         if constraint_nodes:
             current_node.constraint_nodes = constraint_nodes
@@ -679,6 +792,24 @@ class Tree(TreeType):
                 self.effects.append(effect)
                 store.staged_effects.remove(effect)
 
+    def on_draw_none(self, canvas: SkiaCanvas):
+        pass
+
+    def temporary_block_full_canvas(self, enable: bool = True, callback: callable = None):
+        """Use a temporary full rect blockable canvas in between blockable canvas changes"""
+        if enable:
+            if not self.canvas_blockable_full_temporary:
+                full_rect = self.draggable_node.box_model.border_rect \
+                    if getattr(self.draggable_node, 'box_model', None) \
+                    else self.root_node.box_model.content_children_rect
+                self.canvas_blockable_full_temporary = Canvas.from_rect(full_rect)
+                self.canvas_blockable_full_temporary.blocks_mouse = True
+                self.canvas_blockable_full_temporary.register("draw", lambda _: callback() if callback else self.on_draw_none)
+                self.canvas_blockable_full_temporary.freeze()
+        elif self.canvas_blockable_full_temporary:
+                self.canvas_blockable_full_temporary.close()
+                self.canvas_blockable_full_temporary = None
+
     def init_blockable_canvases(self):
         """
         If we have at least one button or input, then we will consider the whole content area as blockable.
@@ -690,7 +821,7 @@ class Tree(TreeType):
 
         if self.meta_state.buttons or self.meta_state.inputs:
             full_rect = self.draggable_node.box_model.border_rect \
-                if self.draggable_node.box_model \
+                if getattr(self.draggable_node, 'box_model', None) \
                 else self.root_node.box_model.content_children_rect
 
             if self.meta_state.inputs:
@@ -724,6 +855,9 @@ class Tree(TreeType):
                 # but we can't be recreating canvas every time otherwise
                 # this is even more expensive switching back and forth
                 # between "applications"
+
+            if self.canvas_blockable_full_temporary:
+                self.temporary_block_full_canvas(False)
 
         self.is_blockable_canvas_init = True
         # print(f"init_blockable_canvases: {time.time() - start}")

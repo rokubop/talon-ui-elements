@@ -109,6 +109,7 @@ class StateManager:
 
         for tree in store.trees:
             tree.processing_states.extend(store.processing_states)
+            tree.render_cause.state_change()
             tree.render()
 
         store.processing_states.clear()
@@ -190,6 +191,14 @@ class StateManager:
         node = store.id_to_node.get(id)
         if node:
             node.tree.highlight_briefly(id, color)
+
+    def focus_next(self):
+        for tree in store.trees:
+            tree.focus_next()
+
+    def focus_previous(self):
+        for tree in store.trees:
+            tree.focus_previous()
 
     def clear_state(self):
         store.reactive_state.clear()
