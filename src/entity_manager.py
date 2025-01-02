@@ -81,6 +81,14 @@ class EntityManager:
         if input_data:
             input_data.input.rect = rect
 
+    def does_tree_exist(self, renderer: callable) -> bool:
+        """Check if a tree exists based on the renderer"""
+        hash = generate_hash(renderer)
+        for t in store.trees:
+            if t.hashed_renderer == hash:
+                return True
+        return False
+
     def get_tree_with_hash_for_renderer(self, renderer: callable) -> TreeType:
         # to hash or not not to hash...
         # - pro: hash ensures if the user accidentally creates new references for their

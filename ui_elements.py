@@ -1,4 +1,4 @@
-from talon import Module
+from talon import Module, actions
 from typing import List, Any, Union, Callable
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
@@ -22,8 +22,8 @@ class Actions:
         div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
         # Example 2 - All elements
-        elements = ["screen", "active_window", "div", "text", "button", "input_text", "state", "ref", "effect"]
-        screen, active_window, div, text, button, input_text, state, ref, effect = actions.user.ui_elements(elements)
+        elements = ["screen", "active_window", "div", "text", "button", "input_text", "state", "ref", "effect", "icon"]
+        screen, active_window, div, text, button, input_text, state, ref, effect, icon = actions.user.ui_elements(elements)
         ```
         """
         return ui_elements(elements)
@@ -67,6 +67,20 @@ class Actions:
     def ui_elements_hide_all():
         """Destroy and hide all UIs"""
         entity_manager.hide_all_trees()
+
+    def ui_elements_toggle(
+            renderer: Union[str, Callable],
+            props: dict[str, Any] = None,
+            on_mount: callable = None,
+            on_unmount: callable = None,
+            show_hints: bool = None,
+            initial_state: dict[str, Any] = None,
+        ):
+        """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
+        if entity_manager.does_tree_exist(renderer):
+            actions.user.ui_elements_hide(renderer)
+        else:
+            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """

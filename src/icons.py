@@ -2,6 +2,8 @@ from talon import actions
 from .constants import ELEMENT_ENUM_TYPE
 from .properties import validate_combined_props
 
+# https://iconsvg.xyz/ used for references
+
 ICON_SVG_PATH_ONLY = {
     "arrow_down": "M12 5v13M5 12l7 7 7-7",
     "arrow_left": "M19 12H6M12 5l-7 7 7 7",
@@ -15,6 +17,7 @@ ICON_SVG_PATH_ONLY = {
     "download": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5",
     "edit": "M 16 3 L 21 8 L 8 21 L 3 21 L 3 16 L 16 3",
     "external_link": "M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8c0-1.1.9-2 2-2h5M15 3h6v6M10 14L20.2 3.8",
+    "folder": "M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z",
     "menu": "M 3 6 H 18 M 3 12 H 18 M 3 18 H 18",
     "mic": ["M12 2c-1.7 0-3 1.2-3 2.6v6.8c0 1.4 1.3 2.6 3 2.6s3-1.2 3-2.6V4.6C15 3.2 13.7 2 12 2z", "M19 10v1a7 7 0 0 1-14 0v-1M12 18.4v3.3M8 22h8"],
     "play": "M 5 3 L 19 12 L 5 21 Z",
