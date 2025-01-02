@@ -27,6 +27,7 @@ class Properties:
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
     color: str = DEFAULT_COLOR
+    drag_handle: bool = False
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
     font_size: int = DEFAULT_FONT_SIZE
@@ -120,6 +121,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_radius: int
     border_width: int
     color: str
+    drag_handle: bool
     flex_direction: str
     flex: int
     gap: int
@@ -134,6 +136,9 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     opacity: float
     value: str
     width: Union[int, str]
+
+class NodeDivValidationProperties(ValidationProperties):
+    draggable: bool
 
 class NodeTextValidationProperties(ValidationProperties):
     text: str
@@ -169,6 +174,13 @@ class NodeRootProperties(Properties):
     screen: int = 0
     align_items: str = "flex_start"
     boundary_rect: Rect = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeDivProperties(Properties):
+    draggable: bool = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -384,7 +396,7 @@ class NodeInputTextValidationProperties(ValidationProperties):
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["div"]: ValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,

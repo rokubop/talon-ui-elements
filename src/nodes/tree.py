@@ -1,10 +1,10 @@
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.canvas import Canvas
+from talon.canvas import Canvas, MouseEvent
 from talon.skia import RoundRect
-from talon.types import Rect
+from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..cursor import Cursor
 from ..interfaces import (
     TreeType,
@@ -176,6 +176,12 @@ class RenderCauseState(RenderCauseStateType):
     def input_focus_change(self):
         self.state = "input_focus"
 
+    def set_is_dragging(self):
+        self.state = "dragging"
+
+    def is_dragging(self):
+        return self.state == "dragging"
+
     def is_state_change(self):
         return self.state == "state"
 
@@ -210,6 +216,10 @@ class Tree(TreeType):
         self.canvas_decorator = None
         self.cursor = None
         self.effects = []
+        self.draggable_node = False
+        self.draggable_node_pos = None
+        self.drag_handle_node = None
+        self.draw_busy = None
         self.processing_states = []
         self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
@@ -410,12 +420,7 @@ class Tree(TreeType):
         if self.is_mounted:
             self.on_state_change_effect_cleanups()
             self.meta_state.clear_nodes()
-            if self.canvas_blockable:
-                for canvas in self.canvas_blockable:
-                    canvas.unregister("mouse", self.on_mouse)
-                    # canvas.unregister("mouse", self.on_scroll)
-                    canvas.close()
-                self.is_blockable_canvas_init = False
+            self.destroy_blockable_canvas()
             self.init_nodes_and_boundary()
 
         if on_mount or on_unmount:
@@ -490,8 +495,44 @@ class Tree(TreeType):
             self.unhighlight(prev_hovered_id)
             state_manager.set_hovered_id(None)
 
+    def draw_busy_disable(self):
+        if self.draw_busy:
+            cron.cancel(self.draw_busy)
+        self.draw_busy = None
+        self.render_cause.clear()
+
+    def refresh_dragging_canvas(self):
+        if not self.draw_busy:
+            self.render_cause.set_is_dragging()
+            self.canvas_base.freeze()
+            self.draw_busy = cron.after("16ms", self.draw_busy_disable)
+
+    def on_mousemove(self, gpos):
+        drag_relative_offset = state_manager.get_drag_relative_offset()
+        if drag_relative_offset:
+            if not state_manager.is_drag_active():
+                drag_start_pos = state_manager.get_mousedown_start_pos()
+                if abs(gpos.x - drag_start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - drag_start_pos.y) > DRAG_INIT_THRESHOLD:
+                    state_manager.set_drag_active(True)
+
+            if state_manager.is_drag_active():
+                x = gpos.x - drag_relative_offset.x
+                y = gpos.y - drag_relative_offset.y
+                self.draggable_node_pos = Point2d(x, y)
+
+        if state_manager.get_mousedown_start_pos():
+            self.refresh_dragging_canvas()
+
     def on_mousedown(self, gpos):
         hovered_id = state_manager.get_hovered_id()
+
+        if self.draggable_node and self.drag_handle_node:
+            draggable_rect = self.draggable_node.box_model.border_rect
+            drag_handle_rect = self.drag_handle_node.box_model.border_rect
+            if drag_handle_rect.contains(gpos):
+                state_manager.set_mousedown_start_pos(gpos)
+                relative_offset = Point2d(gpos.x - draggable_rect.x, gpos.y - draggable_rect.y)
+                state_manager.set_drag_relative_offset(relative_offset)
 
         if hovered_id in list(self.meta_state.buttons):
             node = self.meta_state.id_to_node[hovered_id]
@@ -515,9 +556,18 @@ class Tree(TreeType):
 
         state_manager.set_mousedown_start_id(None)
 
-    def on_mouse(self, e):
+        if self.draggable_node and self.drag_handle_node:
+            state_manager.set_drag_relative_offset(None)
+            state_manager.set_mousedown_start_pos(None)
+            state_manager.set_drag_active(False)
+            print("destroying blockable canvas")
+            self.destroy_blockable_canvas()
+            cron.after("16ms", self.render_base_canvas)
+
+    def on_mouse(self, e: MouseEvent):
         found_clickable = False
         if e.event == "mousemove":
+            self.on_mousemove(e.gpos)
             self.on_hover(e.gpos)
         elif e.event == "mousedown":
             found_clickable = self.on_mousedown(e.gpos)
@@ -526,6 +576,14 @@ class Tree(TreeType):
 
         # if not found_clickable and self.window:
         #     self.on_mouse_window(e)
+
+    def destroy_blockable_canvas(self):
+        if self.canvas_blockable:
+            for canvas in self.canvas_blockable:
+                canvas.unregister("mouse", self.on_mouse)
+                # canvas.unregister("scroll", self.on_scroll)
+                canvas.close()
+            self.is_blockable_canvas_init = False
 
     def destroy(self):
         for effect in reversed(self.effects):
@@ -548,17 +606,17 @@ class Tree(TreeType):
             self.canvas_decorator.close()
             self.canvas_decorator = None
 
-        if self.canvas_blockable:
-            for canvas in self.canvas_blockable:
-                canvas.unregister("mouse", self.on_mouse)
-                # canvas.unregister("mouse", self.on_scroll)
-                canvas.close()
-            self.is_blockable_canvas_init = False
+        self.destroy_blockable_canvas()
 
         self.meta_state.clear()
         self.effects.clear()
         self.processing_states.clear()
         self.is_mounted = False
+        self.render_cause.clear()
+        self.draggable_node = None
+        self.drag_handle_node = None
+        self.draggable_node_pos = None
+        self.draw_busy = None
         hint_clear_state()
         state_manager.clear_state()
 
@@ -570,6 +628,12 @@ class Tree(TreeType):
         ):
         current_node.tree = self
         current_node.depth = len(index_path)
+
+        if current_node.element_type == ELEMENT_ENUM_TYPE["div"] and current_node.properties.draggable:
+            self.draggable_node = current_node
+
+        if current_node.properties.drag_handle:
+            self.drag_handle_node = current_node
 
         if current_node.interactive and not current_node.id:
             index_path_str = "-".join(map(str, index_path)) # "1-2-0"
@@ -604,6 +668,9 @@ class Tree(TreeType):
         for i, child_node in enumerate(current_node.children_nodes):
             self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
 
+        if self.draggable_node and not self.drag_handle_node:
+            self.drag_handle_node = self.draggable_node
+
         entity_manager.synchronize_global_ids()
 
     def consume_effects(self):
@@ -622,14 +689,9 @@ class Tree(TreeType):
             return
 
         if self.meta_state.buttons or self.meta_state.inputs:
-            full_rect = self.root_node.box_model.content_children_rect
-            # if self.window and self.window.offset:
-            #     full_rect.x += self.window.offset.x
-            #     full_rect.y += self.window.offset.y
-
-            #     for input in list(self.meta_state.inputs.values()):
-            #         input.rect.x += self.window.offset.x
-            #         input.rect.y += self.window.offset.y
+            full_rect = self.draggable_node.box_model.border_rect \
+                if self.draggable_node.box_model \
+                else self.root_node.box_model.content_children_rect
 
             if self.meta_state.inputs:
                 bottom_rect = None

@@ -385,7 +385,10 @@ class NodeContainer(Node, NodeContainerType):
         if view_state := self.debugger(c, cursor, True):
             return view_state
 
-        self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
+        if self.tree.draggable_node_pos and self.tree.draggable_node == self:
+            self.box_model.move_to(self.tree.draggable_node_pos.x, self.tree.draggable_node_pos.y)
+        else:
+            self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         # self.debugger(c, cursor)
         self.render_borders(c, cursor)

@@ -307,6 +307,14 @@ class RenderCauseStateType(ABC):
         pass
 
     @abstractmethod
+    def set_is_dragging(self):
+        pass
+
+    @abstractmethod
+    def is_dragging(self):
+        pass
+
+    @abstractmethod
     def set_text_change(self):
         pass
 
@@ -443,6 +451,9 @@ class TreeType(ABC):
     canvas_decorator: Canvas
     canvas_mouse: Canvas
     cursor: CursorType
+    draggable_node: NodeType
+    draggable_node_pos: Point2d
+    drag_handle_node: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
     processing_states: List[str]

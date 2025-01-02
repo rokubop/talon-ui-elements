@@ -62,8 +62,26 @@ class StateManager:
     def get_mousedown_start_id(self):
         return store.mouse_state['mousedown_start_id']
 
+    def get_drag_relative_offset(self):
+        return store.mouse_state['drag_relative_offset']
+
+    def get_mousedown_start_pos(self):
+        return store.mouse_state['mousedown_start_pos']
+
+    def is_drag_active(self):
+        return store.mouse_state['is_drag_active']
+
     def set_mousedown_start_id(self, id):
         store.mouse_state['mousedown_start_id'] = id
+
+    def set_mousedown_start_pos(self, gpos):
+        store.mouse_state['mousedown_start_pos'] = gpos
+
+    def set_drag_relative_offset(self, offset):
+        store.mouse_state['drag_relative_offset'] = offset
+
+    def set_drag_active(self, is_active):
+        store.mouse_state['is_drag_active'] = is_active
 
     def set_processing_tree(self, tree: TreeType):
         store.processing_tree = tree
