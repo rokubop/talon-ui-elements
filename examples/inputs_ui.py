@@ -17,8 +17,8 @@ def inputs_ui(props):
         set_is_valid(bool(first_input.value and last_input.value))
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
-            div(border_bottom=1, padding_bottom=16, margin_bottom=8)[
+        div(draggable=True, background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
+            div(drag_handle=True, border_bottom=1, padding_bottom=16, margin_bottom=8)[
                 text("Enter your name", font_size=24),
             ],
             text("First"),

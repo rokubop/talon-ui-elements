@@ -4,3 +4,6 @@ tag: user.ui_elements_hints_active
 
 key(tab): user.ui_elements_hint_action("focus_next")
 key(shift-tab): user.ui_elements_hint_action("focus_previous")
+key(escape): user.ui_elements_hint_action("close")
+key(up): user.ui_elements_hint_action("focus_previous")
+key(down): user.ui_elements_hint_action("focus_next")

@@ -425,13 +425,7 @@ class Tree(TreeType):
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
 
-        # if key_string == "tab":
-        #     if e.down:
-        #         self.focus_next()
-        # elif key_string == "shift-tab":
-        #     if e.down:
-        #         self.focus_previous()
-        if key_string == "space":
+        if key_string == "space" or key_string == "enter":
             focused_id = self.meta_state.focused_id
             focused_node = self.meta_state.id_to_node.get(focused_id)
             if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):

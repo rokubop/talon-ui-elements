@@ -1,4 +1,4 @@
-from talon import Module, Context, cron, settings, registry
+from talon import Module, Context, cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
@@ -173,5 +173,7 @@ class Actions:
             state_manager.focus_next()
         elif ui_elements_hint_target == "focus_previous":
             state_manager.focus_previous()
+        elif ui_elements_hint_target == "close":
+            actions.user.ui_elements_hide_all()
         else:
             trigger_hint_action(ui_elements_hint_target)

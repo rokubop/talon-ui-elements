@@ -52,8 +52,8 @@ def state_vs_refs_ui():
     screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="222222", border_width=1, border_radius=8, padding=32)[
-            div( flex_direction='row', justify_content="space_between", padding_bottom=16, border_bottom=1, border_color="555555")[
+        div(draggable=True, background_color="222222", border_width=1, border_radius=8, padding=32)[
+            div(drag_handle=True, flex_direction='row', justify_content="space_between", padding_bottom=16, border_bottom=1, border_color="555555")[
                 text("state vs ref", font_size=32),
                 text("talon-ui-elements", font_size=32, color=YELLOW),
             ],

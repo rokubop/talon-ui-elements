@@ -24,8 +24,8 @@ def dashboard_ui():
         return lambda e: set_user_list(list_name)
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="272727", border_radius=8, width=900, min_height=400, border_width=1)[
-            div(flex_direction='row', justify_content="space_between", padding=16, border_bottom=1, border_color="555555")[
+        div(draggable=True, background_color="272727", border_radius=8, width=900, min_height=400, border_width=1)[
+            div(drag_handle=True, flex_direction='row', justify_content="space_between", padding=16, border_bottom=1, border_color="555555")[
                 text("Dashboard", font_size=24),
                 text("talon-ui-elements", font_size=24, color="FFCC00"),
             ],
