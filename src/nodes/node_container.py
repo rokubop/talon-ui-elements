@@ -184,8 +184,12 @@ class NodeContainer(Node, NodeContainerType):
         last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
 
         # Intristic sizing phase
-        for i, child in enumerate(self.children_nodes):
-            self.virtual_render_child(c, cursor, child, i, move_after_last_child=True)
+        if self.children_nodes:
+            for i, child in enumerate(self.children_nodes):
+                self.virtual_render_child(c, cursor, child, i, move_after_last_child=True)
+        else:
+            # fixes issue with empty divs with no children collapsing to 0 width or height
+            self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, 0, 0))
 
         cursor.virtual_move_to(last_cursor.x, last_cursor.y)
 
