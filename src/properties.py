@@ -178,6 +178,9 @@ class NodeRootProperties(Properties):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+class NodeRootValidationProperties(ValidationProperties):
+    screen: int
+
 @dataclass
 class NodeDivProperties(Properties):
     draggable: bool = False
