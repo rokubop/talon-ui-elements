@@ -220,7 +220,6 @@ class Tree(TreeType):
         ):
         self.canvas_base = None
         self.canvas_blockable = []
-        self.canvas_blockable_full_temporary = None
         self.canvas_decorator = None
         self.cursor = None
         self.effects = []
@@ -235,6 +234,7 @@ class Tree(TreeType):
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
         self.is_mounted = False
+        self.last_blockable_rects = []
         self.meta_state = MetaState()
         self.props = props
         self.render_cause = RenderCauseState()
@@ -461,37 +461,14 @@ class Tree(TreeType):
                 self.canvas_decorator.register("key", self.on_key)
                 self.canvas_decorator.focused = True
 
-    def transition_blockable_canvas(self):
-        def callback():
-            self.destroy_blockable_canvas()
-            self.init_blockable_canvases()
-
-        self.temporary_block_full_canvas(True, callback)
-
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
-        # start = time.time()
-        # if self.render_cause.is_highlight_change():
         self.draw_highlights(canvas)
-        # self.render_cause.clear()
-        # return
-
-        # if self.render_cause.is_text_change():
         self.draw_text_mutations(canvas)
         self.draw_focus_outline(canvas)
-        # self.render_cause.clear()
-        # return
-
         if self.show_hints:
             self.draw_hints(canvas)
-
-        if self.is_blockable_canvas_init:
-            if self.render_cause.is_state_change() or self.render_cause.is_drag_end():
-                self.transition_blockable_canvas()
-
-        if not self.is_blockable_canvas_init:
-            self.init_blockable_canvases()
-
+        self.draw_blockable_canvases()
         self.on_fully_rendered()
 
     def create_canvas(self):
@@ -685,6 +662,8 @@ class Tree(TreeType):
                 # canvas.unregister("scroll", self.on_scroll)
                 canvas.close()
             self.is_blockable_canvas_init = False
+            self.last_blockable_rects.clear()
+            self.canvas_blockable.clear()
 
     def destroy(self):
         for effect in reversed(self.effects):
@@ -711,7 +690,6 @@ class Tree(TreeType):
             self.canvas_decorator = None
 
         self.destroy_blockable_canvas()
-        self.temporary_block_full_canvas(False)
 
         self.meta_state.clear()
         self.effects.clear()
@@ -772,6 +750,10 @@ class Tree(TreeType):
         if current_node.element_type == ELEMENT_ENUM_TYPE["screen"] and current_node.deprecated_ui:
             self.render_version = 1
 
+        if current_node.properties.justify_content == "space_evenly":
+            for i, child_node in enumerate(current_node.children_nodes):
+                child_node.properties.flex = 1
+
         for i, child_node in enumerate(current_node.children_nodes):
             self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
 
@@ -786,32 +768,42 @@ class Tree(TreeType):
                 self.effects.append(effect)
                 store.staged_effects.remove(effect)
 
-    def on_draw_none(self, canvas: SkiaCanvas):
-        pass
+    def have_blockable_rects_changed(self, blockable_rects):
+        dimension_change = False
+        position_change = False
 
-    def temporary_block_full_canvas(self, enable: bool = True, callback: callable = None):
-        """Use a temporary full rect blockable canvas in between blockable canvas changes"""
-        if enable:
-            if not self.canvas_blockable_full_temporary:
-                full_rect = self.draggable_node.box_model.border_rect \
-                    if getattr(self.draggable_node, 'box_model', None) \
-                    else self.root_node.box_model.content_children_rect
-                self.canvas_blockable_full_temporary = Canvas.from_rect(full_rect)
-                self.canvas_blockable_full_temporary.blocks_mouse = True
-                self.canvas_blockable_full_temporary.register("draw", lambda _: callback() if callback else self.on_draw_none)
-                self.canvas_blockable_full_temporary.freeze()
-        elif self.canvas_blockable_full_temporary:
-                self.canvas_blockable_full_temporary.close()
-                self.canvas_blockable_full_temporary = None
+        if len(blockable_rects) != len(self.last_blockable_rects):
+            dimension_change = True
+            position_change = True
 
-    def init_blockable_canvases(self):
+        for i, rect in enumerate(self.last_blockable_rects):
+            if not rect.width == blockable_rects[i].width or not rect.height == blockable_rects[i].height:
+                dimension_change = True
+                break
+
+        for i, rect in enumerate(self.last_blockable_rects):
+            if not rect.x == blockable_rects[i].x or not rect.y == blockable_rects[i].y:
+                position_change = True
+                break
+
+        return dimension_change, position_change
+
+    def move_blockable_canvas_rects(self, blockable_rects):
+        if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
+            for i, rect in enumerate(blockable_rects):
+                self.canvas_blockable[i].move(rect.x, rect.y)
+        self.last_blockable_rects.clear()
+        self.last_blockable_rects.extend(blockable_rects)
+
+    def should_rerender_blockable_canvas(self):
+        return self.render_cause.is_state_change() or self.render_cause.is_dragging() or self.render_cause.is_drag_end()
+
+    def calculate_blockable_rects(self):
         """
         If we have at least one button or input, then we will consider the whole content area as blockable.
-        If we have an inputs, then everything should be blockable except for those inputs.
+        If we have an inputs, then we need to carve holes for those inputs because they are managed separately.
         """
-        # start = time.time()
-        if not self.root_node or not self.root_node.box_model:
-            return
+        blockable_rects = []
 
         if self.meta_state.buttons or self.meta_state.inputs:
             full_rect = self.draggable_node.box_model.border_rect \
@@ -827,34 +819,64 @@ class Tree(TreeType):
                     current_rect = bottom_rect or full_rect
 
                     top_rect = Rect(current_rect.x, current_rect.y, current_rect.width, input.rect.y - current_rect.y)
-                    self.canvas_blockable.append(Canvas.from_rect(top_rect))
+                    blockable_rects.append(top_rect)
 
                     left_rect = Rect(current_rect.x, input.rect.y, input.rect.x - current_rect.x, input.rect.height)
-                    self.canvas_blockable.append(Canvas.from_rect(left_rect))
+                    blockable_rects.append(left_rect)
 
                     right_rect = Rect(input.rect.x + input.rect.width, input.rect.y, current_rect.x + current_rect.width - input.rect.x - input.rect.width, input.rect.height)
-                    self.canvas_blockable.append(Canvas.from_rect(right_rect))
+                    blockable_rects.append(right_rect)
 
                     bottom_rect = Rect(current_rect.x, input.rect.y + input.rect.height, current_rect.width, current_rect.y + current_rect.height - input.rect.y - input.rect.height)
-                self.canvas_blockable.append(Canvas.from_rect(bottom_rect))
+                blockable_rects.append(bottom_rect)
             else:
-                self.canvas_blockable = [Canvas.from_rect(full_rect)]
+                blockable_rects.append(full_rect)
 
-            for canvas in self.canvas_blockable:
+        return blockable_rects
+
+    def draw_blockable_canvases(self):
+        is_rerender = False
+
+        if self.is_blockable_canvas_init:
+            if self.should_rerender_blockable_canvas():
+                is_rerender = True
+            else:
+                return
+
+        if not self.root_node or not self.root_node.box_model:
+            return
+
+        blockable_rects = self.calculate_blockable_rects()
+
+        if is_rerender:
+            if self.render_cause.is_dragging():
+                self.move_blockable_canvas_rects(blockable_rects)
+                return
+            dimension_change, position_change = self.have_blockable_rects_changed(blockable_rects)
+            if dimension_change:
+                self.destroy_blockable_canvas()
+            elif position_change:
+                self.move_blockable_canvas_rects(blockable_rects)
+                return
+
+        if not self.is_blockable_canvas_init:
+            self.last_blockable_rects.clear()
+            self.last_blockable_rects.extend(blockable_rects)
+            for rect in blockable_rects:
+                canvas = Canvas.from_rect(rect)
+                self.canvas_blockable.append(canvas)
                 canvas.blocks_mouse = True
                 canvas.register("mouse", self.on_mouse)
+
                 # canvas.register("scroll", self.on_scroll)
                 canvas.freeze()
                 # canvas.focused = True
                 # but we can't be recreating canvas every time otherwise
                 # this is even more expensive switching back and forth
                 # between "applications"
+            print("4")
 
-            if self.canvas_blockable_full_temporary:
-                self.temporary_block_full_canvas(False)
-
-        self.is_blockable_canvas_init = True
-        # print(f"init_blockable_canvases: {time.time() - start}")
+            self.is_blockable_canvas_init = True
 
 def render_ui(
         renderer: callable,

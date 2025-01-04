@@ -62,10 +62,10 @@ class Properties:
             self.highlight_color = f"{self.color}33"
 
         if self.justify_content:
-            if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center']:
+            if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center', 'space_evenly']:
                 raise ValueError(
                     f"\nInvalid value for justify_content: '{self.justify_content}'\n"
-                    f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'center'"
+                    f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'space_evenly', 'center'"
                 )
         if self.align_items:
             if self.align_items not in ['stretch', 'center', 'flex_start', 'flex_end']:
@@ -437,7 +437,7 @@ def validate_combined_props(props, additional_props, element_type):
         if expected_type is callable:
             if not callable(value):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
-        elif not isinstance(value, expected_type):
+        elif not isinstance(value, expected_type) and value is not None:
             type_errors.append(f"{key}: expected {expected_type.__name__}, got {type(value).__name__} {value}")
 
     if type_errors:
