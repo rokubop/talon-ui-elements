@@ -19,8 +19,8 @@ def go_back_ui():
     return screen()[
         div(draggable=True, margin_left=80, margin_top=100, background_color="272727", border_radius=16, border_width=1)[
             text("talon-ui-elements", font_size=14, padding=16, color="FFCC00"),
-            button("Go back", on_click=go_back, padding=16, background_color="272727", ),
-            button("Exit", on_click=lambda: actions.user.ui_elements_hide_all(), padding=16, margin_bottom=8, background_color="272727"),
+            button("Go back", on_click=go_back, padding=16, background_color="272727"),
+            button("Exit", on_click=actions.user.ui_elements_hide_all, padding=16, margin_bottom=8, background_color="272727"),
         ]
     ]
 

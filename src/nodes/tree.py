@@ -224,7 +224,7 @@ class Tree(TreeType):
         self.cursor = None
         self.effects = []
         self.draggable_node = False
-        self.draggable_node_pos = None
+        self.draggable_node_delta_pos = None
         self.drag_handle_node = None
         self.draw_busy = None
         self.processing_states = []
@@ -591,7 +591,7 @@ class Tree(TreeType):
             if state_manager.is_drag_active():
                 x = gpos.x - drag_relative_offset.x
                 y = gpos.y - drag_relative_offset.y
-                self.draggable_node_pos = Point2d(x, y)
+                self.draggable_node_delta_pos = Point2d(x, y)
 
         if state_manager.get_mousedown_start_pos():
             self.refresh_dragging_canvas()
@@ -600,7 +600,7 @@ class Tree(TreeType):
         hovered_id = state_manager.get_hovered_id()
 
         if self.draggable_node and self.drag_handle_node:
-            draggable_rect = self.draggable_node.box_model.border_rect
+            draggable_rect = self.draggable_node.box_model.margin_rect
             drag_handle_rect = self.drag_handle_node.box_model.border_rect
             if drag_handle_rect.contains(gpos):
                 state_manager.set_mousedown_start_pos(gpos)
@@ -643,17 +643,13 @@ class Tree(TreeType):
             ))
 
     def on_mouse(self, e: MouseEvent):
-        found_clickable = False
         if e.event == "mousemove":
             self.on_mousemove(e.gpos)
             self.on_hover(e.gpos)
         elif e.event == "mousedown":
-            found_clickable = self.on_mousedown(e.gpos)
+            self.on_mousedown(e.gpos)
         elif e.event == "mouseup":
             self.on_mouseup(e.gpos)
-
-        # if not found_clickable and self.window:
-        #     self.on_mouse_window(e)
 
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
@@ -698,7 +694,7 @@ class Tree(TreeType):
         self.render_cause.clear()
         self.draggable_node = None
         self.drag_handle_node = None
-        self.draggable_node_pos = None
+        self.draggable_node_delta_pos = None
         self.draw_busy = None
         hint_clear_state()
         state_manager.clear_state()
@@ -805,7 +801,7 @@ class Tree(TreeType):
         """
         blockable_rects = []
 
-        if self.meta_state.buttons or self.meta_state.inputs:
+        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node:
             full_rect = self.draggable_node.box_model.border_rect \
                 if getattr(self.draggable_node, 'box_model', None) \
                 else self.root_node.box_model.content_children_rect

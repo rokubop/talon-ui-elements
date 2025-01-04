@@ -384,15 +384,24 @@ class NodeContainer(Node, NodeContainerType):
         return gap
 
     def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
-        global ids
-
         if view_state := self.debugger(c, cursor, True):
             return view_state
 
-        if self.tree.draggable_node_pos and self.tree.draggable_node == self:
-            self.box_model.move_to(self.tree.draggable_node_pos.x, self.tree.draggable_node_pos.y)
+        if self.tree.draggable_node_delta_pos and self.tree.draggable_node == self:
+            self.box_model.move_delta(
+                self.tree.draggable_node_delta_pos.x,
+                self.tree.draggable_node_delta_pos.y,
+                self.properties.flex_direction,
+                self.properties.align_items,
+                self.properties.justify_content
+            )
         else:
-            self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
+            self.box_model.position_for_render(
+                cursor,
+                self.properties.flex_direction,
+                self.properties.align_items,
+                self.properties.justify_content
+            )
 
         # self.debugger(c, cursor)
         self.render_borders(c, cursor)

@@ -453,7 +453,7 @@ class TreeType(ABC):
     canvas_mouse: Canvas
     cursor: CursorType
     draggable_node: NodeType
-    draggable_node_pos: Point2d
+    draggable_node_delta_pos: Point2d
     drag_handle_node: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
