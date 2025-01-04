@@ -11,6 +11,7 @@ class MouseState(TypedDict):
 class Store():
     def __init__(self):
         self.trees: list[TreeType] = []
+        self.focused_tree: Optional[TreeType] = None
         self.processing_tree: Optional[TreeType] = None
         self.processing_states: list[str] = []
         self.root_nodes: list[NodeType] = []
@@ -43,6 +44,7 @@ class Store():
 
     def clear(self):
         self.trees = []
+        self.focused_tree = None
         self.processing_tree = None
         self.processing_states = []
         self.root_nodes = []

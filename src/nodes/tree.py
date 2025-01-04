@@ -385,21 +385,17 @@ class Tree(TreeType):
             focused_node.input.show()
 
     def blur_input(self, node: NodeType):
-        # node.input._active = False
-        print("focusing canvas")
         node.tree.canvas_decorator.focused = True
 
     def focus_node(self, node: NodeType):
-        if self.meta_state.last_focused_id:
-            last_focused_node = self.meta_state.id_to_node.get(self.meta_state.last_focused_id)
-            if last_focused_node and last_focused_node.element_type == "input_text":
-                self.blur_input(last_focused_node)
+        state_manager.blur_current_focus()
 
         if node.element_type == "input_text":
             node.tree.focus_input(node.id)
 
         self.meta_state.last_focused_id = node.id
         self.meta_state.focused_id = node.id
+        state_manager.set_focused_tree(self)
         self.render_decorator_canvas()
 
     def focus_next(self):
@@ -433,7 +429,9 @@ class Tree(TreeType):
                     self.click_node(focused_node)
 
     def draw_focus_outline(self, canvas: SkiaCanvas):
-        if self.interactive_node_list and self.meta_state.focused_id:
+        if self.interactive_node_list and \
+                state_manager.get_focused_tree() == self and \
+                self.meta_state.focused_id:
             focused_id = self.meta_state.focused_id
             if focused_id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[focused_id]
@@ -723,6 +721,7 @@ class Tree(TreeType):
 
             if len(self.interactive_node_list) == 1:
                 self.meta_state.focused_id = current_node.id
+                state_manager.set_focused_tree(self)
 
         if current_node.id:
             self.meta_state.map_id_to_node(current_node.id, current_node)
