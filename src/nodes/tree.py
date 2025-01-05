@@ -4,7 +4,7 @@ from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_FOCUS_OUTLINE_COLOR
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..cursor import Cursor
 from ..interfaces import (
     TreeType,
@@ -439,7 +439,7 @@ class Tree(TreeType):
             if focused_id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[focused_id]
                 border_rect = node.box_model.border_rect
-                stroke_width = 2
+                stroke_width = node.properties.focus_outline_width
                 focus_outline_rect = Rect(
                     border_rect.x - stroke_width,
                     border_rect.y - stroke_width,
@@ -448,7 +448,7 @@ class Tree(TreeType):
                 )
 
                 canvas.paint.style = canvas.paint.Style.STROKE
-                canvas.paint.color = DEFAULT_FOCUS_OUTLINE_COLOR
+                canvas.paint.color = node.properties.focus_outline_color
                 canvas.paint.stroke_width = stroke_width
 
                 if node.properties.border_radius:

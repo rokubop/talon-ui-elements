@@ -8,14 +8,18 @@ DEFAULT_FONT_SIZE = 16
 DEFAULT_FLEX_DIRECTION = "column"
 DEFAULT_ALIGN_ITEMS = "stretch"
 DEFAULT_JUSTIFY_CONTENT = "flex_start"
-DEFAULT_FOCUS_OUTLINE_COLOR = "FFCC00" # maybe could be a setting
+DEFAULT_FOCUS_OUTLINE_COLOR = "FFCC00"
+DEFAULT_FOCUS_OUTLINE_WIDTH = 2
 DRAG_INIT_THRESHOLD = 4
 
 CASCADED_PROPERTIES = {
     "color",
     "font_size",
     "font_family",
-    "opacity"
+    "opacity",
+    "highlight_color",
+    "focus_outline_color",
+    "focus_outline_width",
 }
 
 NAMED_COLORS_TO_HEX = {

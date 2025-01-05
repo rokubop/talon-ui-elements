@@ -5,12 +5,14 @@ from typing import TypedDict, Union
 from typing import TypedDict
 from .box_model import Border, Margin, Padding, parse_box_model
 from .constants import (
-    DEFAULT_COLOR,
-    DEFAULT_BORDER_COLOR,
-    DEFAULT_FONT_SIZE,
-    DEFAULT_FLEX_DIRECTION,
     DEFAULT_ALIGN_ITEMS,
+    DEFAULT_BORDER_COLOR,
+    DEFAULT_COLOR,
+    DEFAULT_FLEX_DIRECTION,
+    DEFAULT_FONT_SIZE,
     DEFAULT_JUSTIFY_CONTENT,
+    DEFAULT_FOCUS_OUTLINE_COLOR,
+    DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE
 )
 from .utils import hex_color
@@ -46,6 +48,8 @@ class Properties:
     on_change: callable = None
     on_click: callable = None
     opacity: float = None
+    focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
+    focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
     value: str = None
     width: Union[int, str] = 0
@@ -150,6 +154,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     min_height: int
     min_width: int
     opacity: float
+    focus_outline_color: str
+    focus_outline_width: int
     value: str
     width: Union[int, str]
 
