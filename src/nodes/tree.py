@@ -245,6 +245,7 @@ class Tree(TreeType):
         self.root_node = None
         self.show_hints = False
         self.surfaces = []
+        self.unused_screens = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_boundary()
 
@@ -390,12 +391,13 @@ class Tree(TreeType):
     def focus_node(self, node: NodeType):
         state_manager.blur_current_focus()
 
-        if node.element_type == "input_text":
-            node.tree.focus_input(node.id)
-
         self.meta_state.last_focused_id = node.id
         self.meta_state.focused_id = node.id
         state_manager.set_focused_tree(self)
+
+        if node.element_type == "input_text":
+            node.tree.focus_input(node.id)
+
         self.render_decorator_canvas()
 
     def focus_next(self):
@@ -457,7 +459,8 @@ class Tree(TreeType):
             if not self.is_key_controls_init:
                 self.is_key_controls_init = True
                 self.canvas_decorator.register("key", self.on_key)
-                self.canvas_decorator.focused = True
+                if node.element_type != "input_text":
+                    self.canvas_decorator.focused = True
 
     @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
@@ -578,6 +581,26 @@ class Tree(TreeType):
             self.canvas_base.freeze()
             self.draw_busy = cron.after("16ms", self.draw_busy_disable)
 
+    def is_canvas_growable(self):
+        return self.unused_screens
+
+    def is_draggable_node_on_new_screen(self):
+        if not self.draggable_node or not self.drag_handle_node:
+            return False
+
+        draggable_rect = self.draggable_node.box_model.border_rect
+
+        if draggable_rect.x + self.draggable_node_delta_pos.x < self.root_node.boundary_rect.x:
+            return True
+        if draggable_rect.y + self.draggable_node_delta_pos.y < self.root_node.boundary_rect.y:
+            return True
+        if draggable_rect.x + draggable_rect.width + self.draggable_node_delta_pos.x > self.root_node.boundary_rect.x + self.root_node.boundary_rect.width:
+            return True
+        if draggable_rect.y + draggable_rect.height + self.draggable_node_delta_pos.y > self.root_node.boundary_rect.y + self.root_node.boundary_rect.height:
+            return True
+
+        return False
+
     def on_mousemove(self, gpos):
         drag_relative_offset = state_manager.get_drag_relative_offset()
         if drag_relative_offset:
@@ -590,6 +613,11 @@ class Tree(TreeType):
                 x = gpos.x - drag_relative_offset.x
                 y = gpos.y - drag_relative_offset.y
                 self.draggable_node_delta_pos = Point2d(x, y)
+
+                # if self.is_canvas_growable():
+                #     screen = self.is_draggable_node_on_new_screen()
+                #     if screen is not None:
+                #         self.grow_canvas(screen)
 
         if state_manager.get_mousedown_start_pos():
             self.refresh_dragging_canvas()
@@ -869,7 +897,6 @@ class Tree(TreeType):
                 # but we can't be recreating canvas every time otherwise
                 # this is even more expensive switching back and forth
                 # between "applications"
-            print("4")
 
             self.is_blockable_canvas_init = True
 

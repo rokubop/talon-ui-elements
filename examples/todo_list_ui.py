@@ -12,6 +12,7 @@ def todo_list_ui():
         if new_item:
             set_items(items + [new_item])
             add_input.clear()
+            add_input.focus()
 
     def delete_item(item_name):
         set_items([item for item in items if item != item_name])

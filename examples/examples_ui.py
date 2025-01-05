@@ -31,8 +31,8 @@ def show_cheatsheet():
 
 def show_example(ui):
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(ui)
     actions.user.ui_elements_show(go_back_ui)
+    actions.user.ui_elements_show(ui)
 
 def show_game_keys():
     actions.user.ui_elements_hide_all()

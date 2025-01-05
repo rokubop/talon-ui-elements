@@ -174,12 +174,14 @@ class StateManager:
     def get_focused_tree(self):
         return store.focused_tree
 
-    def set_focused_tree(self, tree):
+    def set_focused_tree(self, tree: TreeType):
         if store.focused_tree and store.focused_tree != tree:
             store.focused_tree.meta_state.last_focused_id = None
             store.focused_tree.meta_state.focused_id = None
             store.focused_tree.render_decorator_canvas()
         store.focused_tree = tree
+        if tree.canvas_decorator:
+            tree.canvas_decorator.focused = True
 
     def set_ref_property_override(self, id, property_name, new_value):
         node = store.id_to_node.get(id)

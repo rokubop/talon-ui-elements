@@ -26,7 +26,7 @@ def inputs_ui(props):
             text("Last"),
             input_text(id="last", background_color="444444", on_change=on_change),
             div(flex_direction="row", justify_content="flex_end", margin_top=8)[
-                button("Submit", on_click=on_submit, background_color="42A5F5" if is_valid else "444444", border_radius=8, padding=12, padding_left=24, padding_right=24)
+                button("Submit", on_click=on_submit, background_color="305CDE" if is_valid else "444444", border_radius=8, padding=12, padding_left=24, padding_right=24)
             ]
         ]
     ]

@@ -254,7 +254,7 @@ class NodeType(ABC):
     interactive: bool
     is_dirty: bool
     tree: 'TreeType'
-    root_node: object
+    root_node: 'NodeRootType'
     depth: int
     component_node: object
 
@@ -462,7 +462,8 @@ class TreeType(ABC):
     requires_measure_redistribution: bool
     surfaces: List[object]
     update_renderer: str
-    root_node: NodeType
+    unused_screens: List[int]
+    root_node: 'NodeRootType'
     show_hints: bool
     screen_index: int
     _renderer: callable

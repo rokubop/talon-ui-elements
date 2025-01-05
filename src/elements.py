@@ -167,7 +167,7 @@ def div(props=None, **additional_props):
     div_properties = NodeDivProperties(**properties)
     return NodeContainer(ELEMENT_ENUM_TYPE["div"], div_properties)
 
-def text(text_str: str, props=None, **additional_props):
+def text(text_str: str = "", props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
