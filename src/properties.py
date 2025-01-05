@@ -366,7 +366,8 @@ class NodeSvgPolylineProperties(Properties):
 
 @dataclass
 class NodeSvgPolygonProperties(NodeSvgPolylineProperties):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 @dataclass
 class NodeSvgLineProperties(Properties):

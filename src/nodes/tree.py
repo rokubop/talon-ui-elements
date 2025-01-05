@@ -726,6 +726,59 @@ class Tree(TreeType):
         hint_clear_state()
         state_manager.clear_state()
 
+    def _assign_dragging_node_and_handle(self, node: NodeType):
+        if node.element_type == ELEMENT_ENUM_TYPE["div"] and node.properties.draggable:
+            self.draggable_node = node
+            self.drag_handle_node = node
+
+        if node.properties.drag_handle:
+            self.drag_handle_node = node
+
+    def _assign_missing_ids(self, node: NodeType, index_path: list[int]):
+        if node.interactive:
+            self.interactive_node_list.append(node)
+
+            if not node.id:
+                index_path_str = "-".join(map(str, index_path)) # "1-2-0"
+                node.id = self.guid + index_path_str
+
+    def _focus_appropriate_interactive_node(self, node: NodeType):
+        if node.interactive and len(self.interactive_node_list) == 1:
+            self.meta_state.focused_id = node.id
+            state_manager.set_focused_tree(self)
+
+    def _use_meta_state(self, node: NodeType):
+        if node.id:
+            self.meta_state.map_id_to_node(node.id, node)
+
+            if overrides := self.meta_state.get_ref_property_overrides(node.id):
+                node.properties.update_overrides(overrides)
+
+            if node.element_type == ELEMENT_ENUM_TYPE["button"]:
+                self.meta_state.add_button(node.id)
+            elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
+                self.meta_state.use_text_mutation(node.id, initial_text=node.text)
+
+    def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
+        if constraint_nodes:
+            node.constraint_nodes = constraint_nodes
+
+        if node.properties.width is not None or node.properties.max_width is not None:
+            if constraint_nodes is None:
+                constraint_nodes = []
+            constraint_nodes = constraint_nodes + [node]
+
+        return constraint_nodes
+
+    def _check_deprecated_ui(self, node: NodeType):
+        if node.element_type == ELEMENT_ENUM_TYPE["screen"] and node.deprecated_ui:
+            self.render_version = 1
+
+    def _apply_justify_content_if_space_evenly(self, node: NodeType):
+        if node.properties.justify_content == "space_evenly":
+            for child_node in node.children_nodes.values():
+                child_node.properties.flex = 1
+
     def init_node_hierarchy(
             self,
             current_node: NodeType,
@@ -735,55 +788,17 @@ class Tree(TreeType):
         current_node.tree = self
         current_node.depth = len(index_path)
 
-        if current_node.element_type == ELEMENT_ENUM_TYPE["div"] and current_node.properties.draggable:
-            self.draggable_node = current_node
-
-        if current_node.properties.drag_handle:
-            self.drag_handle_node = current_node
-
-        if current_node.interactive:
-            self.interactive_node_list.append(current_node)
-
-            if not current_node.id:
-                index_path_str = "-".join(map(str, index_path)) # "1-2-0"
-                current_node.id = self.guid + index_path_str
-
-            if len(self.interactive_node_list) == 1:
-                self.meta_state.focused_id = current_node.id
-                state_manager.set_focused_tree(self)
-
-        if current_node.id:
-            self.meta_state.map_id_to_node(current_node.id, current_node)
-
-            if overrides := self.meta_state.get_ref_property_overrides(current_node.id):
-                current_node.properties.update_overrides(overrides)
-
-            if current_node.element_type == ELEMENT_ENUM_TYPE["button"]:
-                self.meta_state.add_button(current_node.id)
-            elif current_node.element_type == ELEMENT_ENUM_TYPE["text"]:
-                self.meta_state.use_text_mutation(current_node.id, initial_text=current_node.text)
-
-        if constraint_nodes:
-            current_node.constraint_nodes = constraint_nodes
-
-        if current_node.properties.width is not None or current_node.properties.max_width is not None:
-            if constraint_nodes is None:
-                constraint_nodes = []
-            constraint_nodes = constraint_nodes + [current_node]
-
-        if current_node.element_type == ELEMENT_ENUM_TYPE["screen"] and current_node.deprecated_ui:
-            self.render_version = 1
-
-        if current_node.properties.justify_content == "space_evenly":
-            for i, child_node in enumerate(current_node.children_nodes):
-                child_node.properties.flex = 1
+        self._assign_dragging_node_and_handle(current_node)
+        self._assign_missing_ids(current_node, index_path)
+        self._focus_appropriate_interactive_node(current_node)
+        self._use_meta_state(current_node)
+        constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
+        self._check_deprecated_ui(current_node)
+        self._apply_justify_content_if_space_evenly(current_node)
 
         for i, child_node in enumerate(current_node.children_nodes):
             child_node.inherit_cascaded_properties(current_node)
             self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
-
-        if self.draggable_node and not self.drag_handle_node:
-            self.drag_handle_node = self.draggable_node
 
         entity_manager.synchronize_global_ids()
 
