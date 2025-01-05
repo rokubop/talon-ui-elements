@@ -11,6 +11,36 @@ DEFAULT_JUSTIFY_CONTENT = "flex_start"
 DEFAULT_FOCUS_OUTLINE_COLOR = "FFCC00" # maybe could be a setting
 DRAG_INIT_THRESHOLD = 4
 
+CASCADED_PROPERTIES = {
+    "color",
+    "font_size",
+    "font_family",
+    "opacity"
+}
+
+NAMED_COLORS_TO_HEX = {
+    "black": "000000",
+    "white": "FFFFFF",
+    "red": "FF0000",
+    "green": "008000",
+    "blue": "0000FF",
+    "yellow": "FFFF00",
+    "cyan": "00FFFF",
+    "magenta": "FF00FF",
+    "gray": "808080",
+    "silver": "C0C0C0",
+    "maroon": "800000",
+    "olive": "808000",
+    "lime": "00FF00",
+    "purple": "800080",
+    "teal": "008080",
+    "navy": "000080",
+    "orange": "FFA500",
+    "pink": "FFC0CB",
+    "brown": "A52A2A",
+    "gold": "FFD700",
+}
+
 class ElementEnumType(TypedDict):
     button: str
     active_window: str

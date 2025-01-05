@@ -5,6 +5,7 @@ from talon.canvas import Canvas
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
+from .constants import NAMED_COLORS_TO_HEX
 import json
 import inspect
 import re
@@ -67,3 +68,12 @@ def get_active_color_from_highlight_color(highlight_color: str) -> str:
     new_alpha_hex = f"{new_alpha:02X}"
 
     return base_color + new_alpha_hex
+
+def hex_color(color: str) -> str:
+    """Resolve color to hex if it's a named color or validate hex format."""
+
+    if all(c in "0123456789ABCDEFabcdef" for c in color):
+        # already hex
+        return color
+
+    return NAMED_COLORS_TO_HEX.get(color.lower(), color)

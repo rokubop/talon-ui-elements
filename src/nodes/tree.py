@@ -428,6 +428,7 @@ class Tree(TreeType):
             focused_node = self.meta_state.id_to_node.get(focused_id)
             if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
                 if e.down:
+                    state_manager.highlight_briefly(focused_id)
                     self.click_node(focused_node)
 
     def draw_focus_outline(self, canvas: SkiaCanvas):
@@ -778,6 +779,7 @@ class Tree(TreeType):
                 child_node.properties.flex = 1
 
         for i, child_node in enumerate(current_node.children_nodes):
+            child_node.inherit_cascaded_properties(current_node)
             self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
 
         if self.draggable_node and not self.drag_handle_node:

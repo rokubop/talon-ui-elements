@@ -242,6 +242,7 @@ class BoxModelLayoutType(ABC):
 
 class NodeType(ABC):
     properties: object
+    cascaded_properties: object
     guid: str
     id: str
     key: str
@@ -292,6 +293,10 @@ class NodeType(ABC):
 
     @abstractmethod
     def virtual_render(self):
+        pass
+
+    @abstractmethod
+    def inherit_cascaded_properties(self, parent_node: 'NodeType'):
         pass
 
     @abstractmethod

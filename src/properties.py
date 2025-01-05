@@ -13,6 +13,7 @@ from .constants import (
     DEFAULT_JUSTIFY_CONTENT,
     ELEMENT_ENUM_TYPE
 )
+from .utils import hex_color
 
 class Properties:
     """
@@ -53,10 +54,10 @@ class Properties:
         self.font_size = DEFAULT_FONT_SIZE
         self.color = DEFAULT_COLOR
         self.border_color = DEFAULT_BORDER_COLOR
+        self._explicitly_set = set()
 
         for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+            self.update_property(key, value)
 
         if not self.highlight_color:
             self.highlight_color = f"{self.color}33"
@@ -74,27 +75,40 @@ class Properties:
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
                 )
 
-        if self.opacity is not None:
-            # convert float to 2 digit hex e.g. 00 44 88 AA FF
-            opacity_hex = format(int(round(self.opacity * 255)), '02X')
-
-            if self.background_color and len(self.background_color) == 6:
-                    self.background_color = self.background_color + opacity_hex
-
-            if self.border_color and len(self.border_color) == 6:
-                    self.border_color = self.border_color + opacity_hex
-
-            if self.color and len(self.color) == 6:
-                    self.color = self.color + opacity_hex
+        self.update_colors_with_opacity()
 
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
 
+    def update_colors_with_opacity(self):
+        if self.opacity is not None:
+            # convert float to 2 digit hex e.g. 00, 44, 88, AA, FF
+            opacity_hex = format(int(round(self.opacity * 255)), '02X')
+
+            if self.background_color and len(self.background_color) == 6:
+                self.background_color = self.background_color + opacity_hex
+
+            if self.border_color and len(self.border_color) == 6:
+                self.border_color = self.border_color + opacity_hex
+
+            if self.color and len(self.color) == 6:
+                self.color = self.color + opacity_hex
+
+    def update_property(self, key, value):
+        if hasattr(self, key):
+            if key in ['color', 'border_color', 'background_color']:
+                value = hex_color(value)
+            setattr(self, key, value)
+            self._explicitly_set.add(key)
+
     def update_overrides(self, overrides):
         for key, value in overrides.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+            self.update_property(key, value)
+
+    def is_user_set(self, key: str) -> bool:
+        """Check if a property was explicitly set by the user."""
+        return key in self._explicitly_set
 
 class BoxModelValidationProperties(TypedDict):
     border_bottom: int
@@ -122,6 +136,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_width: int
     color: str
     drag_handle: bool
+    font_family: str
+    font_size: int
     flex_direction: str
     flex: int
     gap: int

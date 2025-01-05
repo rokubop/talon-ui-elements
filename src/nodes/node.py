@@ -1,7 +1,13 @@
 from typing import Union
 import uuid
 from ..box_model import BoxModelLayout
-from ..constants import NODE_TYPE_MAP, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    NODE_TYPE_MAP,
+    LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION,
+    LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION,
+    CASCADED_PROPERTIES
+)
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
 from ..properties import Properties
 from ..utils import sanitize_string
@@ -12,6 +18,7 @@ class Node(NodeType):
             properties: Properties = None,
         ):
         self.properties: Properties = properties or Properties()
+        self.cascaded_properties = set()
         self.guid: str = uuid.uuid4().hex
         self.id: str = sanitize_string(self.properties.id) if self.properties.id else None
         self.key: str = self.properties.key
@@ -27,6 +34,7 @@ class Node(NodeType):
         self.interactive = False
         self.root_node = None
         self.depth: int = None
+        self.add_properties_to_cascade(properties)
 
     def add_child(self, node):
         if isinstance(node, tuple):
@@ -63,6 +71,26 @@ class Node(NodeType):
         if self.children_nodes:
             for node in self.children_nodes:
                 node.invalidate()
+
+    def add_properties_to_cascade(self, properties: Properties):
+        for prop in CASCADED_PROPERTIES:
+            if hasattr(properties, prop) and getattr(properties, prop):
+                self.cascaded_properties.add(prop)
+
+    def inherit_cascaded_properties(self, parent_node: NodeType):
+        if parent_node.cascaded_properties:
+            set_opacity = False
+
+            for prop in parent_node.cascaded_properties:
+                if prop == "opacity" and not self.element_type == ELEMENT_ENUM_TYPE['input_text']:
+                    # Talon's TextArea doesn't support opacity
+                    set_opacity = True
+                if not self.properties.is_user_set(prop):
+                    self.properties.update_property(prop, getattr(parent_node.properties, prop))
+                    self.cascaded_properties.add(prop)
+
+            if set_opacity:
+                self.properties.update_colors_with_opacity()
 
     def destroy(self):
         pass
