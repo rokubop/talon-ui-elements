@@ -2,6 +2,8 @@
 
 Properties go inside parentheses after the element name. For example, `div(width="100%", background_color="red")[...]`. If there are no properties, use an empty call `div()[...]`.
 
+See [properties.py](../src/properties.py) for the full list of properties per element.
+
 Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |

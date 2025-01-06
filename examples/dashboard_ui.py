@@ -1,7 +1,10 @@
 from talon import actions, registry
 
 def format_user_list(user_list):
-    talon_list = registry.lists[user_list][0]
+    try:
+        talon_list = registry.lists[user_list][0]
+    except KeyError:
+        return (["No list found"], ["No list found"])
     return (talon_list.keys(), talon_list.values())
 
 user_lists = [
