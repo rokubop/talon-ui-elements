@@ -47,7 +47,7 @@ class Properties:
     min_width: int = None
     on_change: callable = None
     on_click: callable = None
-    opacity: float = None
+    opacity: Union[int, float] = None
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
@@ -90,18 +90,24 @@ class Properties:
             # convert float to 2 digit hex e.g. 00, 44, 88, AA, FF
             opacity_hex = format(int(round(self.opacity * 255)), '02X')
 
-            if self.background_color and len(self.background_color) == 6:
+            if self.background_color:
+                if len(self.background_color) > 6:
+                    self.background_color = self.background_color[:6]
                 self.background_color = self.background_color + opacity_hex
 
-            if self.border_color and len(self.border_color) == 6:
+            if self.border_color:
+                if len(self.border_color) > 6:
+                    self.border_color = self.border_color[:6]
                 self.border_color = self.border_color + opacity_hex
 
-            if self.color and len(self.color) == 6:
+            if self.color:
+                if len(self.color) > 6:
+                    self.color = self.color[:6]
                 self.color = self.color + opacity_hex
 
     def update_property(self, key, value):
         if hasattr(self, key):
-            if key in ['color', 'border_color', 'background_color']:
+            if key in ["background_color", "border_color", "color"]:
                 value = hex_color(value)
             setattr(self, key, value)
             self._explicitly_set.add(key)
@@ -153,7 +159,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     max_width: int
     min_height: int
     min_width: int
-    opacity: float
+    opacity: Union[int, float]
     focus_outline_color: str
     focus_outline_width: int
     value: str

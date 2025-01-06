@@ -776,7 +776,7 @@ class Tree(TreeType):
 
     def _apply_justify_content_if_space_evenly(self, node: NodeType):
         if node.properties.justify_content == "space_evenly":
-            for child_node in node.children_nodes.values():
+            for child_node in node.children_nodes:
                 child_node.properties.flex = 1
 
     def init_node_hierarchy(
