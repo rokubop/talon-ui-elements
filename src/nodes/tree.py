@@ -20,7 +20,7 @@ from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from ..state_manager import state_manager
 from ..store import store
-from ..utils import draw_text_simple, get_active_color_from_highlight_color
+from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_all_screens_rect
 import inspect
 import uuid
 
@@ -263,7 +263,7 @@ class Tree(TreeType):
         else:
             self.cursor.reset()
 
-    def init_boundary(self):
+    def validate_root_node(self):
         if self.root_node.element_type not in ["screen", "active_window"]:
             raise Exception("Root node must be a screen or active_window element")
 
@@ -280,20 +280,15 @@ class Tree(TreeType):
         if not isinstance(self.root_node, NodeType):
             raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
 
-        self.init_boundary()
+        self.validate_root_node()
 
     @with_tree
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         self.reset_cursor()
         self.init_node_hierarchy(self.root_node)
         self.consume_effects()
-        self.redistribute_box_model = False
         self.root_node.virtual_render(canvas, self.cursor)
         self.root_node.grow_intrinsic_size(canvas, self.cursor)
-        # Do we need another pass here for redistribution?
-        # self.redistribute_box_model = True
-        # self.root_node.virtual_render(canvas, self.cursor)
-        # self.root_node.grow_intrinsic_size(canvas, self.cursor)
         self.root_node.render(canvas, self.cursor)
         self.show_inputs()
         self.render_decorator_canvas()
@@ -473,7 +468,15 @@ class Tree(TreeType):
         self.draw_blockable_canvases()
         self.on_fully_rendered()
 
+    def _is_draggable_ui(self):
+        # Just check 1 level deep
+        return any([node.properties.draggable for node in self.root_node.children_nodes])
+
     def create_canvas(self):
+        if self._is_draggable_ui():
+            rect = get_all_screens_rect()
+            return Canvas.from_rect(rect)
+
         return Canvas.from_rect(self.root_node.boundary_rect)
 
     def render_decorator_canvas(self):
@@ -615,11 +618,6 @@ class Tree(TreeType):
                 y = gpos.y - drag_relative_offset.y
                 self.draggable_node_delta_pos = Point2d(x, y)
 
-                # if self.is_canvas_growable():
-                #     screen = self.is_draggable_node_on_new_screen()
-                #     if screen is not None:
-                #         self.grow_canvas(screen)
-
         if state_manager.get_mousedown_start_pos():
             self.refresh_dragging_canvas()
 
@@ -727,7 +725,9 @@ class Tree(TreeType):
         state_manager.clear_state()
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
-        if node.element_type == ELEMENT_ENUM_TYPE["div"] and node.properties.draggable:
+        if hasattr(node.properties, "draggable") and node.properties.draggable:
+            if node.depth > 1 or node.element_type != ELEMENT_ENUM_TYPE["div"]:
+                raise Exception('Only top level divs can be draggable. Assign "draggable" property to the top level div (Not "screen" or "active_window").')
             self.draggable_node = node
             self.drag_handle_node = node
 

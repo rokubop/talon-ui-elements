@@ -319,6 +319,66 @@ screen(screen=2, align_items="flex_end", justify_content="center")[
 ]
 ```
 
+## Dragging
+
+To enable dragging, we can use the `draggable` property on the top most div.
+
+```py
+screen()[
+    div(draggable=True)[
+        text("Drag me")
+    ]
+]
+```
+
+By default the entire area is draggable. To limit the dragging handle to a specific element, we can use the `drag_handle=True` property on the element we want to use as the handle.
+
+```py
+screen()[
+    div(draggable=True)[
+        div(drag_handle=True)[
+            text("Header")
+        ]
+        div()[
+            # body content
+        ]
+    ]
+]
+```
+
+## Focus outline
+When the UI is interactive (either draggable, or has buttons or inputs), then focus outlines appear when you tab through the elements. To change the color and width of the focus outline, you can use the following properties:
+
+```py
+div(focus_outline_color="FF0000", focus_outline_width=4)[
+    text("Hello world")
+]
+```
+
+## Keyboard shortcuts
+Keyboard shortcuts become available if the UI is interactive.
+
+| Key | Description |
+|-----|-------------|
+| `Tab` | Move focus to the next element |
+| `Shift + Tab` | Move focus to the previous element |
+| `Down` | Move focus to the next element |
+| `Up` | Move focus to the previous element |
+| `Enter` | Trigger the focused element |
+| `Space` | Trigger the focused element |
+| `Esc` | Hide all UIs |
+
+
+## Cascading properties
+The following properties cascade down to children elements:
+- `color`
+- `font_size`
+- `font_family`
+- `opacity`
+- `highlight_color`
+- `focus_outline_color`
+- `focus_outline_width`
+
 ## Documentation
 | Documentation | Description |
 |---------------|-------------|
