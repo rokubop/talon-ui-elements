@@ -187,6 +187,37 @@ class BoxModelLayout(BoxModelLayoutType):
         #     self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
         #     self.margin_rect.height = self.padding_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
 
+    def move_delta(self, x: int, y: int, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
+        self.border_rect.x += x
+        self.border_rect.y += y
+        self.margin_rect.x += x
+        self.margin_rect.y += y
+        self.padding_rect.x += x
+        self.padding_rect.y += y
+        self.content_rect.x = self.padding_rect.x + self.padding_spacing.left
+        self.content_rect.y = self.padding_rect.y + self.padding_spacing.top
+        self.content_children_rect.x = self.content_rect.x
+        self.content_children_rect.y = self.content_rect.y
+
+        if flex_direction == "row":
+            if justify_content == "center":
+                self.content_children_rect.x = self.content_rect.x + self.content_rect.width // 2 - self.content_children_rect.width // 2
+            elif justify_content == "flex_end":
+                self.content_children_rect.x = self.content_rect.x + self.content_rect.width - self.content_children_rect.width
+            if align_items == "center":
+                self.content_children_rect.y = self.content_rect.y + self.content_rect.height // 2 - self.content_children_rect.height // 2
+            elif align_items == "flex_end":
+                self.content_children_rect.y = self.content_rect.y + self.content_rect.height - self.content_children_rect.height
+        else:
+            if justify_content == "center":
+                self.content_children_rect.y = self.content_rect.y + self.content_rect.height // 2 - self.content_children_rect.height // 2
+            elif justify_content == "flex_end":
+                self.content_children_rect.y = self.content_rect.y + self.content_rect.height - self.content_children_rect.height
+            if align_items == "center":
+                self.content_children_rect.x = self.content_rect.x + self.content_rect.width // 2 - self.content_children_rect.width // 2
+            elif align_items == "flex_end":
+                self.content_children_rect.x = self.content_rect.x + self.content_rect.width - self.content_children_rect.width
+
     def position_for_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_rect.x = cursor.x
         self.margin_rect.y = cursor.y

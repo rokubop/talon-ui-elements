@@ -58,9 +58,8 @@ class Ref:
         input_data.input.erase(Span(0, len(input_data.input.value)))
 
     def focus(self):
-        input_data = entity_manager.get_input_data(self._get("id"))
-        input_data.input.hide()
-        input_data.input.show()
+        node = self.get_node()
+        node.tree.focus_node(node)
 
     def set_text(self, new_value: Any):
         state_manager.set_text_mutation(self._get("id"), new_value)

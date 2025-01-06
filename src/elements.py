@@ -1,6 +1,4 @@
 from typing import List, Dict, Any, Union
-from talon import ui
-from talon.screen import Screen
 from .constants import ELEMENT_ENUM_TYPE
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
@@ -18,6 +16,7 @@ from .nodes.node_button import NodeButton
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
+    NodeDivProperties,
     NodeTextProperties,
     NodeSvgProperties,
     NodeSvgPathProperties,
@@ -26,14 +25,12 @@ from .properties import (
     NodeSvgPolylineProperties,
     NodeSvgPolygonProperties,
     NodeSvgLineProperties,
-    Properties,
     validate_combined_props
 )
 from .icons import icon
 from .interfaces import Effect
 from .ref import Ref
 from .state_manager import state_manager
-from .utils import get_screen
 
 def screen(*args, **additional_props):
     """
@@ -63,13 +60,7 @@ def screen(*args, **additional_props):
         props = args[1]
         props["screen"] = args[0]
 
-    ref_screen: Screen = get_screen(props.get("screen") if props else None)
-
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["screen"])
-
-    properties["boundary_rect"] = ref_screen.rect
-    properties["width"] = int(ref_screen.width)
-    properties["height"] = int(ref_screen.height)
 
     root = NodeRoot(
         ELEMENT_ENUM_TYPE["screen"],
@@ -78,13 +69,7 @@ def screen(*args, **additional_props):
     return root
 
 def active_window(props=None, **additional_props):
-    active_window = ui.active_window()
-
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["active_window"])
-
-    properties["boundary_rect"] = active_window.rect
-    properties["width"] = int(active_window.rect.width)
-    properties["height"] = int(active_window.rect.height)
 
     root = NodeRoot(
         ELEMENT_ENUM_TYPE["active_window"],
@@ -179,10 +164,10 @@ def use_effect(callback, arg2, arg3=None):
 
 def div(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["div"])
-    box_properties = Properties(**properties)
-    return NodeContainer(ELEMENT_ENUM_TYPE["div"], box_properties)
+    div_properties = NodeDivProperties(**properties)
+    return NodeContainer(ELEMENT_ENUM_TYPE["div"], div_properties)
 
-def text(text_str: str, props=None, **additional_props):
+def text(text_str: str = "", props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
@@ -321,12 +306,6 @@ def ui_elements(elements: Union[str, List[str]]) -> tuple[callable]:
         )
     else:
         return element_collection_full[elements[0]]
-
-def placeholder_svg_child(props=None, **additional_props):
-    print("No implementation for this SVG element yet.")
-    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
-    box_properties = Properties(**properties)
-    return NodeContainer('div', box_properties)
 
 def svg(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])

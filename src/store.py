@@ -6,11 +6,12 @@ class MouseState(TypedDict):
     mousedown_start_id: Optional[str]
     mousedown_start_pos: Optional[Tuple[int, int]]
     is_drag_active: bool
-    drag_window_relative_offset: Optional[Tuple[int, int]]
+    drag_relative_offset: Optional[Tuple[int, int]]
 
 class Store():
     def __init__(self):
         self.trees: list[TreeType] = []
+        self.focused_tree: Optional[TreeType] = None
         self.processing_tree: Optional[TreeType] = None
         self.processing_states: list[str] = []
         self.root_nodes: list[NodeType] = []
@@ -23,7 +24,7 @@ class Store():
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
             "is_drag_active": False,
-            "drag_window_relative_offset": None,
+            "drag_relative_offset": None,
         }
 
     def reset_mouse_state(self):
@@ -32,7 +33,7 @@ class Store():
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
             "is_drag_active": False,
-            "drag_window_relative_offset": None,
+            "drag_relative_offset": None,
         }
 
     def synchronize_ids(self):
@@ -43,6 +44,7 @@ class Store():
 
     def clear(self):
         self.trees = []
+        self.focused_tree = None
         self.processing_tree = None
         self.processing_states = []
         self.root_nodes = []

@@ -17,10 +17,10 @@ def go_back_ui():
     div, text, screen, button = actions.user.ui_elements(["div", "text", "screen", "button"])
 
     return screen()[
-        div(margin_left=80, margin_top=100, background_color="272727", border_radius=16, border_width=1)[
+        div(draggable=True, margin_left=80, margin_top=100, background_color="272727", border_radius=16, border_width=1)[
             text("talon-ui-elements", font_size=14, padding=16, color="FFCC00"),
-            button("Go back", on_click=go_back, padding=16, background_color="272727", ),
-            button("Exit", on_click=lambda: actions.user.ui_elements_hide_all(), padding=16, margin_bottom=8, background_color="272727"),
+            button("Go back", on_click=go_back, padding=16, background_color="272727"),
+            button("Exit", on_click=actions.user.ui_elements_hide_all, padding=16, margin_bottom=8, background_color="272727"),
         ]
     ]
 
@@ -31,8 +31,8 @@ def show_cheatsheet():
 
 def show_example(ui):
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(ui)
     actions.user.ui_elements_show(go_back_ui)
+    actions.user.ui_elements_show(ui)
 
 def show_game_keys():
     actions.user.ui_elements_hide_all()
@@ -59,10 +59,10 @@ button_action = {
 }
 
 def examples_ui():
-    div, text, screen, button, icon = actions.user.ui_elements(["div", "text", "screen", "button", "icon"])
+    div, text, screen, button = actions.user.ui_elements(["div", "text", "screen", "button"])
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="272727", border_radius=16, border_width=1, width=200)[
+        div(draggable=True, background_color="272727", border_radius=16, border_width=1, width=200)[
             div(flex_direction='column', padding=16)[
                 text("Examples", font_size=24, margin_top=8),
                 text("talon-ui-elements", font_size=14, color="FFCC00"),

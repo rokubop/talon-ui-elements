@@ -1,8 +1,10 @@
-from talon import actions
+from talon import actions, ui
+from talon.screen import Screen
 from ..interfaces import NodeRootType
 from ..properties import NodeRootProperties
 from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
 from .node_container import NodeContainer
+from ..utils import get_screen
 
 def print_deprecated_show():
     print(
@@ -41,7 +43,18 @@ class NodeRoot(NodeContainer, NodeRootType):
             element_type=element_type,
             properties=properties
         )
-        self.boundary_rect = self.properties.boundary_rect
+        self.boundary_rect = None
+
+        if element_type == "screen":
+            ref_screen: Screen = get_screen(None if properties.screen is None else properties.screen)
+            self.boundary_rect = ref_screen.rect
+        elif element_type == "active_window":
+            active_window = ui.active_window()
+            self.boundary_rect = active_window.rect
+
+        self.properties.width = int(self.boundary_rect.width)
+        self.properties.height = int(self.boundary_rect.height)
+
         self.screen_index = self.properties.screen or 0
         self.deprecated_ui = None
 

@@ -20,3 +20,5 @@ The box model is based on `box-sizing: border-box`, meaning if you define width 
 | `flex_direction` | `column` |
 | `align_items` | `stretch` |
 | `justify_content` | `flex_start` |
+| `focus_outline_color` | `FFCC00` |
+| `focus_outline_width` | `2` |

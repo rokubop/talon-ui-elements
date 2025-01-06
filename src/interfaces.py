@@ -82,6 +82,7 @@ class MetaStateType(ABC):
     _id_to_node: dict[str, 'NodeType']
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     focused_id: Optional[str]
+    last_focused_id: Optional[str]
     unhighlight_jobs: dict[str, callable]
 
     @property
@@ -241,6 +242,7 @@ class BoxModelLayoutType(ABC):
 
 class NodeType(ABC):
     properties: object
+    cascaded_properties: object
     guid: str
     id: str
     key: str
@@ -253,7 +255,7 @@ class NodeType(ABC):
     interactive: bool
     is_dirty: bool
     tree: 'TreeType'
-    root_node: object
+    root_node: 'NodeRootType'
     depth: int
     component_node: object
 
@@ -294,6 +296,10 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
+    def inherit_cascaded_properties(self, parent_node: 'NodeType'):
+        pass
+
+    @abstractmethod
     def __init__(self, element_type: ElementEnumType, properties: object):
         pass
 
@@ -304,6 +310,14 @@ class RenderCauseStateType(ABC):
 
     @abstractmethod
     def ref_change(self):
+        pass
+
+    @abstractmethod
+    def set_is_dragging(self):
+        pass
+
+    @abstractmethod
+    def is_dragging(self):
         pass
 
     @abstractmethod
@@ -443,6 +457,9 @@ class TreeType(ABC):
     canvas_decorator: Canvas
     canvas_mouse: Canvas
     cursor: CursorType
+    draggable_node: NodeType
+    draggable_node_delta_pos: Point2d
+    drag_handle_node: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
     processing_states: List[str]
@@ -450,7 +467,8 @@ class TreeType(ABC):
     requires_measure_redistribution: bool
     surfaces: List[object]
     update_renderer: str
-    root_node: NodeType
+    unused_screens: List[int]
+    root_node: 'NodeRootType'
     show_hints: bool
     screen_index: int
     _renderer: callable

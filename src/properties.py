@@ -5,14 +5,17 @@ from typing import TypedDict, Union
 from typing import TypedDict
 from .box_model import Border, Margin, Padding, parse_box_model
 from .constants import (
-    DEFAULT_COLOR,
-    DEFAULT_BORDER_COLOR,
-    DEFAULT_FONT_SIZE,
-    DEFAULT_FLEX_DIRECTION,
     DEFAULT_ALIGN_ITEMS,
+    DEFAULT_BORDER_COLOR,
+    DEFAULT_COLOR,
+    DEFAULT_FLEX_DIRECTION,
+    DEFAULT_FONT_SIZE,
     DEFAULT_JUSTIFY_CONTENT,
+    DEFAULT_FOCUS_OUTLINE_COLOR,
+    DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE
 )
+from .utils import hex_color
 
 class Properties:
     """
@@ -27,6 +30,7 @@ class Properties:
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
     color: str = DEFAULT_COLOR
+    drag_handle: bool = False
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
     font_size: int = DEFAULT_FONT_SIZE
@@ -44,6 +48,8 @@ class Properties:
     on_change: callable = None
     on_click: callable = None
     opacity: float = None
+    focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
+    focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
     value: str = None
     width: Union[int, str] = 0
@@ -52,19 +58,19 @@ class Properties:
         self.font_size = DEFAULT_FONT_SIZE
         self.color = DEFAULT_COLOR
         self.border_color = DEFAULT_BORDER_COLOR
+        self._explicitly_set = set()
 
         for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+            self.update_property(key, value)
 
         if not self.highlight_color:
             self.highlight_color = f"{self.color}33"
 
         if self.justify_content:
-            if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center']:
+            if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center', 'space_evenly']:
                 raise ValueError(
                     f"\nInvalid value for justify_content: '{self.justify_content}'\n"
-                    f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'center'"
+                    f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'space_evenly', 'center'"
                 )
         if self.align_items:
             if self.align_items not in ['stretch', 'center', 'flex_start', 'flex_end']:
@@ -73,27 +79,40 @@ class Properties:
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
                 )
 
-        if self.opacity is not None:
-            # convert float to 2 digit hex e.g. 00 44 88 AA FF
-            opacity_hex = format(int(round(self.opacity * 255)), '02X')
-
-            if self.background_color and len(self.background_color) == 6:
-                    self.background_color = self.background_color + opacity_hex
-
-            if self.border_color and len(self.border_color) == 6:
-                    self.border_color = self.border_color + opacity_hex
-
-            if self.color and len(self.color) == 6:
-                    self.color = self.color + opacity_hex
+        self.update_colors_with_opacity()
 
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
 
+    def update_colors_with_opacity(self):
+        if self.opacity is not None:
+            # convert float to 2 digit hex e.g. 00, 44, 88, AA, FF
+            opacity_hex = format(int(round(self.opacity * 255)), '02X')
+
+            if self.background_color and len(self.background_color) == 6:
+                self.background_color = self.background_color + opacity_hex
+
+            if self.border_color and len(self.border_color) == 6:
+                self.border_color = self.border_color + opacity_hex
+
+            if self.color and len(self.color) == 6:
+                self.color = self.color + opacity_hex
+
+    def update_property(self, key, value):
+        if hasattr(self, key):
+            if key in ['color', 'border_color', 'background_color']:
+                value = hex_color(value)
+            setattr(self, key, value)
+            self._explicitly_set.add(key)
+
     def update_overrides(self, overrides):
         for key, value in overrides.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
+            self.update_property(key, value)
+
+    def is_user_set(self, key: str) -> bool:
+        """Check if a property was explicitly set by the user."""
+        return key in self._explicitly_set
 
 class BoxModelValidationProperties(TypedDict):
     border_bottom: int
@@ -120,6 +139,9 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_radius: int
     border_width: int
     color: str
+    drag_handle: bool
+    font_family: str
+    font_size: int
     flex_direction: str
     flex: int
     gap: int
@@ -132,8 +154,13 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     min_height: int
     min_width: int
     opacity: float
+    focus_outline_color: str
+    focus_outline_width: int
     value: str
     width: Union[int, str]
+
+class NodeDivValidationProperties(ValidationProperties):
+    draggable: bool
 
 class NodeTextValidationProperties(ValidationProperties):
     text: str
@@ -169,6 +196,16 @@ class NodeRootProperties(Properties):
     screen: int = 0
     align_items: str = "flex_start"
     boundary_rect: Rect = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class NodeRootValidationProperties(ValidationProperties):
+    screen: int
+
+@dataclass
+class NodeDivProperties(Properties):
+    draggable: bool = False
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -329,7 +366,8 @@ class NodeSvgPolylineProperties(Properties):
 
 @dataclass
 class NodeSvgPolygonProperties(NodeSvgPolylineProperties):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
 @dataclass
 class NodeSvgLineProperties(Properties):
@@ -384,7 +422,7 @@ class NodeInputTextValidationProperties(ValidationProperties):
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["div"]: ValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
@@ -422,7 +460,7 @@ def validate_combined_props(props, additional_props, element_type):
         if expected_type is callable:
             if not callable(value):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
-        elif not isinstance(value, expected_type):
+        elif not isinstance(value, expected_type) and value is not None:
             type_errors.append(f"{key}: expected {expected_type.__name__}, got {type(value).__name__} {value}")
 
     if type_errors:

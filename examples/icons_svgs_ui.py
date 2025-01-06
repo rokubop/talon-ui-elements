@@ -15,8 +15,8 @@ def icons_svgs_ui():
         ]
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="272727", border_radius=8, border_width=1)[
-            div(flex_direction='row', justify_content="space_between", padding=16, border_bottom=1, border_color="555555")[
+        div(draggable=True, background_color="272727", border_radius=8, border_width=1)[
+            div(drag_handle=True, flex_direction='row', justify_content="space_between", padding=16, border_bottom=1, border_color="555555")[
                 text("Icons and svg", font_size=24),
                 text("talon-ui-elements", font_size=24, color="FFCC00"),
             ],

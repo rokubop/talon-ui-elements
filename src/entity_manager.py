@@ -1,6 +1,7 @@
 from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
 from talon.skia.typeface import Typeface
+from talon.types import Rect
 from typing import Union
 from .interfaces import NodeType, TreeType
 from .store import store

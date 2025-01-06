@@ -20,8 +20,10 @@ def actions_ui():
     ui_actions = state.get("actions", [])
 
     return screen(flex_direction="row", align_items="center", justify_content="center")[
-        div(flex_direction="column", background_color="333333", min_width=200, border_radius=8, border_width=1, padding_bottom=16)[
-            text("Actions", font_weight="bold", color="FFCC00", padding=16),
+        div(draggable=True, flex_direction="column", background_color="333333", min_width=200, border_radius=8, border_width=1, padding_bottom=16)[
+            div(drag_handle=True, padding=16)[
+                text("Actions", font_weight="bold", color="FFCC00")
+            ],
             *[button(action["text"], on_click=action["action"], padding=12, border_radius=4) for action in ui_actions]
         ]
     ]

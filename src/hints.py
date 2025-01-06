@@ -1,4 +1,4 @@
-from talon import Module, Context, cron, settings, registry
+from talon import Module, Context, cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
@@ -69,7 +69,7 @@ class HintGenerator:
 
 hint_generator = None
 
-def trigger_hint_action(hint_trigger: str):
+def trigger_hint_click(hint_trigger: str):
     for id, hint in store.id_to_hint.items():
         if hint == hint_trigger:
             node = store.id_to_node.get(id)
@@ -78,8 +78,15 @@ def trigger_hint_action(hint_trigger: str):
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
-                elif node.element_type == "input_text":
-                    node.tree.focus_input(node.id)
+                node.tree.focus_node(node)
+            break
+
+def trigger_hint_focus(hint_trigger: str):
+    for id, hint in store.id_to_hint.items():
+        if hint == hint_trigger:
+            node = store.id_to_node.get(id)
+            if node:
+                node.tree.focus_node(node)
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
@@ -168,6 +175,17 @@ def ui_elements_hint_target(m) -> list[str]:
 
 @mod.action_class
 class Actions:
-    def ui_elements_hint_action(ui_elements_hint_target: str):
+    def ui_elements_hint_action(action: str, ui_elements_hint_target: str = None):
         """Trigger hint action"""
-        trigger_hint_action(ui_elements_hint_target)
+        if action == "click":
+            if ui_elements_hint_target:
+                trigger_hint_click(ui_elements_hint_target)
+        elif action == "focus":
+            if ui_elements_hint_target:
+                trigger_hint_focus(ui_elements_hint_target)
+        elif action == "focus_next":
+            state_manager.focus_next()
+        elif action == "focus_previous":
+            state_manager.focus_previous()
+        elif action == "close":
+            actions.user.ui_elements_hide_all()
