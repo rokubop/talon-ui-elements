@@ -379,7 +379,7 @@ The following properties cascade down to children elements:
 - `focus_outline_color`
 - `focus_outline_width`
 
-## Documentation
+## Additional Documentation
 | Documentation | Description |
 |---------------|-------------|
 | [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
