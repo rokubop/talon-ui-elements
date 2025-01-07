@@ -20,7 +20,7 @@ from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from ..state_manager import state_manager
 from ..store import store
-from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_all_screens_rect
+from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_combined_screens_rect
 import inspect
 import uuid
 
@@ -476,7 +476,7 @@ class Tree(TreeType):
         rect = self.root_node.boundary_rect
 
         if self._is_draggable_ui():
-            rect = get_all_screens_rect()
+            rect = get_combined_screens_rect()
 
         # Some display drivers will show a "black screen of death"
         # for some reason if rect is >= screen.rect size.
