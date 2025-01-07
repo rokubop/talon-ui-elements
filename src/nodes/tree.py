@@ -418,7 +418,7 @@ class Tree(TreeType):
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
 
-        if key_string == "space" or key_string == "enter":
+        if key_string == "space" or key_string == "enter" or key_string == "return":
             focused_id = self.meta_state.focused_id
             focused_node = self.meta_state.id_to_node.get(focused_id)
             if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
