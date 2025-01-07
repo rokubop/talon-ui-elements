@@ -20,7 +20,7 @@ from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from ..state_manager import state_manager
 from ..store import store
-from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_all_screens_rect
+from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_combined_screens_rect
 import inspect
 import uuid
 
@@ -418,7 +418,7 @@ class Tree(TreeType):
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
 
-        if key_string == "space" or key_string == "enter":
+        if key_string == "space" or key_string == "enter" or key_string == "return":
             focused_id = self.meta_state.focused_id
             focused_node = self.meta_state.id_to_node.get(focused_id)
             if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
@@ -473,11 +473,20 @@ class Tree(TreeType):
         return any([node.properties.draggable for node in self.root_node.children_nodes])
 
     def create_canvas(self):
-        if self._is_draggable_ui():
-            rect = get_all_screens_rect()
-            return Canvas.from_rect(rect)
+        rect = self.root_node.boundary_rect
 
-        return Canvas.from_rect(self.root_node.boundary_rect)
+        if self._is_draggable_ui():
+            rect = get_combined_screens_rect()
+
+        # Some display drivers will show a "black screen of death"
+        # for some reason if rect is >= screen.rect size.
+        # This problem doesn't happen with Canvas.from_screen, just Canvas.from_rect.
+        return Canvas.from_rect(Rect(
+            rect.x,
+            rect.y,
+            rect.width - 0.001,
+            rect.height - 0.001
+        ))
 
     def render_decorator_canvas(self):
         if not self.canvas_decorator:

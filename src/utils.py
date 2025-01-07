@@ -78,7 +78,7 @@ def hex_color(color: str) -> str:
 
     return NAMED_COLORS_TO_HEX.get(color.lower(), color)
 
-def get_all_screens_rect() -> Rect:
+def get_combined_screens_rect() -> Rect:
     screens = ui.screens()
     x = min(screen.x for screen in screens)
     y = min(screen.y for screen in screens)
