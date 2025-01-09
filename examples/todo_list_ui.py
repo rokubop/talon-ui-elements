@@ -32,7 +32,7 @@ def todo_list_ui():
             div(border_top=1, margin_top=8, padding_top=16, gap=16)[
                 text("New Item", font_size=12, id="label"),
                 div(flex_direction="row", gap=8)[
-                    input_text(id="add_input", background_color="222222", border_radius=4, width=200),
+                    input_text(id="add_input", autofocus=True, background_color="222222", border_radius=4, width=200),
                     button("Add", on_click=add_item, background_color="42A5F5", border_radius=4, padding=12)
                 ]
             ]

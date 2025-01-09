@@ -78,7 +78,7 @@ def trigger_hint_click(hint_trigger: str):
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
-                node.tree.focus_node(node)
+                state_manager.focus_node(node)
             break
 
 def trigger_hint_focus(hint_trigger: str):
@@ -86,7 +86,7 @@ def trigger_hint_focus(hint_trigger: str):
         if hint == hint_trigger:
             node = store.id_to_node.get(id)
             if node:
-                node.tree.focus_node(node)
+                state_manager.focus_node(node)
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str):

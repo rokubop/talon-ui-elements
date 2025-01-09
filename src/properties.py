@@ -24,6 +24,7 @@ class Properties:
     """
     align_items: str = DEFAULT_ALIGN_ITEMS
     align_self: str = None
+    autofocus: bool = False
     background_color: str = None
     border_color: str = DEFAULT_BORDER_COLOR
     border_radius: int = 0
@@ -140,6 +141,7 @@ class BoxModelValidationProperties(TypedDict):
 class ValidationProperties(TypedDict, BoxModelValidationProperties):
     align_items: str
     align_self: str
+    autofocus: bool
     background_color: str
     border_color: str
     border_radius: int
