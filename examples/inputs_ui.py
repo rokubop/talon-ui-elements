@@ -22,7 +22,7 @@ def inputs_ui(props):
                 text("Enter your name", font_size=24),
             ],
             text("First"),
-            input_text(id="first", background_color="444444", on_change=on_change),
+            input_text(id="first", autofocus=True, background_color="444444", on_change=on_change),
             text("Last"),
             input_text(id="last", background_color="444444", on_change=on_change),
             div(flex_direction="row", justify_content="flex_end", margin_top=8)[

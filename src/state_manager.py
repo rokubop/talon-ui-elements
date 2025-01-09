@@ -164,24 +164,21 @@ class StateManager:
                 return input_data.value
         return ""
 
-    def blur_current_focus(self):
-        tree = store.focused_tree
-        if tree and tree.meta_state.last_focused_id:
-            last_focused_node = tree.meta_state.id_to_node.get(tree.meta_state.last_focused_id)
-            if last_focused_node and last_focused_node.element_type == "input_text":
-                tree.blur_input(last_focused_node)
+    def is_focused(self, id):
+        return store.focused_id == id
+
+    def get_focused_node(self):
+        if store.focused_id:
+            return store.id_to_node.get(store.focused_id)
+        return None
 
     def get_focused_tree(self):
         return store.focused_tree
 
-    def set_focused_tree(self, tree: TreeType):
-        if store.focused_tree and store.focused_tree != tree:
-            store.focused_tree.meta_state.last_focused_id = None
-            store.focused_tree.meta_state.focused_id = None
-            store.focused_tree.render_decorator_canvas()
-        store.focused_tree = tree
-        if tree.canvas_decorator:
-            tree.canvas_decorator.focused = True
+    def autofocus_node(self, node: NodeType):
+        if node.interactive and node.properties.autofocus:
+            store.focused_id = node.id
+            store.focused_tree = node.tree
 
     def set_ref_property_override(self, id, property_name, new_value):
         node = store.id_to_node.get(id)
@@ -211,13 +208,65 @@ class StateManager:
         if node:
             node.tree.highlight_briefly(id, color)
 
+    def focus_input(self, id):
+        node = store.id_to_node.get(id)
+        if node and node.input:
+            # workaround for focus
+            node.input.hide()
+            node.input.show()
+
+    def focus_node(self, node: NodeType):
+        blur_tree = None
+        if node.tree != store.focused_tree:
+            blur_tree = store.focused_tree
+
+        store.focused_id = node.id
+        store.focused_tree = node.tree
+
+        if node.element_type == "input_text":
+            self.focus_input(node.id)
+        elif node.tree.canvas_decorator and not node.tree.canvas_decorator.focused:
+            node.tree.canvas_decorator.focused = True
+
+        if blur_tree:
+            blur_tree.render_decorator_canvas()
+        node.tree.render_decorator_canvas()
+
     def focus_next(self):
-        if store.focused_tree:
-            store.focused_tree.focus_next()
+        interactive_nodes = []
+
+        for tree in store.trees:
+            interactive_nodes.extend(tree.interactive_node_list)
+
+        if store.focused_id:
+            current_node = store.id_to_node.get(store.focused_id)
+            current_index = interactive_nodes.index(current_node)
+            next_index = current_index + 1 if current_index < len(interactive_nodes) - 1 else 0
+            next_node = interactive_nodes[next_index]
+        elif store.focused_tree:
+            next_node = store.focused_tree.interactive_node_list[0]
+        else:
+            next_node = interactive_nodes[0]
+
+        self.focus_node(next_node)
 
     def focus_previous(self):
-        if store.focused_tree:
-            store.focused_tree.focus_previous()
+        interactive_nodes = []
+
+        for tree in store.trees:
+            interactive_nodes.extend(tree.interactive_node_list)
+
+        if store.focused_id:
+            current_node = store.id_to_node.get(store.focused_id)
+            current_index = interactive_nodes.index(current_node)
+            previous_index = current_index - 1 if current_index > 0 else len(interactive_nodes) - 1
+            previous_node = interactive_nodes[previous_index]
+        elif store.focused_tree:
+            previous_node = store.focused_tree.interactive_node_list[-1]
+        else:
+            previous_node = interactive_nodes[-1]
+
+        self.focus_node(previous_node)
 
     def clear_state(self):
         store.reactive_state.clear()

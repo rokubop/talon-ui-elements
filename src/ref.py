@@ -59,7 +59,7 @@ class Ref:
 
     def focus(self):
         node = self.get_node()
-        node.tree.focus_node(node)
+        state_manager.focus_node(node)
 
     def set_text(self, new_value: Any):
         state_manager.set_text_mutation(self._get("id"), new_value)

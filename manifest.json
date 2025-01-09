@@ -1,7 +1,7 @@
 {
   "name": "ui_elements",
   "description": "Create stateful overlays and UIs using HTML/CSS/React-like syntax. For Talon.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "contributes": {
     "settings": [
       "user.ui_elements_hints_button_first_char",
