@@ -404,7 +404,7 @@ class Tree(TreeType):
                 canvas.draw_rect(focus_outline_rect)
 
     def init_key_controls(self):
-        if not self.is_key_controls_init:
+        if not self.is_key_controls_init and self.canvas_decorator:
             self.is_key_controls_init = True
             self.canvas_decorator.register("key", self.on_key)
 
