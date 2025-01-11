@@ -65,7 +65,7 @@ class NodeInputText(Node):
             else:
                 c.draw_rect(self.box_model.padding_rect)
 
-    def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
+    def render(self, c: SkiaCanvas, cursor: Cursor):
         self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         self.render_background(c, cursor)

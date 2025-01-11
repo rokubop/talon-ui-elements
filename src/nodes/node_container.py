@@ -13,30 +13,11 @@ from .node import Node
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
         super().__init__(element_type=element_type, properties=properties)
-        self.scroll_y = 0
-        self.scroll_y_percentage = 0
         self.is_uniform_border = True
         self.justify_between_gaps = None
         self.debug_number = 0
         self.debug_color = "red"
         self.debug_colors = iter(cycle(["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]))
-
-    def set_scroll_y(self, delta: int):
-        """Adjust the scroll position based on input (e.g., mouse scroll)."""
-        self.scroll_y += delta
-
-        max_top_scroll_y = 0
-        max_bottom_scroll_y = self.properties.height
-
-        if self.scroll_y < max_top_scroll_y:
-            self.scroll_y = max_top_scroll_y
-        elif self.scroll_y > max_bottom_scroll_y:
-            self.scroll_y = max_bottom_scroll_y
-
-        if self.properties.height > 0:
-            self.scroll_y_percentage = self.scroll_y / self.properties.height
-        else:
-            self.scroll_y_percentage = 0
 
     def set_justify_between_gaps(self):
         if self.properties.justify_content == "space_between":
@@ -78,6 +59,9 @@ class NodeContainer(Node, NodeContainerType):
             elif self.properties.flex_direction == "row":
                 cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
 
+        if child.element_type == ELEMENT_ENUM_TYPE["text"]:
+            print(child.text)
+            print("accumulating content dimensions", rect)
         self.box_model.accumulate_content_dimensions(rect)
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
@@ -179,7 +163,9 @@ class NodeContainer(Node, NodeContainerType):
                 min_width=self.properties.min_width,
                 min_height=self.properties.min_height,
                 max_width=self.properties.max_width,
-                max_height=self.properties.max_height)
+                max_height=self.properties.max_height,
+                overflow=self.properties.overflow,
+                constraint_nodes=self.constraint_nodes)
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
 
@@ -282,10 +268,12 @@ class NodeContainer(Node, NodeContainerType):
                 c.draw_rect(inner_rect)
 
     def adjust_for_scroll_y_start(self, c: SkiaCanvas):
-        self.box_model.adjust_scroll_y(self.scroll_y, self.scroll_y_percentage, c)
+        if self.tree.meta_state.scrollable.get(self.id, None):
+            self.box_model.adjust_scroll_y(self.tree.meta_state.scrollable[self.id].offset_y, c)
 
     def adjust_for_scroll_y_end(self, c: SkiaCanvas):
-        self.box_model.adjust_scroll_y(-self.scroll_y, self.scroll_y_percentage, c)
+        if self.tree.meta_state.scrollable.get(self.id, None):
+            self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y, c)
 
     def crop_scrollable_region_start(self, c: SkiaCanvas):
         if self.box_model.scrollable and self.box_model.scroll_box_rect:
@@ -383,7 +371,7 @@ class NodeContainer(Node, NodeContainerType):
 
         return gap
 
-    def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
+    def render(self, c: SkiaCanvas, cursor: Cursor):
         if view_state := self.debugger(c, cursor, True):
             return view_state
 
@@ -404,9 +392,9 @@ class NodeContainer(Node, NodeContainerType):
             )
 
         # self.debugger(c, cursor)
+        self.crop_scrollable_region_start(c)
         self.render_borders(c, cursor)
-        # self.adjust_for_scroll_y_start(c)
-        # self.crop_scrollable_region_start(c)
+        self.adjust_for_scroll_y_start(c)
         self.render_background(c, cursor)
         # if view_state := self.debugger(c, cursor, True):
         #     return view_state
@@ -422,8 +410,7 @@ class NodeContainer(Node, NodeContainerType):
             # self.debugger(c, cursor, new_color=True)
 
             child_last_cursor = Point2d(cursor.x, cursor.y)
-            scroll_region = self.key if self.box_model.scrollable else scroll_region_key
-            rect = child.render(c, cursor, scroll_region)
+            rect = child.render(c, cursor)
             cursor.move_to(child_last_cursor.x, child_last_cursor.y)
 
             if i == len(self.children_nodes) - 1:
@@ -442,7 +429,7 @@ class NodeContainer(Node, NodeContainerType):
         cursor.move_to(last_cursor.x, last_cursor.y)
         # self.debugger(c, cursor)
 
-        # self.adjust_for_scroll_y_end(c)
-        # self.crop_scrollable_region_end(c)
+        self.adjust_for_scroll_y_end(c)
+        self.crop_scrollable_region_end(c)
 
         return self.box_model.margin_rect

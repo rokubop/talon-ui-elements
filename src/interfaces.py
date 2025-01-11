@@ -66,6 +66,11 @@ class ScrollRegionType(ABC):
     scroll_y: int
     scroll_x: int
 
+class ScrollableType(ABC):
+    id: str
+    offset_x: Union[int, float]
+    offset_y: Union[int, float]
+
 @dataclass
 class MetaStateInput:
     value: str
@@ -76,9 +81,9 @@ class MetaStateType(ABC):
     _inputs: dict[str, MetaStateInput]
     _highlighted: dict[str, str]
     _buttons: set[str]
+    _scrollable = dict[str, ScrollableType]
     _text_mutations: dict[str, str]
     _style_mutations: dict[str, dict[str, Union[str, int]]]
-    _scroll_regions: dict[str, ScrollRegionType]
     _id_to_node: dict[str, 'NodeType']
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     unhighlight_jobs: dict[str, callable]
@@ -96,15 +101,19 @@ class MetaStateType(ABC):
         pass
 
     @property
+    def scrollable(self) -> dict[str, ScrollableType]:
+        pass
+
+    @property
+    def add_scrollable(self, id) -> None:
+        pass
+
+    @property
     def text_mutations(self) -> dict[str, str]:
         pass
 
     @property
     def style_mutations(self) -> dict[str, dict[str, Union[str, int]]]:
-        pass
-
-    @property
-    def scroll_regions(self) -> dict[str, ScrollRegionType]:
         pass
 
     @property
@@ -156,10 +165,6 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
-    def add_scroll_region(self, id: str):
-        pass
-
-    @abstractmethod
     def scroll_y_increment(self, id: str, y: int):
         pass
 
@@ -189,7 +194,6 @@ class TreeNodeRefsType(ABC):
     inputs: dict[str, 'NodeType']
     dynamic_text: dict[str, 'NodeType']
     highlighted: dict[str, 'NodeType']
-    scrollable_regions: dict[str, 'NodeType']
 
     @abstractmethod
     def clear(self):
@@ -355,15 +359,9 @@ class RenderCauseStateType(ABC):
         pass
 
 class NodeContainerType(NodeType):
-    scroll_y: int
-    scroll_y_percentage: float
     highlight_color: str
     is_uniform_border: bool
     justify_between_gaps: Optional[int]
-
-    @abstractmethod
-    def set_scroll_y(self, delta: int):
-        pass
 
     @abstractmethod
     def virtual_render_child(self, c: object, cursor: object, child: NodeType, i: int, move_after_last_child: bool):
@@ -426,7 +424,7 @@ class NodeContainerType(NodeType):
         pass
 
     @abstractmethod
-    def render(self, c: object, cursor: object, scroll_region_key: int):
+    def render(self, c: object, cursor: object):
         pass
 
     @abstractmethod
@@ -447,7 +445,7 @@ class NodeSvgType(NodeType):
         pass
 
     @abstractmethod
-    def render(self, c: object, cursor: object, scroll_region_key: int):
+    def render(self, c: object, cursor: object):
         pass
 
 class TreeType(ABC):
@@ -537,7 +535,7 @@ class NodeComponentType(ABC):
         pass
 
     @abstractmethod
-    def render(self, c: object, cursor: object, scroll_region_key: int):
+    def render(self, c: object, cursor: object):
         pass
 
     @abstractmethod

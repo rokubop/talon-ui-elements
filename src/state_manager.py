@@ -208,6 +208,21 @@ class StateManager:
         if node:
             node.tree.highlight_briefly(id, color)
 
+    def blur(self):
+        store.focused_id = None
+
+        if store.focused_tree:
+            store.focused_tree.canvas_decorator.focused = True
+            store.focused_tree.render_decorator_canvas()
+
+    def blur_all(self):
+        store.focused_id = None
+
+        if store.focused_tree:
+            store.focused_tree.canvas_decorator.focused = False
+            store.focused_tree.render_decorator_canvas()
+        store.focused_tree = None
+
     def focus_input(self, id):
         node = store.id_to_node.get(id)
         if node and node.input:

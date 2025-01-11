@@ -3,7 +3,13 @@ from talon import app
 from talon.types import Rect
 from typing import TypedDict, Union
 from typing import TypedDict
-from .box_model import Border, Margin, Padding, parse_box_model
+from .box_model import (
+    Border,
+    Margin,
+    Overflow,
+    Padding,
+    parse_box_model
+)
 from .constants import (
     DEFAULT_ALIGN_ITEMS,
     DEFAULT_BORDER_COLOR,
@@ -49,6 +55,7 @@ class Properties:
     on_change: callable = None
     on_click: callable = None
     opacity: Union[int, float] = None
+    overflow: Overflow = None
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
@@ -85,6 +92,7 @@ class Properties:
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
+        self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'))
 
     def update_colors_with_opacity(self):
         if self.opacity is not None:
@@ -120,6 +128,9 @@ class Properties:
     def is_user_set(self, key: str) -> bool:
         """Check if a property was explicitly set by the user."""
         return key in self._explicitly_set
+
+    def is_scrollable(self):
+        return self.overflow and self.overflow.scrollable
 
 class BoxModelValidationProperties(TypedDict):
     border_bottom: int
@@ -162,6 +173,9 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     min_height: int
     min_width: int
     opacity: Union[int, float]
+    overflow: str
+    overflow_x: str
+    overflow_y: str
     focus_outline_color: str
     focus_outline_width: int
     value: str

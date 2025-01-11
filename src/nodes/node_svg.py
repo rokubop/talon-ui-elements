@@ -76,7 +76,7 @@ class NodeSvg(Node, NodeSvgType):
 
         return self.box_model.margin_rect
 
-    def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
+    def render(self, c: SkiaCanvas, cursor: Cursor):
         self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         last_cursor = Point2d(cursor.x, cursor.y)

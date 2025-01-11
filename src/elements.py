@@ -87,6 +87,14 @@ class State:
     def set(self, key: str, value: Any):
         return set_state(key, value)
 
+    def __call__(self, *args, **kwargs):
+        raise ValueError("""
+            Cannot call state() directly. Instead use:
+            value = state.get("value", optional_initial_value)
+            value, set_value = state.use("value", optional_initial_value)
+            state.set("value", new_value)
+        """)
+
 def use_state(key: str, initial_state: Any = None):
     tree = state_manager.get_processing_tree()
     if not tree:
