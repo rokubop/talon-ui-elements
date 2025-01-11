@@ -26,24 +26,29 @@ def dashboard_ui():
         # wraps the click handler to avoid closure issues in the loop
         return lambda e: set_user_list(list_name)
 
+    def header():
+        return div(flex_direction='row', justify_content='space_between', padding=16, border_bottom=1, border_color="555555")[
+            text("Dashboard", font_size=24),
+            text("talon-ui-elements", font_size=24, color="FFCC00"),
+        ]
+
+    def sidebar():
+        return div(border_right=1, overflow_y="auto")[
+            *[button(name, on_click=on_click(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
+        ]
+
+    def body():
+        return div(flex_direction="row", padding=16, gap=8, overflow_y="auto", id="body", width="100%")[
+            div()[*[text(key, font_size=14) for key in keys]],
+            div()[*[text(value, font_size=14) for value in values]]
+        ]
+
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, background_color="272727", border_radius=8, width=900, min_height=400, border_width=1)[
-            div(drag_handle=True, flex_direction='row', justify_content="space_between", padding=16, border_bottom=1, border_color="555555")[
-                text("Dashboard", font_size=24),
-                text("talon-ui-elements", font_size=24, color="FFCC00"),
-            ],
+        div(draggable=True, background_color="272727", border_radius=8, width=900, min_height=400, max_height=500, border_width=1)[
+            header(),
             div(flex_direction="row", height="100%")[
-                div(width=150, border_right=1)[
-                    *[button(name, on_click=on_click(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
-                ],
-                div(flex_direction="row", padding=16, gap=8)[
-                    div()[
-                        *[text(key, font_size=14) for key in keys]
-                    ],
-                    div()[
-                        *[text(value, font_size=14) for value in values]
-                    ]
-                ]
+                sidebar(),
+                body()
             ],
         ]
     ]

@@ -14,7 +14,8 @@ from ..interfaces import (
     Effect,
     ClickEvent,
     ScrollRegionType,
-    RenderCauseStateType
+    ScrollableType,
+    RenderCauseStateType,
 )
 from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
@@ -24,10 +25,26 @@ from ..utils import draw_text_simple, get_active_color_from_highlight_color, get
 import inspect
 import uuid
 
+scroll_throttle_job = None
+scroll_throttle_time = "30ms"
+scroll_amount_per_tick = 40
+
+def scroll_throttle_clear():
+    global scroll_throttle_job
+    if scroll_throttle_job:
+        cron.cancel(scroll_throttle_job)
+    scroll_throttle_job = None
+
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int, scroll_x: int):
         self.scroll_y = scroll_y
         self.scroll_x = scroll_x
+
+class Scrollable(ScrollableType):
+    def __init__(self, id):
+        self.id = id
+        self.offset_x = 0
+        self.offset_y = 0
 
 class MetaState(MetaStateType):
     def __init__(self):
@@ -36,6 +53,7 @@ class MetaState(MetaStateType):
         self._id_to_node = {}
         self._inputs = {}
         self._scroll_regions = {}
+        self._scrollable = {}
         self._style_mutations = {}
         self._text_mutations = {}
         self.ref_property_overrides = {}
@@ -62,6 +80,10 @@ class MetaState(MetaStateType):
         return self._scroll_regions
 
     @property
+    def scrollable(self):
+        return self._scrollable
+
+    @property
     def style_mutations(self):
         return self._style_mutations
 
@@ -84,6 +106,10 @@ class MetaState(MetaStateType):
 
     def add_scroll_region(self, id):
         self._scroll_regions[id] = ScrollRegion(0, 0)
+
+    def add_scrollable(self, id):
+        if id not in self._scrollable:
+            self._scrollable[id] = Scrollable(id)
 
     def set_highlighted(self, id, color = None):
         if id in self._id_to_node:
@@ -149,6 +175,7 @@ class MetaState(MetaStateType):
         self._id_to_node.clear()
         self._inputs.clear()
         self._scroll_regions.clear()
+        self._scrollable.clear()
         self._style_mutations.clear()
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
@@ -242,7 +269,6 @@ class Tree(TreeType):
         self.root_node = None
         self.show_hints = False
         self.surfaces = []
-        self.unused_screens = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_boundary()
 
@@ -557,25 +583,11 @@ class Tree(TreeType):
             self.canvas_base.freeze()
             self.draw_busy = cron.after("16ms", self.draw_busy_disable)
 
-    def is_canvas_growable(self):
-        return self.unused_screens
-
-    def is_draggable_node_on_new_screen(self):
-        if not self.draggable_node or not self.drag_handle_node:
-            return False
-
-        draggable_rect = self.draggable_node.box_model.border_rect
-
-        if draggable_rect.x + self.draggable_node_delta_pos.x < self.root_node.boundary_rect.x:
-            return True
-        if draggable_rect.y + self.draggable_node_delta_pos.y < self.root_node.boundary_rect.y:
-            return True
-        if draggable_rect.x + draggable_rect.width + self.draggable_node_delta_pos.x > self.root_node.boundary_rect.x + self.root_node.boundary_rect.width:
-            return True
-        if draggable_rect.y + draggable_rect.height + self.draggable_node_delta_pos.y > self.root_node.boundary_rect.y + self.root_node.boundary_rect.height:
-            return True
-
-        return False
+    def get_mouse_hovered_input_id(self, gpos):
+        for id, input_data in list(self.meta_state.inputs.items()):
+            if input_data.input and input_data.input.rect.contains(gpos):
+                return id
+        return None
 
     def on_mousemove(self, gpos):
         drag_relative_offset = state_manager.get_drag_relative_offset()
@@ -610,6 +622,18 @@ class Tree(TreeType):
             active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
             state_manager.focus_node(node)
             self.highlight(hovered_id, color=active_color)
+            return
+
+        input_id = self.get_mouse_hovered_input_id(gpos)
+        if input_id:
+            node = self.meta_state.id_to_node[input_id]
+            state_manager.focus_node(input.node)
+            return
+
+        if self.root_node.box_model.content_children_rect.contains(gpos):
+            state_manager.blur()
+        else:
+            state_manager.blur_all()
 
     def click_node(self, node: NodeType):
         sig = inspect.signature(node.on_click)
@@ -625,7 +649,8 @@ class Tree(TreeType):
         if mousedown_start_id and hovered_id == mousedown_start_id:
             node = self.meta_state.id_to_node[mousedown_start_id]
             self.highlight(mousedown_start_id, color=node.properties.highlight_color)
-            self.click_node(node)
+            if not state_manager.is_drag_active():
+                self.click_node(node)
 
         state_manager.set_mousedown_start_id(None)
 
@@ -648,11 +673,45 @@ class Tree(TreeType):
         elif e.event == "mouseup":
             self.on_mouseup(e.gpos)
 
+    def on_scroll_tick(self, e):
+        smallest_node = None
+        if self.meta_state.scrollable:
+            for id, data in list(self.meta_state.scrollable.items()):
+                node = self.meta_state.id_to_node.get(id)
+                if getattr(node, 'box_model', None) and node.box_model.scroll_box_rect.contains(e.gpos):
+                    smallest_node = node if not smallest_node or node.box_model.scroll_box_rect.height < smallest_node.box_model.scroll_box_rect.height else smallest_node
+
+            if smallest_node:
+                offset_y = e.degrees.y
+                if offset_y > 0:
+                    offset_y = -scroll_amount_per_tick
+                elif offset_y < 0:
+                    offset_y = scroll_amount_per_tick
+
+                max_top_scroll_y = 0
+                max_bottom_scroll_y = smallest_node.box_model.height
+
+                new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
+
+                if new_offset_y < max_top_scroll_y:
+                    new_offset_y = max_top_scroll_y
+                elif new_offset_y > max_bottom_scroll_y:
+                    new_offset_y = max_bottom_scroll_y
+
+                self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
+                self.canvas_base.freeze()
+
+    def on_scroll(self, e):
+        global scroll_throttle_job
+        if not scroll_throttle_job:
+            self.on_scroll_tick(e)
+            scroll_throttle_job = cron.after(scroll_throttle_time, scroll_throttle_clear)
+
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
             for canvas in self.canvas_blockable:
                 canvas.unregister("mouse", self.on_mouse)
-                # canvas.unregister("scroll", self.on_scroll)
+                canvas.unregister("scroll", self.on_scroll)
                 canvas.close()
             self.is_blockable_canvas_init = False
             self.last_blockable_rects.clear()
@@ -707,12 +766,16 @@ class Tree(TreeType):
             self.drag_handle_node = node
 
     def _assign_missing_ids(self, node: NodeType, index_path: list[int]):
+        requires_id = False
         if node.interactive:
             self.interactive_node_list.append(node)
+            requires_id = True
+        if node.properties.is_scrollable():
+            requires_id = True
 
-            if not node.id:
-                index_path_str = "-".join(map(str, index_path)) # "1-2-0"
-                node.id = self.guid + index_path_str
+        if requires_id and not node.id:
+            index_path_str = "-".join(map(str, index_path)) # "1-2-0"
+            node.id = self.guid + index_path_str
 
     def _use_meta_state(self, node: NodeType):
         if node.id:
@@ -726,11 +789,17 @@ class Tree(TreeType):
             elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 self.meta_state.use_text_mutation(node.id, initial_text=node.text)
 
+            if node.properties.is_scrollable():
+                self.meta_state.add_scrollable(node.id)
+
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
         if constraint_nodes:
             node.constraint_nodes = constraint_nodes
 
-        if node.properties.width is not None or node.properties.max_width is not None:
+        if node.properties.width is not None or \
+                node.properties.max_width is not None or \
+                node.properties.height is not None or \
+                node.properties.max_height is not None:
             if constraint_nodes is None:
                 constraint_nodes = []
             constraint_nodes = constraint_nodes + [node]
@@ -875,8 +944,7 @@ class Tree(TreeType):
                 self.canvas_blockable.append(canvas)
                 canvas.blocks_mouse = True
                 canvas.register("mouse", self.on_mouse)
-
-                # canvas.register("scroll", self.on_scroll)
+                canvas.register("scroll", self.on_scroll)
                 canvas.freeze()
 
             self.is_blockable_canvas_init = True
