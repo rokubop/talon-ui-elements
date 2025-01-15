@@ -50,7 +50,9 @@ class NodeContainer(Node, NodeContainerType):
     def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.virtual_gap_between_elements(child, i)
         a_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
-        rect = child.virtual_render(c, cursor)
+        child.virtual_render(c, cursor)
+        rect = child.box_model.margin_rect_with_overflow()
+        print(f"virtual rect of {child.element_type} and id {child.id} is {rect}")
 
         cursor.virtual_move_to(a_cursor.x, a_cursor.y)
         if move_after_last_child or i != len(self.children_nodes) - 1:
@@ -61,7 +63,9 @@ class NodeContainer(Node, NodeContainerType):
 
         if child.element_type == ELEMENT_ENUM_TYPE["text"]:
             print(child.text)
-            print("accumulating content dimensions", rect)
+        print(child.element_type)
+        print("accumulating content dimensions", rect)
+        # max_rect = child.box_model.margin_rect_with_overflow()
         self.box_model.accumulate_content_dimensions(rect)
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):

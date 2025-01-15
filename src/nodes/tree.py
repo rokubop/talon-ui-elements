@@ -688,8 +688,11 @@ class Tree(TreeType):
                 elif offset_y < 0:
                     offset_y = scroll_amount_per_tick
 
+                print("box model scroll box rect", smallest_node.box_model.scroll_box_rect)
+                print("box model content children rect", smallest_node.box_model.content_children_rect)
+
                 max_top_scroll_y = 0
-                max_bottom_scroll_y = smallest_node.box_model.height
+                max_bottom_scroll_y = smallest_node.box_model.scroll_box_rect.height
 
                 new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
@@ -793,9 +796,6 @@ class Tree(TreeType):
                 self.meta_state.add_scrollable(node.id)
 
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
-        if constraint_nodes:
-            node.constraint_nodes = constraint_nodes
-
         if node.properties.width is not None or \
                 node.properties.max_width is not None or \
                 node.properties.height is not None or \
@@ -803,6 +803,9 @@ class Tree(TreeType):
             if constraint_nodes is None:
                 constraint_nodes = []
             constraint_nodes = constraint_nodes + [node]
+
+        if constraint_nodes:
+            node.constraint_nodes = constraint_nodes
 
         return constraint_nodes
 
