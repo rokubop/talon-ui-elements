@@ -215,6 +215,11 @@ class BoxModelLayoutType(ABC):
     border_rect: Rect
     content_rect: Rect
     content_children_rect: Rect
+    intrinsic_margin_rect: Rect
+    intrinsic_padding_rect: Rect
+    intrinsic_border_rect: Rect
+    intrinsic_content_rect: Rect
+    intrinsic_content_children_rect: Rect
     scroll_box_rect: Union[Rect, None] = None
     scrollable: bool
     fixed_width: bool

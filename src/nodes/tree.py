@@ -27,7 +27,7 @@ import uuid
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
-scroll_amount_per_tick = 40
+scroll_amount_per_tick = 45
 
 def scroll_throttle_clear():
     global scroll_throttle_job
@@ -419,6 +419,12 @@ class Tree(TreeType):
                 border_rect.height + stroke_width * 2
             )
 
+            get_clip_rect = node.box_model.constraints["get_clip_rect"]
+            clip_rect = get_clip_rect() if get_clip_rect else None
+            if clip_rect:
+                canvas.save()
+                canvas.clip_rect(clip_rect)
+
             canvas.paint.style = canvas.paint.Style.STROKE
             canvas.paint.color = node.properties.focus_outline_color
             canvas.paint.stroke_width = stroke_width
@@ -428,6 +434,9 @@ class Tree(TreeType):
                 canvas.draw_rrect(RoundRect.from_rect(focus_outline_rect, x=border_radius, y=border_radius))
             else:
                 canvas.draw_rect(focus_outline_rect)
+
+            if clip_rect:
+                canvas.restore()
 
     def init_key_controls(self):
         if not self.is_key_controls_init and self.canvas_decorator:
@@ -688,11 +697,14 @@ class Tree(TreeType):
                 elif offset_y < 0:
                     offset_y = scroll_amount_per_tick
 
-                print("box model scroll box rect", smallest_node.box_model.scroll_box_rect)
-                print("box model content children rect", smallest_node.box_model.content_children_rect)
+                # print("box model scroll box rect", smallest_node.box_model.scroll_box_rect)
+                # print("box model content children rect", smallest_node.box_model.content_children_rect)
+
+                max_height = smallest_node.box_model.intrinsic_padding_rect.height
+                view_height = smallest_node.box_model.scroll_box_rect.height
 
                 max_top_scroll_y = 0
-                max_bottom_scroll_y = smallest_node.box_model.scroll_box_rect.height
+                max_bottom_scroll_y = max_height - view_height
 
                 new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
@@ -799,7 +811,8 @@ class Tree(TreeType):
         if node.properties.width is not None or \
                 node.properties.max_width is not None or \
                 node.properties.height is not None or \
-                node.properties.max_height is not None:
+                node.properties.max_height is not None or \
+                node.properties.is_scrollable():
             if constraint_nodes is None:
                 constraint_nodes = []
             constraint_nodes = constraint_nodes + [node]

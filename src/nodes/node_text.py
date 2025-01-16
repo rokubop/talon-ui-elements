@@ -157,7 +157,8 @@ class NodeText(Node):
                 width=resolved_width,
                 height=resolved_height,
                 fixed_width=bool(self.properties.width and not isinstance(self.properties.width, str)),
-                fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)))
+                fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)),
+                constraint_nodes=self.constraint_nodes)
 
         if self.element_type == "text" and self.id:
             self.text = str(state_manager.use_text_mutation(self))
@@ -168,8 +169,9 @@ class NodeText(Node):
         c.paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
         self.measure_and_account_for_multiline(c, cursor)
+        self.box_model.accumulate_intrinsic_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.text_width, self.text_body_height))
         self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.text_width, self.text_body_height))
-        return self.box_model.margin_rect
+        return self.box_model.margin_rect, self.box_model.intrinsic_margin_rect
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
         return self.box_model.margin_rect

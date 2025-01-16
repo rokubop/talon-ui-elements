@@ -41,14 +41,16 @@ class NodeInputText(Node):
                 self.properties.padding,
                 self.properties.border,
                 self.properties.width,
-                self.properties.height)
+                self.properties.height,
+                constraint_nodes=self.constraint_nodes)
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
         c.paint.textsize = self.properties.font_size
         c.paint.typeface = Typeface.from_name(self.properties.font_family)
 
+        self.box_model.accumulate_intrinsic_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.properties.width, self.properties.height))
         self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.properties.width, self.properties.height))
-        return self.box_model.margin_rect
+        return self.box_model.margin_rect, self.box_model.intrinsic_margin_rect
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
         return self.box_model.margin_rect
@@ -85,7 +87,13 @@ class NodeInputText(Node):
             platform_adjustment_x = 6
             platform_adjustment_height = -6
 
+        get_clip_rect = self.box_model.constraints["get_clip_rect"]
+        clip_rect = get_clip_rect() if get_clip_rect else None
         input_rect = Rect(cursor.x, cursor.y + platform_adjustment_x, self.box_model.content_rect.width, self.box_model.content_rect.height + platform_adjustment_height)
-        entity_manager.update_input_rect(self.id, input_rect)
+        if clip_rect:
+            new_input_rect = input_rect.intersect(clip_rect)
+            top_offset = new_input_rect.top - input_rect.top
+            input_rect = new_input_rect
+        entity_manager.update_input_rect(self.id, input_rect, top_offset=top_offset)
 
         return self.box_model.margin_rect

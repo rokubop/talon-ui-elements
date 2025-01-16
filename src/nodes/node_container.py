@@ -50,9 +50,7 @@ class NodeContainer(Node, NodeContainerType):
     def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
         gap = self.virtual_gap_between_elements(child, i)
         a_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
-        child.virtual_render(c, cursor)
-        rect = child.box_model.margin_rect_with_overflow()
-        print(f"virtual rect of {child.element_type} and id {child.id} is {rect}")
+        rect, intrinsic_rect = child.virtual_render(c, cursor)
 
         cursor.virtual_move_to(a_cursor.x, a_cursor.y)
         if move_after_last_child or i != len(self.children_nodes) - 1:
@@ -61,11 +59,7 @@ class NodeContainer(Node, NodeContainerType):
             elif self.properties.flex_direction == "row":
                 cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
 
-        if child.element_type == ELEMENT_ENUM_TYPE["text"]:
-            print(child.text)
-        print(child.element_type)
-        print("accumulating content dimensions", rect)
-        # max_rect = child.box_model.margin_rect_with_overflow()
+        self.box_model.accumulate_intrinsic_content_dimensions(intrinsic_rect)
         self.box_model.accumulate_content_dimensions(rect)
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
@@ -108,8 +102,10 @@ class NodeContainer(Node, NodeContainerType):
                 if child.node_type != NODE_ENUM_TYPE["leaf"]:
                     if self.properties.align_items == "stretch":
                         if self.properties.flex_direction == "row" and not child.box_model.fixed_height:
+                            child.box_model.accumulate_intrinsic_outer_dimensions_height(self.box_model.content_rect.height)
                             child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
                         elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
+                            child.box_model.accumulate_intrinsic_outer_dimensions_width(self.box_model.content_rect.width)
                             child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
 
         if growable_primary_axis_flex:
@@ -120,9 +116,11 @@ class NodeContainer(Node, NodeContainerType):
             for i, child in enumerate(growable_primary_axis_flex):
                 if self.properties.flex_direction == "row":
                     additional_width = remaining_width * flex_weights[i]
+                    child.box_model.accumulate_intrinsic_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
                     child.box_model.accumulate_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
                 elif self.properties.flex_direction == "column":
                     additional_height = remaining_height * flex_weights[i]
+                    child.box_model.accumulate_intrinsic_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
                     child.box_model.accumulate_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
 
         for i, child in enumerate(self.children_nodes):
@@ -179,11 +177,13 @@ class NodeContainer(Node, NodeContainerType):
                 self.virtual_render_child(c, cursor, child, i, move_after_last_child=True)
         else:
             # fixes issue with empty divs with no children collapsing to 0 width or height
-            self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, 0, 0))
+            rect = Rect(cursor.virtual_x, cursor.virtual_y, 0, 0)
+            self.box_model.accumulate_intrinsic_content_dimensions(rect)
+            self.box_model.accumulate_content_dimensions(rect)
 
         cursor.virtual_move_to(last_cursor.x, last_cursor.y)
 
-        return self.box_model.margin_rect
+        return self.box_model.margin_rect, self.box_model.intrinsic_margin_rect
 
     def normalize_to_flex(self, percentage):
         if percentage and isinstance(percentage, str) and "%" in percentage:
@@ -433,7 +433,7 @@ class NodeContainer(Node, NodeContainerType):
         cursor.move_to(last_cursor.x, last_cursor.y)
         # self.debugger(c, cursor)
 
-        self.adjust_for_scroll_y_end(c)
+        # self.adjust_for_scroll_y_end(c)
         self.crop_scrollable_region_end(c)
 
         return self.box_model.margin_rect

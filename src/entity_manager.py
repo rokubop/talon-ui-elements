@@ -77,10 +77,11 @@ class EntityManager:
             text_area_input.register("label", on_change)
             node.tree.meta_state.add_input(node.id, text_area_input, node.properties.value)
 
-    def update_input_rect(self, id, rect):
+    def update_input_rect(self, id, rect, top_offset=0):
         input_data = self.get_input_data(id)
         if input_data:
             input_data.input.rect = rect
+            input_data.input.scroll = top_offset
 
     def does_tree_exist(self, renderer: callable) -> bool:
         """Check if a tree exists based on the renderer"""
