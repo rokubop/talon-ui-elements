@@ -70,11 +70,12 @@ class NodeSvg(Node, NodeSvgType):
                 self.properties.padding,
                 self.properties.border,
                 self.properties.width,
-                self.properties.height)
+                self.properties.height,
+                constraint_nodes=self.constraint_nodes)
 
         cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
 
-        return self.box_model.margin_rect
+        return self.box_model.margin_rect, self.box_model.intrinsic_margin_rect
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)

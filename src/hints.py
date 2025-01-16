@@ -98,6 +98,9 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
     hint_padding_width = hint_text_width + hint_padding
     hint_padding_height = hint_text_height + hint_padding
 
+    get_clip_rect = node.box_model.constraints["get_clip_rect"]
+    clip_rect = get_clip_rect() if get_clip_rect else None
+
     if node.element_type == "button":
         box_model = node.box_model.content_rect
         offset_x = -hint_padding_width
@@ -108,6 +111,10 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         offset_y = -4
 
     hint_padding_rect = Rect(box_model.x + offset_x, box_model.y + offset_y, hint_padding_width, hint_padding_height)
+
+    if clip_rect:
+        c.save()
+        c.clip_rect(clip_rect)
 
     # border
     c.paint.color = node.properties.color or "555555"
@@ -128,6 +135,9 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         hint_padding_rect.x + hint_padding / 2,
         hint_padding_rect.y + hint_padding / 2 + hint_text_height
     )
+
+    if clip_rect:
+        c.restore()
 
 def reset_hint_generator():
     global hint_generator
