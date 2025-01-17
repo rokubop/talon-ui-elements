@@ -3,6 +3,11 @@ from typing import Union
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .interfaces import BoxModelLayoutType, NodeType
+from .constants import (
+    DEFAULT_SCROLL_BAR_WIDTH,
+    DEFAULT_SCROLL_BAR_TRACK_COLOR,
+    DEFAULT_SCROLL_BAR_THUMB_COLOR
+)
 
 @dataclass
 class BoxModelSpacing:
@@ -389,7 +394,7 @@ class BoxModelLayout(BoxModelLayoutType):
 
                     thumb_height = max(20, view_height * (view_height / total_scrollable_height))
 
-                    thumb_width = 10
+                    thumb_width = DEFAULT_SCROLL_BAR_WIDTH
                     thumb_y = self.scroll_box_rect.y + scroll_y_percentage * (self.scroll_box_rect.height - thumb_height)
                     thumb_y = max(self.scroll_box_rect.y, min(thumb_y, self.scroll_box_rect.y + self.scroll_box_rect.height - thumb_height))
 
@@ -400,7 +405,7 @@ class BoxModelLayout(BoxModelLayoutType):
                         self.scroll_box_rect.height
                     )
                     c.paint.style = c.paint.Style.FILL
-                    c.paint.color = "FFFFFF22"
+                    c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
                     c.draw_rect(bar_rect)
 
                     thumb_rect = Rect(
@@ -409,7 +414,7 @@ class BoxModelLayout(BoxModelLayoutType):
                         thumb_width,
                         thumb_height
                     )
-                    c.paint.color = "FFFFFF44"
+                    c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
                     c.draw_rect(thumb_rect)
 
     def reduce_constraints(self, constraint_nodes: list[NodeType]) -> list[NodeType]:
