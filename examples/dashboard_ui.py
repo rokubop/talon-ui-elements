@@ -16,8 +16,8 @@ user_lists = [
 ]
 
 def dashboard_ui():
-    elements = ["div", "text", "screen", "button", "state", "ref"]
-    div, text, screen, button, state, ref = actions.user.ui_elements(elements)
+    elements = ["div", "text", "screen", "button", "state", "ref", "icon"]
+    div, text, screen, button, state, ref, icon = actions.user.ui_elements(elements)
 
     user_list, set_user_list = state.use("user_list", user_lists[0])
     body_ref = ref("body")
@@ -26,16 +26,21 @@ def dashboard_ui():
 
     def get_on_click(list_name):
         # wraps the click handler to avoid closure issues in the loop
-        return lambda e: (set_user_list(list_name), body_ref.scroll_to(0, 0))
+        return lambda e: (
+            set_user_list(list_name),
+            body_ref.scroll_to(0, 0)
+        )
 
     def header():
-        return div(flex_direction='row', justify_content='space_between', padding=16, border_bottom=1, border_color="555555")[
-            text("Dashboard", font_size=24),
-            text("talon-ui-elements", font_size=24, color="FFCC00"),
+        return div(flex_direction='row', justify_content='space_between', border_bottom=1, border_color="555555")[
+            text("Dashboard", font_size=24, padding=16),
+            button(on_click=actions.user.ui_elements_hide_all)[
+                icon("close", size=20, padding=6),
+            ],
         ]
 
     def sidebar():
-        return div(border_right=1, overflow_y="auto", id="sidebar")[
+        return div(border_right=1, overflow_y="scroll")[
             *[button(name, on_click=get_on_click(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
         ]
 

@@ -90,6 +90,7 @@ class NodeInputText(Node):
         get_clip_rect = self.box_model.constraints["get_clip_rect"]
         clip_rect = get_clip_rect() if get_clip_rect else None
         input_rect = Rect(cursor.x, cursor.y + platform_adjustment_x, self.box_model.content_rect.width, self.box_model.content_rect.height + platform_adjustment_height)
+        top_offset = 0
         if clip_rect:
             new_input_rect = input_rect.intersect(clip_rect)
             top_offset = new_input_rect.top - input_rect.top
