@@ -632,23 +632,26 @@ class Tree(TreeType):
                 state_manager.set_drag_relative_offset(relative_offset)
 
         if hovered_id in list(self.meta_state.buttons):
-            node = self.meta_state.id_to_node[hovered_id]
-            state_manager.set_mousedown_start_id(hovered_id)
-            active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
-            state_manager.focus_node(node)
-            self.highlight(hovered_id, color=active_color)
-            return
+            node = self.meta_state.id_to_node.get(hovered_id)
+            if node:
+                state_manager.set_mousedown_start_id(hovered_id)
+                active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
+                state_manager.focus_node(node)
+                self.highlight(hovered_id, color=active_color)
+                return
 
         input_id = self.get_mouse_hovered_input_id(gpos)
         if input_id:
-            node = self.meta_state.id_to_node[input_id]
-            state_manager.focus_node(input.node)
-            return
+            node = self.meta_state.id_to_node.get(input_id)
+            if node:
+                state_manager.focus_node(node)
+                return
 
-        if self.root_node.box_model.content_children_rect.contains(gpos):
-            state_manager.blur()
-        else:
-            state_manager.blur_all()
+        if self.root_node.box_model:
+            if self.root_node.box_model.content_children_rect.contains(gpos):
+                state_manager.blur()
+            else:
+                state_manager.blur_all()
 
     def click_node(self, node: NodeType):
         sig = inspect.signature(node.on_click)
@@ -662,10 +665,11 @@ class Tree(TreeType):
         mousedown_start_id = state_manager.get_mousedown_start_id()
 
         if mousedown_start_id and hovered_id == mousedown_start_id:
-            node = self.meta_state.id_to_node[mousedown_start_id]
-            self.highlight(mousedown_start_id, color=node.properties.highlight_color)
-            if not state_manager.is_drag_active():
-                self.click_node(node)
+            node = self.meta_state.id_to_node.get(mousedown_start_id)
+            if node:
+                self.highlight(mousedown_start_id, color=node.properties.highlight_color)
+                if not state_manager.is_drag_active():
+                    self.click_node(node)
 
         state_manager.set_mousedown_start_id(None)
 

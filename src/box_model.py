@@ -399,6 +399,7 @@ class BoxModelLayout(BoxModelLayoutType):
                         thumb_width,
                         self.scroll_box_rect.height
                     )
+                    c.paint.style = c.paint.Style.FILL
                     c.paint.color = "FFFFFF22"
                     c.draw_rect(bar_rect)
 
