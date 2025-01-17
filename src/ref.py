@@ -118,3 +118,6 @@ class Ref:
 
     def highlight_briefly(self, color=None):
         state_manager.highlight_briefly(self._get("id"), color)
+
+    def scroll_to(self, x: int, y: int):
+        state_manager.scroll_to(self._get("id"), x, y)

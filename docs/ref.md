@@ -58,6 +58,14 @@ input_ref.value = ""
 input_ref.clear()
 ```
 
+## Scrolling and overflow
+
+Use `scroll_to` to scroll to position
+```py
+hello_ref = ref("hello")
+hello_ref.scroll_to(0, 0) # x, y
+```
+
 ## `user.actions` vs `ref`
 ```py
 text("Hello world", id="hello"),

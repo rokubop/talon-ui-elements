@@ -100,6 +100,11 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
 
     get_clip_rect = node.box_model.constraints["get_clip_rect"]
     clip_rect = get_clip_rect() if get_clip_rect else None
+    apply_clip = clip_rect and \
+        (clip_rect.top > node.box_model.padding_rect.top or \
+        clip_rect.left > node.box_model.padding_rect.left or \
+        clip_rect.bot < node.box_model.padding_rect.bot or \
+        clip_rect.right < node.box_model.padding_rect.right)
 
     if node.element_type == "button":
         box_model = node.box_model.content_rect
@@ -112,7 +117,7 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
 
     hint_padding_rect = Rect(box_model.x + offset_x, box_model.y + offset_y, hint_padding_width, hint_padding_height)
 
-    if clip_rect:
+    if apply_clip:
         c.save()
         c.clip_rect(clip_rect)
 
@@ -136,7 +141,7 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         hint_padding_rect.y + hint_padding / 2 + hint_text_height
     )
 
-    if clip_rect:
+    if apply_clip:
         c.restore()
 
 def reset_hint_generator():

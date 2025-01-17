@@ -283,6 +283,15 @@ class StateManager:
 
         self.focus_node(previous_node)
 
+    def scroll_to(self, id: str, x: int, y: int):
+        node = store.id_to_node.get(id)
+        if node:
+            scroll_data = node.tree.meta_state.scrollable.get(id)
+            if scroll_data and (scroll_data.offset_x != x or scroll_data.offset_y != y):
+                scroll_data.offset_y = y
+                scroll_data.offset_x = x
+                node.tree.render()
+
     def clear_state(self):
         store.reactive_state.clear()
         store.processing_states.clear()
