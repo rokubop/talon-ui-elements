@@ -396,8 +396,8 @@ class NodeContainer(Node, NodeContainerType):
             )
 
         # self.debugger(c, cursor)
-        self.crop_scrollable_region_start(c)
         self.render_borders(c, cursor)
+        self.crop_scrollable_region_start(c)
         self.adjust_for_scroll_y_start(c)
         self.render_background(c, cursor)
         # if view_state := self.debugger(c, cursor, True):

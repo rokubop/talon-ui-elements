@@ -421,7 +421,13 @@ class Tree(TreeType):
 
             get_clip_rect = node.box_model.constraints["get_clip_rect"]
             clip_rect = get_clip_rect() if get_clip_rect else None
-            if clip_rect:
+            apply_clip = clip_rect and \
+                (clip_rect.top > node.box_model.padding_rect.top or \
+                clip_rect.left > node.box_model.padding_rect.left or \
+                clip_rect.bot < node.box_model.padding_rect.bot or \
+                clip_rect.right < node.box_model.padding_rect.right)
+
+            if apply_clip:
                 canvas.save()
                 canvas.clip_rect(clip_rect)
 
@@ -435,7 +441,7 @@ class Tree(TreeType):
             else:
                 canvas.draw_rect(focus_outline_rect)
 
-            if clip_rect:
+            if apply_clip:
                 canvas.restore()
 
     def init_key_controls(self):

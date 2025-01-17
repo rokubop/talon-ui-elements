@@ -182,14 +182,12 @@ class BoxModelLayout(BoxModelLayoutType):
         self.layout_scroll_box_rect()
 
     def margin_rect_with_overflow(self):
-        # if self.scroll_box_rect:
         return Rect(
             self.margin_rect.x,
             self.margin_rect.y,
             self.content_rect.width + self.padding_spacing.left + self.padding_spacing.right + self.border_spacing.left + self.border_spacing.right + self.margin_spacing.left + self.margin_spacing.right,
             self.content_rect.height + self.padding_spacing.top + self.padding_spacing.bottom + self.border_spacing.top + self.border_spacing.bottom + self.margin_spacing.top + self.margin_spacing.bottom
         )
-        # return self.margin_rect
 
     def layout_scroll_box_rect(self):
         if self.scrollable:
@@ -216,38 +214,12 @@ class BoxModelLayout(BoxModelLayoutType):
         self.layout_scroll_box_rect()
 
     def clamp_dimensions(self):
-        # if self.constraints["max_width"]:
-        #     self.max_border_width = self.constraints["max_width"]
-        #     self.max_margin_width = self.constraints["max_width"] + margin_spacing.left + margin_spacing.right
-        # if self.max_height:
-        #     self.max_content_height = self.content_height + max_height - height if max_height else None
-        # if self.constraints["max_height"]:
-        #     self.max_border_height = self.constraints["max_height"]
-        #     self.max_margin_height = self.constraints["max_height"] + margin_spacing.top + margin_spacing.bottom
-
         if self.constraints["max_width"]:
             self.border_rect.width = min(self.border_rect.width, self.constraints["max_width"])
             self.margin_rect.width = self.border_rect.width + self.margin_spacing.left + self.margin_spacing.right
-            # self.width = self.border_rect.width
         if self.constraints["max_height"]:
             self.border_rect.height = min(self.border_rect.height, self.constraints["max_height"])
             self.margin_rect.height = self.border_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
-            # self.height = self.border_rect.height
-
-
-        # if self.max_margin_width and self.margin_rect.width > self.max_margin_width:
-        #     self.margin_rect.width = self.max_margin_width
-        # if self.max_margin_height and self.margin_rect.height > self.max_margin_height:
-        #     self.margin_rect.height = self.max_margin_height
-        # if self.max_border_width and self.border_rect.width > self.max_border_width:
-        #     self.border_rect.width = self.max_border_width
-        # if self.max_border_height and self.border_rect.height > self.max_border_height:
-        #     self.border_rect.height = self.max_border_height
-
-        # if self.max_width and self.width > self.max_width:
-        #     self.width = self.max_width
-        # if self.max_height and self.height > self.max_height:
-        #     self.height = self.max_height
 
     def accumulate_intrinsic_outer_dimensions_width(self, new_width: int):
         if new_width > self.intrinsic_margin_rect.width:
@@ -292,7 +264,6 @@ class BoxModelLayout(BoxModelLayoutType):
             self.padding_rect.height = max(self.padding_rect.height, new_padding_rect_height)
             self.content_rect.height = self.padding_rect.height - self.padding_spacing.top - self.padding_spacing.bottom
             self.content_children_rect.height = self.content_rect.height
-            # print("accumulate_outer_dimensions_height", self.content_children_rect)
             self.clamp_dimensions()
             self.layout_scroll_box_rect()
 
@@ -327,8 +298,6 @@ class BoxModelLayout(BoxModelLayoutType):
             self.border_rect.height = self.padding_rect.height + self.border_spacing.top + self.border_spacing.bottom
             self.margin_rect.height = self.border_rect.height + self.margin_spacing.top + self.margin_spacing.bottom
             self.height = self.margin_rect.height
-
-        # print("accumulate_content_dimensions", self.content_children_rect)
 
         self.clamp_dimensions()
         self.layout_scroll_box_rect()
@@ -444,8 +413,6 @@ class BoxModelLayout(BoxModelLayoutType):
 
     def reduce_constraints(self, constraint_nodes: list[NodeType]) -> list[NodeType]:
         constraints = {
-            # "width": None,
-            # "height": None,
             "max_width": None,
             "max_height": None,
             "get_clip_rect": None
@@ -456,12 +423,6 @@ class BoxModelLayout(BoxModelLayoutType):
 
         if constraint_nodes:
             for node in constraint_nodes:
-                # if node.properties.width:
-                #     constraints["width"] = min(constraints["width"], node.properties.width) \
-                #         if constraints["width"] else node.properties.width
-                # if node.properties.height:
-                #     constraints["height"] = min(constraints["height"], node.properties.height) \
-                #         if constraints["height"] else node.properties.height
                 if node.properties.max_width:
                     constraints["max_width"] = min(constraints["max_width"], node.properties.max_width) \
                         if constraints["max_width"] else node.properties.max_width
