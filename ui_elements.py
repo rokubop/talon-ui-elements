@@ -189,7 +189,22 @@ class Actions:
         return entity_manager.get_all_trees()
 
     def ui_elements_version():
-        """Get the current version of `talon-ui-elements`"""
+        """
+        Get the current version of `talon-ui-elements`.
+
+        Returns:
+            Version: A dataclass with the following attributes:
+                - `major` (int): The major version number.
+                - `minor` (int): The minor version number.
+                - `patch` (int): The patch version number.
+
+        Usage:
+            version = ui_elements_version()
+            print(version.minor)  # Access the minor version
+            print(version.major)  # Access the major version
+            print(version)        # Print the full version as a string
+            print(version < "0.6.2")  # Compare with a string version
+        """
         return get_version()
 
     def ui_elements_examples():
