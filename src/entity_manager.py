@@ -5,7 +5,6 @@ from typing import Union
 from .interfaces import NodeType, TreeType
 from .store import store
 from .utils import generate_hash
-import time
 
 @dataclass
 class ChangeEvent:
@@ -15,7 +14,6 @@ class ChangeEvent:
 
 class EntityManager:
     def add_tree(self, tree: TreeType):
-        # print("add_tree", time.perf_counter())
         store.trees.append(tree)
 
     def synchronize_global_ids(self):
@@ -126,32 +124,18 @@ class EntityManager:
             t = self.get_tree_with_hash_for_renderer(renderer)
             tree = t["tree"]
             if tree:
-                # print("hide_tree tree.destroy", time.perf_counter())
                 tree.destroy()
-                # print("hide_tree store.trees.remove", time.perf_counter())
                 store.trees.remove(tree)
-            # else:
-            #     print("Tree not found for renderer hash", t["hash"])
 
         if not store.trees:
-            # print("hide_tree store.clear", time.perf_counter())
             store.clear()
 
     def hide_all_trees(self):
         for tree in list(store.trees):
-            # print("destroying tree", tree)
-            # print(f"hide_all_trees there are {len(store.trees)} trees to hide")
-            # print(f"hide_all_trees current tree is {tree.hashed_renderer}")
-            # print("hide_all_trees tree.destroy", time.perf_counter())
             tree.destroy()
-            # print("hide_all_trees store.trees.remove", time.perf_counter())
             store.trees.remove(tree)
         if not store.trees:
-            # print("clearing store")
-            # print("hide_all_trees store.clear", time.perf_counter())
             store.clear()
-        # else:
-        #     print("wtf another tree exists")
 
     def get_node_tree_flattened(self, node) -> list[NodeType]:
         flattened = [node]

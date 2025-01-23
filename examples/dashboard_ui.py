@@ -24,12 +24,12 @@ def dashboard_ui():
 
     keys, values = format_user_list(user_list)
 
-    def get_on_click(list_name):
+    def on_click_wrapper(list_name):
         # wraps the click handler to avoid closure issues in the loop
-        return lambda e: (
-            set_user_list(list_name),
+        def on_click(e):
+            set_user_list(list_name)
             body_ref.scroll_to(0, 0)
-        )
+        return on_click
 
     def header():
         return div(flex_direction='row', justify_content='space_between', border_bottom=1, border_color="555555")[
@@ -41,7 +41,7 @@ def dashboard_ui():
 
     def sidebar():
         return div(border_right=1, overflow_y="scroll")[
-            *[button(name, on_click=get_on_click(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
+            *[button(name, on_click=on_click_wrapper(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
         ]
 
     def body():

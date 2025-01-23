@@ -192,6 +192,7 @@ def ui_elements_hint_target(m) -> list[str]:
 class Actions:
     def ui_elements_hint_action(action: str, ui_elements_hint_target: str = None):
         """Trigger hint action"""
+        print("trigger hint action", action, ui_elements_hint_target)
         if action == "click":
             if ui_elements_hint_target:
                 trigger_hint_click(ui_elements_hint_target)
