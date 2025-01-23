@@ -1,16 +1,15 @@
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.typeface import Typeface
-from talon.canvas import Canvas
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
-import json
-import inspect
-import re
-import os
 import hashlib
+import inspect
+import json
+import os
+import re
 
 def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
     c.paint.color = properties.color

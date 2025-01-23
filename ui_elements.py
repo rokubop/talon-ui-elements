@@ -2,8 +2,8 @@ from talon import Module, actions
 from typing import List, Any, Union, Callable
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
-from .src.state_manager import state_manager
-from .src.nodes.tree import render_ui
+from .src.state_manager import state_manager, debug_gc
+from .src.nodes.tree import render_ui, test
 from .src.utils import get_version
 from .examples.examples_ui import toggle_elements_examples
 
@@ -58,15 +58,24 @@ class Actions:
         actions.user.ui_elements_show(ui, on_mount=lambda: print("mounted"), on_unmount=lambda: print("unmounted"))
         ```
         """
+        print("----------------------")
+        print("ui_elements_show", renderer.__name__)
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+        print("----------------------")
 
     def ui_elements_hide(renderer: Union[str, Callable]):
         """Destroy and hide a specific ui based on its renderer function or an id on the root node (screen)"""
+        print("----------------------")
+        print("ui_elements_hide", renderer.__name__)
         entity_manager.hide_tree(renderer)
+        print("----------------------")
 
     def ui_elements_hide_all():
         """Destroy and hide all UIs"""
+        print("----------------------")
+        print("ui_elements_hide_all")
         entity_manager.hide_all_trees()
+        print("----------------------")
 
     def ui_elements_toggle(
             renderer: Union[str, Callable],
@@ -77,10 +86,13 @@ class Actions:
             initial_state: dict[str, Any] = None,
         ):
         """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
+        print("----------------------")
+        print("ui_elements_toggle", renderer.__name__)
         if entity_manager.does_tree_exist(renderer):
             actions.user.ui_elements_hide(renderer)
         else:
             actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+        print("----------------------")
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """
@@ -184,9 +196,10 @@ class Actions:
         """Test example UIs"""
         toggle_elements_examples()
 
-    def ui_elements_debug():
-        """Prints debug output to talon log"""
-        entity_manager.debug()
+    def ui_elements_debug_gc():
+        """Debug garbage collection - print to log"""
+        test()
+        debug_gc()
 
     def ui_elements_svg(elements: List[str]) -> Union[tuple[callable], callable]:
         """

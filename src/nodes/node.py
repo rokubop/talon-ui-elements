@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import uuid
 from ..box_model import BoxModelLayout
 from ..constants import (
@@ -11,6 +11,8 @@ from ..constants import (
 from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
 from ..properties import Properties
 from ..utils import sanitize_string
+from ..state_manager import state_manager
+import weakref
 
 class Node(NodeType):
     def __init__(self,
@@ -26,15 +28,54 @@ class Node(NodeType):
         self.element_type: ElementEnumType = element_type
         self.flex_evaluated: Union[int, float] = None
         self.box_model: BoxModelLayout = None
-        self.tree: TreeType
         self.children_nodes = []
-        self.constraint_nodes = []
-        self.parent_node = None
         self.is_dirty: bool = False
         self.interactive = False
         self.root_node = None
         self.depth: int = None
+        self.node_index_path: list[int] = []
         self.add_properties_to_cascade(properties)
+
+        # Use weakref to avoid circular references
+        # Otherwise gc can't collect the objects
+        self._tree: Optional[weakref.ReferenceType[TreeType]] = None
+        self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
+        self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
+
+        state_manager.increment_ref_count_nodes()
+
+    def __del__(self):
+        state_manager.decrement_ref_count_nodes()
+
+    @property
+    def tree(self) -> Optional[TreeType]:
+        return self._tree() if self._tree else None
+
+    @tree.setter
+    def tree(self, value: TreeType):
+        self._tree = weakref.ref(value) if value else None
+
+    @property
+    def parent_node(self) -> Optional[NodeType]:
+        return self._parent_node() if self._parent_node else None
+
+    @parent_node.setter
+    def parent_node(self, value: NodeType):
+        self._parent_node = weakref.ref(value) if value else None
+
+    @property
+    def constraint_nodes(self) -> list[NodeType]:
+        return [node() for node in self._constraint_nodes if node() is not None]
+
+    def add_constraint_node(self, node: NodeType):
+        if node:
+            self._constraint_nodes.append(weakref.ref(node))
+
+    def remove_constraint_node(self, node: NodeType):
+        self._constraint_nodes = [ref for ref in self._constraint_nodes if ref() != node]
+
+    def clear_constraint_nodes(self):
+        self._constraint_nodes.clear()
 
     def add_child(self, node):
         if isinstance(node, tuple):
@@ -93,7 +134,15 @@ class Node(NodeType):
                 self.properties.update_colors_with_opacity()
 
     def destroy(self):
-        pass
+        for node in self.children_nodes:
+            node.destroy()
+        if self.box_model:
+            self.box_model.gc()
+        self.properties.gc()
+        self.children_nodes.clear()
+        self.clear_constraint_nodes()
+        self.parent_node = None
+        self.tree = None
 
     def show(self):
         raise NotImplementedError(f"DeprecationWarning: {self.element_type} cannot use .show(). {LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION}")

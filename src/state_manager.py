@@ -2,6 +2,7 @@ from talon import Context, cron
 from typing import Callable
 from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
 from .store import store
+import gc
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -43,7 +44,7 @@ class ReactiveState(ReactiveStateType):
 class DeprecatedLifecycleEvent:
     def __init__(self, event_type: str, tree: TreeType):
         self.type = event_type
-        self.builder_id = tree.root_node.id or tree.root_node.guid
+        self.builder_id = getattr(tree.root_node, 'id') or tree.root_node.guid
         self.children_ids = tree.meta_state.id_to_node.keys()
 
 _deprecated_event_subscribers = []
@@ -109,6 +110,11 @@ class StateManager:
 
         for tree in store.trees:
             tree.processing_states.extend(store.processing_states)
+            # tree.queue_render(RenderTask(
+            #     cause=RenderCause.STATE_CHANGE,
+            #     before_render=lambda: tree.processing_states.clear()
+            #     after_render=lambda: tree.processing_states.clear()
+            # )),
             tree.render_cause.state_change()
             tree.render()
 
@@ -146,7 +152,7 @@ class StateManager:
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
             else:
                 node.tree.meta_state.text_mutations[id] = text_or_callable
-            node.tree.render_text_mutation()
+            node.tree.render_manager.render_text_mutation()
         else:
             print(f"Node with ID '{id}' not found.")
 
@@ -184,7 +190,7 @@ class StateManager:
         node = store.id_to_node.get(id)
         if node:
             node.tree.meta_state.set_ref_property_override(id, property_name, new_value)
-            node.tree.render_debounced()
+            node.tree.render_manager.render_ref_change()
 
     def use_state(self, key, initial_value):
         self.init_state(key, initial_value)
@@ -292,6 +298,24 @@ class StateManager:
                 scroll_data.offset_x = x
                 node.tree.render()
 
+    def increment_ref_count_nodes(self):
+        store.ref_count_nodes += 1
+
+    def decrement_ref_count_nodes(self):
+        store.ref_count_nodes -= 1
+
+    def get_ref_count_nodes(self):
+        return store.ref_count_nodes
+
+    def increment_ref_count_trees(self):
+        store.ref_count_trees += 1
+
+    def decrement_ref_count_trees(self):
+        store.ref_count_trees -= 1
+
+    def get_ref_count_trees(self):
+        return store.ref_count_trees
+
     def clear_state(self):
         store.reactive_state.clear()
         store.processing_states.clear()
@@ -319,3 +343,17 @@ class StateManager:
         self.deprecated_event_fire_on_lifecycle(DeprecatedLifecycleEvent("unmount", tree))
 
 state_manager = StateManager()
+
+def debug_gc():
+    gc.collect()
+    print("gc actual nodes:", state_manager.get_ref_count_nodes())
+    print("gc actual trees:", state_manager.get_ref_count_trees())
+    print("Store nodes with ids:", len(store.id_to_node.keys()))
+    print("Store trees:", len(store.trees))
+    print("Store focused_tree", store.focused_tree)
+    print("Store processing_tree", store.processing_tree)
+    print("Store processing_states", store.processing_states)
+    print("Store root_nodes", store.root_nodes)
+    print("Store id_to_node", store.id_to_node)
+    print("Store reactive_state", store.reactive_state)
+    print("Store staged_effects", store.staged_effects)
