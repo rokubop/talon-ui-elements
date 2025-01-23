@@ -5,6 +5,7 @@ from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
+from ..canvas_wrapper import CanvasWeakRef
 from ..cursor import Cursor
 from ..interfaces import (
     TreeType,
@@ -13,21 +14,27 @@ from ..interfaces import (
     MetaStateType,
     Effect,
     ClickEvent,
+    RenderCauseStateType,
     ScrollRegionType,
     ScrollableType,
-    RenderCauseStateType,
 )
 from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from ..state_manager import state_manager
 from ..store import store
 from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_combined_screens_rect
+from ..render_manager import RenderManager, RenderCause
 import inspect
 import uuid
+import threading
+import time
+import gc
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
 scroll_amount_per_tick = 45
+
+close_open_canvas_count = 0
 
 def scroll_throttle_clear():
     global scroll_throttle_job
@@ -91,12 +98,21 @@ class MetaState(MetaStateType):
     def text_mutations(self):
         return self._text_mutations
 
-    def add_input(self, id, input, initial_value = None):
-        self._inputs[id] = MetaStateInput(
+    def add_input(self, id, input, initial_value = None, on_change = None):
+        if id in self._inputs:
+            input_data = self._inputs.pop(id)
+            if input_data:
+                input_data.input.unregister("label", input_data.on_change)
+                input_data.input.hide()
+                input_data.input = None
+        input_data = MetaStateInput(
             value=initial_value,
             input=input,
-            previous_value=None
+            previous_value=None,
+            on_change=on_change
         )
+        input.register("label", on_change)
+        self._inputs[id] = input_data
 
     def add_button(self, id):
         self._buttons.add(id)
@@ -164,7 +180,9 @@ class MetaState(MetaStateType):
     def clear(self):
         for input_data in list(self._inputs.values()):
             if input_data:
+                input_data.input.unregister("label", input_data.on_change)
                 input_data.input.hide()
+                input_data.input = None
 
         for job in list(self.unhighlight_jobs.values()):
             if job:
@@ -172,7 +190,6 @@ class MetaState(MetaStateType):
 
         self._buttons.clear()
         self._highlighted.clear()
-        self._id_to_node.clear()
         self._inputs.clear()
         self._scroll_regions.clear()
         self._scrollable.clear()
@@ -180,7 +197,7 @@ class MetaState(MetaStateType):
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
         self.ref_property_overrides.clear()
-        entity_manager.synchronize_global_ids()
+        self.clear_nodes()
 
 class RenderCauseState(RenderCauseStateType):
     def __init__(self):
@@ -255,12 +272,15 @@ class Tree(TreeType):
         self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
         self.interactive_node_list = []
+        self.is_destroying = False
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
         self.is_mounted = False
         self.last_blockable_rects = []
+        self.lock = threading.Lock()
         self.meta_state = MetaState()
         self.props = props
+        self.render_manager = RenderManager(self)
         self.render_cause = RenderCauseState()
         self._renderer = renderer
         self.render_version = 2
@@ -271,14 +291,10 @@ class Tree(TreeType):
         self.surfaces = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_boundary()
+        state_manager.increment_ref_count_trees()
 
-    def with_tree(func):
-        def wrapper(self, *args, **kwargs):
-            state_manager.set_processing_tree(self)
-            result = func(self, *args, **kwargs)
-            state_manager.set_processing_tree(None)
-            return result
-        return wrapper
+    def __del__(self):
+        state_manager.decrement_ref_count_trees()
 
     def reset_cursor(self):
         if self.cursor is None:
@@ -290,8 +306,10 @@ class Tree(TreeType):
         if self.root_node.element_type not in ["screen", "active_window"]:
             raise Exception("Root node must be a screen or active_window element")
 
-    @with_tree
     def init_nodes_and_boundary(self):
+        state_manager.set_processing_tree(self)
+        # if self.root_node:
+            # print("TREE ALREADY HAS ROOT NODE")
         if len(inspect.signature(self._renderer).parameters) > 0:
             if self.props and not isinstance(self.props, dict):
                 print(f"props: {self.props}")
@@ -304,17 +322,20 @@ class Tree(TreeType):
             raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
 
         self.validate_root_node()
+        state_manager.set_processing_tree(None)
 
-    @with_tree
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
-        self.reset_cursor()
-        self.init_node_hierarchy(self.root_node)
-        self.consume_effects()
-        self.root_node.virtual_render(canvas, self.cursor)
-        self.root_node.grow_intrinsic_size(canvas, self.cursor)
-        self.root_node.render(canvas, self.cursor)
-        self.show_inputs()
-        self.render_decorator_canvas()
+        if not self.is_destroying:
+            state_manager.set_processing_tree(self)
+            self.reset_cursor()
+            self.init_node_hierarchy(self.root_node)
+            self.consume_effects()
+            self.root_node.virtual_render(canvas, self.cursor)
+            self.root_node.grow_intrinsic_size(canvas, self.cursor)
+            self.root_node.render(canvas, self.cursor)
+            self.show_inputs()
+            self.render_decorator_canvas()
+            state_manager.set_processing_tree(None)
 
     def draw_highlights(self, canvas: SkiaCanvas):
         canvas.paint.style = canvas.paint.Style.FILL
@@ -331,7 +352,7 @@ class Tree(TreeType):
                     canvas.draw_rect(box_model.padding_rect)
 
     def draw_text_mutations(self, canvas: SkiaCanvas):
-        for id, text_value in self.meta_state.text_mutations.items():
+        for id, text_value in list(self.meta_state.text_mutations.items()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
                 x, y = node.cursor_pre_draw_text
@@ -345,10 +366,10 @@ class Tree(TreeType):
                 if node.element_type in ["button", "input_text"]:
                     draw_hint(canvas, node, hint_generator(node))
 
-    def render_text_mutation(self):
-        if self.canvas_decorator:
-            self.render_cause.set_text_change()
-            self.canvas_decorator.freeze()
+    # def render_text_mutation(self):
+    #     if self.canvas_decorator:
+    #         self.render_cause.set_text_change()
+    #         self.canvas_decorator.freeze()
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
@@ -449,16 +470,19 @@ class Tree(TreeType):
             self.is_key_controls_init = True
             self.canvas_decorator.register("key", self.on_key)
 
-    @with_tree
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
-        self.draw_highlights(canvas)
-        self.draw_text_mutations(canvas)
-        self.draw_focus_outline(canvas)
-        if self.show_hints:
-            self.draw_hints(canvas)
-        self.init_key_controls()
-        self.draw_blockable_canvases()
-        self.on_fully_rendered()
+        if not self.is_destroying:
+            state_manager.set_processing_tree(self)
+            self.draw_highlights(canvas)
+            self.draw_text_mutations(canvas)
+            self.draw_focus_outline(canvas)
+            if self.show_hints:
+                self.draw_hints(canvas)
+            self.init_key_controls()
+            self.draw_blockable_canvases()
+            self.on_fully_rendered()
+            self.render_manager.finish_current_render()
+            state_manager.set_processing_tree(None)
 
     def _is_draggable_ui(self):
         # Just check 1 level deep
@@ -471,14 +495,15 @@ class Tree(TreeType):
             rect = get_combined_screens_rect()
 
         # Some display drivers will show a "black screen of death"
-        # for some reason if rect is >= screen.rect size.
+        # if rect is >= screen.rect size.
         # This problem doesn't happen with Canvas.from_screen, just Canvas.from_rect.
-        return Canvas.from_rect(Rect(
+        safe_rect = Rect(
             rect.x,
             rect.y,
             rect.width - 0.001,
             rect.height - 0.001
-        ))
+        )
+        return CanvasWeakRef(Canvas.from_rect(safe_rect))
 
     def render_decorator_canvas(self):
         if not self.canvas_decorator:
@@ -500,36 +525,47 @@ class Tree(TreeType):
         self.canvas_decorator.freeze()
 
     def render_base_canvas(self):
-        if not self.canvas_base:
-            self.canvas_base = self.create_canvas()
-            self.canvas_base.register("draw", self.on_draw_base_canvas)
+        global close_open_canvas_count
+        if not self.is_destroying:
+            if not self.canvas_base:
+                with self.lock:
+                    close_open_canvas_count += 1
+                    # print(f"increment close_open_canvas_count to: {close_open_canvas_count} {time.perf_counter()}")
+                    self.canvas_base = self.create_canvas()
+                    # print(f"created base canvas for tree {self._renderer.__name__} {self.guid}")
+                    self.canvas_base.register("draw", self.on_draw_base_canvas)
 
-        self.canvas_base.freeze()
+            print("freezing base canvas")
+            self.canvas_base.freeze()
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
-        self.props = self.props or props
+        # print("cool render")
+        if not self.is_destroying:
+            # print(f"rendering tree {self.hashed_renderer} start")
+            self.props = self.props or props
 
-        if self.is_mounted:
-            self.on_state_change_effect_cleanups()
-            self.meta_state.clear_nodes()
-            self.init_nodes_and_boundary()
+            if self.is_mounted:
+                self.on_state_change_effect_cleanups()
+                self.meta_state.clear_nodes()
+                self.init_nodes_and_boundary()
 
-        if on_mount or on_unmount:
-            state_manager.register_effect(Effect(
-                tree=self,
-                callback=on_mount,
-                cleanup=on_unmount,
-                dependencies=[]
-            ))
+            if on_mount or on_unmount:
+                state_manager.register_effect(Effect(
+                    tree=self,
+                    callback=on_mount,
+                    cleanup=on_unmount,
+                    dependencies=[]
+                ))
 
-        if show_hints is not None:
-            self.show_hints = show_hints
+            if show_hints is not None:
+                self.show_hints = show_hints
 
-        self.render_base_canvas()
+            self.render_base_canvas()
 
     def _render_debounced_execute(self, *args):
-        self.render(*args)
-        self.render_debounce_job = None
+        if not self.is_destroying:
+            self.render(*args)
+            self.render_debounce_job = None
 
     def render_debounced(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
         if self.render_debounce_job:
@@ -553,21 +589,22 @@ class Tree(TreeType):
                         effect.cleanup()
 
     def on_fully_rendered(self):
-        if self.is_mounted:
-            if self.render_cause.is_state_change():
-                self.on_state_change_effect_callbacks()
-        else:
-            self.is_mounted = True
+        if not self.is_destroying:
+            if self.is_mounted:
+                if self.render_cause.is_state_change():
+                    self.on_state_change_effect_callbacks()
+            else:
+                self.is_mounted = True
 
-            for effect in self.effects:
-                cleanup = effect.callback()
-                if cleanup and not effect.cleanup:
-                    effect.cleanup = cleanup
+                for effect in self.effects:
+                    cleanup = effect.callback()
+                    if cleanup and not effect.cleanup:
+                        effect.cleanup = cleanup
 
-            state_manager.deprecated_event_fire_on_mount(self)
+                state_manager.deprecated_event_fire_on_mount(self)
 
-        self.processing_states.clear()
-        self.render_cause.clear()
+            self.processing_states.clear()
+            self.render_cause.clear()
 
     def on_hover(self, gpos):
         new_hovered_id = None
@@ -678,53 +715,53 @@ class Tree(TreeType):
             state_manager.set_mousedown_start_pos(None)
             state_manager.set_drag_active(False)
 
-            cron.after("17ms", lambda: (
-                self.render_cause.set_is_drag_end(),
-                self.render_base_canvas()
-            ))
+            cron.after("17ms", self.render_manager.render_drag_end)
 
     def on_mouse(self, e: MouseEvent):
-        if e.event == "mousemove":
-            self.on_mousemove(e.gpos)
-            self.on_hover(e.gpos)
-        elif e.event == "mousedown":
-            self.on_mousedown(e.gpos)
-        elif e.event == "mouseup":
-            self.on_mouseup(e.gpos)
+        # print("on_mouse", e)
+        if not self.is_destroying:
+            if e.event == "mousemove":
+                self.on_mousemove(e.gpos)
+                self.on_hover(e.gpos)
+            elif e.event == "mousedown":
+                self.on_mousedown(e.gpos)
+            elif e.event == "mouseup":
+                self.on_mouseup(e.gpos)
 
     def on_scroll_tick(self, e):
-        smallest_node = None
-        if self.meta_state.scrollable:
-            for id, data in list(self.meta_state.scrollable.items()):
-                node = self.meta_state.id_to_node.get(id)
-                if getattr(node, 'box_model', None) and node.box_model.scroll_box_rect.contains(e.gpos):
-                    smallest_node = node if not smallest_node or node.box_model.scroll_box_rect.height < smallest_node.box_model.scroll_box_rect.height else smallest_node
+        if not self.is_destroying:
+            smallest_node = None
+            if self.meta_state.scrollable:
+                for id, data in list(self.meta_state.scrollable.items()):
+                    node = self.meta_state.id_to_node.get(id)
+                    if getattr(node, 'box_model', None) and node.box_model.scroll_box_rect.contains(e.gpos):
+                        smallest_node = node if not smallest_node or node.box_model.scroll_box_rect.height < smallest_node.box_model.scroll_box_rect.height else smallest_node
 
-            if smallest_node:
-                offset_y = e.degrees.y
-                if offset_y > 0:
-                    offset_y = -scroll_amount_per_tick
-                elif offset_y < 0:
-                    offset_y = scroll_amount_per_tick
+                if smallest_node:
+                    offset_y = e.degrees.y
+                    if offset_y > 0:
+                        offset_y = -scroll_amount_per_tick
+                    elif offset_y < 0:
+                        offset_y = scroll_amount_per_tick
 
-                # print("box model scroll box rect", smallest_node.box_model.scroll_box_rect)
-                # print("box model content children rect", smallest_node.box_model.content_children_rect)
+                    # print("box model scroll box rect", smallest_node.box_model.scroll_box_rect)
+                    # print("box model content children rect", smallest_node.box_model.content_children_rect)
 
-                max_height = smallest_node.box_model.intrinsic_padding_rect.height
-                view_height = smallest_node.box_model.scroll_box_rect.height
+                    max_height = smallest_node.box_model.intrinsic_padding_rect.height
+                    view_height = smallest_node.box_model.scroll_box_rect.height
 
-                max_top_scroll_y = 0
-                max_bottom_scroll_y = max_height - view_height
+                    max_top_scroll_y = 0
+                    max_bottom_scroll_y = max_height - view_height
 
-                new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
+                    new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
-                if new_offset_y < max_top_scroll_y:
-                    new_offset_y = max_top_scroll_y
-                elif new_offset_y > max_bottom_scroll_y:
-                    new_offset_y = max_bottom_scroll_y
+                    if new_offset_y < max_top_scroll_y:
+                        new_offset_y = max_top_scroll_y
+                    elif new_offset_y > max_bottom_scroll_y:
+                        new_offset_y = max_bottom_scroll_y
 
-                self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
-                self.canvas_base.freeze()
+                    self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
+                    self.canvas_base.freeze()
 
     def on_scroll(self, e):
         global scroll_throttle_job
@@ -743,6 +780,9 @@ class Tree(TreeType):
             self.canvas_blockable.clear()
 
     def destroy(self):
+        global scroll_throttle_job, close_open_canvas_count
+        self.is_destroying = True
+        # print(f"Tree destroy start {self.hashed_renderer}", time.perf_counter())
         for effect in reversed(self.effects):
             if effect.cleanup:
                 effect.cleanup()
@@ -755,7 +795,12 @@ class Tree(TreeType):
 
         if self.canvas_base:
             self.canvas_base.unregister("draw", self.on_draw_base_canvas)
+            # self.on_draw_base_canvas = None
+            # print("canvas_base.close start", time.perf_counter())
+            close_open_canvas_count -= 1
+            # print(f"decrement close_open_canvas_count to: {close_open_canvas_count} {time.perf_counter()}")
             self.canvas_base.close()
+            # print("canvas_base.close end", time.perf_counter())
             self.canvas_base = None
 
         if self.canvas_decorator:
@@ -763,22 +808,35 @@ class Tree(TreeType):
                 self.canvas_decorator.unregister("key", self.on_key)
                 self.is_key_controls_init = False
             self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
+            # self.on_draw_decorator_canvas = None
+            # print("canvas_decorator.close start", time.perf_counter())
             self.canvas_decorator.close()
+            # print("canvas_decorator.close end", time.perf_counter())
             self.canvas_decorator = None
 
         self.destroy_blockable_canvas()
 
+        self._renderer = None
+        self.render_manager.destroy()
         self.meta_state.clear()
         self.effects.clear()
         self.processing_states.clear()
         self.is_mounted = False
-        self.render_cause.clear()
+        self.interactive_node_list.clear()
+        if self.root_node:
+            self.root_node.destroy()
+        self.root_node = None
         self.draggable_node = None
         self.drag_handle_node = None
         self.draggable_node_delta_pos = None
-        self.draw_busy = None
+        self.draw_busy_disable()
+        scroll_throttle_job = None
         hint_clear_state()
+        self.render_cause.clear()
         state_manager.clear_state()
+        # print(f"Tree destroy end {self.hashed_renderer}", time.perf_counter())
+        # print("Tree destroyed")
+        # print("refferrers", gc.get_referrers(self))
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
@@ -790,7 +848,7 @@ class Tree(TreeType):
         if node.properties.drag_handle:
             self.drag_handle_node = node
 
-    def _assign_missing_ids(self, node: NodeType, index_path: list[int]):
+    def _assign_missing_ids(self, node: NodeType, node_index_path: list[int]):
         requires_id = False
         if node.interactive:
             self.interactive_node_list.append(node)
@@ -799,8 +857,8 @@ class Tree(TreeType):
             requires_id = True
 
         if requires_id and not node.id:
-            index_path_str = "-".join(map(str, index_path)) # "1-2-0"
-            node.id = self.guid + index_path_str
+            node_index_path_str = "-".join(map(str, node_index_path)) # "1-2-0"
+            node.id = self.guid + node_index_path_str
 
     def _use_meta_state(self, node: NodeType):
         if node.id:
@@ -828,7 +886,8 @@ class Tree(TreeType):
             constraint_nodes = constraint_nodes + [node]
 
         if constraint_nodes:
-            node.constraint_nodes = constraint_nodes
+            for constraint in constraint_nodes:
+                node.add_constraint_node(constraint)
 
         return constraint_nodes
 
@@ -844,14 +903,15 @@ class Tree(TreeType):
     def init_node_hierarchy(
             self,
             current_node: NodeType,
-            index_path = [], # [1, 2, 0]
+            node_index_path = [], # [1, 2, 0]
             constraint_nodes: list[NodeType] = None
         ):
         current_node.tree = self
-        current_node.depth = len(index_path)
+        current_node.depth = len(node_index_path)
+        current_node.node_index_path = node_index_path
 
         self._assign_dragging_node_and_handle(current_node)
-        self._assign_missing_ids(current_node, index_path)
+        self._assign_missing_ids(current_node, node_index_path)
         if not self.is_mounted:
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
@@ -861,7 +921,7 @@ class Tree(TreeType):
 
         for i, child_node in enumerate(current_node.children_nodes):
             child_node.inherit_cascaded_properties(current_node)
-            self.init_node_hierarchy(child_node, index_path + [i], constraint_nodes)
+            self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes)
 
         entity_manager.synchronize_global_ids()
 
@@ -899,7 +959,9 @@ class Tree(TreeType):
         self.last_blockable_rects.extend(blockable_rects)
 
     def should_rerender_blockable_canvas(self):
-        return self.render_cause.is_state_change() or self.render_cause.is_dragging() or self.render_cause.is_drag_end()
+        return self.render_cause.is_state_change() \
+            or self.render_cause.is_dragging() \
+            or self.render_manager.render_cause == RenderCause.DRAG_END
 
     def calculate_blockable_rects(self):
         """
@@ -963,17 +1025,16 @@ class Tree(TreeType):
                 return
 
         if not self.is_blockable_canvas_init:
+            self.is_blockable_canvas_init = True
             self.last_blockable_rects.clear()
             self.last_blockable_rects.extend(blockable_rects)
             for rect in blockable_rects:
-                canvas = Canvas.from_rect(rect)
+                canvas = CanvasWeakRef(Canvas.from_rect(rect))
                 self.canvas_blockable.append(canvas)
                 canvas.blocks_mouse = True
                 canvas.register("mouse", self.on_mouse)
                 canvas.register("scroll", self.on_scroll)
                 canvas.freeze()
-
-            self.is_blockable_canvas_init = True
 
 def render_ui(
         renderer: callable,
@@ -990,9 +1051,14 @@ def render_ui(
 
     if not tree:
         tree = Tree(renderer, hash, props, initial_state)
+        # print("render_ui entity_manager.add_tree(tree)")
         entity_manager.add_tree(tree)
 
     if show_hints is None:
         show_hints = settings.get("user.ui_elements_hints_show")
 
-    tree.render(props, on_mount, on_unmount, show_hints)
+    # print("render_ui tree.render")
+    tree.render_manager.render_mount(props, on_mount, on_unmount, show_hints)
+
+def test():
+    print("close_open_canvas_count", close_open_canvas_count)

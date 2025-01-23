@@ -439,3 +439,6 @@ class BoxModelLayout(BoxModelLayoutType):
                     constraints["get_clip_rect"] = get_clip_rect(node)
 
         return constraints
+
+    def gc(self):
+        self.constraints["get_clip_rect"] = None

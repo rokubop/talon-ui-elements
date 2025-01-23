@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Deque, Any
 from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
 from dataclasses import dataclass
@@ -76,6 +76,7 @@ class MetaStateInput:
     value: str
     previous_value: str
     input: TextArea
+    on_change: Callable[[str], None]
 
 class MetaStateType(ABC):
     _inputs: dict[str, MetaStateInput]
@@ -129,7 +130,7 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
-    def add_input(self, id: str, input: TextArea, initial_value: str):
+    def add_input(self, id: str, input: TextArea, initial_value: str, on_change: callable):
         pass
 
     @abstractmethod
@@ -247,6 +248,10 @@ class BoxModelLayoutType(ABC):
     def position_for_render(self, cursor: Point2d, flex_direction: str, align_items: str, justify_content: str):
         pass
 
+    @abstractmethod
+    def gc(self):
+        pass
+
 class NodeType(ABC):
     properties: object
     cascaded_properties: object
@@ -264,6 +269,7 @@ class NodeType(ABC):
     tree: 'TreeType'
     root_node: 'NodeRootType'
     depth: int
+    node_index_path: List[int]
     component_node: object
 
     @abstractmethod
@@ -362,6 +368,76 @@ class RenderCauseStateType(ABC):
     @abstractmethod
     def clear(self):
         pass
+
+class RenderTaskType(ABC):
+    cause: str
+    on_render: Callable
+    args: List[object]
+
+class RenderManagerType(ABC):
+    queue: Deque[RenderTaskType]
+    current_render_task: Optional[RenderTaskType]
+    tree: 'TreeType'
+    _render_debounce_job: Optional[object]
+
+    @property
+    def render_cause(self):
+        pass
+
+    @property
+    def is_rendering(self):
+        pass
+
+    @abstractmethod
+    def __init__(self, tree: 'TreeType'):
+        pass
+
+    @abstractmethod
+    def queue_render(self, render_task: RenderTaskType):
+        pass
+
+    @abstractmethod
+    def _queue_render_after_debounce(self, interval: str, render_task: RenderTaskType):
+        pass
+
+    @abstractmethod
+    def _queue_render_after_debounce_execute(self, render_task: RenderTaskType):
+        pass
+
+    @abstractmethod
+    def process_next_render(self):
+        pass
+
+    @abstractmethod
+    def finish_current_render(self):
+        pass
+
+    @abstractmethod
+    def render_mount(
+            self,
+            props: dict[str, Any] = {},
+            on_mount: callable = None,
+            on_unmount: callable = None,
+            show_hints: bool = None
+        ):
+        pass
+
+    @abstractmethod
+    def render_text_mutation(self):
+        pass
+
+    @abstractmethod
+    def render_ref_change(self):
+        pass
+
+    @abstractmethod
+    def render_drag_end(self):
+        pass
+
+    @abstractmethod
+    def destroy(self):
+        pass
+
 
 class NodeContainerType(NodeType):
     highlight_color: str
@@ -464,6 +540,7 @@ class TreeType(ABC):
     effects: List[Effect]
     meta_state: MetaStateType
     processing_states: List[str]
+    render_manager: RenderManagerType
     _renderer: callable
     requires_measure_redistribution: bool
     surfaces: List[object]

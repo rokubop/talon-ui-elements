@@ -1,4 +1,5 @@
 from typing import TypedDict
+from dataclasses import dataclass
 
 # Don't make these a talon setting
 # Shared UI's should be consistent from user to user

@@ -20,6 +20,8 @@ class Store():
         self.id_to_hint: dict[str, str] = {}
         self.reactive_state: dict[str, ReactiveStateType] = {}
         self.staged_effects: list[Effect] = []
+        self.ref_count_nodes = 0
+        self.ref_count_trees = 0
         self.mouse_state: MouseState = {
             "hovered_id": None,
             "mousedown_start_id": None,

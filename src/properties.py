@@ -132,6 +132,9 @@ class Properties:
     def is_scrollable(self):
         return self.overflow and self.overflow.scrollable
 
+    def gc(self):
+        pass
+
 class BoxModelValidationProperties(TypedDict):
     border_bottom: int
     border_left: int
@@ -206,6 +209,10 @@ class NodeTextProperties(Properties):
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
         super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_click:
+            self.on_click = None
 
 class NodeScreenValidationProperties(ValidationProperties):
     screen: int
@@ -434,6 +441,10 @@ class NodeInputTextProperties(Properties):
             kwargs.get('padding', 0)
         ) + max(8, kwargs.get('border_radius', 0))
         super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
 
 class NodeInputTextValidationProperties(ValidationProperties):
     id: str
