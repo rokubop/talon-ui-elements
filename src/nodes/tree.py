@@ -27,14 +27,9 @@ from ..render_manager import RenderManager, RenderCause
 import inspect
 import uuid
 import threading
-import time
-import gc
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
-scroll_amount_per_tick = 45
-
-close_open_canvas_count = 0
 
 def scroll_throttle_clear():
     global scroll_throttle_job
@@ -288,6 +283,7 @@ class Tree(TreeType):
         self.redistribute_box_model = False
         self.root_node = None
         self.show_hints = False
+        self.scroll_amount_per_tick = settings.get("ui_elements_scroll_speed")
         self.surfaces = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_boundary()
@@ -308,8 +304,6 @@ class Tree(TreeType):
 
     def init_nodes_and_boundary(self):
         state_manager.set_processing_tree(self)
-        # if self.root_node:
-            # print("TREE ALREADY HAS ROOT NODE")
         if len(inspect.signature(self._renderer).parameters) > 0:
             if self.props and not isinstance(self.props, dict):
                 print(f"props: {self.props}")
@@ -525,22 +519,16 @@ class Tree(TreeType):
         self.canvas_decorator.freeze()
 
     def render_base_canvas(self):
-        global close_open_canvas_count
         if not self.is_destroying:
             if not self.canvas_base:
                 with self.lock:
-                    close_open_canvas_count += 1
-                    # print(f"increment close_open_canvas_count to: {close_open_canvas_count} {time.perf_counter()}")
                     self.canvas_base = self.create_canvas()
-                    # print(f"created base canvas for tree {self._renderer.__name__} {self.guid}")
                     self.canvas_base.register("draw", self.on_draw_base_canvas)
 
             self.canvas_base.freeze()
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
-        # print("cool render")
         if not self.is_destroying:
-            # print(f"rendering tree {self.hashed_renderer} start")
             self.props = self.props or props
 
             if self.is_mounted:
@@ -739,12 +727,9 @@ class Tree(TreeType):
                 if smallest_node:
                     offset_y = e.degrees.y
                     if offset_y > 0:
-                        offset_y = -scroll_amount_per_tick
+                        offset_y = -self.scroll_amount_per_tick
                     elif offset_y < 0:
-                        offset_y = scroll_amount_per_tick
-
-                    # print("box model scroll box rect", smallest_node.box_model.scroll_box_rect)
-                    # print("box model content children rect", smallest_node.box_model.content_children_rect)
+                        offset_y = self.scroll_amount_per_tick
 
                     max_height = smallest_node.box_model.intrinsic_padding_rect.height
                     view_height = smallest_node.box_model.scroll_box_rect.height
@@ -779,9 +764,8 @@ class Tree(TreeType):
             self.canvas_blockable.clear()
 
     def destroy(self):
-        global scroll_throttle_job, close_open_canvas_count
+        global scroll_throttle_job
         self.is_destroying = True
-        # print(f"Tree destroy start {self.hashed_renderer}", time.perf_counter())
         for effect in reversed(self.effects):
             if effect.cleanup:
                 effect.cleanup()
@@ -794,12 +778,7 @@ class Tree(TreeType):
 
         if self.canvas_base:
             self.canvas_base.unregister("draw", self.on_draw_base_canvas)
-            # self.on_draw_base_canvas = None
-            # print("canvas_base.close start", time.perf_counter())
-            close_open_canvas_count -= 1
-            # print(f"decrement close_open_canvas_count to: {close_open_canvas_count} {time.perf_counter()}")
             self.canvas_base.close()
-            # print("canvas_base.close end", time.perf_counter())
             self.canvas_base = None
 
         if self.canvas_decorator:
@@ -807,10 +786,7 @@ class Tree(TreeType):
                 self.canvas_decorator.unregister("key", self.on_key)
                 self.is_key_controls_init = False
             self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
-            # self.on_draw_decorator_canvas = None
-            # print("canvas_decorator.close start", time.perf_counter())
             self.canvas_decorator.close()
-            # print("canvas_decorator.close end", time.perf_counter())
             self.canvas_decorator = None
 
         self.destroy_blockable_canvas()
@@ -833,9 +809,6 @@ class Tree(TreeType):
         hint_clear_state()
         self.render_cause.clear()
         state_manager.clear_state()
-        # print(f"Tree destroy end {self.hashed_renderer}", time.perf_counter())
-        # print("Tree destroyed")
-        # print("refferrers", gc.get_referrers(self))
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
@@ -1050,14 +1023,9 @@ def render_ui(
 
     if not tree:
         tree = Tree(renderer, hash, props, initial_state)
-        # print("render_ui entity_manager.add_tree(tree)")
         entity_manager.add_tree(tree)
 
     if show_hints is None:
         show_hints = settings.get("user.ui_elements_hints_show")
 
-    # print("render_ui tree.render")
     tree.render_manager.render_mount(props, on_mount, on_unmount, show_hints)
-
-def test():
-    print("close_open_canvas_count", close_open_canvas_count)
