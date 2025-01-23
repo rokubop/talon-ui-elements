@@ -51,6 +51,7 @@ class RenderManager(RenderManagerType):
         self.current_render_task = None
         self.tree = tree
         self._render_debounce_job = None
+        self._destroying = False
 
     @property
     def render_cause(self):
@@ -60,12 +61,17 @@ class RenderManager(RenderManagerType):
     def is_rendering(self):
         return self.current_render_task is not None
 
+    @property
+    def is_destroying(self):
+        return self._destroying
+
     def queue_render(self, render_task: RenderTask):
-        if not self.current_render_task:
-            self.current_render_task = render_task
-            render_task.on_render(self.tree, *render_task.args)
-        else:
-            self.queue.append(render_task)
+        if not self._destroying:
+            if not self.current_render_task:
+                self.current_render_task = render_task
+                render_task.on_render(self.tree, *render_task.args)
+            else:
+                self.queue.append(render_task)
 
     def _queue_render_after_debounce(self, interval: str, render_task: RenderTask):
         if self._render_debounce_job:
@@ -81,7 +87,7 @@ class RenderManager(RenderManagerType):
         self._render_debounce_job = None
 
     def process_next_render(self):
-        if self.queue:
+        if not self._destroying and self.queue:
             self.current_render_task = self.queue.popleft()
             self.current_render_task.on_render(self.tree, *self.current_render_task.args)
 
@@ -113,6 +119,9 @@ class RenderManager(RenderManagerType):
 
     def render_drag_end(self):
         self.queue_render(RenderTaskDragEnd)
+
+    def prepare_destroy(self):
+        self._destroying = True
 
     def destroy(self):
         if self._render_debounce_job:

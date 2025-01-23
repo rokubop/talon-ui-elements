@@ -267,7 +267,6 @@ class Tree(TreeType):
         self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
         self.interactive_node_list = []
-        self.is_destroying = False
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
         self.is_mounted = False
@@ -283,7 +282,7 @@ class Tree(TreeType):
         self.redistribute_box_model = False
         self.root_node = None
         self.show_hints = False
-        self.scroll_amount_per_tick = settings.get("ui_elements_scroll_speed")
+        self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self.surfaces = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_boundary()
@@ -319,7 +318,7 @@ class Tree(TreeType):
         state_manager.set_processing_tree(None)
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             state_manager.set_processing_tree(self)
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
@@ -465,7 +464,7 @@ class Tree(TreeType):
             self.canvas_decorator.register("key", self.on_key)
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             state_manager.set_processing_tree(self)
             self.draw_highlights(canvas)
             self.draw_text_mutations(canvas)
@@ -475,8 +474,8 @@ class Tree(TreeType):
             self.init_key_controls()
             self.draw_blockable_canvases()
             self.on_fully_rendered()
-            self.render_manager.finish_current_render()
             state_manager.set_processing_tree(None)
+            self.render_manager.finish_current_render()
 
     def _is_draggable_ui(self):
         # Just check 1 level deep
@@ -519,7 +518,7 @@ class Tree(TreeType):
         self.canvas_decorator.freeze()
 
     def render_base_canvas(self):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             if not self.canvas_base:
                 with self.lock:
                     self.canvas_base = self.create_canvas()
@@ -528,7 +527,7 @@ class Tree(TreeType):
             self.canvas_base.freeze()
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             self.props = self.props or props
 
             if self.is_mounted:
@@ -550,7 +549,7 @@ class Tree(TreeType):
             self.render_base_canvas()
 
     def _render_debounced_execute(self, *args):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             self.render(*args)
             self.render_debounce_job = None
 
@@ -576,7 +575,7 @@ class Tree(TreeType):
                         effect.cleanup()
 
     def on_fully_rendered(self):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             if self.is_mounted:
                 if self.render_cause.is_state_change():
                     self.on_state_change_effect_callbacks()
@@ -706,7 +705,7 @@ class Tree(TreeType):
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
                 self.on_hover(e.gpos)
@@ -716,7 +715,7 @@ class Tree(TreeType):
                 self.on_mouseup(e.gpos)
 
     def on_scroll_tick(self, e):
-        if not self.is_destroying:
+        if not self.render_manager.is_destroying:
             smallest_node = None
             if self.meta_state.scrollable:
                 for id, data in list(self.meta_state.scrollable.items()):
@@ -765,7 +764,7 @@ class Tree(TreeType):
 
     def destroy(self):
         global scroll_throttle_job
-        self.is_destroying = True
+        self.render_manager.prepare_destroy()
         for effect in reversed(self.effects):
             if effect.cleanup:
                 effect.cleanup()
