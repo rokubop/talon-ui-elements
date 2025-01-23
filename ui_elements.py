@@ -3,7 +3,7 @@ from typing import List, Any, Union, Callable
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager, debug_gc
-from .src.nodes.tree import render_ui, test
+from .src.nodes.tree import render_ui
 from .src.utils import get_version
 from .examples.examples_ui import toggle_elements_examples
 
@@ -201,7 +201,6 @@ class Actions:
 
     def ui_elements_debug_gc():
         """Debug garbage collection - print to log"""
-        test()
         debug_gc()
 
     def ui_elements_svg(elements: List[str]) -> Union[tuple[callable], callable]:

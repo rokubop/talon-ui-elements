@@ -2,17 +2,39 @@ from talon import actions, registry
 
 def format_user_list(user_list):
     try:
-        talon_list = registry.lists[user_list][0]
+        talon_list = registry.lists[f"user.{user_list}"][0]
     except KeyError:
         return (["No list found"], ["No list found"])
     return (talon_list.keys(), talon_list.values())
 
 user_lists = [
-    "user.letter",
-    "user.symbol_key",
-    "user.code_formatter",
-    "user.modifier_key",
-    "user.reformatter",
+    "arrow_key",
+    "code_formatter",
+    "code_formatter",
+    "cursorless_scope_type",
+    "cursorless_simple_action",
+    "edit_action",
+    "edit_modifier",
+    "emoji",
+    "emoticon",
+    "function_key",
+    "kaomoji",
+    "keypad_key",
+    "letter",
+    "modifier_key",
+    "mouse_click",
+    "number_key",
+    "phrase_ender",
+    "prose_formatter",
+    "punctuation",
+    "reformatter",
+    "special_key",
+    "symbol_key",
+    "system_paths",
+    "vocabulary",
+    "website",
+    "window_snap_positions",
+    "word_formatter",
 ]
 
 def dashboard_ui():
@@ -41,7 +63,13 @@ def dashboard_ui():
 
     def sidebar():
         return div(border_right=1, overflow_y="scroll")[
-            *[button(name, on_click=on_click_wrapper(name), padding=16, padding_top=8, padding_bottom=8) for name in user_lists]
+            *[button(
+                name,
+                on_click=on_click_wrapper(name),
+                padding=16,
+                padding_top=8,
+                padding_bottom=8
+            ) for name in user_lists]
         ]
 
     def body():

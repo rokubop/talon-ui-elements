@@ -388,6 +388,10 @@ class RenderManagerType(ABC):
     def is_rendering(self):
         pass
 
+    @property
+    def is_destroying(self):
+        pass
+
     @abstractmethod
     def __init__(self, tree: 'TreeType'):
         pass
@@ -402,6 +406,10 @@ class RenderManagerType(ABC):
 
     @abstractmethod
     def _queue_render_after_debounce_execute(self, render_task: RenderTaskType):
+        pass
+
+    @abstractmethod
+    def prepare_destroy(self):
         pass
 
     @abstractmethod
