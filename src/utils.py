@@ -5,6 +5,7 @@ from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
+from dataclasses import dataclass
 import hashlib
 import inspect
 import json
@@ -34,13 +35,54 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
 
     return hasher.hexdigest()
 
+@dataclass
+class Version:
+    major: int
+    minor: int
+    patch: int
+
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def __lt__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
+
+    def __le__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) <= (other.major, other.minor, other.patch)
+
+    def __eq__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
+
+    def __gt__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
+
+    def __ge__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) >= (other.major, other.minor, other.patch)
+
+    @classmethod
+    def from_string(cls, version: str) -> "Version":
+        major, minor, patch = map(int, version.split("."))
+        return cls(major, minor, patch)
+
+    @classmethod
+    def from_dict(cls, version: dict) -> "Version":
+        return cls(version["major"], version["minor"], version["patch"])
+
+    def to_dict(self) -> dict:
+        return {"major": self.major, "minor": self.minor, "patch": self.patch}
+
 def get_version() -> str:
     manifest = os.path.join(os.path.dirname(__file__), '..', 'manifest.json')
 
     with open(manifest, 'r') as file:
         data = json.load(file)
 
-    return data['version']
+    return Version.from_string(data['version'])
 
 def sanitize_string(text: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_]', '_', text)

@@ -535,7 +535,6 @@ class Tree(TreeType):
                     # print(f"created base canvas for tree {self._renderer.__name__} {self.guid}")
                     self.canvas_base.register("draw", self.on_draw_base_canvas)
 
-            print("freezing base canvas")
             self.canvas_base.freeze()
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
