@@ -214,7 +214,6 @@ class BoxModelLayout(BoxModelLayoutType):
         )
         self.content_rect = Rect(self.padding_rect.x + self.padding_spacing.left, self.padding_rect.y + self.padding_spacing.top, self.padding_rect.width - self.padding_spacing.left - self.padding_spacing.right, self.padding_rect.height - self.padding_spacing.top - self.padding_spacing.bottom)
         self.content_children_rect = Rect(self.content_rect.x, self.content_rect.y, 0, 0)
-        print("redistribute_from_rect", self.content_children_rect)
         self.clamp_dimensions()
         self.layout_scroll_box_rect()
 

@@ -219,7 +219,7 @@ class NodeContainer(Node, NodeContainerType):
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
-            inner_rect = self.box_model.padding_rect
+            inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             if self.is_uniform_border:
                 border_width = border_spacing.left
                 c.paint.color = self.properties.border_color
@@ -396,6 +396,7 @@ class NodeContainer(Node, NodeContainerType):
             )
 
         # self.debugger(c, cursor)
+        print("box_model", self.box_model)
         self.render_borders(c, cursor)
         self.crop_scrollable_region_start(c)
         self.adjust_for_scroll_y_start(c)
