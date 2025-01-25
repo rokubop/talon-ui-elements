@@ -10,7 +10,6 @@ def format_user_list(user_list):
 user_lists = [
     "arrow_key",
     "code_formatter",
-    "code_formatter",
     "cursorless_scope_type",
     "cursorless_simple_action",
     "edit_action",

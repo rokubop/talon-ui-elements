@@ -115,8 +115,7 @@ class StateManager:
             #     before_render=lambda: tree.processing_states.clear()
             #     after_render=lambda: tree.processing_states.clear()
             # )),
-            tree.render_cause.state_change()
-            tree.render()
+            tree.render_manager.render_state_change()
 
         store.processing_states.clear()
         self.debounce_render_job = None

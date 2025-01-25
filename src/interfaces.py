@@ -208,6 +208,7 @@ class BoxModelSpacingType(ABC):
     left: int = 0
 
 class BoxModelLayoutType(ABC):
+    constraints: dict[str, int]
     margin_spacing: BoxModelSpacingType
     padding_spacing: BoxModelSpacingType
     border_spacing: BoxModelSpacingType
@@ -310,6 +311,10 @@ class NodeType(ABC):
 
     @abstractmethod
     def inherit_cascaded_properties(self, parent_node: 'NodeType'):
+        pass
+
+    @abstractmethod
+    def is_fully_clipped_by_scroll(self):
         pass
 
     @abstractmethod

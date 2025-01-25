@@ -45,6 +45,11 @@ RenderTaskDragEnd = RenderTask(
     on_base_canvas_change,
 )
 
+RenderStateChange = RenderTask(
+    RenderCause.STATE_CHANGE,
+    on_full_render,
+)
+
 class RenderManager(RenderManagerType):
     def __init__(self, tree: TreeType):
         self.queue = deque()
@@ -119,6 +124,9 @@ class RenderManager(RenderManagerType):
 
     def render_drag_end(self):
         self.queue_render(RenderTaskDragEnd)
+
+    def render_state_change(self):
+        self.queue_render(RenderStateChange)
 
     def prepare_destroy(self):
         self._destroying = True

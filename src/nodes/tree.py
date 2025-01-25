@@ -577,7 +577,7 @@ class Tree(TreeType):
     def on_fully_rendered(self):
         if not self.render_manager.is_destroying:
             if self.is_mounted:
-                if self.render_cause.is_state_change():
+                if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
                     self.on_state_change_effect_callbacks()
             else:
                 self.is_mounted = True
@@ -597,6 +597,8 @@ class Tree(TreeType):
         prev_hovered_id = state_manager.get_hovered_id()
         for button_id in list(self.meta_state.buttons):
             node = self.meta_state.id_to_node.get(button_id, None)
+            if node.is_fully_clipped_by_scroll():
+                continue
             if node and node.box_model.padding_rect.contains(gpos):
                 new_hovered_id = button_id
                 if new_hovered_id != prev_hovered_id:
@@ -930,7 +932,7 @@ class Tree(TreeType):
         self.last_blockable_rects.extend(blockable_rects)
 
     def should_rerender_blockable_canvas(self):
-        return self.render_cause.is_state_change() \
+        return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
             or self.render_cause.is_dragging() \
             or self.render_manager.render_cause == RenderCause.DRAG_END
 

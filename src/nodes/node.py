@@ -133,6 +133,15 @@ class Node(NodeType):
             if set_opacity:
                 self.properties.update_colors_with_opacity()
 
+    def is_fully_clipped_by_scroll(self):
+        if self.box_model:
+            get_clip_rect = self.box_model.constraints.get("get_clip_rect")
+            if get_clip_rect:
+                clip_rect = get_clip_rect()
+                margin_rect = self.box_model.margin_rect
+                return not clip_rect.intersects(margin_rect)
+        return False
+
     def destroy(self):
         for node in self.children_nodes:
             node.destroy()
