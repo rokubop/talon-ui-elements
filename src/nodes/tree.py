@@ -323,6 +323,13 @@ class Tree(TreeType):
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
             self.consume_effects()
+
+            self.root_node.v2_measure_intrinsic_size(canvas)
+            self.root_node.v2_grow_size(canvas, self.cursor)
+            self.root_node.v2_constrain_size(canvas, self.cursor)
+            self.root_node.v2_layout(canvas, self.cursor)
+            self.root_node.v2_render(canvas, self.cursor)
+
             self.root_node.virtual_render(canvas, self.cursor)
             self.root_node.grow_intrinsic_size(canvas, self.cursor)
             self.root_node.render(canvas, self.cursor)
@@ -473,6 +480,9 @@ class Tree(TreeType):
                 self.draw_hints(canvas)
             self.init_key_controls()
             self.draw_blockable_canvases()
+            # canvas.paint.style = canvas.paint.Style.STROKE
+            # canvas.paint.color = "red"
+            # canvas.draw_rect(Rect(510.0, 290.0, 900, 500))
             self.on_fully_rendered()
             state_manager.set_processing_tree(None)
             self.render_manager.finish_current_render()
@@ -977,6 +987,7 @@ class Tree(TreeType):
 
         if self.is_blockable_canvas_init:
             if self.should_rerender_blockable_canvas():
+                # print(">>> should_rerender_blockable_canvas")
                 is_rerender = True
             else:
                 return
@@ -986,14 +997,20 @@ class Tree(TreeType):
 
         blockable_rects = self.calculate_blockable_rects()
 
+        # print("****************************************")
+        # print(">>> root_node border_rect", self.root_node.children_nodes[0].box_model.border_rect)
+        # print("^^^ blockable_rects", blockable_rects)
+        # print("****************************************")
         if is_rerender:
             if self.render_cause.is_dragging():
                 self.move_blockable_canvas_rects(blockable_rects)
                 return
             dimension_change, position_change = self.have_blockable_rects_changed(blockable_rects)
             if dimension_change:
+                # print(">>> dimension_change")
                 self.destroy_blockable_canvas()
             elif position_change:
+                # print(">>> position_change")
                 self.move_blockable_canvas_rects(blockable_rects)
                 return
 
@@ -1002,6 +1019,7 @@ class Tree(TreeType):
             self.last_blockable_rects.clear()
             self.last_blockable_rects.extend(blockable_rects)
             for rect in blockable_rects:
+                # print(">>> rect", rect)
                 canvas = CanvasWeakRef(Canvas.from_rect(rect))
                 self.canvas_blockable.append(canvas)
                 canvas.blocks_mouse = True
