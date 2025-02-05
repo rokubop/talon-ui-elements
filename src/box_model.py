@@ -1,8 +1,15 @@
 from dataclasses import dataclass
 from typing import Union
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.types import Rect, Point2d
-from .interfaces import BoxModelLayoutType, NodeType
+from talon.types import Rect, Point2d, Size2d
+from .interfaces import (
+    BoxModelLayoutType,
+    BoxModelSpacing,
+    BoxModelV2Type,
+    NodeType,
+    OverflowType,
+    PropertiesDimensionalType
+)
 from .constants import (
     DEFAULT_SCROLL_BAR_WIDTH,
     DEFAULT_SCROLL_BAR_TRACK_COLOR,
@@ -10,26 +17,7 @@ from .constants import (
 )
 
 @dataclass
-class BoxModelSpacing:
-    top: int = 0
-    right: int = 0
-    bottom: int = 0
-    left: int = 0
-
-@dataclass
-class Margin(BoxModelSpacing):
-    pass
-
-@dataclass
-class Padding(BoxModelSpacing):
-    pass
-
-@dataclass
-class Border(BoxModelSpacing):
-    pass
-
-@dataclass
-class Overflow:
+class Overflow(OverflowType):
     x: str = "visible"
     y: str = "visible"
     scrollable: bool = False
@@ -441,3 +429,108 @@ class BoxModelLayout(BoxModelLayoutType):
 
     def gc(self):
         self.constraints["get_clip_rect"] = None
+
+class BoxModelV2(BoxModelV2Type):
+    def __init__(
+        self,
+        properties: PropertiesDimensionalType,
+        content_size: Size2d,
+    ):
+        self.width = properties.width or properties.min_width or 0
+        self.height = properties.height or properties.min_height or 0
+        self.margin_spacing = properties.margin
+        self.padding_spacing = properties.padding
+        self.border_spacing = properties.border
+
+        self.margin_rect = None
+        self.padding_rect = None
+        self.border_rect = None
+        self.content_rect = None
+        self.content_children_rect = None
+
+        self.calculated_margin_rect = None
+        self.calculated_padding_rect = None
+        self.calculated_border_rect = None
+        self.calculated_content_rect = None
+        self.calculated_content_children_rect = None
+
+        self.intrinsic_margin_size = None
+        self.intrinsic_border_size = None
+        self.intrinsic_padding_size = None
+        self.intrinsic_content_size = None
+
+        if isinstance(self.width, str):
+            if "%" in self.width:
+                self.width = 0 # calculated later
+            else:
+                self.width = int(self.width)
+
+        if isinstance(self.height, str) and "%" in self.height:
+            if "%" in self.height:
+                self.height = 0 # calculated later
+            else:
+                self.height = int(self.height)
+
+        self.init_intrinsic_sizes(content_size)
+
+    @staticmethod
+    def content_size_to_border_size(content_size: Size2d, padding_spacing: BoxModelSpacing, border_spacing: BoxModelSpacing):
+        return Size2d(
+            content_size.width + padding_spacing.left + padding_spacing.right + border_spacing.left + border_spacing.right,
+            content_size.height + padding_spacing.top + padding_spacing.bottom + border_spacing.top + border_spacing.bottom
+        )
+
+    def init_intrinsic_sizes(self, content_size: Size2d):
+        """
+        Init intrinsic size based on either content size,
+        or width and height, choosing whatever is bigger
+        """
+        if content_size.width or content_size.height:
+            if self.width or self.height:
+                content_to_border_size = BoxModelV2.content_size_to_border_size(
+                    content_size,
+                    self.padding_spacing,
+                    self.border_spacing
+                )
+                self.resolve_all_intrinsic_sizes_from_border_size(
+                    Size2d(
+                        max(self.width, content_to_border_size.width),
+                        max(self.height, content_to_border_size.height)
+                    )
+                )
+            else:
+                self.resolve_all_intrinsic_sizes_from_content_size(content_size)
+        else:
+            self.resolve_all_intrinsic_sizes_from_border_size(
+                Size2d(self.width, self.height)
+            )
+
+    def resolve_all_intrinsic_sizes_from_border_size(self, border_size: Size2d):
+        self.intrinsic_border_size = border_size
+        self.intrinsic_margin_size = Size2d(
+            self.intrinsic_border_size.width + self.margin_spacing.left + self.margin_spacing.right,
+            self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
+        )
+        self.intrinsic_padding_size = Size2d(
+            border_size.width - self.border_spacing.left - self.border_spacing.right,
+            border_size.height - self.border_spacing.top - self.border_spacing.bottom
+        )
+        self.intrinsic_content_size = Size2d(
+            self.intrinsic_padding_size.width - self.padding_spacing.left - self.padding_spacing.right,
+            self.intrinsic_padding_size.height - self.padding_spacing.top - self.padding_spacing.bottom
+        )
+
+    def resolve_all_intrinsic_sizes_from_content_size(self, content_size: Size2d):
+        self.intrinsic_content_size = content_size
+        self.intrinsic_padding_size = Size2d(
+            content_size.width + self.padding_spacing.left + self.padding_spacing.right,
+            content_size.height + self.padding_spacing.top + self.padding_spacing.bottom
+        )
+        self.intrinsic_border_size = Size2d(
+            self.intrinsic_padding_size.width + self.border_spacing.left + self.border_spacing.right,
+            self.intrinsic_padding_size.height + self.border_spacing.top + self.border_spacing.bottom
+        )
+        self.intrinsic_margin_size = Size2d(
+            self.intrinsic_border_size.width + self.margin_spacing.left + self.margin_spacing.right,
+            self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
+        )

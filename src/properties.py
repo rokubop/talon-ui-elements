@@ -4,11 +4,14 @@ from talon.types import Rect
 from typing import TypedDict, Union
 from typing import TypedDict
 from .box_model import (
+    Overflow,
+    parse_box_model
+)
+from .interfaces import (
+    PropertiesDimensionalType,
     Border,
     Margin,
-    Overflow,
-    Padding,
-    parse_box_model
+    Padding
 )
 from .constants import (
     DEFAULT_ALIGN_ITEMS,
@@ -23,7 +26,7 @@ from .constants import (
 )
 from .utils import hex_color
 
-class Properties:
+class Properties(PropertiesDimensionalType):
     """
     These are base properties and not all inclusive.
     Other property classes inherit from this class.

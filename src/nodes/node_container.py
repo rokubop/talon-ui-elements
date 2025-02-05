@@ -2,9 +2,9 @@ from itertools import cycle
 from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.types import Rect, Point2d
+from talon.types import Rect, Point2d, Size2d
 from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
-from ..box_model import BoxModelLayout
+from ..box_model import BoxModelLayout, BoxModelV2
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType
 from ..properties import Properties
@@ -130,11 +130,36 @@ class NodeContainer(Node, NodeContainerType):
 
         return self.box_model.margin_rect
 
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        """
+        First step in the layout process. Calculates the intrinsic size.
+        Basically naturally how much width/height based on content or
+        user defined width/height it takes up.
+        """
+        child_accumulated_size = Size2d(0, 0)
+
+        if self.children_nodes:
+            for i, child in enumerate(self.children_nodes):
+                margin_size = child.v2_measure_intrinsic_size(c)
+                child_accumulated_size.width += margin_size.width
+                child_accumulated_size.height += margin_size.height
+                if i != len(self.children_nodes) - 1:
+                    gap = self.gap_between_elements(child, i)
+                    if self.properties.flex_direction == "row":
+                        child_accumulated_size.width += gap
+                    else:
+                        child_accumulated_size.height += gap
+
+        self.box_model_v2 = BoxModelV2(self.properties, child_accumulated_size)
+
+        print(f"NodeContainer - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
+        return self.box_model_v2.intrinsic_margin_size
+
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         resolved_width = self.properties.width
         resolved_height = self.properties.height
 
-        # resolve in next block
+        # resolve in next blockyou do need the cursor the for engines excising
         if self.properties.width == "100%":
             resolved_width = 0
         if self.properties.height == "100%":
@@ -396,7 +421,6 @@ class NodeContainer(Node, NodeContainerType):
             )
 
         # self.debugger(c, cursor)
-        print("box_model", self.box_model)
         self.render_borders(c, cursor)
         self.crop_scrollable_region_start(c)
         self.adjust_for_scroll_y_start(c)

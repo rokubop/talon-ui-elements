@@ -2,9 +2,54 @@ from abc import ABC, abstractmethod
 from typing import Callable, List, Optional, Union, Deque, Any
 from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
+from talon.skia.canvas import Canvas as SkiaCanvas
 from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
-from talon.types import Rect, Point2d
+from talon.types import Rect, Point2d, Size2d
+
+@dataclass
+class BoxModelSpacing:
+    top: int = 0
+    right: int = 0
+    bottom: int = 0
+    left: int = 0
+
+@dataclass
+class Margin(BoxModelSpacing):
+    pass
+
+@dataclass
+class Padding(BoxModelSpacing):
+    pass
+
+@dataclass
+class Border(BoxModelSpacing):
+    pass
+
+class OverflowType(ABC):
+    x: str
+    y: str
+    scrollable: bool
+    scrollable_x: bool
+    scrollable_y: bool
+
+class PropertiesDimensionalType(ABC):
+    align_items: str
+    align_self: str
+    border_color: str
+    border: Border
+    flex_direction: str
+    flex: int
+    height: Union[int, str]
+    justify_content: str
+    margin: Margin
+    max_height: int
+    max_width: int
+    min_height: int
+    min_width: int
+    overflow: OverflowType
+    padding: Padding
+    width: Union[int, str]
 
 class CursorType:
     x: int
@@ -253,6 +298,29 @@ class BoxModelLayoutType(ABC):
     def gc(self):
         pass
 
+class BoxModelV2Type(ABC):
+    margin_spacing: BoxModelSpacingType
+    padding_spacing: BoxModelSpacingType
+    border_spacing: BoxModelSpacingType
+
+    margin_rect: Rect
+    padding_rect: Rect
+    border_rect: Rect
+    content_rect: Rect
+    content_children_rect: Rect
+
+    calculated_margin_rect: Rect
+    calculated_padding_rect: Rect
+    calculated_border_rect: Rect
+    calculated_content_rect: Rect
+    calculated_content_children_rect: Rect
+
+    intrinsic_margin_rect: Rect
+    intrinsic_padding_rect: Rect
+    intrinsic_border_rect: Rect
+    intrinsic_content_rect: Rect
+    intrinsic_content_children_rect: Rect
+
 class NodeType(ABC):
     properties: object
     cascaded_properties: object
@@ -262,6 +330,7 @@ class NodeType(ABC):
     node_type: NodeEnumType
     element_type: ElementEnumType
     box_model: BoxModelLayoutType
+    box_model_v2: BoxModelV2Type
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
@@ -307,6 +376,26 @@ class NodeType(ABC):
 
     @abstractmethod
     def virtual_render(self):
+        pass
+
+    # @abstractmethod
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        return Size2d(0, 0)
+
+    # @abstractmethod
+    def v2_grow_size(self, c: SkiaCanvas, cursor: object):
+        pass
+
+    # @abstractmethod
+    def v2_constrain_size(self, c: SkiaCanvas, cursor: object):
+        pass
+
+    # @abstractmethod
+    def v2_layout(self, c: SkiaCanvas, cursor: object):
+        pass
+
+    # @abstractmethod
+    def v2_render(self, c: SkiaCanvas, cursor: object):
         pass
 
     @abstractmethod
