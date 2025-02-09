@@ -2,13 +2,14 @@ from itertools import cycle
 from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.types import Rect, Point2d, Size2d
+from talon.types import Rect, Point2d
 from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
 from ..box_model import BoxModelLayout, BoxModelV2
 from ..cursor import Cursor
-from ..interfaces import NodeContainerType
+from ..interfaces import NodeContainerType, Size2d, NodeType
 from ..properties import Properties
 from .node import Node
+from typing import List
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
@@ -133,27 +134,111 @@ class NodeContainer(Node, NodeContainerType):
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
         """
         First step in the layout process. Calculates the intrinsic size.
-        Basically naturally how much width/height based on content or
-        user defined width/height it takes up.
+        Determines natural width/height based on content or user-defined size.
         """
-        child_accumulated_size = Size2d(0, 0)
+        children_accumulated_size = Size2d(0, 0)
 
         if self.children_nodes:
+            is_row = self.properties.flex_direction == "row"
+            primary_axis = "width" if is_row else "height"
+            secondary_axis = "height" if is_row else "width"
+
             for i, child in enumerate(self.children_nodes):
                 margin_size = child.v2_measure_intrinsic_size(c)
-                child_accumulated_size.width += margin_size.width
-                child_accumulated_size.height += margin_size.height
+
+                # find the single item with the maximum length for secondary axis
+                setattr(
+                    children_accumulated_size,
+                    secondary_axis,
+                    max(
+                        getattr(children_accumulated_size, secondary_axis),
+                        getattr(margin_size, secondary_axis)
+                    )
+                )
+
+                # total all the item lengths for primary axis
+                setattr(
+                    children_accumulated_size,
+                    primary_axis,
+                    getattr(children_accumulated_size, primary_axis) + getattr(margin_size, primary_axis)
+                )
+
+                # add gap between elements
                 if i != len(self.children_nodes) - 1:
                     gap = self.gap_between_elements(child, i)
-                    if self.properties.flex_direction == "row":
-                        child_accumulated_size.width += gap
-                    else:
-                        child_accumulated_size.height += gap
+                    setattr(
+                        children_accumulated_size,
+                        primary_axis,
+                        getattr(children_accumulated_size, primary_axis) + gap
+                    )
 
-        self.box_model_v2 = BoxModelV2(self.properties, child_accumulated_size)
+        self.box_model_v2 = BoxModelV2(self.properties, children_accumulated_size)
 
         print(f"NodeContainer - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
         return self.box_model_v2.intrinsic_margin_size
+
+    def v2_grow_size(self):
+        growable_counter_axis: List[NodeType] = []
+        growable_primary_axis_flex: List[NodeType] = []
+
+        all_growable_counter_axis = self.properties.align_items == "stretch" or \
+            (self.properties.flex_direction == "row" and \
+             isinstance(self.properties.height, str) and "%" in self.properties.height) or \
+            (self.properties.flex_direction == "column" and \
+             isinstance(self.properties.width, str) and "%" in self.properties.width)
+
+        for i, child in enumerate(self.children_nodes):
+            if all_growable_counter_axis or child.properties.align_self == "stretch" or \
+                    (self.properties.flex_direction == "row" and \
+                    isinstance(child.properties.height, str) and "%" in child.properties.height) or \
+                    (self.properties.flex_direction == "column" and \
+                    isinstance(child.properties.width, str) and "%" in child.properties.width):
+                growable_counter_axis.append(child)
+
+            if self.properties.flex_direction == "row" and isinstance(child.properties.width, str) and "%" in child.properties.width:
+                child.flex_evaluated = self.normalize_to_flex(child.properties.width)
+            elif self.properties.flex_direction == "column" and isinstance(child.properties.height, str) and "%" in child.properties.height:
+                child.flex_evaluated = self.normalize_to_flex(child.properties.height)
+
+            if child.properties.flex or child.flex_evaluated:
+                growable_primary_axis_flex.append(child)
+
+        # Grow items / counter axis
+        if growable_counter_axis:
+            for i, child in enumerate(growable_counter_axis):
+                if self.properties.flex_direction == "row" and not child.box_model_v2.fixed_height:
+                    child.box_model_v2.grow_calculated_height_to(self.box_model_v2.calculated_content_size.height)
+                elif self.properties.flex_direction == "column" and not child.box_model_v2.fixed_width:
+                    child.box_model_v2.grow_calculated_width_to(self.box_model_v2.calculated_content_size.width)
+
+            if self.properties.flex_direction == "row":
+                self.box_model_v2.maximize_content_children_height()
+            elif self.properties.flex_direction == "column":
+                self.box_model_v2.maximize_content_children_width()
+
+        # Grow justification / primary axis
+        if growable_primary_axis_flex:
+            flex_direction = self.properties.flex_direction
+            if flex_direction == "row":
+                remaining = self.box_model_v2.calculated_content_size.width - self.box_model_v2.calculated_content_children_size.width
+                grow_function = lambda child, size: child.box_model_v2.grow_calculated_width_by(size)
+            elif flex_direction == "column":
+                remaining = self.box_model_v2.calculated_content_size.height - self.box_model_v2.calculated_content_children_size.height
+                grow_function = lambda child, size: child.box_model_v2.grow_calculated_height_by(size)
+
+            if remaining > 0:
+                flex_weights = self.calculate_justify_flex_weights(growable_primary_axis_flex)
+                for i, child in enumerate(growable_primary_axis_flex):
+                    additional_size = remaining * flex_weights[i]
+                    grow_function(child, additional_size)
+                if flex_direction == "row":
+                    self.box_model_v2.maximize_content_children_width()
+                elif flex_direction == "column":
+                    self.box_model_v2.maximize_content_children_height()
+
+        print(f"NodeContainer - Calculated grow size: {getattr(self, 'id', None)} {self.box_model_v2.calculated_margin_size}")
+        for child in self.children_nodes:
+            child.v2_grow_size()
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         resolved_width = self.properties.width

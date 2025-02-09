@@ -5,7 +5,15 @@ from talon.canvas import Canvas
 from talon.skia.canvas import Canvas as SkiaCanvas
 from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
-from talon.types import Rect, Point2d, Size2d
+from talon.types import Rect, Point2d
+
+@dataclass
+class Size2d:
+    width: float
+    height: float
+
+    def copy(self):
+        return Size2d(self.width, self.height)
 
 @dataclass
 class BoxModelSpacing:
@@ -299,27 +307,36 @@ class BoxModelLayoutType(ABC):
         pass
 
 class BoxModelV2Type(ABC):
+    width: Union[int, str]
+    height: Union[int, str]
+    min_width: Union[int, str]
+    min_height: Union[int, str]
+    max_width: Union[int, str]
+    max_height: Union[int, str]
+    fixed_width: bool
+    fixed_height: bool
+
     margin_spacing: BoxModelSpacingType
     padding_spacing: BoxModelSpacingType
     border_spacing: BoxModelSpacingType
 
     margin_rect: Rect
-    padding_rect: Rect
     border_rect: Rect
+    padding_rect: Rect
     content_rect: Rect
     content_children_rect: Rect
 
-    calculated_margin_rect: Rect
-    calculated_padding_rect: Rect
-    calculated_border_rect: Rect
-    calculated_content_rect: Rect
-    calculated_content_children_rect: Rect
+    calculated_margin_size: Size2d
+    calculated_border_size: Size2d
+    calculated_padding_size: Size2d
+    calculated_content_size: Size2d
+    calculated_content_children_size: Size2d
 
-    intrinsic_margin_rect: Rect
-    intrinsic_padding_rect: Rect
-    intrinsic_border_rect: Rect
-    intrinsic_content_rect: Rect
-    intrinsic_content_children_rect: Rect
+    intrinsic_margin_size: Size2d
+    intrinsic_border_size: Size2d
+    intrinsic_padding_size: Size2d
+    intrinsic_content_size: Size2d
+    intrinsic_content_children_size: Size2d
 
 class NodeType(ABC):
     properties: object
@@ -383,8 +400,14 @@ class NodeType(ABC):
         return Size2d(0, 0)
 
     # @abstractmethod
-    def v2_grow_size(self, c: SkiaCanvas, cursor: object):
-        pass
+    def v2_grow_size(self):
+        if self.text:
+            if self.element_type == "text":
+                print(f"NodeText {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+            else:
+                print(f"NodeButton {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+        else:
+            print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
 
     # @abstractmethod
     def v2_constrain_size(self, c: SkiaCanvas, cursor: object):

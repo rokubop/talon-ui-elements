@@ -325,7 +325,7 @@ class Tree(TreeType):
             self.consume_effects()
 
             self.root_node.v2_measure_intrinsic_size(canvas)
-            self.root_node.v2_grow_size(canvas, self.cursor)
+            self.root_node.v2_grow_size()
             self.root_node.v2_constrain_size(canvas, self.cursor)
             self.root_node.v2_layout(canvas, self.cursor)
             self.root_node.v2_render(canvas, self.cursor)
