@@ -452,7 +452,7 @@ class NodeType(ABC):
         return self.box_model_v2.margin_size
 
     # @abstractmethod
-    def v2_render(self, c: SkiaCanvas, cursor: object):
+    def v2_render(self, c: SkiaCanvas):
         pass
 
     @abstractmethod

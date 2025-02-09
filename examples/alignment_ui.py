@@ -132,7 +132,16 @@ def example5_ui():
         text(', justify_content=', color=WHITE), text('"center"', color=YELLOW),
     ]
 
-    return example_ui(5, title, content=div(padding=8, gap=8, height="100%", flex_direction="row", align_items="center", justify_content="center")[
+    content_props = {
+        "padding": 8,
+        "gap": 8,
+        "height": "100%",
+        "flex_direction": "row",
+        "align_items": "center",
+        "justify_content": "center",
+    }
+
+    return example_ui(5, title, content=div(content_props)[
         *items(),
     ])
 

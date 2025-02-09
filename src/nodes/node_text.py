@@ -286,6 +286,30 @@ class NodeText(Node):
             else:
                 c.draw_rect(self.box_model.padding_rect)
 
+    def v2_render(self, c):
+        render_now = False if self.id and self.element_type == "text" else True
+
+        self.v2_render_borders(c)
+        self.v2_render_background(c)
+
+        # This should be in layout phase
+        text_top_left = self.box_model_v2.content_children_pos.copy()
+        available_width = self.box_model_v2.content_size.width - self.box_model_v2.content_children_size.width
+        if self.properties.text_align == "center":
+            text_top_left.x += available_width // 2
+        elif self.properties.text_align == "right":
+            text_top_left.x += available_width
+
+        self.cursor_pre_draw_text = (text_top_left.x, text_top_left.y + self.text_line_height)
+
+        if render_now:
+            if self.text_multiline:
+                gap = self.properties.gap or 16
+                for i, line in enumerate(self.text_multiline):
+                    draw_text_simple(c, line, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
+            else:
+                draw_text_simple(c, self.text, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)
+
     def render(self, c: SkiaCanvas, cursor: Cursor):
         self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 

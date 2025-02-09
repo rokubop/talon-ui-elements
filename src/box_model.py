@@ -440,8 +440,8 @@ class BoxModelV2(BoxModelV2Type):
         if not content_size:
             raise ValueError("Size2d content_size is required for BoxModelV2")
 
-        self.width = properties.width or properties.min_width or 0
-        self.height = properties.height or properties.min_height or 0
+        self.width = properties.width
+        self.height = properties.height
         self.min_width = properties.min_width
         self.min_height = properties.min_height
         self.max_width = properties.max_width
@@ -522,8 +522,10 @@ class BoxModelV2(BoxModelV2Type):
 
     def init_intrinsic_sizes(self, content_size: Size2d):
         self.intrinsic_content_children_size = content_size
+        init_width = self.width or self.min_width or 0
+        init_height = self.height or self.min_height or 0
         if content_size.width or content_size.height:
-            if self.width or self.height:
+            if init_width or init_height:
                 content_to_border_size = BoxModelV2.content_size_to_border_size(
                     content_size,
                     self.padding_spacing,
@@ -531,15 +533,15 @@ class BoxModelV2(BoxModelV2Type):
                 )
                 self.resolve_intrinsic_sizes_from_border_size(
                     Size2d(
-                        max(self.width, content_to_border_size.width),
-                        max(self.height, content_to_border_size.height)
+                        max(init_width, content_to_border_size.width),
+                        max(init_height, content_to_border_size.height)
                     )
                 )
             else:
                 self.resolve_intrinsic_sizes_from_content_size(content_size)
         else:
             self.resolve_intrinsic_sizes_from_border_size(
-                Size2d(self.width, self.height)
+                Size2d(init_width, init_height)
             )
         self.init_calculated_sizes()
 

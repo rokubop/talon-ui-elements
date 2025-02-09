@@ -1,4 +1,7 @@
 from typing import Union, Optional
+from talon.types import Rect
+from talon.skia import RoundRect
+from talon.skia.canvas import Canvas as SkiaCanvas
 import uuid
 from ..box_model import BoxModelLayout
 from ..constants import (
@@ -141,6 +144,65 @@ class Node(NodeType):
                 margin_rect = self.box_model.margin_rect
                 return not clip_rect.intersects(margin_rect)
         return False
+
+    def v2_render_borders(self, c: SkiaCanvas):
+        self.is_uniform_border = True
+        border_spacing = self.box_model_v2.border_spacing
+        has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
+        if has_border:
+            self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
+            # inner_rect = self.box_model_v2.scroll_box_rect if self.box_model_v2.scrollable else self.box_model_v2.padding_rect
+            inner_rect = self.box_model_v2.padding_rect
+            if self.is_uniform_border:
+                border_width = border_spacing.left
+                c.paint.color = self.properties.border_color
+                c.paint.style = c.paint.Style.STROKE
+                c.paint.stroke_width = border_width
+
+                bordered_rect = Rect(
+                    inner_rect.x - border_width / 2,
+                    inner_rect.y - border_width / 2,
+                    inner_rect.width + border_width,
+                    inner_rect.height + border_width,
+                )
+
+                if self.properties.border_radius:
+                    c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
+                else:
+                    c.draw_rect(bordered_rect)
+            else:
+                c.paint.color = self.properties.border_color
+                c.paint.style = c.paint.Style.STROKE
+                b_rect, p_rect = self.box_model_v2.border_rect, inner_rect
+                if border_spacing.left:
+                    c.paint.stroke_width = border_spacing.left
+                    half = border_spacing.left / 2
+                    c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
+                if border_spacing.right:
+                    c.paint.stroke_width = border_spacing.right
+                    half = border_spacing.right / 2
+                    c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
+                if border_spacing.top:
+                    c.paint.stroke_width = border_spacing.top
+                    half = border_spacing.top / 2
+                    c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
+                if border_spacing.bottom:
+                    c.paint.stroke_width = border_spacing.bottom
+                    half = border_spacing.bottom / 2
+                    c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
+
+    def v2_render_background(self, c: SkiaCanvas):
+        if self.properties.background_color:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.background_color
+
+            # inner_rect = self.box_model_v2.scroll_box_rect if self.box_model_v2.scrollable else self.box_model_v2.padding_rect
+            inner_rect = self.box_model_v2.padding_rect
+
+            if self.properties.border_radius and self.is_uniform_border:
+                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
+            else:
+                c.draw_rect(inner_rect)
 
     def destroy(self):
         for node in self.children_nodes:

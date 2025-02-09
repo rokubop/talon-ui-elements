@@ -334,7 +334,7 @@ class Tree(TreeType):
             self.root_node.v2_grow_size()
             self.root_node.v2_constrain_size()
             self.root_node.v2_layout(self.cursor_v2)
-            self.root_node.v2_render(canvas, self.cursor_v2)
+            self.root_node.v2_render(canvas)
 
             self.root_node.virtual_render(canvas, self.cursor)
             self.root_node.grow_intrinsic_size(canvas, self.cursor)
