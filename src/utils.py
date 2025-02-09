@@ -13,6 +13,8 @@ import os
 import re
 
 def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
+    c.paint.style = c.paint.Style.FILL
+    c.paint.stroke_width = 0
     c.paint.color = properties.color
     c.paint.textsize = properties.font_size
     c.paint.typeface = Typeface.from_name(properties.font_family)

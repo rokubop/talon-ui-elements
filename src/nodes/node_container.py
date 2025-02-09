@@ -181,11 +181,14 @@ class NodeContainer(Node, NodeContainerType):
         growable_counter_axis: List[NodeType] = []
         growable_primary_axis_flex: List[NodeType] = []
 
-        all_growable_counter_axis = self.properties.align_items == "stretch" or \
-            (self.properties.flex_direction == "row" and \
-             isinstance(self.properties.height, str) and "%" in self.properties.height) or \
-            (self.properties.flex_direction == "column" and \
-             isinstance(self.properties.width, str) and "%" in self.properties.width)
+        # Not perfect, but mostly works - glosses over specific child overrides
+        all_growable_counter_axis = self.properties.align_items == "stretch"
+            # Why was this part of our v1 implementation?
+            # or \
+            # (self.properties.flex_direction == "row" and \
+            #  isinstance(self.properties.height, str) and "%" in self.properties.height) or \
+            # (self.properties.flex_direction == "column" and \
+            #  isinstance(self.properties.width, str) and "%" in self.properties.width)
 
         for i, child in enumerate(self.children_nodes):
             if all_growable_counter_axis or child.properties.align_self == "stretch" or \
@@ -206,11 +209,15 @@ class NodeContainer(Node, NodeContainerType):
         # Grow items / counter axis
         if growable_counter_axis:
             for i, child in enumerate(growable_counter_axis):
+                # Consider: growable_counter_axis should only contain things that really should be stretched
                 if self.properties.flex_direction == "row" and not child.box_model_v2.fixed_height:
                     child.box_model_v2.grow_calculated_height_to(self.box_model_v2.calculated_content_size.height)
                 elif self.properties.flex_direction == "column" and not child.box_model_v2.fixed_width:
                     child.box_model_v2.grow_calculated_width_to(self.box_model_v2.calculated_content_size.width)
 
+            # Consider: shouldn't this just grow content children to the growth we did above?
+            # Regardless of stretch or not.
+            # if self.properties.align_items == "stretch":
             if self.properties.flex_direction == "row":
                 self.box_model_v2.maximize_content_children_height()
             elif self.properties.flex_direction == "column":
@@ -285,6 +292,17 @@ class NodeContainer(Node, NodeContainerType):
 
         cursor.move_to(last_cursor.x, last_cursor.y)
         return self.box_model_v2.margin_size
+
+    def v2_render(self, c):
+        self.v2_render_borders(c)
+        # self.crop_scrollable_region_start(c)
+        # self.adjust_for_scroll_y_start(c)
+        self.v2_render_background(c)
+
+        for child in self.children_nodes:
+            child.v2_render(c)
+
+        # self.crop_scrollable_region_end(c)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         resolved_width = self.properties.width
