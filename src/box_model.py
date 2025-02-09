@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 from typing import Union
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.types import Rect, Point2d, Size2d
+from talon.types import Rect, Point2d
 from .interfaces import (
     BoxModelLayoutType,
     BoxModelSpacing,
     BoxModelV2Type,
     NodeType,
     OverflowType,
-    PropertiesDimensionalType
+    PropertiesDimensionalType,
+    Size2d,
 )
 from .constants import (
     DEFAULT_SCROLL_BAR_WIDTH,
@@ -436,8 +437,18 @@ class BoxModelV2(BoxModelV2Type):
         properties: PropertiesDimensionalType,
         content_size: Size2d,
     ):
+        if not content_size:
+            raise ValueError("Size2d content_size is required for BoxModelV2")
+
         self.width = properties.width or properties.min_width or 0
         self.height = properties.height or properties.min_height or 0
+        self.min_width = properties.min_width
+        self.min_height = properties.min_height
+        self.max_width = properties.max_width or 0
+        self.max_height =  properties.max_height or 0
+        self.fixed_width = bool(properties.width)
+        self.fixed_height = bool(properties.height)
+
         self.margin_spacing = properties.margin
         self.padding_spacing = properties.padding
         self.border_spacing = properties.border
@@ -448,16 +459,17 @@ class BoxModelV2(BoxModelV2Type):
         self.content_rect = None
         self.content_children_rect = None
 
-        self.calculated_margin_rect = None
-        self.calculated_padding_rect = None
-        self.calculated_border_rect = None
-        self.calculated_content_rect = None
-        self.calculated_content_children_rect = None
+        self.calculated_margin_size = None
+        self.calculated_padding_size = None
+        self.calculated_border_size = None
+        self.calculated_content_size = None
+        self.calculated_content_children_size = None
 
         self.intrinsic_margin_size = None
         self.intrinsic_border_size = None
         self.intrinsic_padding_size = None
         self.intrinsic_content_size = None
+        self.intrinsic_content_children_size = content_size
 
         if isinstance(self.width, str):
             if "%" in self.width:
@@ -481,10 +493,7 @@ class BoxModelV2(BoxModelV2Type):
         )
 
     def init_intrinsic_sizes(self, content_size: Size2d):
-        """
-        Init intrinsic size based on either content size,
-        or width and height, choosing whatever is bigger
-        """
+        self.intrinsic_content_children_size = content_size
         if content_size.width or content_size.height:
             if self.width or self.height:
                 content_to_border_size = BoxModelV2.content_size_to_border_size(
@@ -492,20 +501,28 @@ class BoxModelV2(BoxModelV2Type):
                     self.padding_spacing,
                     self.border_spacing
                 )
-                self.resolve_all_intrinsic_sizes_from_border_size(
+                self.resolve_intrinsic_sizes_from_border_size(
                     Size2d(
                         max(self.width, content_to_border_size.width),
                         max(self.height, content_to_border_size.height)
                     )
                 )
             else:
-                self.resolve_all_intrinsic_sizes_from_content_size(content_size)
+                self.resolve_intrinsic_sizes_from_content_size(content_size)
         else:
-            self.resolve_all_intrinsic_sizes_from_border_size(
+            self.resolve_intrinsic_sizes_from_border_size(
                 Size2d(self.width, self.height)
             )
+        self.init_calculated_sizes()
 
-    def resolve_all_intrinsic_sizes_from_border_size(self, border_size: Size2d):
+    def init_calculated_sizes(self):
+        self.calculated_margin_size = self.intrinsic_margin_size.copy()
+        self.calculated_border_size = self.intrinsic_border_size.copy()
+        self.calculated_padding_size = self.intrinsic_padding_size.copy()
+        self.calculated_content_size = self.intrinsic_content_size.copy()
+        self.calculated_content_children_size = self.intrinsic_content_children_size.copy()
+
+    def resolve_intrinsic_sizes_from_border_size(self, border_size: Size2d):
         self.intrinsic_border_size = border_size
         self.intrinsic_margin_size = Size2d(
             self.intrinsic_border_size.width + self.margin_spacing.left + self.margin_spacing.right,
@@ -520,7 +537,7 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_padding_size.height - self.padding_spacing.top - self.padding_spacing.bottom
         )
 
-    def resolve_all_intrinsic_sizes_from_content_size(self, content_size: Size2d):
+    def resolve_intrinsic_sizes_from_content_size(self, content_size: Size2d):
         self.intrinsic_content_size = content_size
         self.intrinsic_padding_size = Size2d(
             content_size.width + self.padding_spacing.left + self.padding_spacing.right,
@@ -534,3 +551,31 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_border_size.width + self.margin_spacing.left + self.margin_spacing.right,
             self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
         )
+
+    def grow_calculated_height_to(self, height: int):
+        if height > self.calculated_margin_size.height:
+            diff = height - self.calculated_margin_size.height
+            self.calculated_margin_size.height += diff
+            self.calculated_border_size.height += diff
+            self.calculated_padding_size.height += diff
+            self.calculated_content_size.height += diff
+
+    def grow_calculated_width_to(self, width: int):
+        if width > self.calculated_margin_size.width:
+            diff = width - self.calculated_margin_size.width
+            self.calculated_margin_size.width += diff
+            self.calculated_border_size.width += diff
+            self.calculated_padding_size.width += diff
+            self.calculated_content_size.width += diff
+
+    def grow_calculated_height_by(self, height: int):
+        self.grow_calculated_height_to(self.calculated_margin_size.height + height)
+
+    def grow_calculated_width_by(self, width: int):
+        self.grow_calculated_width_to(self.calculated_margin_size.width + width)
+
+    def maximize_content_children_width(self):
+        self.calculated_content_children_size.width = self.calculated_content_size.width
+
+    def maximize_content_children_height(self):
+        self.calculated_content_children_size.height = self.calculated_content_size.height
