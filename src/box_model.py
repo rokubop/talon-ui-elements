@@ -444,20 +444,28 @@ class BoxModelV2(BoxModelV2Type):
         self.height = properties.height or properties.min_height or 0
         self.min_width = properties.min_width
         self.min_height = properties.min_height
-        self.max_width = properties.max_width or 0
-        self.max_height =  properties.max_height or 0
+        self.max_width = properties.max_width
+        self.max_height =  properties.max_height
         self.fixed_width = bool(properties.width)
         self.fixed_height = bool(properties.height)
+        self.overflow = properties.overflow
+        self.overflow_size = Size2d(0, 0)
 
         self.margin_spacing = properties.margin
         self.padding_spacing = properties.padding
         self.border_spacing = properties.border
 
-        self.margin_rect = None
-        self.padding_rect = None
-        self.border_rect = None
-        self.content_rect = None
-        self.content_children_rect = None
+        self.margin_pos = None
+        self.padding_pos = None
+        self.border_pos = None
+        self.content_pos = None
+        self.content_children_pos = None
+
+        self.margin_size = None
+        self.padding_size = None
+        self.border_size = None
+        self.content_size = None
+        self.content_children_size = None
 
         self.calculated_margin_size = None
         self.calculated_padding_size = None
@@ -484,6 +492,26 @@ class BoxModelV2(BoxModelV2Type):
                 self.height = int(self.height)
 
         self.init_intrinsic_sizes(content_size)
+
+    @property
+    def margin_rect(self):
+        return Rect(self.margin_pos.x, self.margin_pos.y, self.margin_size.width, self.margin_size.height)
+
+    @property
+    def padding_rect(self):
+        return Rect(self.padding_pos.x, self.padding_pos.y, self.padding_size.width, self.padding_size.height)
+
+    @property
+    def border_rect(self):
+        return Rect(self.border_pos.x, self.border_pos.y, self.border_size.width, self.border_size.height)
+
+    @property
+    def content_rect(self):
+        return Rect(self.content_pos.x, self.content_pos.y, self.content_size.width, self.content_size.height)
+
+    @property
+    def content_children_rect(self):
+        return Rect(self.content_children_pos.x, self.content_children_pos.y, self.content_children_size.width, self.content_children_size.height)
 
     @staticmethod
     def content_size_to_border_size(content_size: Size2d, padding_spacing: BoxModelSpacing, border_spacing: BoxModelSpacing):
@@ -579,3 +607,97 @@ class BoxModelV2(BoxModelV2Type):
 
     def maximize_content_children_height(self):
         self.calculated_content_children_size.height = self.calculated_content_size.height
+
+    def constrain_size(self, available_size: Size2d = None):
+        margin_width = self.calculated_margin_size.width
+        margin_height = self.calculated_margin_size.height
+        max_width = self.max_width or self.width
+        max_height = self.max_height or self.height
+        available_size_width = available_size.width if available_size else None
+        available_size_height = available_size.height if available_size else None
+
+        if max_width:
+            margin_width = min(margin_width, max_width + self.margin_spacing.left + self.margin_spacing.right)
+        if available_size_width:
+            margin_width = min(margin_width, available_size_width)
+
+        if max_height:
+            margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
+        if available_size_height:
+            margin_height = min(margin_height, available_size_height)
+
+        if margin_width < self.calculated_margin_size.width:
+            self.overflow_size.width = self.calculated_margin_size.width - margin_width
+            border_width = margin_width - self.margin_spacing.left - self.margin_spacing.right
+            padding_width = border_width - self.border_spacing.left - self.border_spacing.right
+            content_width = padding_width - self.padding_spacing.left - self.padding_spacing.right
+            content_constraint_width = content_width
+            content_children_width = content_width if self.overflow.x != "visible" else self.calculated_content_children_size.width
+        else:
+            self.overflow_size.width = 0
+            border_width = self.calculated_border_size.width
+            padding_width = self.calculated_padding_size.width
+            content_width = self.calculated_content_size.width
+            content_constraint_width = content_width if (max_width or available_size_width) else None
+            content_children_width = self.calculated_content_children_size.width
+
+        if margin_height < self.calculated_margin_size.height:
+            self.overflow_size.height = self.calculated_margin_size.height - margin_height
+            border_height = margin_height - self.margin_spacing.top - self.margin_spacing.bottom
+            padding_height = border_height - self.border_spacing.top - self.border_spacing.bottom
+            content_height = padding_height - self.padding_spacing.top - self.padding_spacing.bottom
+            content_constraint_height = content_height
+            content_children_height = content_height if self.overflow.y != "visible" else self.calculated_content_children_size.height
+        else:
+            self.overflow_size.height = 0
+            border_height = self.calculated_border_size.height
+            padding_height = self.calculated_padding_size.height
+            content_height = self.calculated_content_size.height
+            content_constraint_height = content_height if (max_height or available_size_height) else None
+            content_children_height = self.calculated_content_children_size.height
+
+        self.margin_size = Size2d(margin_width, margin_height)
+        self.border_size = Size2d(border_width, border_height)
+        self.padding_size = Size2d(padding_width, padding_height)
+        self.content_size = Size2d(content_width, content_height)
+        self.content_children_size = Size2d(content_children_width, content_children_height)
+
+        content_constraint_size = Size2d(content_constraint_width, content_constraint_height) \
+            if content_constraint_width or content_constraint_height else None
+
+        return content_constraint_size
+
+    def position_for_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
+        self.margin_pos = cursor.to_point2d()
+        self.border_pos = Point2d(
+            self.margin_pos.x + self.margin_spacing.left,
+            self.margin_pos.y + self.margin_spacing.top
+        )
+        self.padding_pos = Point2d(
+            self.border_pos.x + self.border_spacing.left,
+            self.border_pos.y + self.border_spacing.top
+        )
+        self.content_pos = Point2d(
+            self.padding_pos.x + self.padding_spacing.left,
+            self.padding_pos.y + self.padding_spacing.top
+        )
+        self.content_children_pos = self.content_pos.copy()
+
+        if flex_direction == "row":
+            if justify_content == "center":
+                self.content_children_pos.x = self.content_pos.x + self.content_size.width // 2 - self.content_children_size.width // 2
+            elif justify_content == "flex_end":
+                self.content_children_pos.x = self.content_pos.x + self.content_size.width - self.content_children_size.width
+            if align_items == "center":
+                self.content_children_pos.y = self.content_pos.y + self.content_size.height // 2 - self.content_children_size.height // 2
+            elif align_items == "flex_end":
+                self.content_children_pos.y = self.content_pos.y + self.content_size.height - self.content_children_size.height
+        else:
+            if justify_content == "center":
+                self.content_children_pos.y = self.content_pos.y + self.content_size.height // 2 - self.content_children_size.height // 2
+            elif justify_content == "flex_end":
+                self.content_children_pos.y = self.content_pos.y + self.content_size.height - self.content_children_size.height
+            if align_items == "center":
+                self.content_children_pos.x = self.content_pos.x + self.content_size.width // 2 - self.content_children_size.width // 2
+            elif align_items == "flex_end":
+                self.content_children_pos.x = self.content_pos.x + self.content_size.width - self.content_children_size.width

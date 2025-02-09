@@ -240,6 +240,52 @@ class NodeContainer(Node, NodeContainerType):
         for child in self.children_nodes:
             child.v2_grow_size()
 
+    def v2_constrain_size(self, available_size: Size2d = None):
+        content_constraint_size = self.box_model_v2.constrain_size(available_size)
+        print(f"NodeContainer - Constrained size: {getattr(self, 'id', None)} {self.box_model_v2.margin_size}")
+
+        if content_constraint_size:
+            new_available_size = content_constraint_size.copy()
+
+            for child in self.children_nodes:
+                child.v2_constrain_size(new_available_size)
+                if self.properties.flex_direction == "row" and new_available_size.width != None:
+                    new_available_size.width -= child.box_model_v2.calculated_margin_size.width
+                elif self.properties.flex_direction == "column" and new_available_size.height != None:
+                    new_available_size.height -= child.box_model_v2.calculated_margin_size.height
+        else:
+            for child in self.children_nodes:
+                child.v2_constrain_size()
+
+    def v2_layout(self, cursor: Cursor):
+        self.box_model_v2.position_for_render(
+            cursor,
+            self.properties.flex_direction,
+            self.properties.align_items,
+            self.properties.justify_content
+        )
+
+        print(f"NodeContainer - Layout: {getattr(self, 'id', None)} {self.box_model_v2.margin_pos}")
+
+        self.v2_move_cursor_to_align_axis_before_children_render(cursor)
+
+        last_cursor = Point2d(cursor.x, cursor.y)
+        for i, child in enumerate(self.children_nodes):
+            self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
+
+            child_last_cursor = Point2d(cursor.x, cursor.y)
+            size = child.v2_layout(cursor)
+            cursor.move_to(child_last_cursor.x, child_last_cursor.y)
+
+            if i == len(self.children_nodes) - 1:
+                break
+
+            gap = self.gap_between_elements(child, i)
+            self.v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, size, gap)
+
+        cursor.move_to(last_cursor.x, last_cursor.y)
+        return self.box_model_v2.margin_size
+
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         resolved_width = self.properties.width
         resolved_height = self.properties.height
@@ -430,6 +476,45 @@ class NodeContainer(Node, NodeContainerType):
         #     self.draw_debug_number(c, cursor, new_color)
 
         # return None
+
+    def v2_move_cursor_to_align_axis_before_children_render(self, cursor: Cursor):
+        cursor.move_to(self.box_model_v2.content_children_pos.x, self.box_model_v2.content_children_pos.y)
+        if self.properties.flex_direction == "row":
+            if self.properties.align_items == "center":
+                cursor.move_to(cursor.x, cursor.y + self.box_model_v2.content_children_size.height // 2)
+            elif self.properties.align_items == "flex_end":
+                cursor.move_to(cursor.x, cursor.y + self.box_model_v2.content_children_size.height)
+        else:
+            if self.properties.align_items == "center":
+                cursor.move_to(cursor.x + self.box_model_v2.content_children_size.width // 2, cursor.y)
+            elif self.properties.align_items == "flex_end":
+                cursor.move_to(cursor.x + self.box_model_v2.content_children_size.width, cursor.y)
+
+    def v2_move_cursor_to_top_left_child_based_on_align_axis(self, cursor: Cursor, child):
+        if self.properties.flex_direction == "row":
+            if self.properties.align_items == "center":
+                cursor.move_to(cursor.x, cursor.y - child.box_model_v2.margin_size.height // 2)
+            elif self.properties.align_items == "flex_end":
+                cursor.move_to(cursor.x, cursor.y - child.box_model_v2.margin_size.height)
+        elif self.properties.flex_direction == "column":
+            if self.properties.align_items == "center":
+                cursor.move_to(cursor.x - child.box_model_v2.margin_size.width // 2, cursor.y)
+            elif self.properties.align_items == "flex_end":
+                cursor.move_to(cursor.x - child.box_model_v2.margin_size.width, cursor.y)
+
+    def v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: Cursor, child, size: Rect, gap = 0):
+        if self.properties.flex_direction == "row":
+            if self.properties.align_items == "center":
+                cursor.move_to(cursor.x, cursor.y + child.box_model_v2.margin_size.height // 2)
+            elif self.properties.align_items == "flex_end":
+                cursor.move_to(cursor.x, cursor.y + child.box_model_v2.margin_size.height)
+            cursor.move_to(cursor.x + size.width + gap, cursor.y)
+        else:
+            if self.properties.align_items == "center":
+                cursor.move_to(cursor.x + child.box_model_v2.margin_size.width // 2, cursor.y)
+            elif self.properties.align_items == "flex_end":
+                cursor.move_to(cursor.x + child.box_model_v2.margin_size.width, cursor.y)
+            cursor.move_to(cursor.x, cursor.y + size.height + gap)
 
     def move_cursor_to_align_axis_before_children_render(self, cursor: Cursor):
         cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)

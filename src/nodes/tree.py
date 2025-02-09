@@ -6,7 +6,7 @@ from talon import cron, settings
 from typing import Any
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
-from ..cursor import Cursor
+from ..cursor import Cursor, CursorV2
 from ..interfaces import (
     TreeType,
     NodeType,
@@ -258,6 +258,7 @@ class Tree(TreeType):
         self.canvas_blockable = []
         self.canvas_decorator = None
         self.cursor = None
+        self.cursor_v2 = None
         self.effects = []
         self.draggable_node = False
         self.draggable_node_delta_pos = None
@@ -294,8 +295,13 @@ class Tree(TreeType):
     def reset_cursor(self):
         if self.cursor is None:
             self.cursor = Cursor(self.root_node.boundary_rect)
+            self.cursor_v2 = CursorV2(Point2d(
+                self.root_node.boundary_rect.x,
+                self.root_node.boundary_rect.y
+            ))
         else:
             self.cursor.reset()
+            self.cursor_v2.reset()
 
     def validate_root_node(self):
         if self.root_node.element_type not in ["screen", "active_window"]:
@@ -326,9 +332,9 @@ class Tree(TreeType):
 
             self.root_node.v2_measure_intrinsic_size(canvas)
             self.root_node.v2_grow_size()
-            self.root_node.v2_constrain_size(canvas, self.cursor)
-            self.root_node.v2_layout(canvas, self.cursor)
-            self.root_node.v2_render(canvas, self.cursor)
+            self.root_node.v2_constrain_size()
+            self.root_node.v2_layout(self.cursor_v2)
+            self.root_node.v2_render(canvas, self.cursor_v2)
 
             self.root_node.virtual_render(canvas, self.cursor)
             self.root_node.grow_intrinsic_size(canvas, self.cursor)

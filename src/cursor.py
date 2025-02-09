@@ -1,4 +1,5 @@
 from talon.types import Rect
+from .interfaces import Point2d
 
 class Cursor:
     def __init__(self, boundary: Rect):
@@ -26,3 +27,23 @@ class Cursor:
 
     def __str__(self):
         return f"Cursor Position: ({self.x}, {self.y}, {self.virtual_x}, {self.virtual_y})"
+
+class CursorV2:
+    def __init__(self, init_pos: Point2d):
+        self.init_pos = init_pos
+        self.x = init_pos.x
+        self.y = init_pos.y
+
+    def move_to(self, x, y):
+        self.x = x
+        self.y = y
+
+    def reset(self):
+        self.x = self.init_pos.x
+        self.y = self.init_pos.y
+
+    def to_point2d(self):
+        return Point2d(self.x, self.y)
+
+    def __str__(self):
+        return f"Cursor Position: ({self.x}, {self.y})"
