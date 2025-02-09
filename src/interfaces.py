@@ -326,6 +326,18 @@ class BoxModelV2Type(ABC):
     content_rect: Rect
     content_children_rect: Rect
 
+    margin_pos: Point2d
+    border_pos: Point2d
+    padding_pos: Point2d
+    content_pos: Point2d
+    content_children_pos: Point2d
+
+    margin_size: Size2d
+    border_size: Size2d
+    padding_size: Size2d
+    content_size: Size2d
+    content_children_size: Size2d
+
     calculated_margin_size: Size2d
     calculated_border_size: Size2d
     calculated_padding_size: Size2d
@@ -410,12 +422,34 @@ class NodeType(ABC):
             print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
 
     # @abstractmethod
-    def v2_constrain_size(self, c: SkiaCanvas, cursor: object):
-        pass
+    def v2_constrain_size(self, available_size: Size2d = None):
+        content_constraint_size = self.box_model_v2.constrain_size(available_size)
+        if self.text:
+            if self.element_type == "text":
+                print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
+            else:
+                print(f"NodeButton {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
+        else:
+            print(f"Node {self.element_type} - Constrained Size: {self.box_model_v2.margin_size}")
 
     # @abstractmethod
-    def v2_layout(self, c: SkiaCanvas, cursor: object):
-        pass
+    def v2_layout(self, cursor: object) -> Size2d:
+        self.box_model_v2.position_for_render(
+            cursor,
+            self.properties.flex_direction,
+            self.properties.align_items,
+            self.properties.justify_content
+        )
+
+        if self.text:
+            if self.element_type == "text":
+                print(f"NodeText {self.text} - Layout: {self.box_model_v2.margin_pos}")
+            else:
+                print(f"NodeButton {self.text} - Layout: {self.box_model_v2.margin_pos}")
+        else:
+            print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
+
+        return self.box_model_v2.margin_size
 
     # @abstractmethod
     def v2_render(self, c: SkiaCanvas, cursor: object):
