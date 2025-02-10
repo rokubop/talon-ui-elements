@@ -264,7 +264,7 @@ class NodeContainer(Node, NodeContainerType):
             for child in self.children_nodes:
                 child.v2_constrain_size()
 
-    def v2_layout(self, cursor: Cursor):
+    def v2_layout(self, cursor: Cursor) -> Size2d:
         self.box_model_v2.position_for_render(
             cursor,
             self.properties.flex_direction,

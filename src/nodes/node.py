@@ -3,7 +3,7 @@ from talon.types import Rect
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 import uuid
-from ..box_model import BoxModelLayout
+from ..box_model import BoxModelLayout, BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     NODE_TYPE_MAP,
@@ -11,7 +11,8 @@ from ..constants import (
     LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION,
     CASCADED_PROPERTIES
 )
-from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType
+from ..cursor import Cursor
+from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType, Size2d
 from ..properties import Properties
 from ..utils import sanitize_string
 from ..state_manager import state_manager
@@ -145,6 +146,47 @@ class Node(NodeType):
                 return not clip_rect.intersects(margin_rect)
         return False
 
+    def v2_measure_intrinsic_size(self, c):
+        self.box_model_v2 = BoxModelV2(self.properties, Size2d(0, 0))
+        return self.box_model_v2.intrinsic_margin_size
+
+    def v2_grow_size(self):
+        if getattr(self, "text", None):
+            if self.element_type == "text":
+                print(f"NodeText {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+            else:
+                print(f"NodeButton {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+        else:
+            print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+
+    def v2_constrain_size(self, available_size: Size2d = None):
+        self.box_model_v2.constrain_size(available_size)
+        if getattr(self, "text", None):
+            if self.element_type == "text":
+                print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
+            else:
+                print(f"NodeButton {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
+        else:
+            print(f"Node {self.element_type} - Constrained Size: {self.box_model_v2.margin_size}")
+
+    def v2_layout(self, cursor: Cursor) -> Size2d:
+        self.box_model_v2.position_for_render(
+            cursor,
+            self.properties.flex_direction,
+            self.properties.align_items,
+            self.properties.justify_content
+        )
+
+        if getattr(self, "text", None):
+            if self.element_type == "text":
+                print(f"NodeText {self.text} - Layout: {self.box_model_v2.margin_pos}")
+            else:
+                print(f"NodeButton {self.text} - Layout: {self.box_model_v2.margin_pos}")
+        else:
+            print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
+
+        return self.box_model_v2.margin_size
+
     def v2_render_borders(self, c: SkiaCanvas):
         self.is_uniform_border = True
         border_spacing = self.box_model_v2.border_spacing
@@ -203,6 +245,13 @@ class Node(NodeType):
                 c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
             else:
                 c.draw_rect(inner_rect)
+
+    def v2_render(self, c: SkiaCanvas):
+        self.v2_render_background(c)
+        self.v2_render_borders(c)
+
+        for child in self.children_nodes:
+            child.v2_render(c)
 
     def destroy(self):
         for node in self.children_nodes:

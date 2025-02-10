@@ -435,11 +435,8 @@ class BoxModelV2(BoxModelV2Type):
     def __init__(
         self,
         properties: PropertiesDimensionalType,
-        content_size: Size2d,
+        content_size: Size2d = Size2d(0, 0)
     ):
-        if not content_size:
-            raise ValueError("Size2d content_size is required for BoxModelV2")
-
         self.width = properties.width
         self.height = properties.height
         self.min_width = properties.min_width

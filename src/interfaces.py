@@ -407,51 +407,23 @@ class NodeType(ABC):
     def virtual_render(self):
         pass
 
-    # @abstractmethod
+    @abstractmethod
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        return Size2d(0, 0)
+        pass
 
-    # @abstractmethod
+    @abstractmethod
     def v2_grow_size(self):
-        if self.text:
-            if self.element_type == "text":
-                print(f"NodeText {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
-            else:
-                print(f"NodeButton {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
-        else:
-            print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+        pass
 
-    # @abstractmethod
+    @abstractmethod
     def v2_constrain_size(self, available_size: Size2d = None):
-        content_constraint_size = self.box_model_v2.constrain_size(available_size)
-        if self.text:
-            if self.element_type == "text":
-                print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
-            else:
-                print(f"NodeButton {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
-        else:
-            print(f"Node {self.element_type} - Constrained Size: {self.box_model_v2.margin_size}")
+        pass
 
-    # @abstractmethod
+    @abstractmethod
     def v2_layout(self, cursor: object) -> Size2d:
-        self.box_model_v2.position_for_render(
-            cursor,
-            self.properties.flex_direction,
-            self.properties.align_items,
-            self.properties.justify_content
-        )
+        pass
 
-        if self.text:
-            if self.element_type == "text":
-                print(f"NodeText {self.text} - Layout: {self.box_model_v2.margin_pos}")
-            else:
-                print(f"NodeButton {self.text} - Layout: {self.box_model_v2.margin_pos}")
-        else:
-            print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
-
-        return self.box_model_v2.margin_size
-
-    # @abstractmethod
+    @abstractmethod
     def v2_render(self, c: SkiaCanvas):
         pass
 

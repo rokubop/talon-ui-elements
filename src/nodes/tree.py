@@ -336,9 +336,9 @@ class Tree(TreeType):
             self.root_node.v2_layout(self.cursor_v2)
             self.root_node.v2_render(canvas)
 
-            self.root_node.virtual_render(canvas, self.cursor)
-            self.root_node.grow_intrinsic_size(canvas, self.cursor)
-            self.root_node.render(canvas, self.cursor)
+            # self.root_node.virtual_render(canvas, self.cursor)
+            # self.root_node.grow_intrinsic_size(canvas, self.cursor)
+            # self.root_node.render(canvas, self.cursor)
             self.show_inputs()
             self.render_decorator_canvas()
             state_manager.set_processing_tree(None)
@@ -348,7 +348,8 @@ class Tree(TreeType):
         for id, color in list(self.meta_state.highlighted.items()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                box_model = node.box_model
+                # box_model = node.box_model
+                box_model = node.box_model_v2
                 canvas.paint.color = color or node.properties.highlight_color
 
                 if hasattr(node.properties, 'border_radius'):
@@ -437,7 +438,8 @@ class Tree(TreeType):
     def draw_focus_outline(self, canvas: SkiaCanvas):
         node = state_manager.get_focused_node()
         if node and node.tree == self:
-            border_rect = node.box_model.border_rect
+            # border_rect = node.box_model.border_rect
+            border_rect = node.box_model_v2.border_rect
             stroke_width = node.properties.focus_outline_width
             focus_outline_rect = Rect(
                 border_rect.x - stroke_width,
@@ -446,13 +448,15 @@ class Tree(TreeType):
                 border_rect.height + stroke_width * 2
             )
 
-            get_clip_rect = node.box_model.constraints["get_clip_rect"]
-            clip_rect = get_clip_rect() if get_clip_rect else None
-            apply_clip = clip_rect and \
-                (clip_rect.top > node.box_model.padding_rect.top or \
-                clip_rect.left > node.box_model.padding_rect.left or \
-                clip_rect.bot < node.box_model.padding_rect.bot or \
-                clip_rect.right < node.box_model.padding_rect.right)
+            apply_clip = False
+            clip_rect = None
+            # get_clip_rect = node.box_model.constraints["get_clip_rect"]
+            # clip_rect = get_clip_rect() if get_clip_rect else None
+            # apply_clip = clip_rect and \
+            #     (clip_rect.top > node.box_model.padding_rect.top or \
+            #     clip_rect.left > node.box_model.padding_rect.left or \
+            #     clip_rect.bot < node.box_model.padding_rect.bot or \
+            #     clip_rect.right < node.box_model.padding_rect.right)
 
             if apply_clip:
                 canvas.save()
@@ -615,7 +619,8 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node.get(button_id, None)
             if node.is_fully_clipped_by_scroll():
                 continue
-            if node and node.box_model.padding_rect.contains(gpos):
+            # if node and node.box_model.padding_rect.contains(gpos):
+            if node and node.box_model_v2.padding_rect.contains(gpos):
                 new_hovered_id = button_id
                 if new_hovered_id != prev_hovered_id:
                     state_manager.set_hovered_id(button_id)
@@ -665,8 +670,10 @@ class Tree(TreeType):
         hovered_id = state_manager.get_hovered_id()
 
         if self.draggable_node and self.drag_handle_node:
-            draggable_rect = self.draggable_node.box_model.margin_rect
-            drag_handle_rect = self.drag_handle_node.box_model.border_rect
+            # draggable_rect = self.draggable_node.box_model.margin_rect
+            # drag_handle_rect = self.drag_handle_node.box_model.border_rect
+            draggable_rect = self.draggable_node.box_model_v2.margin_pos
+            drag_handle_rect = self.drag_handle_node.box_model_v2.border_rect
             if drag_handle_rect.contains(gpos):
                 state_manager.set_mousedown_start_pos(gpos)
                 relative_offset = Point2d(gpos.x - draggable_rect.x, gpos.y - draggable_rect.y)
@@ -688,8 +695,10 @@ class Tree(TreeType):
                 state_manager.focus_node(node)
                 return
 
-        if self.root_node.box_model:
-            if self.root_node.box_model.content_children_rect.contains(gpos):
+        # if self.root_node.box_model:
+        #     if self.root_node.box_model.content_children_rect.contains(gpos):
+        if self.root_node.box_model_v2:
+            if self.root_node.box_model_v2.content_children_rect.contains(gpos):
                 state_manager.blur()
             else:
                 state_manager.blur_all()
@@ -733,36 +742,37 @@ class Tree(TreeType):
                 self.on_mouseup(e.gpos)
 
     def on_scroll_tick(self, e):
-        if not self.render_manager.is_destroying:
-            smallest_node = None
-            if self.meta_state.scrollable:
-                for id, data in list(self.meta_state.scrollable.items()):
-                    node = self.meta_state.id_to_node.get(id)
-                    if getattr(node, 'box_model', None) and node.box_model.scroll_box_rect.contains(e.gpos):
-                        smallest_node = node if not smallest_node or node.box_model.scroll_box_rect.height < smallest_node.box_model.scroll_box_rect.height else smallest_node
+        pass
+        # if not self.render_manager.is_destroying:
+        #     smallest_node = None
+        #     if self.meta_state.scrollable:
+        #         for id, data in list(self.meta_state.scrollable.items()):
+        #             node = self.meta_state.id_to_node.get(id)
+        #             if getattr(node, 'box_model', None) and node.box_model.scroll_box_rect.contains(e.gpos):
+        #                 smallest_node = node if not smallest_node or node.box_model.scroll_box_rect.height < smallest_node.box_model.scroll_box_rect.height else smallest_node
 
-                if smallest_node:
-                    offset_y = e.degrees.y
-                    if offset_y > 0:
-                        offset_y = -self.scroll_amount_per_tick
-                    elif offset_y < 0:
-                        offset_y = self.scroll_amount_per_tick
+        #         if smallest_node:
+        #             offset_y = e.degrees.y
+        #             if offset_y > 0:
+        #                 offset_y = -self.scroll_amount_per_tick
+        #             elif offset_y < 0:
+        #                 offset_y = self.scroll_amount_per_tick
 
-                    max_height = smallest_node.box_model.intrinsic_padding_rect.height
-                    view_height = smallest_node.box_model.scroll_box_rect.height
+        #             max_height = smallest_node.box_model.intrinsic_padding_rect.height
+        #             view_height = smallest_node.box_model.scroll_box_rect.height
 
-                    max_top_scroll_y = 0
-                    max_bottom_scroll_y = max_height - view_height
+        #             max_top_scroll_y = 0
+        #             max_bottom_scroll_y = max_height - view_height
 
-                    new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
+        #             new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
-                    if new_offset_y < max_top_scroll_y:
-                        new_offset_y = max_top_scroll_y
-                    elif new_offset_y > max_bottom_scroll_y:
-                        new_offset_y = max_bottom_scroll_y
+        #             if new_offset_y < max_top_scroll_y:
+        #                 new_offset_y = max_top_scroll_y
+        #             elif new_offset_y > max_bottom_scroll_y:
+        #                 new_offset_y = max_bottom_scroll_y
 
-                    self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
-                    self.canvas_base.freeze()
+        #             self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
+        #             self.canvas_base.freeze()
 
     def on_scroll(self, e):
         global scroll_throttle_job
@@ -960,9 +970,9 @@ class Tree(TreeType):
         blockable_rects = []
 
         if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node:
-            full_rect = self.draggable_node.box_model.border_rect \
-                if getattr(self.draggable_node, 'box_model', None) \
-                else self.root_node.box_model.content_children_rect
+            full_rect = self.draggable_node.box_model_v2.border_rect \
+                if getattr(self.draggable_node, 'box_model_v2', None) \
+                else self.root_node.box_model_v2.content_children_rect
 
             if self.meta_state.inputs:
                 bottom_rect = None
@@ -998,7 +1008,8 @@ class Tree(TreeType):
             else:
                 return
 
-        if not self.root_node or not self.root_node.box_model:
+        # if not self.root_node or not self.root_node.box_model:
+        if not self.root_node or not self.root_node.box_model_v2:
             return
 
         blockable_rects = self.calculate_blockable_rects()
