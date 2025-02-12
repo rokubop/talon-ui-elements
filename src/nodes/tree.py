@@ -617,16 +617,17 @@ class Tree(TreeType):
         prev_hovered_id = state_manager.get_hovered_id()
         for button_id in list(self.meta_state.buttons):
             node = self.meta_state.id_to_node.get(button_id, None)
-            if node.is_fully_clipped_by_scroll():
-                continue
-            # if node and node.box_model.padding_rect.contains(gpos):
-            if node and node.box_model_v2.padding_rect.contains(gpos):
-                new_hovered_id = button_id
-                if new_hovered_id != prev_hovered_id:
-                    state_manager.set_hovered_id(button_id)
-                    self.unhighlight(prev_hovered_id)
-                    self.highlight(button_id, color=node.properties.highlight_color)
-                break
+            if node:
+                if node.is_fully_clipped_by_scroll():
+                    continue
+                # if node and node.box_model.padding_rect.contains(gpos):
+                if node and node.box_model_v2.padding_rect.contains(gpos):
+                    new_hovered_id = button_id
+                    if new_hovered_id != prev_hovered_id:
+                        state_manager.set_hovered_id(button_id)
+                        self.unhighlight(prev_hovered_id)
+                        self.highlight(button_id, color=node.properties.highlight_color)
+                    break
 
         if not new_hovered_id and prev_hovered_id:
             self.unhighlight(prev_hovered_id)

@@ -14,7 +14,6 @@ from typing import List
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
         super().__init__(element_type=element_type, properties=properties)
-        self.is_uniform_border = True
         self.justify_between_gaps = None
         self.debug_number = 0
         self.debug_color = "red"
@@ -163,9 +162,10 @@ class NodeContainer(Node, NodeContainerType):
                     getattr(children_accumulated_size, primary_axis) + getattr(margin_size, primary_axis)
                 )
 
-                # add gap between elements
+            fixed_gap = self.determine_intrinsic_fixed_gap()
+            for i, child in enumerate(self.children_nodes):
                 if i != len(self.children_nodes) - 1:
-                    gap = self.gap_between_elements(child, i)
+                    gap = self.gap_between_elements(child, i, fixed_gap)
                     setattr(
                         children_accumulated_size,
                         primary_axis,
@@ -277,6 +277,7 @@ class NodeContainer(Node, NodeContainerType):
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)
 
         last_cursor = Point2d(cursor.x, cursor.y)
+        fixed_gap = self.determine_layout_fixed_gap()
         for i, child in enumerate(self.children_nodes):
             self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
 
@@ -287,7 +288,7 @@ class NodeContainer(Node, NodeContainerType):
             if i == len(self.children_nodes) - 1:
                 break
 
-            gap = self.gap_between_elements(child, i)
+            gap = self.gap_between_elements(child, i, fixed_gap)
             self.v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, size, gap)
 
         cursor.move_to(last_cursor.x, last_cursor.y)
@@ -574,8 +575,8 @@ class NodeContainer(Node, NodeContainerType):
                 cursor.move_to(cursor.x + child.box_model.margin_rect.width, cursor.y)
             cursor.move_to(cursor.x, cursor.y + rect.height + gap)
 
-    def gap_between_elements(self, node, i):
-        gap = self.justify_between_gaps or self.properties.gap or 0
+    def gap_between_elements(self, node, i, fixed_gap = 0):
+        gap = fixed_gap
 
         if not gap and node.element_type == ELEMENT_ENUM_TYPE["text"] and \
                 self.children_nodes[i + 1].element_type == ELEMENT_ENUM_TYPE["text"] and \
@@ -587,6 +588,25 @@ class NodeContainer(Node, NodeContainerType):
                 gap = 16
 
         return gap
+
+    def determine_intrinsic_fixed_gap(self):
+        return self.properties.gap or 0
+
+    def determine_layout_fixed_gap(self):
+        fixed_gap = self.properties.gap or 0
+        if self.properties.justify_content == "space_between":
+            total_children_width = None
+            total_children_height = None
+
+            if self.properties.flex_direction == "row":
+                total_children_width = sum(child.box_model_v2.margin_size.width for child in self.children_nodes)
+                available_space = self.box_model_v2.content_size.width - total_children_width
+            else:
+                total_children_height = sum(child.box_model_v2.margin_size.height for child in self.children_nodes)
+                available_space = self.box_model_v2.content_size.height - total_children_height
+
+            fixed_gap = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
+        return fixed_gap
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         if view_state := self.debugger(c, cursor, True):

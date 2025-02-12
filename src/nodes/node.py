@@ -27,6 +27,7 @@ class Node(NodeType):
         self.cascaded_properties = set()
         self.guid: str = uuid.uuid4().hex
         self.id: str = sanitize_string(self.properties.id) if self.properties.id else None
+        self.is_uniform_border = True
         self.key: str = self.properties.key
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
@@ -138,12 +139,12 @@ class Node(NodeType):
                 self.properties.update_colors_with_opacity()
 
     def is_fully_clipped_by_scroll(self):
-        if self.box_model:
-            get_clip_rect = self.box_model.constraints.get("get_clip_rect")
-            if get_clip_rect:
-                clip_rect = get_clip_rect()
-                margin_rect = self.box_model.margin_rect
-                return not clip_rect.intersects(margin_rect)
+        # if self.box_model:
+        #     get_clip_rect = self.box_model.constraints.get("get_clip_rect")
+        #     if get_clip_rect:
+        #         clip_rect = get_clip_rect()
+        #         margin_rect = self.box_model.margin_rect
+        #         return not clip_rect.intersects(margin_rect)
         return False
 
     def v2_measure_intrinsic_size(self, c):

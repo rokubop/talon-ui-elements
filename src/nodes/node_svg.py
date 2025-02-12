@@ -1,9 +1,9 @@
 from talon.skia import Path
 from talon.skia.canvas import Canvas as SkiaCanvas, Paint
 from talon.types import Point2d, Rect
-from ..box_model import BoxModelLayout
+from ..box_model import BoxModelLayout, BoxModelV2
 from ..cursor import Cursor
-from ..interfaces import NodeSvgType, NodeType
+from ..interfaces import NodeSvgType, NodeType, Size2d
 from ..properties import NodeSvgProperties
 from .node import Node
 import re
@@ -49,6 +49,13 @@ linejoin = {
     "bevel": 2
 }
 
+class NodeRenderOnly():
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        pass
+
+    def v2_layout(self, cursor: Cursor):
+        pass
+
 class NodeSvg(Node, NodeSvgType):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg", properties=properties)
@@ -60,6 +67,13 @@ class NodeSvg(Node, NodeSvgType):
 
     def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
         return self.box_model.margin_rect
+
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        self.box_model_v2 = BoxModelV2(
+            self.properties,
+            Size2d(self.properties.width, self.properties.height)
+        )
+        return self.box_model_v2.intrinsic_margin_size
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         if not self.tree.redistribute_box_model:
@@ -89,12 +103,32 @@ class NodeSvg(Node, NodeSvgType):
 
         return self.box_model.margin_rect
 
-class NodeSvgPath(Node, NodeType):
+class NodeSvgPath(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_path", properties=properties)
 
     def virtual_render(self):
         pass
+
+    def v2_render(self, c: SkiaCanvas):
+        scale = self.parent_node.size / 24
+        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        new_d = scale_d(self.properties.d, scale)
+        path = Path.from_svg(new_d)
+        translated_path = Path()
+        translated_path.add_path_offset(path, dx=top_left_pos.x, dy=top_left_pos.y, add_mode=Path.AddMode.APPEND)
+
+        prev_paint = c.paint.clone()
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
+        c.draw_path(translated_path, c.paint)
+
+        c.paint = prev_paint
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         scale = self.parent_node.size / 24
@@ -120,12 +154,35 @@ class NodeSvgPath(Node, NodeType):
 
         c.paint = prev_paint
 
-class NodeSvgRect(Node, NodeType):
+class NodeSvgRect(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_rect", properties=properties)
 
     def virtual_render(self):
         pass
+
+    def v2_render(self, c: SkiaCanvas):
+        scale = self.parent_node.size / 24
+
+        x = self.properties.x * scale
+        y = self.properties.y * scale
+        width = self.properties.width * scale
+        height = self.properties.height * scale
+        rx = self.properties.rx * scale
+        ry = self.properties.ry * scale
+
+        prev_paint = c.paint.clone()
+
+        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_round_rect(Rect(x + top_left_pos.x, y + top_left_pos.y, width, height), rx, ry)
+
+        c.paint = prev_paint
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         scale = self.parent_node.size / 24
@@ -153,12 +210,32 @@ class NodeSvgRect(Node, NodeType):
 
         c.paint = prev_paint
 
-class NodeSvgCircle(Node, NodeType):
+class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_circle", properties=properties)
 
     def virtual_render(self):
         pass
+
+    def v2_render(self, c: SkiaCanvas):
+        scale = self.parent_node.size / 24
+
+        cx = self.properties.cx * scale
+        cy = self.properties.cy * scale
+        r = self.properties.r * scale
+
+        prev_paint = c.paint.clone()
+
+        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_circle(cx + top_left_pos.x, cy + top_left_pos.y, r)
+
+        c.paint = prev_paint
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         scale = self.parent_node.size / 24
@@ -183,12 +260,38 @@ class NodeSvgCircle(Node, NodeType):
 
         c.paint = prev_paint
 
-class NodeSvgPolyline(Node, NodeType):
+class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
     def __init__(self, element_type: str, properties: NodeSvgProperties = None):
         super().__init__(element_type=element_type, properties=properties)
 
     def virtual_render(self):
         pass
+
+    def v2_render(self, c: SkiaCanvas):
+        scale = self.parent_node.size / 24
+
+        raw_points = self.properties.points.split(" ")
+        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        points = [
+            (
+                float(raw_points[i]) * scale + top_left_pos.x,
+                float(raw_points[i + 1]) * scale + top_left_pos.y
+            )
+            for i in range(0, len(raw_points), 2)
+        ]
+
+        prev_paint = c.paint.clone()
+
+        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_points(mode=c.PointMode.POLYGON, points=points)
+
+        c.paint = prev_paint
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         scale = self.parent_node.size / 24
@@ -218,12 +321,33 @@ class NodeSvgPolyline(Node, NodeType):
 
         c.paint = prev_paint
 
-class NodeSvgLine(Node, NodeType):
+class NodeSvgLine(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_line", properties=properties)
 
     def virtual_render(self):
         pass
+
+    def v2_render(self, c: SkiaCanvas):
+        scale = self.parent_node.size / 24
+
+        x1 = self.properties.x1 * scale
+        y1 = self.properties.y1 * scale
+        x2 = self.properties.x2 * scale
+        y2 = self.properties.y2 * scale
+
+        prev_paint = c.paint.clone()
+
+        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+
+        c.paint.style = c.paint.Style.STROKE
+        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.draw_line(x1 + top_left_pos.x, y1 + top_left_pos.y, x2 + top_left_pos.x, y2 + top_left_pos.y)
+
+        c.paint = prev_paint
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
         scale = self.parent_node.size / 24
