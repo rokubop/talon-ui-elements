@@ -56,6 +56,7 @@ class MetaState(MetaStateType):
         self._inputs = {}
         self._scroll_regions = {}
         self._scrollable = {}
+        self._draggable = {}
         self._style_mutations = {}
         self._text_mutations = {}
         self.ref_property_overrides = {}
@@ -121,6 +122,14 @@ class MetaState(MetaStateType):
     def add_scrollable(self, id):
         if id not in self._scrollable:
             self._scrollable[id] = Scrollable(id)
+
+    def add_draggable(self, id):
+        # TODO
+        if id not in self._draggable:
+            self._draggable[id] = {
+                "offset_x": 0,
+                "offset_y": 0
+            }
 
     def set_highlighted(self, id, color = None):
         if id in self._id_to_node:
@@ -263,7 +272,6 @@ class Tree(TreeType):
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
-        self.draw_busy = None
         self.processing_states = []
         self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
@@ -324,17 +332,24 @@ class Tree(TreeType):
         state_manager.set_processing_tree(None)
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
+        # print("DRAWING")
+        # return
         if not self.render_manager.is_destroying:
             state_manager.set_processing_tree(self)
-            self.reset_cursor()
-            self.init_node_hierarchy(self.root_node)
-            self.consume_effects()
 
-            self.root_node.v2_measure_intrinsic_size(canvas)
-            self.root_node.v2_grow_size()
-            self.root_node.v2_constrain_size()
-            self.root_node.v2_layout(self.cursor_v2)
-            self.root_node.v2_render(canvas)
+            if self.render_manager.render_cause == RenderCause.DRAGGING or \
+                    self.render_manager.render_cause == RenderCause.DRAG_END:
+                self.root_node.v2_reposition()
+                self.root_node.v2_render(canvas)
+            else:
+                self.reset_cursor()
+                self.init_node_hierarchy(self.root_node)
+                self.consume_effects()
+                self.root_node.v2_measure_intrinsic_size(canvas)
+                self.root_node.v2_grow_size()
+                self.root_node.v2_constrain_size()
+                self.root_node.v2_layout(self.cursor_v2)
+                self.root_node.v2_render(canvas)
 
             # self.root_node.virtual_render(canvas, self.cursor)
             # self.root_node.grow_intrinsic_size(canvas, self.cursor)
@@ -449,14 +464,16 @@ class Tree(TreeType):
             )
 
             apply_clip = False
-            clip_rect = None
-            # get_clip_rect = node.box_model.constraints["get_clip_rect"]
-            # clip_rect = get_clip_rect() if get_clip_rect else None
-            # apply_clip = clip_rect and \
-            #     (clip_rect.top > node.box_model.padding_rect.top or \
-            #     clip_rect.left > node.box_model.padding_rect.left or \
-            #     clip_rect.bot < node.box_model.padding_rect.bot or \
-            #     clip_rect.right < node.box_model.padding_rect.right)
+            clip_rect = node.box_model_v2.clip_rect()
+            if clip_rect:
+                # get_clip_rect = node.box_model.constraints["get_clip_rect"]
+                # clip_rect = get_clip_rect() if get_clip_rect else None
+                padding_rect = node.box_model_v2.padding_rect
+                apply_clip = clip_rect and \
+                    (clip_rect.top > padding_rect.top or \
+                    clip_rect.left > padding_rect.left or \
+                    clip_rect.bot < padding_rect.bot or \
+                    clip_rect.right < padding_rect.right)
 
             if apply_clip:
                 canvas.save()
@@ -540,9 +557,9 @@ class Tree(TreeType):
     def render_base_canvas(self):
         if not self.render_manager.is_destroying:
             if not self.canvas_base:
-                with self.lock:
-                    self.canvas_base = self.create_canvas()
-                    self.canvas_base.register("draw", self.on_draw_base_canvas)
+                # with self.lock:
+                self.canvas_base = self.create_canvas()
+                self.canvas_base.register("draw", self.on_draw_base_canvas)
 
             self.canvas_base.freeze()
 
@@ -633,18 +650,6 @@ class Tree(TreeType):
             self.unhighlight(prev_hovered_id)
             state_manager.set_hovered_id(None)
 
-    def draw_busy_disable(self):
-        if self.draw_busy:
-            cron.cancel(self.draw_busy)
-        self.draw_busy = None
-        self.render_cause.clear()
-
-    def refresh_dragging_canvas(self):
-        if not self.draw_busy:
-            self.render_cause.set_is_dragging()
-            self.canvas_base.freeze()
-            self.draw_busy = cron.after("16ms", self.draw_busy_disable)
-
     def get_mouse_hovered_input_id(self, gpos):
         for id, input_data in list(self.meta_state.inputs.items()):
             if input_data.input and input_data.input.rect.contains(gpos):
@@ -665,7 +670,7 @@ class Tree(TreeType):
                 self.draggable_node_delta_pos = Point2d(x, y)
 
         if state_manager.get_mousedown_start_pos():
-            self.refresh_dragging_canvas()
+            self.render_manager.render_dragging()
 
     def on_mousedown(self, gpos):
         hovered_id = state_manager.get_hovered_id()
@@ -673,11 +678,13 @@ class Tree(TreeType):
         if self.draggable_node and self.drag_handle_node:
             # draggable_rect = self.draggable_node.box_model.margin_rect
             # drag_handle_rect = self.drag_handle_node.box_model.border_rect
-            draggable_rect = self.draggable_node.box_model_v2.margin_pos
+            draggable_top_left_pos = self.draggable_node.box_model_v2.margin_pos
             drag_handle_rect = self.drag_handle_node.box_model_v2.border_rect
             if drag_handle_rect.contains(gpos):
                 state_manager.set_mousedown_start_pos(gpos)
-                relative_offset = Point2d(gpos.x - draggable_rect.x, gpos.y - draggable_rect.y)
+                print("gpos", gpos)
+                relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
+                print("relative_offset", relative_offset)
                 state_manager.set_drag_relative_offset(relative_offset)
 
         if hovered_id in list(self.meta_state.buttons):
@@ -832,7 +839,6 @@ class Tree(TreeType):
         self.draggable_node = None
         self.drag_handle_node = None
         self.draggable_node_delta_pos = None
-        self.draw_busy_disable()
         scroll_throttle_job = None
         hint_clear_state()
         self.render_cause.clear()
@@ -853,7 +859,7 @@ class Tree(TreeType):
         if node.interactive:
             self.interactive_node_list.append(node)
             requires_id = True
-        if node.properties.is_scrollable():
+        if node.properties.is_scrollable() or getattr(node.properties, "draggable", False):
             requires_id = True
 
         if requires_id and not node.id:
@@ -875,6 +881,9 @@ class Tree(TreeType):
             if node.properties.is_scrollable():
                 self.meta_state.add_scrollable(node.id)
 
+            # if node.properties.draggable:
+            #     self.meta_state.add_draggable(node.id)
+
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
         if node.properties.width is not None or \
                 node.properties.max_width is not None or \
@@ -891,6 +900,16 @@ class Tree(TreeType):
 
         return constraint_nodes
 
+    def _cascade_clip_nodes(self, node: NodeType, clip_nodes: list[NodeType]):
+        if node.properties.overflow and node.properties.overflow.is_boundary:
+            if clip_nodes is None:
+                clip_nodes = []
+            clip_nodes = clip_nodes + [node]
+
+        if clip_nodes:
+            for clip_node in clip_nodes:
+                node.add_clip_node(clip_node)
+
     def _check_deprecated_ui(self, node: NodeType):
         if node.element_type == ELEMENT_ENUM_TYPE["screen"] and node.deprecated_ui:
             self.render_version = 1
@@ -904,7 +923,8 @@ class Tree(TreeType):
             self,
             current_node: NodeType,
             node_index_path = [], # [1, 2, 0]
-            constraint_nodes: list[NodeType] = None
+            constraint_nodes: list[NodeType] = None,
+            clip_nodes: list[NodeType] = None
         ):
         current_node.tree = self
         current_node.depth = len(node_index_path)
@@ -916,12 +936,13 @@ class Tree(TreeType):
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
+        clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)
         self._check_deprecated_ui(current_node)
         self._apply_justify_content_if_space_evenly(current_node)
 
         for i, child_node in enumerate(current_node.children_nodes):
             child_node.inherit_cascaded_properties(current_node)
-            self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes)
+            self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes, clip_nodes)
 
         entity_manager.synchronize_global_ids()
 

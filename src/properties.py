@@ -41,6 +41,7 @@ class Properties(PropertiesDimensionalType):
     border: Border = Border(0, 0, 0, 0)
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
+    draggable: bool = False
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
     font_size: int = DEFAULT_FONT_SIZE
@@ -165,6 +166,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_width: int
     color: str
     drag_handle: bool
+    draggable: bool
     font_family: str
     font_size: int
     flex_direction: str
@@ -187,8 +189,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     value: str
     width: Union[int, str]
 
-class NodeDivValidationProperties(ValidationProperties):
-    draggable: bool
+NodeDivValidationProperties = ValidationProperties
 
 class NodeTextValidationProperties(ValidationProperties):
     text: str
@@ -237,8 +238,6 @@ class NodeRootValidationProperties(ValidationProperties):
 
 @dataclass
 class NodeDivProperties(Properties):
-    draggable: bool = False
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

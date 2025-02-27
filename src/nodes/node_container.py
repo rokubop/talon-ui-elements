@@ -172,9 +172,9 @@ class NodeContainer(Node, NodeContainerType):
                         getattr(children_accumulated_size, primary_axis) + gap
                     )
 
-        self.box_model_v2 = BoxModelV2(self.properties, children_accumulated_size)
+        self.box_model_v2 = BoxModelV2(self.properties, children_accumulated_size, self.clip_nodes)
 
-        print(f"NodeContainer - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
+        # print(f"NodeContainer - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
         return self.box_model_v2.intrinsic_margin_size
 
     def v2_grow_size(self):
@@ -243,13 +243,13 @@ class NodeContainer(Node, NodeContainerType):
                 elif flex_direction == "column":
                     self.box_model_v2.maximize_content_children_height()
 
-        print(f"NodeContainer - Calculated grow size: {getattr(self, 'id', None)} {self.box_model_v2.calculated_margin_size}")
+        # print(f"NodeContainer - Calculated grow size: {getattr(self, 'id', None)} {self.box_model_v2.calculated_margin_size}")
         for child in self.children_nodes:
             child.v2_grow_size()
 
     def v2_constrain_size(self, available_size: Size2d = None):
         content_constraint_size = self.box_model_v2.constrain_size(available_size)
-        print(f"NodeContainer - Constrained size: {getattr(self, 'id', None)} {self.box_model_v2.margin_size}")
+        # print(f"NodeContainer - Constrained size: {getattr(self, 'id', None)} {self.box_model_v2.margin_size}")
 
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
@@ -272,7 +272,7 @@ class NodeContainer(Node, NodeContainerType):
             self.properties.justify_content
         )
 
-        print(f"NodeContainer - Layout: {getattr(self, 'id', None)} {self.box_model_v2.margin_pos}")
+        # print(f"NodeContainer - Layout: {getattr(self, 'id', None)} {self.box_model_v2.margin_pos}")
 
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)
 

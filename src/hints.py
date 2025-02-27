@@ -127,7 +127,7 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         hint_padding_height
     )
 
-    print('hint_padding_rect', hint_padding_rect)
+    # print('hint_padding_rect', hint_padding_rect)
 
     if apply_clip:
         c.save()

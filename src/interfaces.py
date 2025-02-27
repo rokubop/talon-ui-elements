@@ -40,6 +40,7 @@ class OverflowType(ABC):
     scrollable: bool
     scrollable_x: bool
     scrollable_y: bool
+    is_boundary: bool
 
 class PropertiesDimensionalType(ABC):
     align_items: str
@@ -350,6 +351,12 @@ class BoxModelV2Type(ABC):
     intrinsic_content_size: Size2d
     intrinsic_content_children_size: Size2d
 
+    def clip_rect(self):
+        pass
+
+    def is_visible(self) -> Union[bool, str]:
+        pass
+
 class NodeType(ABC):
     properties: object
     cascaded_properties: object
@@ -425,6 +432,10 @@ class NodeType(ABC):
 
     @abstractmethod
     def v2_render(self, c: SkiaCanvas):
+        pass
+
+    @abstractmethod
+    def v2_reposition(self, offset: Point2d = None):
         pass
 
     @abstractmethod

@@ -24,6 +24,7 @@ class Overflow(OverflowType):
     scrollable: bool = False
     scrollable_x: bool = False
     scrollable_y: bool = False
+    is_boundary: bool = False
 
     def __init__(self, overflow: str = "visible", overflow_x: str = None, overflow_y: str = None):
         self.x = overflow_x or overflow
@@ -31,6 +32,7 @@ class Overflow(OverflowType):
         self.scrollable_x = self.x == "scroll" or self.x == "auto"
         self.scrollable_y = self.y == "scroll" or self.y == "auto"
         self.scrollable = self.scrollable_x or self.scrollable_y
+        self.is_boundary = self.x != "visible" or self.y != "visible"
 
 def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
     model = model_type()
@@ -435,7 +437,8 @@ class BoxModelV2(BoxModelV2Type):
     def __init__(
         self,
         properties: PropertiesDimensionalType,
-        content_size: Size2d = Size2d(0, 0)
+        content_size: Size2d = Size2d(0, 0),
+        clip_nodes: list[NodeType] = []
     ):
         self.width = properties.width
         self.height = properties.height
@@ -475,6 +478,8 @@ class BoxModelV2(BoxModelV2Type):
         self.intrinsic_padding_size = None
         self.intrinsic_content_size = None
         self.intrinsic_content_children_size = content_size
+
+        self.clip_nodes = clip_nodes
 
         if isinstance(self.width, str):
             if "%" in self.width:
@@ -666,6 +671,17 @@ class BoxModelV2(BoxModelV2Type):
 
         return content_constraint_size
 
+    def reposition(self, offset: Point2d):
+        self.margin_pos += offset
+        self.border_pos += offset
+        self.padding_pos += offset
+        self.content_pos += offset
+        self.content_children_pos += offset
+
+    def set_top_left(self, top_left: Point2d):
+        diff = top_left - self.margin_pos
+        self.reposition(diff)
+
     def position_for_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_pos = cursor.to_point2d()
         self.border_pos = Point2d(
@@ -700,3 +716,29 @@ class BoxModelV2(BoxModelV2Type):
                 self.content_children_pos.x = self.content_pos.x + self.content_size.width // 2 - self.content_children_size.width // 2
             elif align_items == "flex_end":
                 self.content_children_pos.x = self.content_pos.x + self.content_size.width - self.content_children_size.width
+
+    def clip_rect(self):
+        clip_rect = None
+        for node_ref in self.clip_nodes:
+            node = node_ref()
+            if clip_rect:
+                clip_rect = clip_rect.intersect(node.box_model_v2.padding_rect)
+            else:
+                clip_rect = node.box_model_v2.padding_rect
+        return clip_rect
+
+    def is_visible(self) -> Union[bool, str]:
+        clip_rect = self.clip_rect()
+        if not clip_rect:
+            return True
+
+        region = self.margin_rect
+        new_rect = region.intersect(clip_rect)
+        if region.width == new_rect.width and region.height == new_rect.height:
+            return True
+        elif new_rect.width > 0 and new_rect.height > 0:
+            return "partial"
+        return False
+
+    def gc(self):
+        self.clip_nodes = []
