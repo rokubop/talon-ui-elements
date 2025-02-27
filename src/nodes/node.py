@@ -202,7 +202,7 @@ class Node(NodeType):
         return self.box_model_v2.margin_size
 
     def v2_reposition(self, offset = None):
-        if getattr(self.properties, "draggable", None) and self.tree.draggable_node_delta_pos:
+        if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
             old_pos = self.box_model_v2.margin_pos
             new_pos = self.tree.draggable_node_delta_pos
             self.box_model_v2.set_top_left(new_pos)
