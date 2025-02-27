@@ -40,6 +40,11 @@ RenderTaskRefChange = RenderTask(
     on_full_render,
 )
 
+RenderTaskDragging = RenderTask(
+    RenderCause.DRAGGING,
+    on_base_canvas_change,
+)
+
 RenderTaskDragEnd = RenderTask(
     RenderCause.DRAG_END,
     on_base_canvas_change,
@@ -56,6 +61,7 @@ class RenderManager(RenderManagerType):
         self.current_render_task = None
         self.tree = tree
         self._render_debounce_job = None
+        self._render_throttle_job = None
         self._destroying = False
 
     @property
@@ -86,6 +92,19 @@ class RenderManager(RenderManagerType):
             interval,
             lambda: self._queue_render_after_debounce_execute(render_task)
         )
+
+    def clear_throttle(self):
+        self._render_throttle_job = None
+
+    def _render_throttle(self, interval: str, render_task: RenderTask):
+        if not self._render_debounce_job and not \
+                self._render_throttle_job and not \
+                self.current_render_task:
+            self.queue_render(render_task)
+            self._render_throttle_job = cron.after(
+                interval,
+                self.clear_throttle
+            )
 
     def _queue_render_after_debounce_execute(self, render_task: RenderTask):
         self.queue_render(render_task)
@@ -125,6 +144,9 @@ class RenderManager(RenderManagerType):
     def render_drag_end(self):
         self.queue_render(RenderTaskDragEnd)
 
+    def render_dragging(self):
+        self._render_throttle("16ms", RenderTaskDragging)
+
     def render_state_change(self):
         self.queue_render(RenderStateChange)
 
@@ -134,7 +156,10 @@ class RenderManager(RenderManagerType):
     def destroy(self):
         if self._render_debounce_job:
             cron.cancel(self._render_debounce_job)
+        if self._render_throttle_job:
+            cron.cancel(self._render_throttle_job)
         self._render_debounce_job = None
+        self._render_throttle_job = None
         self.queue.clear()
         self.current_render_task = None
         self.tree = None

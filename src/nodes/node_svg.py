@@ -71,7 +71,8 @@ class NodeSvg(Node, NodeSvgType):
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
         self.box_model_v2 = BoxModelV2(
             self.properties,
-            Size2d(self.properties.width, self.properties.height)
+            Size2d(self.properties.width, self.properties.height),
+            self.clip_nodes
         )
         return self.box_model_v2.intrinsic_margin_size
 

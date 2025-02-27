@@ -56,7 +56,7 @@ class NodeInputText(Node):
         return self.box_model.margin_rect
 
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        self.box_model_v2 = BoxModelV2(self.properties)
+        self.box_model_v2 = BoxModelV2(self.properties, clip_nodes=self.clip_nodes)
         return self.box_model_v2.intrinsic_margin_size
 
     def render_background(self, c: SkiaCanvas, cursor: Cursor):

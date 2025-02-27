@@ -158,12 +158,13 @@ class NodeText(Node):
         self.v2_measure_and_account_for_multiline(paint)
         self.box_model_v2 = BoxModelV2(
             self.properties,
-            Size2d(self.text_width, self.text_body_height)
+            Size2d(self.text_width, self.text_body_height),
+            self.clip_nodes
         )
-        if self.element_type == "text":
-            print(f"NodeText {self.text} - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
-        else:
-            print(f"NodeButton {self.text} - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
+        # if self.element_type == "text":
+        #     print(f"NodeText {self.text} - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
+        # else:
+        #     print(f"NodeButton {self.text} - Intrinsic Size: {self.box_model_v2.intrinsic_margin_size}")
         return self.box_model_v2.intrinsic_margin_size
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):

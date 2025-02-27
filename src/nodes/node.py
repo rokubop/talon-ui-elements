@@ -1,5 +1,5 @@
 from typing import Union, Optional
-from talon.types import Rect
+from talon.types import Rect, Point2d
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 import uuid
@@ -38,6 +38,7 @@ class Node(NodeType):
         self.interactive = False
         self.root_node = None
         self.depth: int = None
+        self.box_model_v2: BoxModelV2 = None
         self.node_index_path: list[int] = []
         self.add_properties_to_cascade(properties)
 
@@ -46,6 +47,7 @@ class Node(NodeType):
         self._tree: Optional[weakref.ReferenceType[TreeType]] = None
         self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
         self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
+        self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
 
         state_manager.increment_ref_count_nodes()
 
@@ -81,6 +83,16 @@ class Node(NodeType):
 
     def clear_constraint_nodes(self):
         self._constraint_nodes.clear()
+
+    def add_clip_node(self, node: NodeType):
+        if node:
+            self.clip_nodes.append(weakref.ref(node))
+
+    def remove_clip_node(self, node: NodeType):
+        self.clip_nodes = [ref for ref in self.clip_nodes if ref() != node]
+
+    def clear_clip_nodes(self):
+        self.clip_nodes.clear()
 
     def add_child(self, node):
         if isinstance(node, tuple):
@@ -148,27 +160,28 @@ class Node(NodeType):
         return False
 
     def v2_measure_intrinsic_size(self, c):
-        self.box_model_v2 = BoxModelV2(self.properties, Size2d(0, 0))
+        self.box_model_v2 = BoxModelV2(self.properties, Size2d(0, 0), self.clip_nodes)
         return self.box_model_v2.intrinsic_margin_size
 
     def v2_grow_size(self):
-        if getattr(self, "text", None):
-            if self.element_type == "text":
-                print(f"NodeText {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
-            else:
-                print(f"NodeButton {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
-        else:
-            print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+        pass
+        # if getattr(self, "text", None):
+        #     if self.element_type == "text":
+        #         print(f"NodeText {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+        #     else:
+        #         print(f"NodeButton {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
+        # else:
+        #     print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
 
     def v2_constrain_size(self, available_size: Size2d = None):
         self.box_model_v2.constrain_size(available_size)
-        if getattr(self, "text", None):
-            if self.element_type == "text":
-                print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
-            else:
-                print(f"NodeButton {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
-        else:
-            print(f"Node {self.element_type} - Constrained Size: {self.box_model_v2.margin_size}")
+        # if getattr(self, "text", None):
+        #     if self.element_type == "text":
+        #         print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
+        #     else:
+        #         print(f"NodeButton {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
+        # else:
+        #     print(f"Node {self.element_type} - Constrained Size: {self.box_model_v2.margin_size}")
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         self.box_model_v2.position_for_render(
@@ -178,15 +191,26 @@ class Node(NodeType):
             self.properties.justify_content
         )
 
-        if getattr(self, "text", None):
-            if self.element_type == "text":
-                print(f"NodeText {self.text} - Layout: {self.box_model_v2.margin_pos}")
-            else:
-                print(f"NodeButton {self.text} - Layout: {self.box_model_v2.margin_pos}")
-        else:
-            print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
+        # if getattr(self, "text", None):
+        #     if self.element_type == "text":
+        #         print(f"NodeText {self.text} - Layout: {self.box_model_v2.margin_pos}")
+        #     else:
+        #         print(f"NodeButton {self.text} - Layout: {self.box_model_v2.margin_pos}")
+        # else:
+        #     print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
 
         return self.box_model_v2.margin_size
+
+    def v2_reposition(self, offset = None):
+        if getattr(self.properties, "draggable", None) and self.tree.draggable_node_delta_pos:
+            old_pos = self.box_model_v2.margin_pos
+            new_pos = self.tree.draggable_node_delta_pos
+            self.box_model_v2.set_top_left(new_pos)
+            offset = new_pos - old_pos
+        elif offset and self.box_model_v2:
+            self.box_model_v2.reposition(offset)
+        for child in self.children_nodes:
+            child.v2_reposition(offset)
 
     def v2_render_borders(self, c: SkiaCanvas):
         self.is_uniform_border = True
@@ -259,9 +283,12 @@ class Node(NodeType):
             node.destroy()
         if self.box_model:
             self.box_model.gc()
+        if self.box_model_v2:
+            self.box_model_v2.gc()
         self.properties.gc()
         self.children_nodes.clear()
         self.clear_constraint_nodes()
+        self.clear_clip_nodes()
         self.parent_node = None
         self.tree = None
 
