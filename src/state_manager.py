@@ -117,7 +117,9 @@ class StateManager:
             # )),
             tree.render_manager.render_state_change()
 
-        store.processing_states.clear()
+        # TODO: queue into render manager
+        cron.after("30ms", store.processing_states.clear)
+        # store.processing_states.clear()
         self.debounce_render_job = None
 
     def get_state_value(self, key):

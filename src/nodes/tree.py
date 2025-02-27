@@ -332,13 +332,10 @@ class Tree(TreeType):
         state_manager.set_processing_tree(None)
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
-        # print("DRAWING")
-        # return
         if not self.render_manager.is_destroying:
             state_manager.set_processing_tree(self)
 
-            if self.render_manager.render_cause == RenderCause.DRAGGING or \
-                    self.render_manager.render_cause == RenderCause.DRAG_END:
+            if self.render_manager.is_dragging():
                 self.root_node.v2_reposition()
                 self.root_node.v2_render(canvas)
             else:
@@ -557,9 +554,9 @@ class Tree(TreeType):
     def render_base_canvas(self):
         if not self.render_manager.is_destroying:
             if not self.canvas_base:
-                # with self.lock:
-                self.canvas_base = self.create_canvas()
-                self.canvas_base.register("draw", self.on_draw_base_canvas)
+                with self.lock:
+                    self.canvas_base = self.create_canvas()
+                    self.canvas_base.register("draw", self.on_draw_base_canvas)
 
             self.canvas_base.freeze()
 
@@ -670,6 +667,7 @@ class Tree(TreeType):
                 self.draggable_node_delta_pos = Point2d(x, y)
 
         if state_manager.get_mousedown_start_pos():
+        # if state_manager.is_drag_active():
             self.render_manager.render_dragging()
 
     def on_mousedown(self, gpos):
@@ -682,9 +680,7 @@ class Tree(TreeType):
             drag_handle_rect = self.drag_handle_node.box_model_v2.border_rect
             if drag_handle_rect.contains(gpos):
                 state_manager.set_mousedown_start_pos(gpos)
-                print("gpos", gpos)
                 relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
-                print("relative_offset", relative_offset)
                 state_manager.set_drag_relative_offset(relative_offset)
 
         if hovered_id in list(self.meta_state.buttons):
@@ -734,9 +730,13 @@ class Tree(TreeType):
         if self.draggable_node and self.drag_handle_node:
             state_manager.set_drag_relative_offset(None)
             state_manager.set_mousedown_start_pos(None)
-            state_manager.set_drag_active(False)
 
-            cron.after("17ms", self.render_manager.render_drag_end)
+            if state_manager.is_drag_active():
+                # move delay to render manager with proper queue
+                self.render_manager.render_drag_end()
+                # cron.after("17ms", self.render_manager.render_drag_end)
+
+            state_manager.set_drag_active(False)
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)

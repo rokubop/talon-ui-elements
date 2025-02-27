@@ -84,6 +84,11 @@ class RenderManager(RenderManagerType):
             else:
                 self.queue.append(render_task)
 
+    def is_dragging(self):
+        return self.current_render_task and \
+            (self.current_render_task.cause == RenderCause.DRAGGING or \
+            self.current_render_task.cause == RenderCause.DRAG_END)
+
     def _queue_render_after_debounce(self, interval: str, render_task: RenderTask):
         if self._render_debounce_job:
             cron.cancel(self._render_debounce_job)

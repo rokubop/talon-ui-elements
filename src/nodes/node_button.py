@@ -17,6 +17,9 @@ class NodeButton(NodeContainer):
 
         return super().virtual_render(c, cursor)
 
+    def v2_measure_intrinsic_size(self, c):
+        return super().v2_measure_intrinsic_size(c)
+
     def render(self, c: SkiaCanvas, cursor: Cursor):
         return super().render(c, cursor)
 
