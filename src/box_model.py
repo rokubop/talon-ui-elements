@@ -523,7 +523,6 @@ class BoxModelV2(BoxModelV2Type):
         )
 
     def init_intrinsic_sizes(self, content_size: Size2d):
-        self.intrinsic_content_children_size = content_size
         init_width = self.width or self.min_width or 0
         init_height = self.height or self.min_height or 0
         if content_size.width or content_size.height:
@@ -546,6 +545,12 @@ class BoxModelV2(BoxModelV2Type):
                 Size2d(init_width, init_height)
             )
         self.init_calculated_sizes()
+
+    def shrink_content_children_size(self, shrunk_content_children_size: Size2d):
+        if shrunk_content_children_size.width < self.content_children_size.width:
+            self.content_children_size.width = shrunk_content_children_size.width
+        if shrunk_content_children_size.height < self.content_children_size.height:
+            self.content_children_size.height = shrunk_content_children_size.height
 
     def init_calculated_sizes(self):
         self.calculated_margin_size = self.intrinsic_margin_size.copy()
@@ -612,7 +617,7 @@ class BoxModelV2(BoxModelV2Type):
     def maximize_content_children_height(self):
         self.calculated_content_children_size.height = self.calculated_content_size.height
 
-    def constrain_size(self, available_size: Size2d = None):
+    def constrain_size(self, available_size: Size2d = None, can_shrink_past_content: bool = True):
         margin_width = self.calculated_margin_size.width
         margin_height = self.calculated_margin_size.height
         max_width = self.max_width or self.width
@@ -622,13 +627,17 @@ class BoxModelV2(BoxModelV2Type):
 
         if max_width:
             margin_width = min(margin_width, max_width + self.margin_spacing.left + self.margin_spacing.right)
-        if available_size_width:
-            margin_width = min(margin_width, available_size_width)
+        # if available_size_width:
+        #     margin_width = min(margin_width, available_size_width)
+        # if not max_width and not available_size_width:
+        #     margin_width = max(margin_width, self.intrinsic_margin_size.width)
 
         if max_height:
             margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
-        if available_size_height:
-            margin_height = min(margin_height, available_size_height)
+        # if available_size_height:
+        #     margin_height = min(margin_height, available_size_height)
+        # if not max_height and not available_size_height:
+        #     margin_height = max(margin_height, self.intrinsic_margin_size.height)
 
         if margin_width < self.calculated_margin_size.width:
             self.overflow_size.width = self.calculated_margin_size.width - margin_width
@@ -742,3 +751,41 @@ class BoxModelV2(BoxModelV2Type):
 
     def gc(self):
         self.clip_nodes = []
+
+    def adjust_scroll_y(self, offset_y: int, c: SkiaCanvas):
+        view_height = self.padding_size.height
+        total_scrollable_height = self.content_children_size.height
+
+        if self.calculated_content_children_size.height > view_height:
+        # if total_scrollable_height > view_height:
+            self.content_children_pos.y -= offset_y
+            padding_rect = self.padding_rect
+            # if self.intrinsic_padding_rect.height > 0:
+            scroll_y_percentage = offset_y / (total_scrollable_height - view_height)
+            # else:
+            #     scroll_y_percentage = 0
+
+            thumb_height = max(20, view_height * (view_height / total_scrollable_height))
+
+            thumb_width = DEFAULT_SCROLL_BAR_WIDTH
+            thumb_y = padding_rect.y + scroll_y_percentage * (padding_rect.height - thumb_height)
+            thumb_y = max(padding_rect.y, min(thumb_y, padding_rect.y + padding_rect.height - thumb_height))
+
+            bar_rect = Rect(
+                padding_rect.x + padding_rect.width - thumb_width,
+                padding_rect.y,
+                thumb_width,
+                padding_rect.height
+            )
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.draw_rect(bar_rect)
+
+            thumb_rect = Rect(
+                padding_rect.x + padding_rect.width - thumb_width,
+                thumb_y,
+                thumb_width,
+                thumb_height
+            )
+            c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
+            c.draw_rect(thumb_rect)

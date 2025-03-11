@@ -7,6 +7,7 @@ from typing import Any
 from .interfaces import TreeType, RenderTaskType, RenderManagerType
 
 class RenderCause(Enum):
+    SCROLLING = "SCROLLING"
     STATE_CHANGE = "STATE_CHANGE"
     REF_CHANGE = "REF_CHANGE"
     DRAG_END = "DRAG_END"
@@ -42,6 +43,11 @@ RenderTaskRefChange = RenderTask(
 
 RenderTaskDragging = RenderTask(
     RenderCause.DRAGGING,
+    on_base_canvas_change,
+)
+
+RenderTaskScrolling = RenderTask(
+    RenderCause.SCROLLING,
     on_base_canvas_change,
 )
 
@@ -88,6 +94,10 @@ class RenderManager(RenderManagerType):
         return self.current_render_task and \
             (self.current_render_task.cause == RenderCause.DRAGGING or \
             self.current_render_task.cause == RenderCause.DRAG_END)
+
+    def is_scrolling(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.SCROLLING
 
     def _queue_render_after_debounce(self, interval: str, render_task: RenderTask):
         if self._render_debounce_job:
@@ -151,6 +161,9 @@ class RenderManager(RenderManagerType):
 
     def render_dragging(self):
         self._render_throttle("16ms", RenderTaskDragging)
+
+    def render_scroll(self):
+        self._render_throttle("30ms", RenderTaskScrolling)
 
     def render_state_change(self):
         self.queue_render(RenderStateChange)

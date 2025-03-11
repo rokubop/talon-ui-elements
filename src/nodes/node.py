@@ -212,6 +212,20 @@ class Node(NodeType):
         for child in self.children_nodes:
             child.v2_reposition(offset)
 
+    def v2_scroll_layout(self, offset: Point2d = None):
+        node_offset = offset
+        if self.properties.is_scrollable() and self.id in self.tree.meta_state.scrollable:
+            new_offset = Point2d(
+                self.tree.meta_state.scrollable[self.id].offset_x,
+                self.tree.meta_state.scrollable[self.id].offset_y
+            )
+            node_offset = new_offset if not node_offset else node_offset + new_offset
+            for child in self.children_nodes:
+                child.v2_reposition(node_offset)
+
+        for child in self.children_nodes:
+            child.v2_scroll_layout(node_offset)
+
     def v2_render_borders(self, c: SkiaCanvas):
         self.is_uniform_border = True
         border_spacing = self.box_model_v2.border_spacing

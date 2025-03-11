@@ -406,13 +406,13 @@ class NodeType(ABC):
     def hide(self):
         pass
 
-    @abstractmethod
-    def render(self):
-        pass
+    # @abstractmethod
+    # def render(self):
+    #     pass
 
-    @abstractmethod
-    def virtual_render(self):
-        pass
+    # @abstractmethod
+    # def virtual_render(self):
+    #     pass
 
     @abstractmethod
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
@@ -432,6 +432,10 @@ class NodeType(ABC):
 
     @abstractmethod
     def v2_render(self, c: SkiaCanvas):
+        pass
+
+    @abstractmethod
+    def v2_scroll_layout(self, offset: Point2d = None):
         pass
 
     @abstractmethod
@@ -524,6 +528,14 @@ class RenderManagerType(ABC):
 
     @property
     def is_destroying(self):
+        pass
+
+    @abstractmethod
+    def is_scrolling(self):
+        pass
+
+    @abstractmethod
+    def is_dragging(self):
         pass
 
     @abstractmethod
@@ -646,9 +658,9 @@ class NodeContainerType(NodeType):
     def move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: object, child: NodeType, rect: object, gap: int):
         pass
 
-    @abstractmethod
-    def render(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def render(self, c: object, cursor: object):
+    #     pass
 
     @abstractmethod
     def show(self):
@@ -663,18 +675,19 @@ class NodeSvgType(NodeType):
     def grow_intrinsic_size(self, c: object, cursor: object):
         pass
 
-    @abstractmethod
-    def virtual_render(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def virtual_render(self, c: object, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def render(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def render(self, c: object, cursor: object):
+    #     pass
 
 class TreeType(ABC):
     canvas_base: Canvas
     canvas_decorator: Canvas
     canvas_mouse: Canvas
+    current_canvas: SkiaCanvas
     cursor: CursorType
     draggable_node: NodeType
     draggable_node_delta_pos: Point2d
@@ -700,9 +713,9 @@ class TreeType(ABC):
     def __init__(self, renderer: callable, update_renderer: str):
         pass
 
-    @abstractmethod
-    def render(self):
-        pass
+    # @abstractmethod
+    # def render(self):
+    #     pass
 
     @abstractmethod
     def render_debounced(self):
@@ -758,9 +771,9 @@ class NodeComponentType(ABC):
     def virtual_render(self, c: object, cursor: object):
         pass
 
-    @abstractmethod
-    def render(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def render(self, c: object, cursor: object):
+    #     pass
 
     @abstractmethod
     def __getitem__(self):

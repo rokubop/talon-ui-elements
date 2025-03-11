@@ -76,9 +76,9 @@ def dashboard_ui():
             div(id="keys")[*[text(key, font_size=14) for key in keys]],
             div(id="values")[*[text(value, font_size=14) for value in values]]
         ]
-
+#background_color="272727",
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, background_color="272727", border_radius=8, width=900, min_height=400, max_height=500, border_width=1)[
+        div(draggable=True, id="drag", border_radius=8, width=900, height=600, border_width=1)[
             header(),
             div(flex_direction="row", height="100%")[
                 sidebar(),

@@ -38,7 +38,7 @@ def scroll_throttle_clear():
     scroll_throttle_job = None
 
 class ScrollRegion(ScrollRegionType):
-    def __init__(self, scroll_y: int, scroll_x: int):
+    def __init__(self, scroll_y: int = 0, scroll_x: int = 0):
         self.scroll_y = scroll_y
         self.scroll_x = scroll_x
 
@@ -266,6 +266,7 @@ class Tree(TreeType):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
+        self.current_canvas = None
         self.cursor = None
         self.cursor_v2 = None
         self.effects = []
@@ -331,12 +332,25 @@ class Tree(TreeType):
         self.validate_root_node()
         state_manager.set_processing_tree(None)
 
+    def test(self, node: NodeType):
+        if getattr(node, "text", None):
+            print(node.text)
+        if hasattr(node.box_model_v2, "calculated_margin_size"):
+            print('calculated_margin_size', node.box_model_v2.calculated_margin_size)
+        for child in node.children_nodes:
+            self.test(child)
+
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
+            self.current_canvas = canvas
             state_manager.set_processing_tree(self)
 
             if self.render_manager.is_dragging():
                 self.root_node.v2_reposition()
+                self.root_node.v2_render(canvas)
+            elif self.render_manager.is_scrolling():
+                self.reset_cursor()
+                self.root_node.v2_layout(self.cursor_v2)
                 self.root_node.v2_render(canvas)
             else:
                 self.reset_cursor()
@@ -345,6 +359,7 @@ class Tree(TreeType):
                 self.root_node.v2_measure_intrinsic_size(canvas)
                 self.root_node.v2_grow_size()
                 self.root_node.v2_constrain_size()
+                self.test(self.root_node)
                 self.root_node.v2_layout(self.cursor_v2)
                 self.root_node.v2_render(canvas)
 
@@ -750,43 +765,44 @@ class Tree(TreeType):
                 self.on_mouseup(e.gpos)
 
     def on_scroll_tick(self, e):
-        pass
-        # if not self.render_manager.is_destroying:
-        #     smallest_node = None
-        #     if self.meta_state.scrollable:
-        #         for id, data in list(self.meta_state.scrollable.items()):
-        #             node = self.meta_state.id_to_node.get(id)
-        #             if getattr(node, 'box_model', None) and node.box_model.scroll_box_rect.contains(e.gpos):
-        #                 smallest_node = node if not smallest_node or node.box_model.scroll_box_rect.height < smallest_node.box_model.scroll_box_rect.height else smallest_node
+        if self.meta_state.scrollable:
+            smallest_node = None
+            for id, data in list(self.meta_state.scrollable.items()):
+                node = self.meta_state.id_to_node.get(id)
+                if getattr(node, 'box_model_v2', None) and node.box_model_v2.padding_rect.contains(e.gpos):
+                    smallest_node = node if not smallest_node or node.box_model_v2.padding_rect.height < smallest_node.box_model_v2.padding_rect.height else smallest_node
 
-        #         if smallest_node:
-        #             offset_y = e.degrees.y
-        #             if offset_y > 0:
-        #                 offset_y = -self.scroll_amount_per_tick
-        #             elif offset_y < 0:
-        #                 offset_y = self.scroll_amount_per_tick
+            if smallest_node:
+                offset_y = e.degrees.y
+                if offset_y > 0:
+                    offset_y = -self.scroll_amount_per_tick
+                elif offset_y < 0:
+                    offset_y = self.scroll_amount_per_tick
 
-        #             max_height = smallest_node.box_model.intrinsic_padding_rect.height
-        #             view_height = smallest_node.box_model.scroll_box_rect.height
+                max_height = smallest_node.box_model_v2.content_children_size.height
+                view_height = smallest_node.box_model_v2.padding_size.height
 
-        #             max_top_scroll_y = 0
-        #             max_bottom_scroll_y = max_height - view_height
+                max_top_scroll_y = 0
+                max_bottom_scroll_y = max_height - view_height
 
-        #             new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
+                new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
-        #             if new_offset_y < max_top_scroll_y:
-        #                 new_offset_y = max_top_scroll_y
-        #             elif new_offset_y > max_bottom_scroll_y:
-        #                 new_offset_y = max_bottom_scroll_y
+                if new_offset_y < max_top_scroll_y:
+                    new_offset_y = max_top_scroll_y
+                elif new_offset_y > max_bottom_scroll_y:
+                    new_offset_y = max_bottom_scroll_y
 
-        #             self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
-        #             self.canvas_base.freeze()
+                print('new_offset_y', new_offset_y)
+
+                self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
+                self.render_manager.render_scroll()
+                # self.canvas_base.freeze()
 
     def on_scroll(self, e):
-        global scroll_throttle_job
-        if not scroll_throttle_job:
-            self.on_scroll_tick(e)
-            scroll_throttle_job = cron.after(scroll_throttle_time, scroll_throttle_clear)
+        # global scroll_throttle_job
+        # if not scroll_throttle_job:
+        self.on_scroll_tick(e)
+            # scroll_throttle_job = cron.after(scroll_throttle_time, scroll_throttle_clear)
 
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
@@ -827,6 +843,7 @@ class Tree(TreeType):
         self.destroy_blockable_canvas()
 
         self._renderer = None
+        self.current_canvas = None
         self.render_manager.destroy()
         self.meta_state.clear()
         self.effects.clear()

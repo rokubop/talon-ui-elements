@@ -45,5 +45,9 @@ class CursorV2:
     def to_point2d(self):
         return Point2d(self.x, self.y)
 
+    def offset(self, x, y):
+        self.x += x
+        self.y += y
+
     def __str__(self):
         return f"Cursor Position: ({self.x}, {self.y})"
