@@ -287,26 +287,6 @@ element_collection_full = {
     **deprecated_elements
 }
 
-def ui_elements(elements: Union[str, List[str]]) -> tuple[callable]:
-    if not elements:
-        return element_collection_full
-
-    if type(elements) == str:
-        elements = [elements]
-
-    if not all(element in element_collection_full for element in elements):
-        raise ValueError(
-            f"\nInvalid elements `{elements}` provided to ui_elements"
-            f"\nValid elements are {list(element_collection.keys())}"
-        )
-
-    if len(elements) > 1:
-        return tuple(
-            element_collection_full[element] for element in elements
-        )
-    else:
-        return element_collection_full[elements[0]]
-
 def svg(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
     svg_properties = NodeSvgProperties(**properties)
@@ -358,6 +338,35 @@ element_svg_collection_full = {
     "line": svg_line,
     "polygon": svg_polygon,
 }
+
+def ui_elements(*elements: Union[str, List[str]]) -> tuple[callable]:
+    if len(elements) == 1 and isinstance(elements[0], (list, tuple)):
+        elements = elements[0]
+
+    if not elements:
+        return element_collection_full
+
+    if type(elements) == str:
+        elements = [elements]
+
+    if any(element in element_svg_collection_full for element in elements):
+        raise ValueError(
+            f"\nInvalid elements `{elements}` provided to ui_elements"
+            f"\nSVG elements must use `ui_elements_svg` instead of `ui_elements`"
+        )
+
+    if not all(element in element_collection_full for element in elements):
+        raise ValueError(
+            f"\nInvalid elements `{elements}` provided to ui_elements"
+            f"\nValid elements are {list(element_collection.keys())}"
+        )
+
+    if len(elements) > 1:
+        return tuple(
+            element_collection_full[element] for element in elements
+        )
+    else:
+        return element_collection_full[elements[0]]
 
 def ui_elements_svg(elements: List[str]) -> tuple[callable]:
     if not all(element in element_svg_collection_full for element in elements):

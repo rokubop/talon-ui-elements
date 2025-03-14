@@ -108,7 +108,7 @@ class Properties:
 
     def update_property(self, key, value):
         if hasattr(self, key):
-            if key in ["background_color", "border_color", "color"]:
+            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value)
             setattr(self, key, value)
             self._explicitly_set.add(key)
