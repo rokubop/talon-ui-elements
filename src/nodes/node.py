@@ -174,7 +174,7 @@ class Node(NodeType):
         #     print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
 
     def v2_constrain_size(self, available_size: Size2d = None):
-        self.box_model_v2.constrain_size(available_size)
+        self.box_model_v2.constrain_size(available_size, self.properties.overflow)
         # if getattr(self, "text", None):
         #     if self.element_type == "text":
         #         print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
@@ -200,6 +200,13 @@ class Node(NodeType):
         #     print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
 
         return self.box_model_v2.margin_size
+
+    def v2_drag_offset(self, cursor: Cursor):
+        if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
+            # This can be improved in the future to support multi-node dragging
+            # with meta state
+            cursor.x = self.tree.draggable_node_delta_pos.x
+            cursor.y = self.tree.draggable_node_delta_pos.y
 
     def v2_reposition(self, offset = None):
         if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):

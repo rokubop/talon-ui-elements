@@ -617,27 +617,24 @@ class BoxModelV2(BoxModelV2Type):
     def maximize_content_children_height(self):
         self.calculated_content_children_size.height = self.calculated_content_size.height
 
-    def constrain_size(self, available_size: Size2d = None, can_shrink_past_content: bool = True):
+    def constrain_size(self, available_size: Size2d = None, overflow: Overflow = None) -> Size2d:
         margin_width = self.calculated_margin_size.width
         margin_height = self.calculated_margin_size.height
-        max_width = self.max_width or self.width
-        max_height = self.max_height or self.height
+        content_constraint_width = self.calculated_content_size.width
+        content_constraint_height = self.calculated_content_size.height
         available_size_width = available_size.width if available_size else None
         available_size_height = available_size.height if available_size else None
 
+        # if not getattr(overflow, 'scrollable_x', False):
+        max_width = self.max_width or self.width
+
         if max_width:
             margin_width = min(margin_width, max_width + self.margin_spacing.left + self.margin_spacing.right)
+
         # if available_size_width:
         #     margin_width = min(margin_width, available_size_width)
         # if not max_width and not available_size_width:
         #     margin_width = max(margin_width, self.intrinsic_margin_size.width)
-
-        if max_height:
-            margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
-        # if available_size_height:
-        #     margin_height = min(margin_height, available_size_height)
-        # if not max_height and not available_size_height:
-        #     margin_height = max(margin_height, self.intrinsic_margin_size.height)
 
         if margin_width < self.calculated_margin_size.width:
             self.overflow_size.width = self.calculated_margin_size.width - margin_width
@@ -654,6 +651,26 @@ class BoxModelV2(BoxModelV2Type):
             content_constraint_width = content_width if (max_width or available_size_width) else None
             content_children_width = self.calculated_content_children_size.width
 
+        if getattr(overflow, 'scrollable_x', False):
+            # border_width = self.calculated_border_size.width
+            # padding_width = self.calculated_padding_size.width
+            # content_width = self.calculated_content_size.width
+            content_children_width = self.calculated_content_children_size.width
+            content_constraint_width = None
+            if available_size_width:
+                self.overflow_size.width = max(0, margin_width - available_size_width)
+
+        # if not getattr(overflow, 'scrollable_y', False):
+        max_height = self.max_height or self.height
+
+        if max_height:
+            margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
+
+        # if available_size_height:
+        #     margin_height = min(margin_height, available_size_height)
+        # if not max_height and not available_size_height:
+        #     margin_height = max(margin_height, self.intrinsic_margin_size.height)
+
         if margin_height < self.calculated_margin_size.height:
             self.overflow_size.height = self.calculated_margin_size.height - margin_height
             border_height = margin_height - self.margin_spacing.top - self.margin_spacing.bottom
@@ -668,6 +685,20 @@ class BoxModelV2(BoxModelV2Type):
             content_height = self.calculated_content_size.height
             content_constraint_height = content_height if (max_height or available_size_height) else None
             content_children_height = self.calculated_content_children_size.height
+
+        if getattr(overflow, 'scrollable_y', False):
+            # border_height = self.calculated_border_size.height
+            # padding_height = self.calculated_padding_size.height
+            # content_height = self.calculated_content_size.height
+            content_children_height = self.calculated_content_children_size.height
+
+            print("content_children_height", content_children_height)
+            print("margin_height", margin_height)
+            print("available_size_height", available_size_height)
+            if available_size_height:
+                print("margin_height", margin_height)
+                self.overflow_size.height = max(0, margin_height - available_size_height)
+            content_constraint_height = None
 
         self.margin_size = Size2d(margin_width, margin_height)
         self.border_size = Size2d(border_width, border_height)
@@ -752,40 +783,40 @@ class BoxModelV2(BoxModelV2Type):
     def gc(self):
         self.clip_nodes = []
 
-    def adjust_scroll_y(self, offset_y: int, c: SkiaCanvas):
-        view_height = self.padding_size.height
-        total_scrollable_height = self.content_children_size.height
+    def adjust_scroll_y(self, offset_y: int, c: SkiaCanvas = None):
+        # view_height = self.padding_size.height
+        # total_scrollable_height = self.content_children_size.height
 
-        if self.calculated_content_children_size.height > view_height:
+        # if self.calculated_content_children_size.height > view_height:
         # if total_scrollable_height > view_height:
-            self.content_children_pos.y -= offset_y
-            padding_rect = self.padding_rect
-            # if self.intrinsic_padding_rect.height > 0:
-            scroll_y_percentage = offset_y / (total_scrollable_height - view_height)
+        self.content_children_pos.y += offset_y
+            # padding_rect = self.padding_rect
+            # # if self.intrinsic_padding_rect.height > 0:
+            # scroll_y_percentage = offset_y / (total_scrollable_height - view_height)
             # else:
             #     scroll_y_percentage = 0
 
-            thumb_height = max(20, view_height * (view_height / total_scrollable_height))
+            # thumb_height = max(20, view_height * (view_height / total_scrollable_height))
 
-            thumb_width = DEFAULT_SCROLL_BAR_WIDTH
-            thumb_y = padding_rect.y + scroll_y_percentage * (padding_rect.height - thumb_height)
-            thumb_y = max(padding_rect.y, min(thumb_y, padding_rect.y + padding_rect.height - thumb_height))
+            # thumb_width = DEFAULT_SCROLL_BAR_WIDTH
+            # thumb_y = padding_rect.y + scroll_y_percentage * (padding_rect.height - thumb_height)
+            # thumb_y = max(padding_rect.y, min(thumb_y, padding_rect.y + padding_rect.height - thumb_height))
 
-            bar_rect = Rect(
-                padding_rect.x + padding_rect.width - thumb_width,
-                padding_rect.y,
-                thumb_width,
-                padding_rect.height
-            )
-            c.paint.style = c.paint.Style.FILL
-            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
-            c.draw_rect(bar_rect)
+            # bar_rect = Rect(
+            #     padding_rect.x + padding_rect.width - thumb_width,
+            #     padding_rect.y,
+            #     thumb_width,
+            #     padding_rect.height
+            # )
+            # c.paint.style = c.paint.Style.FILL
+            # c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            # c.draw_rect(bar_rect)
 
-            thumb_rect = Rect(
-                padding_rect.x + padding_rect.width - thumb_width,
-                thumb_y,
-                thumb_width,
-                thumb_height
-            )
-            c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
-            c.draw_rect(thumb_rect)
+            # thumb_rect = Rect(
+            #     padding_rect.x + padding_rect.width - thumb_width,
+            #     thumb_y,
+            #     thumb_width,
+            #     thumb_height
+            # )
+            # c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
+            # c.draw_rect(thumb_rect)

@@ -4,6 +4,7 @@ from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any
+from dataclasses import dataclass
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
 from ..cursor import Cursor, CursorV2
@@ -48,6 +49,11 @@ class Scrollable(ScrollableType):
         self.offset_x = 0
         self.offset_y = 0
 
+@dataclass
+class DraggableOffset:
+    x: int
+    y: int
+
 class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = set()
@@ -56,7 +62,7 @@ class MetaState(MetaStateType):
         self._inputs = {}
         self._scroll_regions = {}
         self._scrollable = {}
-        self._draggable = {}
+        self._draggable_offset = {}
         self._style_mutations = {}
         self._text_mutations = {}
         self.ref_property_overrides = {}
@@ -124,12 +130,9 @@ class MetaState(MetaStateType):
             self._scrollable[id] = Scrollable(id)
 
     def add_draggable(self, id):
-        # TODO
-        if id not in self._draggable:
-            self._draggable[id] = {
-                "offset_x": 0,
-                "offset_y": 0
-            }
+        # TODO: eventually use this instead of a single global draggable state
+        if id not in self._draggable_offset:
+            self._draggable_offset[id] = DraggableOffset(0, 0)
 
     def set_highlighted(self, id, color = None):
         if id in self._id_to_node:
@@ -359,7 +362,7 @@ class Tree(TreeType):
                 self.root_node.v2_measure_intrinsic_size(canvas)
                 self.root_node.v2_grow_size()
                 self.root_node.v2_constrain_size()
-                self.test(self.root_node)
+                # self.test(self.root_node)
                 self.root_node.v2_layout(self.cursor_v2)
                 self.root_node.v2_render(canvas)
 
@@ -775,22 +778,28 @@ class Tree(TreeType):
             if smallest_node:
                 offset_y = e.degrees.y
                 if offset_y > 0:
-                    offset_y = -self.scroll_amount_per_tick
-                elif offset_y < 0:
                     offset_y = self.scroll_amount_per_tick
+                elif offset_y < 0:
+                    offset_y = -self.scroll_amount_per_tick
 
                 max_height = smallest_node.box_model_v2.content_children_size.height
                 view_height = smallest_node.box_model_v2.padding_size.height
+
+                print("margin_size", smallest_node.box_model_v2.margin_size)
+                print("max_height", max_height)
+                print("view_height", view_height)
+                print("calculated_content_children_size", smallest_node.box_model_v2.calculated_content_children_size)
+                print("intrinsic_margin_size", smallest_node.box_model_v2.intrinsic_margin_size)
 
                 max_top_scroll_y = 0
                 max_bottom_scroll_y = max_height - view_height
 
                 new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
-                if new_offset_y < max_top_scroll_y:
-                    new_offset_y = max_top_scroll_y
-                elif new_offset_y > max_bottom_scroll_y:
-                    new_offset_y = max_bottom_scroll_y
+                # if new_offset_y < max_top_scroll_y:
+                #     new_offset_y = max_top_scroll_y
+                # elif new_offset_y > max_bottom_scroll_y:
+                #     new_offset_y = max_bottom_scroll_y
 
                 print('new_offset_y', new_offset_y)
 
@@ -898,8 +907,8 @@ class Tree(TreeType):
             if node.properties.is_scrollable():
                 self.meta_state.add_scrollable(node.id)
 
-            # if node.properties.draggable:
-            #     self.meta_state.add_draggable(node.id)
+            if node.properties.draggable:
+                self.meta_state.add_draggable(node.id)
 
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
         if node.properties.width is not None or \

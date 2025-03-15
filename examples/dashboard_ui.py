@@ -61,7 +61,7 @@ def dashboard_ui():
         ]
 
     def sidebar():
-        return div(border_right=1, overflow_y="scroll")[
+        return div(border_right=1, overflow_y="scroll", id="scrolly")[
             *[button(
                 name,
                 on_click=on_click_wrapper(name),
@@ -78,7 +78,7 @@ def dashboard_ui():
         ]
 #background_color="272727",
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, id="drag", border_radius=8, width=900, height=600, border_width=1)[
+        div(draggable=True, id="drag", background_color="272727", border_radius=8, width=900, height=600, border_width=1)[
             header(),
             div(flex_direction="row", height="100%")[
                 sidebar(),

@@ -250,8 +250,8 @@ class NodeContainer(Node, NodeContainerType):
         for child in self.children_nodes:
             child.v2_grow_size()
 
-    def v2_constrain_size(self, available_size: Size2d = None):
-        content_constraint_size = self.box_model_v2.constrain_size(available_size)
+    def v2_constrain_size(self, available_size: Size2d = None) -> bool:
+        content_constraint_size = self.box_model_v2.constrain_size(available_size, self.properties.overflow)
         children_accumulated_size = Size2d(0, 0)
         is_row = self.properties.flex_direction == "row"
         primary_axis = "width" if is_row else "height"
@@ -310,12 +310,18 @@ class NodeContainer(Node, NodeContainerType):
         #     c.paint.style = c.paint.Style.STROKE
         #     c.paint.color = "green"
         #     c.draw_circle(cursor.x, cursor.y, 40)
+        self.v2_drag_offset(cursor)
         self.box_model_v2.position_for_render(
             cursor,
             self.properties.flex_direction,
             self.properties.align_items,
             self.properties.justify_content
         )
+
+        scrollable = self.tree.meta_state.scrollable.get(self.id, None)
+        if scrollable:
+            self.box_model_v2.adjust_scroll_y(scrollable.offset_y)
+            # cursor.offset(0, -scrollable.offset_y)
 
         # if self.properties.id == "body" or self.properties.id == "drag":
         #     c.paint.style = c.paint.Style.STROKE
@@ -326,11 +332,11 @@ class NodeContainer(Node, NodeContainerType):
 
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)
 
-        if self.properties.is_scrollable() and self.id in self.tree.meta_state.scrollable:
-            scroll_offset = self.tree.meta_state.scrollable[self.id]
+        # if self.properties.is_scrollable() and self.id in self.tree.meta_state.scrollable:
+        #     scroll_offset = self.tree.meta_state.scrollable[self.id]
+        #     cursor.offset(scroll_offset.offset_x, scroll_offset.offset_y)
             # print('cursor old', cursor.x, cursor.y)
             # print('offsetting', scroll_offset.offset_x, scroll_offset.offset_y)
-            cursor.offset(scroll_offset.offset_x, scroll_offset.offset_y)
             # print('cursor new', cursor.x, cursor.y)
 
         # if self.properties.id == "body" or self.properties.id == "drag":
@@ -373,14 +379,20 @@ class NodeContainer(Node, NodeContainerType):
         #     print("calculated_content_size", self.box_model_v2.calculated_content_size)
         #     print("calculated_content_children_size", self.box_model_v2.calculated_content_children_size)
         self.v2_render_borders(c)
+        if self.id == "scrolly":
+            c.paint.color = "red"
+            c.paint.style = c.paint.Style.STROKE
+            print("red", self.box_model_v2.padding_rect)
+            c.draw_rect(self.box_model_v2.padding_rect)
+
         self.v2_crop_start(c)
-        self.v2_adjust_for_scroll_y_start(c)
+        # self.v2_adjust_for_scroll_y_start(c)
         self.v2_render_background(c)
 
         for child in self.children_nodes:
             child.v2_render(c)
 
-        self.v2_adjust_for_scroll_y_end(c)
+        # self.v2_adjust_for_scroll_y_end(c)
         self.v2_crop_end(c)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
@@ -550,16 +562,16 @@ class NodeContainer(Node, NodeContainerType):
             c.restore()
 
     def v2_crop_start(self, c: SkiaCanvas):
-        if self.box_model_v2.overflow.is_boundary and \
+        if self.properties.overflow.scrollable or (self.box_model_v2.overflow.is_boundary and \
                 (self.box_model_v2.overflow_size.width or \
-                self.box_model_v2.overflow_size.height):
+                self.box_model_v2.overflow_size.height)):
             c.save()
             c.clip_rect(self.box_model_v2.padding_rect)
 
     def v2_crop_end(self, c: SkiaCanvas):
-        if self.box_model_v2.overflow.is_boundary and \
+        if self.properties.overflow.scrollable or (self.box_model_v2.overflow.is_boundary and \
                 (self.box_model_v2.overflow_size.width or \
-                self.box_model_v2.overflow_size.height):
+                self.box_model_v2.overflow_size.height)):
             c.restore()
 
     def debugger_should_continue(self, c: SkiaCanvas, cursor: Cursor):
