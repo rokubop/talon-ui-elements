@@ -127,6 +127,9 @@ class StateManager:
             return store.reactive_state[key].value
         return None
 
+    def get_all_states(self):
+        return {key: store.reactive_state[key].value for key in store.reactive_state.keys()}
+
     def set_state_value(self, key, new_value):
         if key in store.reactive_state:
             if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):

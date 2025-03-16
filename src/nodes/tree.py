@@ -776,32 +776,44 @@ class Tree(TreeType):
                     smallest_node = node if not smallest_node or node.box_model_v2.padding_rect.height < smallest_node.box_model_v2.padding_rect.height else smallest_node
 
             if smallest_node:
-                offset_y = e.degrees.y
-                if offset_y > 0:
-                    offset_y = self.scroll_amount_per_tick
-                elif offset_y < 0:
-                    offset_y = -self.scroll_amount_per_tick
-
-                max_height = smallest_node.box_model_v2.content_children_size.height
+                max_height = smallest_node.box_model_v2.content_children_with_padding_size.height
                 view_height = smallest_node.box_model_v2.padding_size.height
 
-                print("margin_size", smallest_node.box_model_v2.margin_size)
-                print("max_height", max_height)
-                print("view_height", view_height)
-                print("calculated_content_children_size", smallest_node.box_model_v2.calculated_content_children_size)
-                print("intrinsic_margin_size", smallest_node.box_model_v2.intrinsic_margin_size)
+                if smallest_node.properties.id == "body":
+                    print("on_scroll_tick Expect body view_height to be ~550", view_height)
+                    print("on_scroll_tick Expect body max_height to be ~550", max_height)
 
-                max_top_scroll_y = 0
-                max_bottom_scroll_y = max_height - view_height
+                if smallest_node.properties.id == "scrolly":
+                    print("on_scroll_tick Expect scrolly view_height to be ~550", view_height)
+                    print("on_scroll_tick Expect scrolly max_height to be ~700", max_height)
+
+                if max_height <= view_height:
+                    return
+
+                # scroll up = content moves downward = positive offset_y
+                # scroll down = content moves upward = negative offset_y
+                offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
+                # print("margin_size", smallest_node.box_model_v2.margin_size)
+                # print("max_height", max_height)
+                # print("view_height", view_height)
+                # print("calculated_content_children_size", smallest_node.box_model_v2.calculated_content_children_size)
+                # print("intrinsic_margin_size", smallest_node.box_model_v2.intrinsic_margin_size)
+
+                print("Expect offset_y when scrolling up to be postive", offset_y)
+                max_positive_offset_y = 0
+                max_negative_offset = view_height - max_height
 
                 new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
-                # if new_offset_y < max_top_scroll_y:
-                #     new_offset_y = max_top_scroll_y
-                # elif new_offset_y > max_bottom_scroll_y:
-                #     new_offset_y = max_bottom_scroll_y
-
                 print('new_offset_y', new_offset_y)
+                print('max_positive_offset_y', max_positive_offset_y)
+                print('max_negative_offset', max_negative_offset)
+                if new_offset_y > max_positive_offset_y:
+                    new_offset_y = max_positive_offset_y
+                elif new_offset_y < max_negative_offset:
+                    new_offset_y = max_negative_offset
+
+                print('final new_offset_y', new_offset_y)
 
                 self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
                 self.render_manager.render_scroll()

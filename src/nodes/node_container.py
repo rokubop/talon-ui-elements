@@ -252,6 +252,12 @@ class NodeContainer(Node, NodeContainerType):
 
     def v2_constrain_size(self, available_size: Size2d = None) -> bool:
         content_constraint_size = self.box_model_v2.constrain_size(available_size, self.properties.overflow)
+        if self.properties.id == "drag":
+            print("Expect drag to have height constraint of ~600: ", content_constraint_size.height)
+        if self.properties.id == "main":
+            print("Expect main to have height constraint of ~550: ", content_constraint_size.height)
+        # if self.properties.id:
+        #     print('v2_constrain_size', self.properties.id, content_constraint_size)
         children_accumulated_size = Size2d(0, 0)
         is_row = self.properties.flex_direction == "row"
         primary_axis = "width" if is_row else "height"
@@ -278,13 +284,22 @@ class NodeContainer(Node, NodeContainerType):
 
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
+            if self.properties.id == "drag":
+                print("Expect new_available_size.height to be around ~600: ", new_available_size.height)
 
             for child in self.children_nodes:
+                if self.properties.id == "drag" and child.properties.id == "main":
+                    print("Expect new_available_size passed to main v2_constrain_size to be ~550", new_available_size)
+                # if child.properties.id:
+                #     print('child.v2_constrain_size', child.properties.id, new_available_size)
                 child.v2_constrain_size(new_available_size)
                 if self.properties.flex_direction == "row" and new_available_size.width != None:
-                    new_available_size.width = min(0, new_available_size.width - child.box_model_v2.calculated_margin_size.width)
+                    new_available_size.width = max(0, new_available_size.width - child.box_model_v2.calculated_margin_size.width)
                 elif self.properties.flex_direction == "column" and new_available_size.height != None:
-                    new_available_size.height = min(0, new_available_size.height - child.box_model_v2.calculated_margin_size.height)
+                    new_available_size.height = max(0, new_available_size.height - child.box_model_v2.calculated_margin_size.height)
+                    if self.properties.id == "drag" and child.properties.id == "header":
+                        print("Expect header margin to be around ~50: ", child.box_model_v2.calculated_margin_size.height)
+                        print("Expect new_available_size.height to be around ~550: ", new_available_size.height)
                 accumulate(child)
         else:
             for child in self.children_nodes:
@@ -370,29 +385,11 @@ class NodeContainer(Node, NodeContainerType):
         return self.box_model_v2.margin_size
 
     def v2_render(self, c):
-        # if self.properties.id == "body":
-        #     print("margin_rect", self.box_model_v2.margin_rect)
-        #     print("content_rect", self.box_model_v2.content_rect)
-        #     print("content_children_rect", self.box_model_v2.content_children_rect)
-        #     print("intrinsic_margin_size", self.box_model_v2.intrinsic_margin_size)
-        #     print("calculated_margin_size", self.box_model_v2.calculated_margin_size)
-        #     print("calculated_content_size", self.box_model_v2.calculated_content_size)
-        #     print("calculated_content_children_size", self.box_model_v2.calculated_content_children_size)
         self.v2_render_borders(c)
-        if self.id == "scrolly":
-            c.paint.color = "red"
-            c.paint.style = c.paint.Style.STROKE
-            print("red", self.box_model_v2.padding_rect)
-            c.draw_rect(self.box_model_v2.padding_rect)
-
         self.v2_crop_start(c)
-        # self.v2_adjust_for_scroll_y_start(c)
         self.v2_render_background(c)
-
         for child in self.children_nodes:
             child.v2_render(c)
-
-        # self.v2_adjust_for_scroll_y_end(c)
         self.v2_crop_end(c)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):

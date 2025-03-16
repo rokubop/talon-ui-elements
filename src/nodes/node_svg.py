@@ -122,10 +122,15 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         prev_paint = c.paint.clone()
 
         c.paint.style = c.paint.Style.STROKE
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
+        if self.properties.fill:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.fill
+
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
         c.draw_path(translated_path, c.paint)
 
@@ -177,10 +182,15 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
         top_left_pos = self.parent_node.box_model_v2.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
+        if self.properties.fill:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.fill
+
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
         c.draw_round_rect(Rect(x + top_left_pos.x, y + top_left_pos.y, width, height), rx, ry)
 
         c.paint = prev_paint
@@ -230,10 +240,15 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
         top_left_pos = self.parent_node.box_model_v2.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
+        if self.properties.fill:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.fill
+
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
         c.draw_circle(cx + top_left_pos.x, cy + top_left_pos.y, r)
 
         c.paint = prev_paint
@@ -286,10 +301,15 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         top_left_pos = self.parent_node.box_model_v2.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
+        if self.properties.fill:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.fill
+
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
         c.draw_points(mode=c.PointMode.POLYGON, points=points)
 
         c.paint = prev_paint
@@ -342,10 +362,15 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
         top_left_pos = self.parent_node.box_model_v2.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
+        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
+        if self.properties.fill:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.fill
+
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
         c.draw_line(x1 + top_left_pos.x, y1 + top_left_pos.y, x2 + top_left_pos.x, y2 + top_left_pos.y)
 
         c.paint = prev_paint

@@ -338,6 +338,7 @@ class BoxModelV2Type(ABC):
     padding_size: Size2d
     content_size: Size2d
     content_children_size: Size2d
+    content_children_with_padding_size: Size2d
 
     calculated_margin_size: Size2d
     calculated_border_size: Size2d
