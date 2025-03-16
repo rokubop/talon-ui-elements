@@ -27,8 +27,8 @@ class Overflow(OverflowType):
     is_boundary: bool = False
 
     def __init__(self, overflow: str = "visible", overflow_x: str = None, overflow_y: str = None):
-        self.x = overflow_x or overflow
-        self.y = overflow_y or overflow
+        self.x = overflow_x or overflow or "visible"
+        self.y = overflow_y or overflow or "visible"
         self.scrollable_x = self.x == "scroll" or self.x == "auto"
         self.scrollable_y = self.y == "scroll" or self.y == "auto"
         self.scrollable = self.scrollable_x or self.scrollable_y
@@ -671,9 +671,6 @@ class BoxModelV2(BoxModelV2Type):
         # if not getattr(overflow, 'scrollable_y', False):
         max_height = self.max_height or self.height
 
-        if self.id == "main":
-            print("box model constrain_size - Expect max_height to be 0", max_height)
-
         if max_height:
             margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
 
@@ -682,11 +679,7 @@ class BoxModelV2(BoxModelV2Type):
         # if not max_height and not available_size_height:
         #     margin_height = max(margin_height, self.intrinsic_margin_size.height)
 
-        if self.id == "main":
-            print("box model constrain_size - Expect margin_height to be ~550", margin_height)
 
-        if self.id == "main":
-            print("box model constrain_size - margin_height to be less than self.calculated_margin_size.height", margin_height, self.calculated_margin_size.height)
         if margin_height < self.calculated_margin_size.height:
             self.overflow_size.height = self.calculated_margin_size.height - margin_height
             border_height = margin_height - self.margin_spacing.top - self.margin_spacing.bottom
@@ -703,21 +696,8 @@ class BoxModelV2(BoxModelV2Type):
             content_children_height = self.calculated_content_children_size.height
 
         if getattr(overflow, 'scrollable_y', False):
-            # border_height = self.calculated_border_size.height
-            # padding_height = self.calculated_padding_size.height
-            # content_height = self.calculated_content_size.height
-            if self.id == "body":
-                print("Expect body self.calculated_content_children_size.height to be idk", self.calculated_content_children_size.height)
             content_children_height = self.calculated_content_children_size.height
-
-            # print("content_children_height", content_children_height)
-            # print("margin_height", margin_height)
-            # print("available_size_height", available_size_height)
-            if self.id == "body":
-                print("Expect body available_size_height to be ~550", available_size_height)
-                print("Expect body margin_height to be ~550", margin_height)
             if available_size_height:
-                # print("margin_height", margin_height)
                 self.overflow_size.height = max(0, margin_height - available_size_height)
             content_constraint_height = None
 
@@ -778,6 +758,7 @@ class BoxModelV2(BoxModelV2Type):
             elif align_items == "flex_end":
                 self.content_children_pos.x = self.content_pos.x + self.content_size.width - self.content_children_size.width
 
+    @property
     def clip_rect(self):
         clip_rect = None
         for node_ref in self.clip_nodes:
@@ -788,8 +769,12 @@ class BoxModelV2(BoxModelV2Type):
                 clip_rect = node.box_model_v2.padding_rect
         return clip_rect
 
+    @property
+    def visible_rect(self):
+        return self.clip_rect.intersect(self.padding_rect) if self.clip_rect else self.padding_rect
+
     def is_visible(self) -> Union[bool, str]:
-        clip_rect = self.clip_rect()
+        clip_rect = self.clip_rect
         if not clip_rect:
             return True
 

@@ -316,11 +316,13 @@ class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
+    fill: str
 
 class NodeIconValidationProperties(ValidationProperties):
     name: str
     size: int
     stroke_width: int
+    fill: str
 
 @dataclass
 class NodeSvgPathProperties(Properties):
@@ -410,6 +412,7 @@ class NodeSvgLineProperties(Properties):
     stroke_linejoin: str = None
     stroke_width: int = None
     stroke: str = None
+    fill: str = None
 
     def __init__(self, **kwargs):
         if not all(key in kwargs for key in ['x1', 'y1', 'x2', 'y2']):

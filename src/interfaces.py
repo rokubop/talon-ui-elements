@@ -352,8 +352,7 @@ class BoxModelV2Type(ABC):
     intrinsic_content_size: Size2d
     intrinsic_content_children_size: Size2d
 
-    def clip_rect(self):
-        pass
+    clip_rect: Union[Rect, None]
 
     def is_visible(self) -> Union[bool, str]:
         pass

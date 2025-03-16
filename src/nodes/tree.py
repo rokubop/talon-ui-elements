@@ -378,15 +378,15 @@ class Tree(TreeType):
         for id, color in list(self.meta_state.highlighted.items()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                # box_model = node.box_model
-                box_model = node.box_model_v2
+                rect = node.box_model_v2.visible_rect
                 canvas.paint.color = color or node.properties.highlight_color
 
-                if hasattr(node.properties, 'border_radius'):
-                    border_radius = node.properties.border_radius
-                    canvas.draw_rrect(RoundRect.from_rect(box_model.padding_rect, x=border_radius, y=border_radius))
-                else:
-                    canvas.draw_rect(box_model.padding_rect)
+                if rect:
+                    if hasattr(node.properties, 'border_radius'):
+                        border_radius = node.properties.border_radius
+                        canvas.draw_rrect(RoundRect.from_rect(rect, x=border_radius, y=border_radius))
+                    else:
+                        canvas.draw_rect(rect)
 
     def draw_text_mutations(self, canvas: SkiaCanvas):
         for id, text_value in list(self.meta_state.text_mutations.items()):
@@ -479,10 +479,8 @@ class Tree(TreeType):
             )
 
             apply_clip = False
-            clip_rect = node.box_model_v2.clip_rect()
+            clip_rect = node.box_model_v2.clip_rect
             if clip_rect:
-                # get_clip_rect = node.box_model.constraints["get_clip_rect"]
-                # clip_rect = get_clip_rect() if get_clip_rect else None
                 padding_rect = node.box_model_v2.padding_rect
                 apply_clip = clip_rect and \
                     (clip_rect.top > padding_rect.top or \
@@ -551,7 +549,7 @@ class Tree(TreeType):
         return CanvasWeakRef(Canvas.from_rect(safe_rect))
 
     def render_decorator_canvas(self):
-        if not self.canvas_decorator:
+        if not self.canvas_decorator and not self.render_manager.is_destroying:
             self.canvas_decorator = self.create_canvas()
             self.canvas_decorator.register("draw", self.on_draw_decorator_canvas)
             if self.interactive_node_list:
@@ -567,7 +565,8 @@ class Tree(TreeType):
                 elif not focused_tree:
                     self.canvas_decorator.focused = True
 
-        self.canvas_decorator.freeze()
+        if self.canvas_decorator:
+            self.canvas_decorator.freeze()
 
     def render_base_canvas(self):
         if not self.render_manager.is_destroying:
@@ -717,8 +716,6 @@ class Tree(TreeType):
                 state_manager.focus_node(node)
                 return
 
-        # if self.root_node.box_model:
-        #     if self.root_node.box_model.content_children_rect.contains(gpos):
         if self.root_node.box_model_v2:
             if self.root_node.box_model_v2.content_children_rect.contains(gpos):
                 state_manager.blur()
@@ -779,41 +776,21 @@ class Tree(TreeType):
                 max_height = smallest_node.box_model_v2.content_children_with_padding_size.height
                 view_height = smallest_node.box_model_v2.padding_size.height
 
-                if smallest_node.properties.id == "body":
-                    print("on_scroll_tick Expect body view_height to be ~550", view_height)
-                    print("on_scroll_tick Expect body max_height to be ~550", max_height)
-
-                if smallest_node.properties.id == "scrolly":
-                    print("on_scroll_tick Expect scrolly view_height to be ~550", view_height)
-                    print("on_scroll_tick Expect scrolly max_height to be ~700", max_height)
-
                 if max_height <= view_height:
                     return
 
-                # scroll up = content moves downward = positive offset_y
-                # scroll down = content moves upward = negative offset_y
                 offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
-                # print("margin_size", smallest_node.box_model_v2.margin_size)
-                # print("max_height", max_height)
-                # print("view_height", view_height)
-                # print("calculated_content_children_size", smallest_node.box_model_v2.calculated_content_children_size)
-                # print("intrinsic_margin_size", smallest_node.box_model_v2.intrinsic_margin_size)
-
-                print("Expect offset_y when scrolling up to be postive", offset_y)
                 max_positive_offset_y = 0
                 max_negative_offset = view_height - max_height
 
                 new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
 
-                print('new_offset_y', new_offset_y)
-                print('max_positive_offset_y', max_positive_offset_y)
-                print('max_negative_offset', max_negative_offset)
                 if new_offset_y > max_positive_offset_y:
                     new_offset_y = max_positive_offset_y
                 elif new_offset_y < max_negative_offset:
                     new_offset_y = max_negative_offset
 
-                print('final new_offset_y', new_offset_y)
+                # print('final new_offset_y', new_offset_y)
 
                 self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
                 self.render_manager.render_scroll()
@@ -947,6 +924,8 @@ class Tree(TreeType):
         if clip_nodes:
             for clip_node in clip_nodes:
                 node.add_clip_node(clip_node)
+
+        return clip_nodes
 
     def _check_deprecated_ui(self, node: NodeType):
         if node.element_type == ELEMENT_ENUM_TYPE["screen"] and node.deprecated_ui:

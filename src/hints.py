@@ -100,34 +100,25 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
 
     apply_clip = False
     clip_rect = None
-    # get_clip_rect = node.box_model.constraints["get_clip_rect"]
-    # clip_rect = get_clip_rect() if get_clip_rect else None
-    # apply_clip = clip_rect and \
-    #     (clip_rect.top > node.box_model.padding_rect.top or \
-    #     clip_rect.left > node.box_model.padding_rect.left or \
-    #     clip_rect.bot < node.box_model.padding_rect.bot or \
-    #     clip_rect.right < node.box_model.padding_rect.right)
+    if node.box_model_v2.is_visible() != True:
+        apply_clip = True
+        clip_rect = node.box_model_v2.clip_rect
 
     if node.element_type == "button":
-        # box_model = node.box_model.content_rect
         box_model_v2 = node.box_model_v2.content_rect
         offset_x = -hint_padding_width
         offset_y = -hint_padding_height
     else:
-        # box_model = node.box_model.padding_rect
         box_model_v2 = node.box_model_v2.padding_rect
         offset_x = -10
         offset_y = -4
 
-    # hint_padding_rect = Rect(box_model.x + offset_x, box_model.y + offset_y, hint_padding_width, hint_padding_height)
     hint_padding_rect = Rect(
         box_model_v2.x + offset_x,
         box_model_v2.y + offset_y,
         hint_padding_width,
         hint_padding_height
     )
-
-    # print('hint_padding_rect', hint_padding_rect)
 
     if apply_clip:
         c.save()
@@ -189,10 +180,45 @@ def hint_tag_enable():
 def hint_tag_disable():
     ctx.tags = []
 
+
+class KeyPressOrRepeatHold:
+    def __init__(self, action: callable):
+        self.action = action
+        self.prime_key_repeat_job = None
+        self.key_repeat_job = None
+        self.time_until_repeat = "400ms"
+        self.repeat_interval = "90ms"
+
+    def repeat(self):
+        self.key_repeat_job = cron.interval(self.repeat_interval, self.action)
+
+    def execute(self, key_down: bool):
+        if key_down == None:
+            self.cleanup()
+            self.action()
+        elif key_down == True:
+            self.cleanup()
+            self.action()
+            self.prime_key_repeat_job = cron.after(self.time_until_repeat, self.repeat)
+        elif key_down == False:
+            self.cleanup()
+
+    def cleanup(self):
+        if self.prime_key_repeat_job:
+            cron.cancel(self.prime_key_repeat_job)
+            self.prime_key_repeat_job = None
+        if self.key_repeat_job:
+            cron.cancel(self.key_repeat_job)
+            self.key_repeat_job = None
+
+focus_next = KeyPressOrRepeatHold(state_manager.focus_next)
+focus_previous = KeyPressOrRepeatHold(state_manager.focus_previous)
+
 def hint_clear_state():
     store.id_to_hint.clear()
     reset_hint_generator()
     hint_tag_disable()
+    focus_next.cleanup()
 
 # TODO: can we make this so only currently shown hints
 #  are captured instead of any two characters?
@@ -210,9 +236,12 @@ class Actions:
         elif action == "focus":
             if ui_elements_hint_target:
                 trigger_hint_focus(ui_elements_hint_target)
-        elif action == "focus_next":
-            state_manager.focus_next()
+
+    def ui_elements_key_action(action: str, key_down: bool = None):
+        """Trigger key action"""
+        if action == "focus_next":
+            focus_next.execute(key_down)
         elif action == "focus_previous":
-            state_manager.focus_previous()
+            focus_previous.execute(key_down)
         elif action == "close":
             actions.user.ui_elements_hide_all()
