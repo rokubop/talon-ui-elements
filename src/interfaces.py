@@ -308,6 +308,7 @@ class BoxModelLayoutType(ABC):
         pass
 
 class BoxModelV2Type(ABC):
+    id: Union[str, None]
     width: Union[int, str]
     height: Union[int, str]
     min_width: Union[int, str]
@@ -316,6 +317,8 @@ class BoxModelV2Type(ABC):
     max_height: Union[int, str]
     fixed_width: bool
     fixed_height: bool
+    overflow: OverflowType
+    overflow_size: Size2d
 
     margin_spacing: BoxModelSpacingType
     padding_spacing: BoxModelSpacingType
@@ -351,7 +354,9 @@ class BoxModelV2Type(ABC):
     intrinsic_padding_size: Size2d
     intrinsic_content_size: Size2d
     intrinsic_content_children_size: Size2d
+    intrinsic_margin_size_with_bounding_constraints: Size2d
 
+    clip_nodes: List['NodeType']
     clip_rect: Union[Rect, None]
 
     def is_visible(self) -> Union[bool, str]:

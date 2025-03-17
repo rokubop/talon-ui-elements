@@ -101,10 +101,11 @@ class NodeInputText(Node):
             self.box_model_v2.content_size.height + platform_adjustment_height
         )
         top_offset = 0
-        # if clip_rect:
-        #     new_input_rect = input_rect.intersect(clip_rect)
-        #     top_offset = new_input_rect.top - input_rect.top
-        #     input_rect = new_input_rect
+        clip_rect = self.box_model_v2.clip_rect
+        if clip_rect:
+            new_input_rect = input_rect.intersect(clip_rect)
+            top_offset = new_input_rect.top - input_rect.top
+            input_rect = new_input_rect
         entity_manager.update_input_rect(self.id, input_rect, top_offset=top_offset)
 
     def render(self, c: SkiaCanvas, cursor: Cursor):

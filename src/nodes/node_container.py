@@ -177,7 +177,7 @@ class NodeContainer(Node, NodeContainerType):
             self.clip_nodes
         )
 
-        return self.box_model_v2.intrinsic_margin_size
+        return self.box_model_v2.intrinsic_margin_size_with_bounding_constraints
 
     def v2_grow_size(self):
         growable_counter_axis: List[NodeType] = []
@@ -191,6 +191,11 @@ class NodeContainer(Node, NodeContainerType):
             #  isinstance(self.properties.height, str) and "%" in self.properties.height) or \
             # (self.properties.flex_direction == "column" and \
             #  isinstance(self.properties.width, str) and "%" in self.properties.width)
+
+        if self.id == "blah":
+            print("pre grow: expect calculated_margin_size height to be ~350", self.box_model_v2.calculated_margin_size.height)
+            print("pre grow: expect calculated_content_size height to be ~800", self.box_model_v2.calculated_content_size.height)
+
 
         for i, child in enumerate(self.children_nodes):
             if all_growable_counter_axis or child.properties.align_self == "stretch" or \
@@ -300,13 +305,7 @@ class NodeContainer(Node, NodeContainerType):
 
         self.box_model_v2.shrink_content_children_size(children_accumulated_size)
 
-        # return True if content_constraint_size else False
-
     def v2_layout(self, cursor: Cursor) -> Size2d:
-        # if self.properties.id == "body" or self.properties.id == "drag":
-        #     c.paint.style = c.paint.Style.STROKE
-        #     c.paint.color = "green"
-        #     c.draw_circle(cursor.x, cursor.y, 40)
         self.v2_drag_offset(cursor)
         self.box_model_v2.position_for_render(
             cursor,
@@ -318,38 +317,13 @@ class NodeContainer(Node, NodeContainerType):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
         if scrollable:
             self.box_model_v2.adjust_scroll_y(scrollable.offset_y)
-            # cursor.offset(0, -scrollable.offset_y)
-
-        # if self.properties.id == "body" or self.properties.id == "drag":
-        #     c.paint.style = c.paint.Style.STROKE
-        #     c.paint.color = "blue"
-        #     c.draw_circle(cursor.x, cursor.y, 20)
-
-        # print(f"NodeContainer - Layout: {getattr(self, 'id', None)} {self.box_model_v2.margin_pos}")
 
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)
-
-        # if self.properties.is_scrollable() and self.id in self.tree.meta_state.scrollable:
-        #     scroll_offset = self.tree.meta_state.scrollable[self.id]
-        #     cursor.offset(scroll_offset.offset_x, scroll_offset.offset_y)
-            # print('cursor old', cursor.x, cursor.y)
-            # print('offsetting', scroll_offset.offset_x, scroll_offset.offset_y)
-            # print('cursor new', cursor.x, cursor.y)
-
-        # if self.properties.id == "body" or self.properties.id == "drag":
-        #     c.paint.color = "red"
-        #     c.paint.style = c.paint.Style.STROKE
-        #     c.draw_circle(cursor.x, cursor.y, 20)
 
         last_cursor = Point2d(cursor.x, cursor.y)
         fixed_gap = self.determine_layout_fixed_gap()
         for i, child in enumerate(self.children_nodes):
             self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
-
-            # if self.properties.id == "body" or self.properties.id == "drag":
-            #     c.paint.style = c.paint.Style.STROKE
-            #     c.paint.color = "yellow"
-            #     c.draw_circle(cursor.x, cursor.y, 20)
 
             child_last_cursor = Point2d(cursor.x, cursor.y)
             size = child.v2_layout(cursor)
@@ -360,8 +334,6 @@ class NodeContainer(Node, NodeContainerType):
 
             gap = self.gap_between_elements(child, i, fixed_gap)
             self.v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, size, gap)
-            # self.tree.current_canvas.paint.color = "red"
-            # self.tree.current_canvas.draw_circle(cursor.x, cursor.y, 3)
 
         cursor.move_to(last_cursor.x, last_cursor.y)
         return self.box_model_v2.margin_size
@@ -697,67 +669,3 @@ class NodeContainer(Node, NodeContainerType):
 
             fixed_gap = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
         return fixed_gap
-
-    # def render(self, c: SkiaCanvas, cursor: Cursor):
-    #     if view_state := self.debugger(c, cursor, True):
-    #         return view_state
-
-    #     if self.tree.draggable_node_delta_pos and self.tree.draggable_node == self:
-    #         self.box_model.move_delta(
-    #             self.tree.draggable_node_delta_pos.x,
-    #             self.tree.draggable_node_delta_pos.y,
-    #             self.properties.flex_direction,
-    #             self.properties.align_items,
-    #             self.properties.justify_content
-    #         )
-    #     else:
-    #         self.box_model.position_for_render(
-    #             cursor,
-    #             self.properties.flex_direction,
-    #             self.properties.align_items,
-    #             self.properties.justify_content
-    #         )
-
-    #     # self.debugger(c, cursor)
-    #     self.render_borders(c, cursor)
-    #     self.crop_scrollable_region_start(c)
-    #     self.adjust_for_scroll_y_start(c)
-    #     self.render_background(c, cursor)
-    #     # if view_state := self.debugger(c, cursor, True):
-    #     #     return view_state
-    #     self.move_cursor_to_align_axis_before_children_render(cursor)
-    #     # self.debugger(c, cursor)
-
-    #     last_cursor = Point2d(cursor.x, cursor.y)
-    #     for i, child in enumerate(self.children_nodes):
-    #         if self.debugger_should_continue(c, cursor):
-    #             continue
-
-    #         self.move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
-    #         # self.debugger(c, cursor, new_color=True)
-
-    #         child_last_cursor = Point2d(cursor.x, cursor.y)
-    #         rect = child.render(c, cursor)
-    #         cursor.move_to(child_last_cursor.x, child_last_cursor.y)
-
-    #         if i == len(self.children_nodes) - 1:
-    #             break
-
-    #         # if self.debugger_should_continue(c, cursor):
-    #         #     continue
-
-    #         gap = self.gap_between_elements(child, i)
-    #         self.move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, rect, gap)
-
-    #         # self.debugger(c, cursor)
-
-    #     # if view_state := self.debugger(c, cursor, True):
-    #     #     return view_state
-
-    #     cursor.move_to(last_cursor.x, last_cursor.y)
-    #     # self.debugger(c, cursor)
-
-        # self.adjust_for_scroll_y_end(c)
-        self.crop_scrollable_region_end(c)
-
-        return self.box_model.margin_rect

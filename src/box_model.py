@@ -441,6 +441,7 @@ class BoxModelV2(BoxModelV2Type):
         content_size: Size2d = Size2d(0, 0),
         clip_nodes: list[NodeType] = []
     ):
+        self.id = properties.id
         self.width = properties.width
         self.height = properties.height
         self.min_width = properties.min_width
@@ -449,7 +450,6 @@ class BoxModelV2(BoxModelV2Type):
         self.max_height =  properties.max_height
         self.fixed_width = bool(properties.width)
         self.fixed_height = bool(properties.height)
-        self.id = properties.id
         self.overflow = properties.overflow
         self.overflow_size = Size2d(0, 0)
 
@@ -523,6 +523,18 @@ class BoxModelV2(BoxModelV2Type):
             self.content_children_size.width + self.padding_spacing.left + self.padding_spacing.right,
             self.content_children_size.height + self.padding_spacing.top + self.padding_spacing.bottom
         )
+
+    @property
+    def intrinsic_margin_size_with_bounding_constraints(self):
+        width = self.intrinsic_margin_size.width
+        max_width = self.width or self.max_width
+        if max_width and max_width < width:
+            width = max_width
+        height = self.intrinsic_margin_size.height
+        max_height = self.height or self.max_height
+        if max_height and max_height < height:
+            height = max_height
+        return Size2d(width, height)
 
     @staticmethod
     def content_size_to_border_size(content_size: Size2d, padding_spacing: BoxModelSpacing, border_spacing: BoxModelSpacing):
