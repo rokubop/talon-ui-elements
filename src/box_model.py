@@ -82,6 +82,7 @@ def grow_rect_y(orig_rect: Rect, new_rect: Rect, max_height: int = None):
 
 @dataclass
 class BoxModelLayout(BoxModelLayoutType):
+    """DEPRECATED: Use BoxModelV2 instead"""
     margin_spacing: BoxModelSpacing
     padding_spacing: BoxModelSpacing
     border_spacing: BoxModelSpacing

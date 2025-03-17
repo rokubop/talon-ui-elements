@@ -151,12 +151,6 @@ class Node(NodeType):
                 self.properties.update_colors_with_opacity()
 
     def is_fully_clipped_by_scroll(self):
-        # if self.box_model:
-        #     get_clip_rect = self.box_model.constraints.get("get_clip_rect")
-        #     if get_clip_rect:
-        #         clip_rect = get_clip_rect()
-        #         margin_rect = self.box_model.margin_rect
-        #         return not clip_rect.intersects(margin_rect)
         return False
 
     def v2_measure_intrinsic_size(self, c):
@@ -165,23 +159,9 @@ class Node(NodeType):
 
     def v2_grow_size(self):
         pass
-        # if getattr(self, "text", None):
-        #     if self.element_type == "text":
-        #         print(f"NodeText {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
-        #     else:
-        #         print(f"NodeButton {self.text} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
-        # else:
-        #     print(f"Node {self.element_type} - Intrinsic Grow Size: {self.box_model_v2.calculated_margin_size}")
 
     def v2_constrain_size(self, available_size: Size2d = None):
         self.box_model_v2.constrain_size(available_size, self.properties.overflow)
-        # if getattr(self, "text", None):
-        #     if self.element_type == "text":
-        #         print(f"NodeText {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
-        #     else:
-        #         print(f"NodeButton {self.text} - Constrained Size: {self.box_model_v2.margin_size}")
-        # else:
-        #     print(f"Node {self.element_type} - Constrained Size: {self.box_model_v2.margin_size}")
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         self.box_model_v2.position_for_render(
@@ -190,14 +170,6 @@ class Node(NodeType):
             self.properties.align_items,
             self.properties.justify_content
         )
-
-        # if getattr(self, "text", None):
-        #     if self.element_type == "text":
-        #         print(f"NodeText {self.text} - Layout: {self.box_model_v2.margin_pos}")
-        #     else:
-        #         print(f"NodeButton {self.text} - Layout: {self.box_model_v2.margin_pos}")
-        # else:
-        #     print(f"Node {self.element_type} - Layout: {self.box_model_v2.margin_pos}")
 
         return self.box_model_v2.margin_size
 

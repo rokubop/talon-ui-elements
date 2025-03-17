@@ -33,6 +33,7 @@ class NodeInputText(Node):
         return None
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
+        """DEPRECATED"""
         if not self.tree.redistribute_box_model:
             self.box_model = BoxModelLayout(
                 cursor.virtual_x,
@@ -60,6 +61,7 @@ class NodeInputText(Node):
         return self.box_model_v2.intrinsic_margin_size
 
     def render_background(self, c: SkiaCanvas, cursor: Cursor):
+        """DEPRECATED"""
         cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)
         if self.properties.background_color:
             c.paint.style = c.paint.Style.FILL
@@ -106,6 +108,7 @@ class NodeInputText(Node):
         entity_manager.update_input_rect(self.id, input_rect, top_offset=top_offset)
 
     def render(self, c: SkiaCanvas, cursor: Cursor):
+        """DEPRECATED"""
         self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
 
         self.render_background(c, cursor)
