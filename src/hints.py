@@ -185,9 +185,9 @@ class KeyPressOrRepeatHold:
     def __init__(self, action: callable):
         self.action = action
         self.repeat_job = None
-        self.repeat_interval = "90ms"
+        self.repeat_interval = "75ms"
         self.time_until_repeat_job = None
-        self.time_until_repeat_interval = "400ms"
+        self.time_until_repeat_interval = "370ms"
 
     def repeat(self):
         self.repeat_job = cron.interval(self.repeat_interval, self.action)

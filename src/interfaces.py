@@ -329,6 +329,7 @@ class BoxModelV2Type(ABC):
     padding_rect: Rect
     content_rect: Rect
     content_children_rect: Rect
+    padding_with_scroll_bar_rect: Rect
 
     margin_pos: Point2d
     border_pos: Point2d
@@ -356,10 +357,17 @@ class BoxModelV2Type(ABC):
     intrinsic_content_children_size: Size2d
     intrinsic_margin_size_with_bounding_constraints: Size2d
 
+    scroll_bar_track_rect: Union[Rect, None]
+    scroll_bar_thumb_rect: Union[Rect, None]
+    conditional_scroll_bar_y_width: int
+
     clip_nodes: List['NodeType']
     clip_rect: Union[Rect, None]
 
     def is_visible(self) -> Union[bool, str]:
+        pass
+
+    def has_scroll_bar_y(self) -> bool:
         pass
 
 class NodeType(ABC):

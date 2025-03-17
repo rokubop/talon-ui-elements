@@ -3,7 +3,7 @@ from itertools import cycle
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
-from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE
+from ..constants import ELEMENT_ENUM_TYPE, NODE_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
 from ..box_model import BoxModelLayout, BoxModelV2
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType
@@ -130,6 +130,15 @@ class NodeContainer(Node, NodeContainerType):
 
         return self.box_model.margin_rect
 
+    def render_scroll_bar(self, c: SkiaCanvas):
+        scrollable = self.tree.meta_state.scrollable.get(self.id, None)
+        if scrollable and self.box_model_v2.scroll_bar_thumb_rect:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.draw_rect(self.box_model_v2.scroll_bar_track_rect)
+            c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
+            c.draw_rect(self.box_model_v2.scroll_bar_thumb_rect)
+
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
         """
         First step in the layout process. Calculates the intrinsic size.
@@ -191,11 +200,6 @@ class NodeContainer(Node, NodeContainerType):
             #  isinstance(self.properties.height, str) and "%" in self.properties.height) or \
             # (self.properties.flex_direction == "column" and \
             #  isinstance(self.properties.width, str) and "%" in self.properties.width)
-
-        if self.id == "blah":
-            print("pre grow: expect calculated_margin_size height to be ~350", self.box_model_v2.calculated_margin_size.height)
-            print("pre grow: expect calculated_content_size height to be ~800", self.box_model_v2.calculated_content_size.height)
-
 
         for i, child in enumerate(self.children_nodes):
             if all_growable_counter_axis or child.properties.align_self == "stretch" or \
@@ -345,6 +349,7 @@ class NodeContainer(Node, NodeContainerType):
         for child in self.children_nodes:
             child.v2_render(c)
         self.v2_crop_end(c)
+        self.render_scroll_bar(c)
 
     def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
         resolved_width = self.properties.width
@@ -495,13 +500,13 @@ class NodeContainer(Node, NodeContainerType):
         if self.tree.meta_state.scrollable.get(self.id, None):
             self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y, c)
 
-    def v2_adjust_for_scroll_y_start(self, c: SkiaCanvas):
+    def v2_adjust_for_scroll_y_start(self):
         if self.tree.meta_state.scrollable.get(self.id, None):
-            self.box_model_v2.adjust_scroll_y(self.tree.meta_state.scrollable[self.id].offset_y, c)
+            self.box_model_v2.adjust_scroll_y(self.tree.meta_state.scrollable[self.id].offset_y)
 
-    def v2_adjust_for_scroll_y_end(self, c: SkiaCanvas):
+    def v2_adjust_for_scroll_y_end(self):
         if self.tree.meta_state.scrollable.get(self.id, None):
-            self.box_model_v2.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y, c)
+            self.box_model_v2.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
 
     def crop_scrollable_region_start(self, c: SkiaCanvas):
         if self.box_model.scrollable and self.box_model.scroll_box_rect:

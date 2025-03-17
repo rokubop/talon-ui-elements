@@ -73,12 +73,15 @@ def dashboard_ui():
 
     def body():
         return div(flex_direction="row", id="body", padding=16, gap=8, overflow_y="scroll", width="100%")[
-            div(id="keys")[*[text(key, font_size=14) for key in keys]],
-            div(id="values")[*[text(value, font_size=14) for value in values]]
+            div()[
+                *[text(key, font_size=14) for key in keys]
+            ],
+            div()[
+                *[text(value, font_size=14) for value in values]
+            ]
         ]
-#background_color="272727",
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, id="drag", background_color="272727", border_radius=8, width=900, height=600, border_width=1)[
+        div(draggable=True, background_color="272727", border_radius=8, width=900, height=600, border_width=1)[
             header(),
             div(flex_direction="row", height="100%", id="main")[
                 sidebar(),

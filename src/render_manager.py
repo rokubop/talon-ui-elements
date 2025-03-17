@@ -163,7 +163,7 @@ class RenderManager(RenderManagerType):
         self._render_throttle("16ms", RenderTaskDragging)
 
     def render_scroll(self):
-        self._render_throttle("30ms", RenderTaskScrolling)
+        self._render_throttle("16ms", RenderTaskScrolling)
 
     def render_state_change(self):
         self.queue_render(RenderStateChange)
