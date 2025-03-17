@@ -53,7 +53,7 @@ def dashboard_ui():
         return on_click
 
     def header():
-        return div(flex_direction='row', justify_content='space_between', id="header", border_bottom=1, border_color="555555")[
+        return div(flex_direction='row', justify_content='space_between', border_bottom=1, border_color="555555")[
             text("Dashboard", font_size=24, padding=16),
             button(on_click=actions.user.ui_elements_hide_all)[
                 icon("close", size=20, padding=6),
@@ -61,7 +61,7 @@ def dashboard_ui():
         ]
 
     def sidebar():
-        return div(border_right=1, overflow_y="scroll", id="scrolly")[
+        return div(border_right=1, overflow_y="scroll")[
             *[button(
                 name,
                 on_click=on_click_wrapper(name),
@@ -83,7 +83,7 @@ def dashboard_ui():
     return screen(justify_content="center", align_items="center")[
         div(draggable=True, background_color="272727", border_radius=8, width=900, height=600, border_width=1)[
             header(),
-            div(flex_direction="row", height="100%", id="main")[
+            div(flex_direction="row", height="100%")[
                 sidebar(),
                 body()
             ],

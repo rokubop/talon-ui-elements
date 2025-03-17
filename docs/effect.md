@@ -6,7 +6,10 @@
 ```py
 screen, div, text, effect = actions.user.ui_elements(["screen", "div", "text", "effect"])
 
-effect(lambda: print("Mounted"), [])
+def on_mount():
+    print("Mounted")
+
+effect(on_mount, [])
 
 return screen()[
     div()[
@@ -15,16 +18,19 @@ return screen()[
 ]
 ```
 
-`effect` takes a function and a list of dependencies. In this case, because there are no dependencies, the `effect`  above will only be called only on mount, after the UI is rendered.
+`effect` takes a function and a list of dependencies. If there are no dependencies, the `effect`  above will only be called only on mount, after the UI is rendered.
 
 ## On state change
 ```py
 mode, set_mode = state.use("mode", "default")
 
-effect(lambda: print("Mode changed to", mode), ["mode"])
+def on_mode_change():
+    print("Mode changed to", mode)
+
+effect(on_mode_change, ["mode"])
 ```
 
-Dependencies are strings, not values, and refer to any global state key. In this case, the lambda function will be called on mount, and on every time the global state `"mode"` changes.
+Dependencies are strings, not values, and refer to any global state key. The above will be called on mount, and whenever the `mode` state changes.
 
 ## Cleanup/Unmount
 

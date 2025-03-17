@@ -1,6 +1,6 @@
 # ui_elements
 
-[ui_elements](.) is an experimental library for building stateful voice activated overlays and UIs using HTML/CSS/React-like syntax, for use with [Talon](https://talonvoice.com/).
+[ui_elements](.) is an experimental library for building stateful voice activated overlays and UIs using a HTML/CSS/React-inspired syntax for python, for use with [Talon](https://talonvoice.com/).
 
 ![ui_elements](./examples/ui_elements_preview.png)
 
@@ -8,8 +8,9 @@
 - HTML-like elements such as `div`, `text`, `button`, `input_text`
 - 40+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
-- Talon actions for setting text, highlighting elements, and changing state
-- Voice activated hints displayed on all buttons and text inputs
+- Dragging and scrolling
+- Talon actions for highlighting elements, changing state, setting text
+- Voice activated hints
 
 ## Prerequisites
 - [Talon](https://talonvoice.com/)
@@ -96,27 +97,27 @@ Now when you say "show hello world", the UI should appear.
 
 Congratulations! You've created your first UI. 🎉
 
-Start trying out properties to see how it changes. See all supported [properties](./docs/properties.md) for styling.
+See all supported [properties](./docs/properties.md) for styling.
 
-> Note: It's a good idea to say "Talon open log" and watch the log while developing. This will help you if you make any mistakes.
+> Note: It's a good idea to say "talon open log" and watch the log while developing. This will help you with supported properties and incorrect usage. You also might want to create a "talon restart" command in case changes don't apply while developing. See [Development suggestions](#development-suggestions).
 
 ## Examples
 
-Checkout out examples in the [examples](./examples) folder. Or say "elements test" to view live interactive examples.
-| Example | Preview | Description |
-|----|----|----|
-| [alignment_ui](./examples/alignment_ui.py) | [preview](./examples/alignment_preview.png) |Showcase 9 different flexbox arrangements |
-| [cheatsheet_ui](./examples/cheatsheet_ui.py) | [preview](./examples/cheatsheet_preview.png) | A list of commands on the left or right of your screen that can change state |
-| [dashboard_ui](./examples/dashboard_ui.py) | [preview](./examples/dashboard_preview.png) | Has a title bar, a side bar, and a reactive body |
-| [game_keys_ui](./examples/game_keys_ui.py) | [preview](./examples/game_keys_preview.png) | Game keys overlay for gaming, that highlights respective keys |
-| [hello_world_ui](./examples/hello_world_ui.py) | [preview](./examples/hello_world_preview.png) | Simple hello world UI |
-| [inputs_ui](./examples/inputs_ui.py) | [preview](./examples/inputs_preview.png) | Text input, ref, validation, and submit with a button |
-| [state_vs_refs_ui](examples/state_vs_refs_ui.py) | [preview](./examples/state_vs_refs_preview.png) | Two versions of a counter using state or ref |
-| [icons_svgs_ui](./examples/icons_svgs_ui.py) | [preview](./examples/icons_svgs_preview.png) | Icons and custom SVGs |
-| [todo_list_ui](./examples/todo_list_ui.py) | [preview](./examples/todo_list_preview.png) | A todo list with an input, add, and remove functionality |
+Say "elements test" to bring up the examples.
+
+<p align="center">
+  <img src="./examples/examples_preview.png" alt="examples" width="150"/>
+</p>
+
+You can find these in the [examples](./examples) folder for code and previews.
 
 ## Elements
-returned from `actions.user.ui_elements`:
+Returned from `actions.user.ui_elements`:
+
+Example:
+```py
+screen, div, button = actions.user.ui_elements(["screen", "div", "button"])
+```
 
 | Element | Description |
 |---------|-------------|
@@ -131,6 +132,8 @@ returned from `actions.user.ui_elements`:
 | `effect` | Run side effects on mount, unmount, or state change. |
 | `ref` | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates. Useful for `input_text` value. |
 
+Also see [SVG Elements](#svg-elements).
+
 ## Box Model
 ui_elements have the same box model as normal HTML, with `margin`, `border`, `padding`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning border and padding are included in the width and height.
 
@@ -138,27 +141,12 @@ ui_elements have the same box model as normal HTML, with `margin`, `border`, `pa
 ui_elements are all `display: flex`, and default to `flex_direction="column"`with `align_items="stretch"`. This means when you don't provide anything, it will act similarly to `display: block`.
 
 ### Alignment examples
-If you aren't familiar with flexbox, check out this [CSS Tricks Guide to Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/).
+If you aren't familiar with flexbox, you can read any standard HTML guide such as [CSS Tricks Guide to Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/).
 
-Some examples:
-```py
-# children of screen will be bottom right
-screen(align_items="flex_end", justify_content="flex_end")
+<div align="center">
+  <img src="./examples/alignment_preview.png" alt="alignment" width="800"/>
+</div>
 
-# children of screen will be center
-screen(align_items="center", justify_content="center")
-
-# children of screen will be top left
-screen(align_items="flex_start", justify_content="flex_start")
-
-# children of screen will be top right
-screen(flex_direction="row", align_items="flex_start", justify_content="flex_end")
-
-# full width or height depending on flex_direction
-div(flex=1)
-```
-
-See [alignment_ui](./examples/alignment_ui.py) for more.
 ## State
 
 ```py
@@ -346,6 +334,17 @@ screen()[
 ]
 ```
 
+## Scrolling
+
+You can enable a vertical scroll bar by adding `overflow_y: "scroll"` property to a div. Then set a `height` or `max_height` on the element or a parent.
+
+Example:
+```python
+div(overflow_y="scroll")[
+    ...
+]
+```
+
 ## Focus outline
 When the UI is interactive (either draggable, or has buttons or inputs), then focus outlines appear when you tab through the elements. To change the color and width of the focus outline, you can use the following properties:
 
@@ -423,4 +422,4 @@ class Actions:
 Uses Talon's `Canvas` and Skia canvas integration under the hood, along with Talon's experimental `TextArea` for input.
 
 ## Dependencies
-none
+none, other than Talon

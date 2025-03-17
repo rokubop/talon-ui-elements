@@ -11,14 +11,6 @@ The box model is based on `box-sizing: border-box`, meaning if you define width 
 ## Gap
 `gap` is `0` by default, but if two text elements are vertically aligned, the default gap is `16`.
 
-## Default Properties
-| Property | Default |
-| --- | --- |
-| `color` | `FFFFFF` |
-| `border_color` | `555555` |
-| `font_size` | `16` |
-| `flex_direction` | `column` |
-| `align_items` | `stretch` |
-| `justify_content` | `flex_start` |
-| `focus_outline_color` | `FFCC00` |
-| `focus_outline_width` | `2` |
+
+## Defaults
+See [constants](../src/constants.py) for defaults.
