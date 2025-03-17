@@ -184,13 +184,13 @@ def hint_tag_disable():
 class KeyPressOrRepeatHold:
     def __init__(self, action: callable):
         self.action = action
-        self.prime_key_repeat_job = None
-        self.key_repeat_job = None
-        self.time_until_repeat = "400ms"
+        self.repeat_job = None
         self.repeat_interval = "90ms"
+        self.time_until_repeat_job = None
+        self.time_until_repeat_interval = "400ms"
 
     def repeat(self):
-        self.key_repeat_job = cron.interval(self.repeat_interval, self.action)
+        self.repeat_job = cron.interval(self.repeat_interval, self.action)
 
     def execute(self, key_down: bool):
         if key_down == None:
@@ -199,17 +199,20 @@ class KeyPressOrRepeatHold:
         elif key_down == True:
             self.cleanup()
             self.action()
-            self.prime_key_repeat_job = cron.after(self.time_until_repeat, self.repeat)
+            self.time_until_repeat_job = cron.after(
+                self.time_until_repeat_interval,
+                self.repeat
+            )
         elif key_down == False:
             self.cleanup()
 
     def cleanup(self):
-        if self.prime_key_repeat_job:
-            cron.cancel(self.prime_key_repeat_job)
-            self.prime_key_repeat_job = None
-        if self.key_repeat_job:
-            cron.cancel(self.key_repeat_job)
-            self.key_repeat_job = None
+        if self.time_until_repeat_job:
+            cron.cancel(self.time_until_repeat_job)
+            self.time_until_repeat_job = None
+        if self.repeat_job:
+            cron.cancel(self.repeat_job)
+            self.repeat_job = None
 
 focus_next = KeyPressOrRepeatHold(state_manager.focus_next)
 focus_previous = KeyPressOrRepeatHold(state_manager.focus_previous)
@@ -219,6 +222,7 @@ def hint_clear_state():
     reset_hint_generator()
     hint_tag_disable()
     focus_next.cleanup()
+    focus_previous.cleanup()
 
 # TODO: can we make this so only currently shown hints
 #  are captured instead of any two characters?
@@ -229,7 +233,7 @@ def ui_elements_hint_target(m) -> list[str]:
 @mod.action_class
 class Actions:
     def ui_elements_hint_action(action: str, ui_elements_hint_target: str = None):
-        """Trigger hint action"""
+        """Trigger ui_elements specific hint action"""
         if action == "click":
             if ui_elements_hint_target:
                 trigger_hint_click(ui_elements_hint_target)
@@ -238,7 +242,7 @@ class Actions:
                 trigger_hint_focus(ui_elements_hint_target)
 
     def ui_elements_key_action(action: str, key_down: bool = None):
-        """Trigger key action"""
+        """Trigger ui_elements specific key action"""
         if action == "focus_next":
             focus_next.execute(key_down)
         elif action == "focus_previous":
