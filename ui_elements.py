@@ -77,10 +77,14 @@ class Actions:
             initial_state: dict[str, Any] = None,
         ):
         """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
-        if entity_manager.does_tree_exist(renderer):
-            actions.user.ui_elements_hide(renderer)
-        else:
+        new_state_visible = not entity_manager.does_tree_exist(renderer)
+
+        if new_state_visible:
             actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+        else:
+            entity_manager.hide_tree(renderer)
+
+        return new_state_visible
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """
@@ -151,6 +155,11 @@ class Actions:
                 state_manager.set_property_override(id, key, val)
         else:
             state_manager.set_ref_property_override(id, property_name, value)
+
+    # TODO: Implement
+    # def ui_elements_toggle_hints(enabled: bool = None):
+    #     """Toggle hints visibility"""
+    #     state_manager.toggle_hints(enabled)
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""

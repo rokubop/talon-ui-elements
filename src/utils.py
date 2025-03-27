@@ -130,3 +130,20 @@ def get_combined_screens_rect() -> Rect:
     width = max_right - x
     height = max_bottom - y
     return Rect(x, y, width, height)
+
+def subtract_rect(outer: Rect, inner: Rect) -> list[Rect]:
+    rects = []
+
+    if inner.top > outer.top:
+        rects.append(Rect(outer.left, outer.top, outer.width, inner.top - outer.top))
+
+    if inner.bot < outer.bot:
+        rects.append(Rect(outer.left, inner.bot, outer.width, outer.bot - inner.bot))
+
+    if inner.left > outer.left:
+        rects.append(Rect(outer.left, inner.top, inner.left - outer.left, inner.height))
+
+    if inner.right < outer.right:
+        rects.append(Rect(inner.right, inner.top, outer.right - inner.right, inner.height))
+
+    return rects

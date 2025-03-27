@@ -611,45 +611,45 @@ class NodeContainerType(NodeType):
     is_uniform_border: bool
     justify_between_gaps: Optional[int]
 
-    @abstractmethod
-    def virtual_render_child(self, c: object, cursor: object, child: NodeType, i: int, move_after_last_child: bool):
-        pass
+    # @abstractmethod
+    # def virtual_render_child(self, c: object, cursor: object, child: NodeType, i: int, move_after_last_child: bool):
+    #     pass
 
-    @abstractmethod
-    def grow_intrinsic_size(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def grow_intrinsic_size(self, c: object, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def virtual_render(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def virtual_render(self, c: object, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def draw_debug_number(self, c: object, cursor: object, new_color: bool):
-        pass
+    # @abstractmethod
+    # def draw_debug_number(self, c: object, cursor: object, new_color: bool):
+    #     pass
 
-    @abstractmethod
-    def render_borders(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def render_borders(self, c: object, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def render_background(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def render_background(self, c: object, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def adjust_for_scroll_y_start(self, c: object):
-        pass
+    # @abstractmethod
+    # def adjust_for_scroll_y_start(self, c: object):
+    #     pass
 
-    @abstractmethod
-    def adjust_for_scroll_y_end(self, c: object):
-        pass
+    # @abstractmethod
+    # def adjust_for_scroll_y_end(self, c: object):
+    #     pass
 
-    @abstractmethod
-    def crop_scrollable_region_start(self, c: object):
-        pass
+    # @abstractmethod
+    # def crop_scrollable_region_start(self, c: object):
+    #     pass
 
-    @abstractmethod
-    def crop_scrollable_region_end(self, c: object):
-        pass
+    # @abstractmethod
+    # def crop_scrollable_region_end(self, c: object):
+    #     pass
 
     @abstractmethod
     def debugger_should_continue(self, c: object, cursor: object):
@@ -659,17 +659,17 @@ class NodeContainerType(NodeType):
     def debugger(self, c: object, cursor: object, incrememnt_step: bool, new_color: bool, is_breakpoint: bool):
         pass
 
-    @abstractmethod
-    def move_cursor_to_align_axis_before_children_render(self, cursor: object):
-        pass
+    # @abstractmethod
+    # def move_cursor_to_align_axis_before_children_render(self, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def move_cursor_to_top_left_child_based_on_align_axis(self, cursor: object, child: NodeType):
-        pass
+    # @abstractmethod
+    # def move_cursor_to_top_left_child_based_on_align_axis(self, cursor: object, child: NodeType):
+    #     pass
 
-    @abstractmethod
-    def move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: object, child: NodeType, rect: object, gap: int):
-        pass
+    # @abstractmethod
+    # def move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: object, child: NodeType, rect: object, gap: int):
+    #     pass
 
     # @abstractmethod
     # def render(self, c: object, cursor: object):

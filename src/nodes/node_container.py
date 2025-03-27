@@ -19,116 +19,116 @@ class NodeContainer(Node, NodeContainerType):
         self.debug_color = "red"
         self.debug_colors = iter(cycle(["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]))
 
-    def set_justify_between_gaps(self):
-        if self.properties.justify_content == "space_between":
-            total_children_width = None
-            total_children_height = None
+    # def set_justify_between_gaps(self):
+    #     if self.properties.justify_content == "space_between":
+    #         total_children_width = None
+    #         total_children_height = None
 
-            if self.properties.flex_direction == "row":
-                total_children_width = sum(child.box_model.margin_rect.width for child in self.children_nodes)
-                available_space = self.box_model.content_rect.width - total_children_width
-            else:
-                total_children_height = sum(child.box_model.margin_rect.height for child in self.children_nodes)
-                available_space = self.box_model.content_rect.height - total_children_height
+    #         if self.properties.flex_direction == "row":
+    #             total_children_width = sum(child.box_model.margin_rect.width for child in self.children_nodes)
+    #             available_space = self.box_model.content_rect.width - total_children_width
+    #         else:
+    #             total_children_height = sum(child.box_model.margin_rect.height for child in self.children_nodes)
+    #             available_space = self.box_model.content_rect.height - total_children_height
 
-            gaps = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
-            self.justify_between_gaps = gaps
+    #         gaps = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
+    #         self.justify_between_gaps = gaps
 
-    def virtual_gap_between_elements(self, node, i):
-        gap = self.properties.gap or 0
+    # def virtual_gap_between_elements(self, node, i):
+    #     gap = self.properties.gap or 0
 
-        if self.properties.gap is None and node.element_type == ELEMENT_ENUM_TYPE["text"] and \
-                self.children_nodes[i - 1].element_type == ELEMENT_ENUM_TYPE["text"] \
-                and not self.properties.justify_content == "space_between":
-            if self.tree.render_version == 1:
-                gap = 16
-            elif self.tree.render_version == 2 and self.properties.flex_direction == "column":
-                gap = 16
+    #     if self.properties.gap is None and node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+    #             self.children_nodes[i - 1].element_type == ELEMENT_ENUM_TYPE["text"] \
+    #             and not self.properties.justify_content == "space_between":
+    #         if self.tree.render_version == 1:
+    #             gap = 16
+    #         elif self.tree.render_version == 2 and self.properties.flex_direction == "column":
+    #             gap = 16
 
-        return gap
+    #     return gap
 
-    def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
-        gap = self.virtual_gap_between_elements(child, i)
-        a_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
-        rect, intrinsic_rect = child.virtual_render(c, cursor)
+    # def virtual_render_child(self, c: SkiaCanvas, cursor: Cursor, child: Node, i: int, move_after_last_child = True):
+    #     gap = self.virtual_gap_between_elements(child, i)
+    #     a_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
+    #     rect, intrinsic_rect = child.virtual_render(c, cursor)
 
-        cursor.virtual_move_to(a_cursor.x, a_cursor.y)
-        if move_after_last_child or i != len(self.children_nodes) - 1:
-            if self.properties.flex_direction == "column":
-                cursor.virtual_move_to(cursor.virtual_x, cursor.virtual_y + rect.height + gap)
-            elif self.properties.flex_direction == "row":
-                cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
+    #     cursor.virtual_move_to(a_cursor.x, a_cursor.y)
+    #     if move_after_last_child or i != len(self.children_nodes) - 1:
+    #         if self.properties.flex_direction == "column":
+    #             cursor.virtual_move_to(cursor.virtual_x, cursor.virtual_y + rect.height + gap)
+    #         elif self.properties.flex_direction == "row":
+    #             cursor.virtual_move_to(cursor.virtual_x + rect.width + gap, cursor.virtual_y)
 
-        self.box_model.accumulate_intrinsic_content_dimensions(intrinsic_rect)
-        self.box_model.accumulate_content_dimensions(rect)
+    #     self.box_model.accumulate_intrinsic_content_dimensions(intrinsic_rect)
+    #     self.box_model.accumulate_content_dimensions(rect)
 
-    def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
-        growable_counter_axis = []
-        growable_primary_axis = []
-        growable_primary_axis_flex = []
+    # def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
+    #     growable_counter_axis = []
+    #     growable_primary_axis = []
+    #     growable_primary_axis_flex = []
 
-        cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
+    #     cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
+    #     last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
 
-        self.set_justify_between_gaps()
+    #     self.set_justify_between_gaps()
 
-        # Intristic sizing phase
-        all_growable_counter_axis = self.properties.align_items == "stretch" or \
-            (self.properties.flex_direction == "row" and \
-             isinstance(self.properties.height, str) and "%" in self.properties.height) or \
-            (self.properties.flex_direction == "column" and \
-             isinstance(self.properties.width, str) and "%" in self.properties.width)
+    #     # Intristic sizing phase
+    #     all_growable_counter_axis = self.properties.align_items == "stretch" or \
+    #         (self.properties.flex_direction == "row" and \
+    #          isinstance(self.properties.height, str) and "%" in self.properties.height) or \
+    #         (self.properties.flex_direction == "column" and \
+    #          isinstance(self.properties.width, str) and "%" in self.properties.width)
 
-        for i, child in enumerate(self.children_nodes):
-            # if child.node_type != "leaf":
-            if all_growable_counter_axis or child.properties.align_self == "stretch" or \
-                    (self.properties.flex_direction == "row" and \
-                    isinstance(child.properties.height, str) and "%" in child.properties.height) or \
-                    (self.properties.flex_direction == "column" and \
-                    isinstance(child.properties.width, str) and "%" in child.properties.width):
-                growable_counter_axis.append(child)
+    #     for i, child in enumerate(self.children_nodes):
+    #         # if child.node_type != "leaf":
+    #         if all_growable_counter_axis or child.properties.align_self == "stretch" or \
+    #                 (self.properties.flex_direction == "row" and \
+    #                 isinstance(child.properties.height, str) and "%" in child.properties.height) or \
+    #                 (self.properties.flex_direction == "column" and \
+    #                 isinstance(child.properties.width, str) and "%" in child.properties.width):
+    #             growable_counter_axis.append(child)
 
-            if self.properties.flex_direction == "row" and isinstance(child.properties.width, str) and "%" in child.properties.width:
-                child.flex_evaluated = self.normalize_to_flex(child.properties.width)
-            elif self.properties.flex_direction == "column" and isinstance(child.properties.height, str) and "%" in child.properties.height:
-                child.flex_evaluated = self.normalize_to_flex(child.properties.height)
+    #         if self.properties.flex_direction == "row" and isinstance(child.properties.width, str) and "%" in child.properties.width:
+    #             child.flex_evaluated = self.normalize_to_flex(child.properties.width)
+    #         elif self.properties.flex_direction == "column" and isinstance(child.properties.height, str) and "%" in child.properties.height:
+    #             child.flex_evaluated = self.normalize_to_flex(child.properties.height)
 
-            if child.properties.flex or child.flex_evaluated:
-                growable_primary_axis_flex.append(child)
+    #         if child.properties.flex or child.flex_evaluated:
+    #             growable_primary_axis_flex.append(child)
 
-        # Second pass grow children
-        if growable_counter_axis:
-            for i, child in enumerate(growable_counter_axis):
-                if child.node_type != NODE_ENUM_TYPE["leaf"]:
-                    if self.properties.align_items == "stretch":
-                        if self.properties.flex_direction == "row" and not child.box_model.fixed_height:
-                            child.box_model.accumulate_intrinsic_outer_dimensions_height(self.box_model.content_rect.height)
-                            child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
-                        elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
-                            child.box_model.accumulate_intrinsic_outer_dimensions_width(self.box_model.content_rect.width)
-                            child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
+    #     # Second pass grow children
+    #     if growable_counter_axis:
+    #         for i, child in enumerate(growable_counter_axis):
+    #             if child.node_type != NODE_ENUM_TYPE["leaf"]:
+    #                 if self.properties.align_items == "stretch":
+    #                     if self.properties.flex_direction == "row" and not child.box_model.fixed_height:
+    #                         child.box_model.accumulate_intrinsic_outer_dimensions_height(self.box_model.content_rect.height)
+    #                         child.box_model.accumulate_outer_dimensions_height(self.box_model.content_rect.height)
+    #                     elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
+    #                         child.box_model.accumulate_intrinsic_outer_dimensions_width(self.box_model.content_rect.width)
+    #                         child.box_model.accumulate_outer_dimensions_width(self.box_model.content_rect.width)
 
-        if growable_primary_axis_flex:
-            remaining_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
-            remaining_height = self.box_model.content_rect.height - self.box_model.content_children_rect.height
-            flex_weights = self.calculate_justify_flex_weights(growable_primary_axis_flex)
+    #     if growable_primary_axis_flex:
+    #         remaining_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
+    #         remaining_height = self.box_model.content_rect.height - self.box_model.content_children_rect.height
+    #         flex_weights = self.calculate_justify_flex_weights(growable_primary_axis_flex)
 
-            for i, child in enumerate(growable_primary_axis_flex):
-                if self.properties.flex_direction == "row":
-                    additional_width = remaining_width * flex_weights[i]
-                    child.box_model.accumulate_intrinsic_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
-                    child.box_model.accumulate_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
-                elif self.properties.flex_direction == "column":
-                    additional_height = remaining_height * flex_weights[i]
-                    child.box_model.accumulate_intrinsic_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
-                    child.box_model.accumulate_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
+    #         for i, child in enumerate(growable_primary_axis_flex):
+    #             if self.properties.flex_direction == "row":
+    #                 additional_width = remaining_width * flex_weights[i]
+    #                 child.box_model.accumulate_intrinsic_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
+    #                 child.box_model.accumulate_outer_dimensions_width(child.box_model.margin_rect.width + additional_width)
+    #             elif self.properties.flex_direction == "column":
+    #                 additional_height = remaining_height * flex_weights[i]
+    #                 child.box_model.accumulate_intrinsic_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
+    #                 child.box_model.accumulate_outer_dimensions_height(child.box_model.margin_rect.height + additional_height)
 
-        for i, child in enumerate(self.children_nodes):
-            child.grow_intrinsic_size(c, cursor)
+    #     for i, child in enumerate(self.children_nodes):
+    #         child.grow_intrinsic_size(c, cursor)
 
-        cursor.virtual_move_to(last_cursor.x, last_cursor.y)
+    #     cursor.virtual_move_to(last_cursor.x, last_cursor.y)
 
-        return self.box_model.margin_rect
+    #     return self.box_model.margin_rect
 
     def render_scroll_bar(self, c: SkiaCanvas):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
@@ -288,9 +288,11 @@ class NodeContainer(Node, NodeContainerType):
             for child in self.children_nodes:
                 child.v2_constrain_size(new_available_size)
                 if self.properties.flex_direction == "row" and new_available_size.width != None:
-                    new_available_size.width = max(0, new_available_size.width - child.box_model_v2.calculated_margin_size.width)
+                    new_available_size.width = max(0, new_available_size.width - child.box_model_v2.margin_size.width)
+                    # new_available_size.width = max(0, new_available_size.width - child.box_model_v2.calculated_margin_size.width)
                 elif self.properties.flex_direction == "column" and new_available_size.height != None:
-                    new_available_size.height = max(0, new_available_size.height - child.box_model_v2.calculated_margin_size.height)
+                    new_available_size.height = max(0, new_available_size.height - child.box_model_v2.margin_size.height)
+                    # new_available_size.height = max(0, new_available_size.height - child.box_model_v2.calculated_margin_size.height)
                 accumulate(child)
         else:
             for child in self.children_nodes:
@@ -351,60 +353,60 @@ class NodeContainer(Node, NodeContainerType):
         self.v2_crop_end(c)
         self.render_scroll_bar(c)
 
-    def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
-        resolved_width = self.properties.width
-        resolved_height = self.properties.height
+    # def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
+    #     resolved_width = self.properties.width
+    #     resolved_height = self.properties.height
 
-        # resolve in next blockyou do need the cursor the for engines excising
-        if self.properties.width == "100%":
-            resolved_width = 0
-        if self.properties.height == "100%":
-            resolved_height = 0
+    #     # resolve in next blockyou do need the cursor the for engines excising
+    #     if self.properties.width == "100%":
+    #         resolved_width = 0
+    #     if self.properties.height == "100%":
+    #         resolved_height = 0
 
-        if self.parent_node and self.parent_node.box_model:
-            if self.parent_node.properties.align_items == "stretch":
-                if self.parent_node.properties.flex_direction == "row" and not resolved_height:
-                    resolved_height = self.parent_node.box_model.content_rect.height
-                elif self.parent_node.properties.flex_direction == "column" and not resolved_width:
-                    resolved_width = self.parent_node.box_model.content_rect.width
+    #     if self.parent_node and self.parent_node.box_model:
+    #         if self.parent_node.properties.align_items == "stretch":
+    #             if self.parent_node.properties.flex_direction == "row" and not resolved_height:
+    #                 resolved_height = self.parent_node.box_model.content_rect.height
+    #             elif self.parent_node.properties.flex_direction == "column" and not resolved_width:
+    #                 resolved_width = self.parent_node.box_model.content_rect.width
 
-        if self.tree.redistribute_box_model:
-            self.box_model.redistribute_from_rect(
-                Rect(cursor.virtual_x, cursor.virtual_y, resolved_width, resolved_height)
-            )
-        else:
-            self.box_model = BoxModelLayout(
-                cursor.virtual_x,
-                cursor.virtual_y,
-                self.properties.margin,
-                self.properties.padding,
-                self.properties.border,
-                width=resolved_width,
-                height=resolved_height,
-                fixed_width=bool(self.properties.width and not isinstance(self.properties.width, str)),
-                fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)),
-                min_width=self.properties.min_width,
-                min_height=self.properties.min_height,
-                max_width=self.properties.max_width,
-                max_height=self.properties.max_height,
-                overflow=self.properties.overflow,
-                constraint_nodes=self.constraint_nodes)
-        cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
+    #     if self.tree.redistribute_box_model:
+    #         self.box_model.redistribute_from_rect(
+    #             Rect(cursor.virtual_x, cursor.virtual_y, resolved_width, resolved_height)
+    #         )
+    #     else:
+    #         self.box_model = BoxModelLayout(
+    #             cursor.virtual_x,
+    #             cursor.virtual_y,
+    #             self.properties.margin,
+    #             self.properties.padding,
+    #             self.properties.border,
+    #             width=resolved_width,
+    #             height=resolved_height,
+    #             fixed_width=bool(self.properties.width and not isinstance(self.properties.width, str)),
+    #             fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)),
+    #             min_width=self.properties.min_width,
+    #             min_height=self.properties.min_height,
+    #             max_width=self.properties.max_width,
+    #             max_height=self.properties.max_height,
+    #             overflow=self.properties.overflow,
+    #             constraint_nodes=self.constraint_nodes)
+    #     cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
+    #     last_cursor = Point2d(cursor.virtual_x, cursor.virtual_y)
 
-        # Intristic sizing phase
-        if self.children_nodes:
-            for i, child in enumerate(self.children_nodes):
-                self.virtual_render_child(c, cursor, child, i, move_after_last_child=True)
-        else:
-            # fixes issue with empty divs with no children collapsing to 0 width or height
-            rect = Rect(cursor.virtual_x, cursor.virtual_y, 0, 0)
-            self.box_model.accumulate_intrinsic_content_dimensions(rect)
-            self.box_model.accumulate_content_dimensions(rect)
+    #     # Intristic sizing phase
+    #     if self.children_nodes:
+    #         for i, child in enumerate(self.children_nodes):
+    #             self.virtual_render_child(c, cursor, child, i, move_after_last_child=True)
+    #     else:
+    #         # fixes issue with empty divs with no children collapsing to 0 width or height
+    #         rect = Rect(cursor.virtual_x, cursor.virtual_y, 0, 0)
+    #         self.box_model.accumulate_intrinsic_content_dimensions(rect)
+    #         self.box_model.accumulate_content_dimensions(rect)
 
-        cursor.virtual_move_to(last_cursor.x, last_cursor.y)
+    #     cursor.virtual_move_to(last_cursor.x, last_cursor.y)
 
-        return self.box_model.margin_rect, self.box_model.intrinsic_margin_rect
+    #     return self.box_model.margin_rect, self.box_model.intrinsic_margin_rect
 
     def normalize_to_flex(self, percentage):
         if percentage and isinstance(percentage, str) and "%" in percentage:
@@ -433,72 +435,72 @@ class NodeContainer(Node, NodeContainerType):
 
         c.draw_text(str(self.debug_number), cursor.x, cursor.y)
 
-    def render_borders(self, c: SkiaCanvas, cursor: Cursor):
-        cursor.move_to(self.box_model.border_rect.x, self.box_model.border_rect.y)
-        self.is_uniform_border = True
-        border_spacing = self.box_model.border_spacing
-        has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
-        if has_border:
-            self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
-            inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
-            if self.is_uniform_border:
-                border_width = border_spacing.left
-                c.paint.color = self.properties.border_color
-                c.paint.style = c.paint.Style.STROKE
-                c.paint.stroke_width = border_width
+    # def render_borders(self, c: SkiaCanvas, cursor: Cursor):
+    #     cursor.move_to(self.box_model.border_rect.x, self.box_model.border_rect.y)
+    #     self.is_uniform_border = True
+    #     border_spacing = self.box_model.border_spacing
+    #     has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
+    #     if has_border:
+    #         self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
+    #         inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
+    #         if self.is_uniform_border:
+    #             border_width = border_spacing.left
+    #             c.paint.color = self.properties.border_color
+    #             c.paint.style = c.paint.Style.STROKE
+    #             c.paint.stroke_width = border_width
 
-                bordered_rect = Rect(
-                    inner_rect.x - border_width / 2,
-                    inner_rect.y - border_width / 2,
-                    inner_rect.width + border_width,
-                    inner_rect.height + border_width,
-                )
+    #             bordered_rect = Rect(
+    #                 inner_rect.x - border_width / 2,
+    #                 inner_rect.y - border_width / 2,
+    #                 inner_rect.width + border_width,
+    #                 inner_rect.height + border_width,
+    #             )
 
-                if self.properties.border_radius:
-                    c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
-                else:
-                    c.draw_rect(bordered_rect)
-            else:
-                c.paint.color = self.properties.border_color
-                c.paint.style = c.paint.Style.STROKE
-                b_rect, p_rect = self.box_model.border_rect, inner_rect
-                if border_spacing.left:
-                    c.paint.stroke_width = border_spacing.left
-                    half = border_spacing.left / 2
-                    c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
-                if border_spacing.right:
-                    c.paint.stroke_width = border_spacing.right
-                    half = border_spacing.right / 2
-                    c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
-                if border_spacing.top:
-                    c.paint.stroke_width = border_spacing.top
-                    half = border_spacing.top / 2
-                    c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
-                if border_spacing.bottom:
-                    c.paint.stroke_width = border_spacing.bottom
-                    half = border_spacing.bottom / 2
-                    c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
+    #             if self.properties.border_radius:
+    #                 c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
+    #             else:
+    #                 c.draw_rect(bordered_rect)
+    #         else:
+    #             c.paint.color = self.properties.border_color
+    #             c.paint.style = c.paint.Style.STROKE
+    #             b_rect, p_rect = self.box_model.border_rect, inner_rect
+    #             if border_spacing.left:
+    #                 c.paint.stroke_width = border_spacing.left
+    #                 half = border_spacing.left / 2
+    #                 c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
+    #             if border_spacing.right:
+    #                 c.paint.stroke_width = border_spacing.right
+    #                 half = border_spacing.right / 2
+    #                 c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
+    #             if border_spacing.top:
+    #                 c.paint.stroke_width = border_spacing.top
+    #                 half = border_spacing.top / 2
+    #                 c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
+    #             if border_spacing.bottom:
+    #                 c.paint.stroke_width = border_spacing.bottom
+    #                 half = border_spacing.bottom / 2
+    #                 c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
 
-    def render_background(self, c: SkiaCanvas, cursor: Cursor):
-        c.paint.style = c.paint.Style.FILL
+    # def render_background(self, c: SkiaCanvas, cursor: Cursor):
+    #     c.paint.style = c.paint.Style.FILL
 
-        inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
+    #     inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
 
-        cursor.move_to(inner_rect.x, inner_rect.y)
-        if self.properties.background_color:
-            c.paint.color = self.properties.background_color
-            if self.properties.border_radius and self.is_uniform_border:
-                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
-            else:
-                c.draw_rect(inner_rect)
+    #     cursor.move_to(inner_rect.x, inner_rect.y)
+    #     if self.properties.background_color:
+    #         c.paint.color = self.properties.background_color
+    #         if self.properties.border_radius and self.is_uniform_border:
+    #             c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
+    #         else:
+    #             c.draw_rect(inner_rect)
 
-    def adjust_for_scroll_y_start(self, c: SkiaCanvas):
-        if self.tree.meta_state.scrollable.get(self.id, None):
-            self.box_model.adjust_scroll_y(self.tree.meta_state.scrollable[self.id].offset_y, c)
+    # def adjust_for_scroll_y_start(self, c: SkiaCanvas):
+    #     if self.tree.meta_state.scrollable.get(self.id, None):
+    #         self.box_model.adjust_scroll_y(self.tree.meta_state.scrollable[self.id].offset_y, c)
 
-    def adjust_for_scroll_y_end(self, c: SkiaCanvas):
-        if self.tree.meta_state.scrollable.get(self.id, None):
-            self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y, c)
+    # def adjust_for_scroll_y_end(self, c: SkiaCanvas):
+    #     if self.tree.meta_state.scrollable.get(self.id, None):
+    #         self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y, c)
 
     def v2_adjust_for_scroll_y_start(self):
         if self.tree.meta_state.scrollable.get(self.id, None):
@@ -508,14 +510,14 @@ class NodeContainer(Node, NodeContainerType):
         if self.tree.meta_state.scrollable.get(self.id, None):
             self.box_model_v2.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
 
-    def crop_scrollable_region_start(self, c: SkiaCanvas):
-        if self.box_model.scrollable and self.box_model.scroll_box_rect:
-            c.save()
-            c.clip_rect(self.box_model.scroll_box_rect)
+    # def crop_scrollable_region_start(self, c: SkiaCanvas):
+    #     if self.box_model.scrollable and self.box_model.scroll_box_rect:
+    #         c.save()
+    #         c.clip_rect(self.box_model.scroll_box_rect)
 
-    def crop_scrollable_region_end(self, c: SkiaCanvas):
-        if self.box_model.scrollable and self.box_model.scroll_box_rect:
-            c.restore()
+    # def crop_scrollable_region_end(self, c: SkiaCanvas):
+    #     if self.box_model.scrollable and self.box_model.scroll_box_rect:
+    #         c.restore()
 
     def v2_crop_start(self, c: SkiaCanvas):
         if self.properties.overflow.scrollable or (self.box_model_v2.overflow.is_boundary and \
@@ -602,45 +604,45 @@ class NodeContainer(Node, NodeContainerType):
                 cursor.move_to(cursor.x + child.box_model_v2.margin_size.width, cursor.y)
             cursor.move_to(cursor.x, cursor.y + size.height + gap)
 
-    def move_cursor_to_align_axis_before_children_render(self, cursor: Cursor):
-        cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        if self.properties.flex_direction == "row":
-            if self.properties.align_items == "center":
-                cursor.move_to(cursor.x, cursor.y + self.box_model.content_children_rect.height // 2)
-            elif self.properties.align_items == "flex_end":
-                cursor.move_to(cursor.x, cursor.y + self.box_model.content_children_rect.height)
-        else:
-            if self.properties.align_items == "center":
-                cursor.move_to(cursor.x + self.box_model.content_children_rect.width // 2, cursor.y)
-            elif self.properties.align_items == "flex_end":
-                cursor.move_to(cursor.x + self.box_model.content_children_rect.width, cursor.y)
+    # def move_cursor_to_align_axis_before_children_render(self, cursor: Cursor):
+    #     cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
+    #     if self.properties.flex_direction == "row":
+    #         if self.properties.align_items == "center":
+    #             cursor.move_to(cursor.x, cursor.y + self.box_model.content_children_rect.height // 2)
+    #         elif self.properties.align_items == "flex_end":
+    #             cursor.move_to(cursor.x, cursor.y + self.box_model.content_children_rect.height)
+    #     else:
+    #         if self.properties.align_items == "center":
+    #             cursor.move_to(cursor.x + self.box_model.content_children_rect.width // 2, cursor.y)
+    #         elif self.properties.align_items == "flex_end":
+    #             cursor.move_to(cursor.x + self.box_model.content_children_rect.width, cursor.y)
 
-    def move_cursor_to_top_left_child_based_on_align_axis(self, cursor: Cursor, child):
-        if self.properties.flex_direction == "row":
-            if self.properties.align_items == "center":
-                cursor.move_to(cursor.x, cursor.y - child.box_model.margin_rect.height // 2)
-            elif self.properties.align_items == "flex_end":
-                cursor.move_to(cursor.x, cursor.y - child.box_model.margin_rect.height)
+    # def move_cursor_to_top_left_child_based_on_align_axis(self, cursor: Cursor, child):
+    #     if self.properties.flex_direction == "row":
+    #         if self.properties.align_items == "center":
+    #             cursor.move_to(cursor.x, cursor.y - child.box_model.margin_rect.height // 2)
+    #         elif self.properties.align_items == "flex_end":
+    #             cursor.move_to(cursor.x, cursor.y - child.box_model.margin_rect.height)
 
-        elif self.properties.flex_direction == "column":
-            if self.properties.align_items == "center":
-                cursor.move_to(cursor.x - child.box_model.margin_rect.width // 2, cursor.y)
-            elif self.properties.align_items == "flex_end":
-                cursor.move_to(cursor.x - child.box_model.margin_rect.width, cursor.y)
+    #     elif self.properties.flex_direction == "column":
+    #         if self.properties.align_items == "center":
+    #             cursor.move_to(cursor.x - child.box_model.margin_rect.width // 2, cursor.y)
+    #         elif self.properties.align_items == "flex_end":
+    #             cursor.move_to(cursor.x - child.box_model.margin_rect.width, cursor.y)
 
-    def move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: Cursor, child, rect: Rect, gap = 0):
-        if self.properties.flex_direction == "row":
-            if self.properties.align_items == "center":
-                cursor.move_to(cursor.x, cursor.y + child.box_model.margin_rect.height // 2)
-            elif self.properties.align_items == "flex_end":
-                cursor.move_to(cursor.x, cursor.y + child.box_model.margin_rect.height)
-            cursor.move_to(cursor.x + rect.width + gap, cursor.y)
-        else:
-            if self.properties.align_items == "center":
-                cursor.move_to(cursor.x + child.box_model.margin_rect.width // 2, cursor.y)
-            elif self.properties.align_items == "flex_end":
-                cursor.move_to(cursor.x + child.box_model.margin_rect.width, cursor.y)
-            cursor.move_to(cursor.x, cursor.y + rect.height + gap)
+    # def move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: Cursor, child, rect: Rect, gap = 0):
+    #     if self.properties.flex_direction == "row":
+    #         if self.properties.align_items == "center":
+    #             cursor.move_to(cursor.x, cursor.y + child.box_model.margin_rect.height // 2)
+    #         elif self.properties.align_items == "flex_end":
+    #             cursor.move_to(cursor.x, cursor.y + child.box_model.margin_rect.height)
+    #         cursor.move_to(cursor.x + rect.width + gap, cursor.y)
+    #     else:
+    #         if self.properties.align_items == "center":
+    #             cursor.move_to(cursor.x + child.box_model.margin_rect.width // 2, cursor.y)
+    #         elif self.properties.align_items == "flex_end":
+    #             cursor.move_to(cursor.x + child.box_model.margin_rect.width, cursor.y)
+    #         cursor.move_to(cursor.x, cursor.y + rect.height + gap)
 
     def gap_between_elements(self, node, i, fixed_gap = 0):
         gap = fixed_gap

@@ -124,7 +124,7 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -148,7 +148,7 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -184,7 +184,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -210,7 +210,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -242,7 +242,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -265,7 +265,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -303,7 +303,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -331,7 +331,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -364,7 +364,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 
@@ -388,7 +388,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        if self.properties.fill:
+        if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
 

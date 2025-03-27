@@ -23,7 +23,12 @@ from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
 from ..state_manager import state_manager
 from ..store import store
-from ..utils import draw_text_simple, get_active_color_from_highlight_color, get_combined_screens_rect
+from ..utils import (
+    draw_text_simple,
+    get_active_color_from_highlight_color,
+    get_combined_screens_rect,
+    subtract_rect
+)
 from ..render_manager import RenderManager, RenderCause
 import inspect
 import uuid
@@ -520,9 +525,6 @@ class Tree(TreeType):
                 self.draw_hints(canvas)
             self.init_key_controls()
             self.draw_blockable_canvases()
-            # canvas.paint.style = canvas.paint.Style.STROKE
-            # canvas.paint.color = "red"
-            # canvas.draw_rect(Rect(510.0, 290.0, 900, 500))
             self.on_fully_rendered()
             state_manager.set_processing_tree(None)
             self.render_manager.finish_current_render()
@@ -1013,27 +1015,21 @@ class Tree(TreeType):
                 if getattr(self.draggable_node, 'box_model_v2', None) \
                 else self.root_node.box_model_v2.content_children_rect
 
+            blockable_rects = [full_rect]
+
             if self.meta_state.inputs:
-                bottom_rect = None
-                for input_data in list(self.meta_state.inputs.values()):
+                for input_id, input_data in list(self.meta_state.inputs.items()):
                     if not input_data.input:
                         continue
-                    input = input_data.input
-                    current_rect = bottom_rect or full_rect
+                    input_rect = self.meta_state.id_to_node[input_id].box_model_v2.visible_rect
 
-                    top_rect = Rect(current_rect.x, current_rect.y, current_rect.width, input.rect.y - current_rect.y)
-                    blockable_rects.append(top_rect)
-
-                    left_rect = Rect(current_rect.x, input.rect.y, input.rect.x - current_rect.x, input.rect.height)
-                    blockable_rects.append(left_rect)
-
-                    right_rect = Rect(input.rect.x + input.rect.width, input.rect.y, current_rect.x + current_rect.width - input.rect.x - input.rect.width, input.rect.height)
-                    blockable_rects.append(right_rect)
-
-                    bottom_rect = Rect(current_rect.x, input.rect.y + input.rect.height, current_rect.width, current_rect.y + current_rect.height - input.rect.y - input.rect.height)
-                blockable_rects.append(bottom_rect)
-            else:
-                blockable_rects.append(full_rect)
+                    new_rects = []
+                    for rect in blockable_rects:
+                        if rect.intersects(input_rect):
+                            new_rects.extend(subtract_rect(rect, input_rect))
+                        else:
+                            new_rects.append(rect)
+                    blockable_rects = new_rects
 
         return blockable_rects
 
@@ -1042,12 +1038,10 @@ class Tree(TreeType):
 
         if self.is_blockable_canvas_init:
             if self.should_rerender_blockable_canvas():
-                # print(">>> should_rerender_blockable_canvas")
                 is_rerender = True
             else:
                 return
 
-        # if not self.root_node or not self.root_node.box_model:
         if not self.root_node or not self.root_node.box_model_v2:
             return
 
@@ -1063,10 +1057,8 @@ class Tree(TreeType):
                 return
             dimension_change, position_change = self.have_blockable_rects_changed(blockable_rects)
             if dimension_change:
-                # print(">>> dimension_change")
                 self.destroy_blockable_canvas()
             elif position_change:
-                # print(">>> position_change")
                 self.move_blockable_canvas_rects(blockable_rects)
                 return
 
@@ -1075,7 +1067,6 @@ class Tree(TreeType):
             self.last_blockable_rects.clear()
             self.last_blockable_rects.extend(blockable_rects)
             for rect in blockable_rects:
-                # print(">>> rect", rect)
                 canvas = CanvasWeakRef(Canvas.from_rect(rect))
                 self.canvas_blockable.append(canvas)
                 canvas.blocks_mouse = True
