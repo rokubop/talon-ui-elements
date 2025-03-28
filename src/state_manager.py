@@ -283,6 +283,8 @@ class StateManager:
 
         if store.focused_id:
             current_node = store.id_to_node.get(store.focused_id)
+            if current_node is None:
+                return
             current_index = interactive_nodes.index(current_node)
             previous_index = current_index - 1 if current_index > 0 else len(interactive_nodes) - 1
             previous_node = interactive_nodes[previous_index]

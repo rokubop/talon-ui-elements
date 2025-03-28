@@ -233,13 +233,14 @@ class NodeContainer(Node, NodeContainerType):
         return self.box_model_v2.margin_size
 
     def v2_render(self, c):
-        self.v2_render_borders(c)
-        self.v2_crop_start(c)
-        self.v2_render_background(c)
-        for child in self.children_nodes:
-            child.v2_render(c)
-        self.v2_crop_end(c)
-        self.render_scroll_bar(c)
+        if self.tree:
+            self.v2_render_borders(c)
+            self.v2_crop_start(c)
+            self.v2_render_background(c)
+            for child in self.children_nodes:
+                child.v2_render(c)
+            self.v2_crop_end(c)
+            self.render_scroll_bar(c)
 
     def normalize_to_flex(self, percentage):
         if percentage and isinstance(percentage, str) and "%" in percentage:
