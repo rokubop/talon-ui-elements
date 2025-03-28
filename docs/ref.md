@@ -33,19 +33,17 @@ hello_ref.background_color = "blue"
 
 ## With inputs
 
-refs are especially useful with `input_text`
-
 ```py
 screen, div, input_text, ref = actions.user.ui_elements(["screen", "div", "input_text", "ref"])
 
-input_ref = ref("input")
+input_ref = ref("input_id")
 
 def submit():
     print(input_ref.value)
 
 return screen()[
     div()[
-        input_text("Type here", id="input"),
+        input_text("Type here", id="input_id"),
         button("Submit", on_click=submit),
     ],
 ]
@@ -58,9 +56,17 @@ input_ref.value = ""
 input_ref.clear()
 ```
 
+## Scrolling and overflow
+
+Use `scroll_to` to scroll to position
+```py
+hello_ref = ref("hello_id")
+hello_ref.scroll_to(0, 0) # x, y
+```
+
 ## `user.actions` vs `ref`
 ```py
-text("Hello world", id="hello"),
+text("Hello world", id="hello_id"),
 ```
 | Talon `user.actions` | ref equivalent |
 | --- | --- |

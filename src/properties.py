@@ -3,7 +3,16 @@ from talon import app
 from talon.types import Rect
 from typing import TypedDict, Union
 from typing import TypedDict
-from .box_model import Border, Margin, Padding, parse_box_model
+from .box_model import (
+    Overflow,
+    parse_box_model
+)
+from .interfaces import (
+    PropertiesDimensionalType,
+    Border,
+    Margin,
+    Padding
+)
 from .constants import (
     DEFAULT_ALIGN_ITEMS,
     DEFAULT_BORDER_COLOR,
@@ -17,7 +26,7 @@ from .constants import (
 )
 from .utils import hex_color
 
-class Properties:
+class Properties(PropertiesDimensionalType):
     """
     These are base properties and not all inclusive.
     Other property classes inherit from this class.
@@ -32,6 +41,7 @@ class Properties:
     border: Border = Border(0, 0, 0, 0)
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
+    draggable: bool = False
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
     font_size: int = DEFAULT_FONT_SIZE
@@ -49,6 +59,7 @@ class Properties:
     on_change: callable = None
     on_click: callable = None
     opacity: Union[int, float] = None
+    overflow: Overflow = None
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
@@ -85,6 +96,7 @@ class Properties:
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
+        self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'))
 
     def update_colors_with_opacity(self):
         if self.opacity is not None:
@@ -121,6 +133,12 @@ class Properties:
         """Check if a property was explicitly set by the user."""
         return key in self._explicitly_set
 
+    def is_scrollable(self):
+        return self.overflow and self.overflow.scrollable
+
+    def gc(self):
+        pass
+
 class BoxModelValidationProperties(TypedDict):
     border_bottom: int
     border_left: int
@@ -148,6 +166,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_width: int
     color: str
     drag_handle: bool
+    draggable: bool
     font_family: str
     font_size: int
     flex_direction: str
@@ -162,13 +181,15 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     min_height: int
     min_width: int
     opacity: Union[int, float]
+    overflow: str
+    overflow_x: str
+    overflow_y: str
     focus_outline_color: str
     focus_outline_width: int
     value: str
     width: Union[int, str]
 
-class NodeDivValidationProperties(ValidationProperties):
-    draggable: bool
+NodeDivValidationProperties = ValidationProperties
 
 class NodeTextValidationProperties(ValidationProperties):
     text: str
@@ -193,6 +214,10 @@ class NodeTextProperties(Properties):
         self.font_size = DEFAULT_FONT_SIZE
         super().__init__(**kwargs)
 
+    def gc(self):
+        if self.on_click:
+            self.on_click = None
+
 class NodeScreenValidationProperties(ValidationProperties):
     screen: int
 
@@ -213,8 +238,6 @@ class NodeRootValidationProperties(ValidationProperties):
 
 @dataclass
 class NodeDivProperties(Properties):
-    draggable: bool = False
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -293,11 +316,13 @@ class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
+    fill: str
 
 class NodeIconValidationProperties(ValidationProperties):
     name: str
     size: int
     stroke_width: int
+    fill: str
 
 @dataclass
 class NodeSvgPathProperties(Properties):
@@ -387,6 +412,7 @@ class NodeSvgLineProperties(Properties):
     stroke_linejoin: str = None
     stroke_width: int = None
     stroke: str = None
+    fill: str = None
 
     def __init__(self, **kwargs):
         if not all(key in kwargs for key in ['x1', 'y1', 'x2', 'y2']):
@@ -420,6 +446,10 @@ class NodeInputTextProperties(Properties):
             kwargs.get('padding', 0)
         ) + max(8, kwargs.get('border_radius', 0))
         super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
 
 class NodeInputTextValidationProperties(ValidationProperties):
     id: str

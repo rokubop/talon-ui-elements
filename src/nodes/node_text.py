@@ -1,10 +1,8 @@
 from typing import Literal
-from talon.skia import RoundRect
-from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.canvas import Canvas as SkiaCanvas, Paint
 from talon.skia.typeface import Typeface
-from talon.types import Rect
-from ..box_model import BoxModelLayout
-from ..cursor import Cursor
+from ..box_model import BoxModelV2
+from ..interfaces import Size2d
 from ..properties import NodeTextProperties
 from ..state_manager import state_manager
 from ..utils import draw_text_simple
@@ -105,7 +103,7 @@ class NodeText(Node):
             self.is_hovering = False
             self.interactive = True
 
-    def measure_and_account_for_multiline(self, c: SkiaCanvas, cursor: Cursor):
+    def v2_measure_and_account_for_multiline(self, paint: Paint):
         text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
 
         # start/end spaces not counted by c.paint.measure_text, so fill them in
@@ -113,150 +111,58 @@ class NodeText(Node):
             text_cleansed = "x" + text_cleansed[1:]
         if text_cleansed.endswith(" "):
             text_cleansed = text_cleansed[:-1] + "x"
-        self.text_width = c.paint.measure_text(text_cleansed)[1].width
-        self.text_line_height = c.paint.measure_text("X")[1].height
+        self.text_width = paint.measure_text(text_cleansed)[1].width
+        self.text_line_height = paint.measure_text("X")[1].height
         self.text_body_height = self.text_line_height
 
-        if (self.properties.width or self.properties.max_width) and self.text_width > self.box_model.content_width:
-            self.text_multiline = split_lines(text_cleansed, self.box_model.content_width, c.paint.measure_text)
+        if (self.properties.width or self.properties.max_width) and self.text_width > self.box_model_v2.content_size.width:
+            self.text_multiline = split_lines(text_cleansed, self.box_model_v2.content_size.width, paint.measure_text)
             gap = self.properties.gap or 16
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
 
-    def virtual_render(self, c: SkiaCanvas, cursor: Cursor):
-        resolved_width = self.properties.width
-        resolved_height = self.properties.height
-
-        if self.element_type == "button" and self.tree.render_version == 1 and not self.properties.background_color:
-            # render_version 2+ we don't add a default background color for button
-            self.properties.background_color = "444444"
-
-        if self.properties.width == "100%":
-            resolved_width = self.parent_node.box_model.content_rect.width
-        if self.properties.height == "100%":
-            resolved_height = self.parent_node.box_model.content_rect.height
-
-        if self.parent_node and self.parent_node.box_model:
-            if self.parent_node.properties.align_items == "stretch":
-                if self.parent_node.properties.flex_direction == "row" and not resolved_height:
-                    if not self.element_type == "button":
-                        resolved_height = self.parent_node.box_model.content_rect.height
-                elif self.parent_node.properties.flex_direction == "column" and not resolved_width:
-                    resolved_width = self.parent_node.box_model.content_rect.width
-
-        if self.tree.redistribute_box_model:
-            self.box_model.redistribute_from_rect(
-                Rect(cursor.virtual_x, cursor.virtual_y, resolved_width, resolved_height)
-            )
-        else:
-            self.box_model = BoxModelLayout(
-                cursor.virtual_x,
-                cursor.virtual_y,
-                self.properties.margin,
-                self.properties.padding,
-                self.properties.border,
-                width=resolved_width,
-                height=resolved_height,
-                fixed_width=bool(self.properties.width and not isinstance(self.properties.width, str)),
-                fixed_height=bool(self.properties.height and not isinstance(self.properties.height, str)))
-
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        """
+        First step in the layout process. Calculates the intrinsic size.
+        Basically naturally how much width/height based on content or
+        user defined width/height it takes up.
+        """
+        # TODO: remove mutation from measure phase
         if self.element_type == "text" and self.id:
             self.text = str(state_manager.use_text_mutation(self))
 
-        cursor.virtual_move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        c.paint.textsize = self.properties.font_size
-        c.paint.typeface = Typeface.from_name(self.properties.font_family)
-        c.paint.font.embolden = True if self.properties.font_weight == "bold" else False
+        paint = Paint()
+        paint.textsize = self.properties.font_size
+        paint.typeface = Typeface.from_name(self.properties.font_family)
+        paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
-        self.measure_and_account_for_multiline(c, cursor)
-        self.box_model.accumulate_content_dimensions(Rect(cursor.virtual_x, cursor.virtual_y, self.text_width, self.text_body_height))
-        return self.box_model.margin_rect
+        self.v2_measure_and_account_for_multiline(paint)
+        self.box_model_v2 = BoxModelV2(
+            self.properties,
+            Size2d(self.text_width, self.text_body_height),
+            self.clip_nodes
+        )
+        return self.box_model_v2.intrinsic_margin_size
 
-    def grow_intrinsic_size(self, c: SkiaCanvas, cursor: Cursor):
-        return self.box_model.margin_rect
-
-    def move_cursor_to_text_align(self, cursor: Cursor):
-        cursor.move_to(self.box_model.content_children_rect.x, self.box_model.content_children_rect.y)
-        available_width = self.box_model.content_rect.width - self.box_model.content_children_rect.width
-        if self.properties.text_align == "center":
-            cursor.move_to(cursor.x + available_width // 2, cursor.y)
-        elif self.properties.text_align == "right":
-            cursor.move_to(cursor.x + available_width, cursor.y)
-
-    def render_borders(self, c: SkiaCanvas, cursor: Cursor):
-        cursor.move_to(self.box_model.border_rect.x, self.box_model.border_rect.y)
-        self.is_uniform_border = True
-        border_spacing = self.box_model.border_spacing
-        has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
-        if has_border:
-            self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
-            inner_rect = self.box_model.padding_rect
-            if self.is_uniform_border:
-                border_width = border_spacing.left
-                c.paint.color = self.properties.border_color
-                c.paint.style = c.paint.Style.STROKE
-                c.paint.stroke_width = border_width
-
-                bordered_rect = Rect(
-                    inner_rect.x - border_width / 2,
-                    inner_rect.y - border_width / 2,
-                    inner_rect.width + border_width,
-                    inner_rect.height + border_width,
-                )
-
-                if self.properties.border_radius:
-                    c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
-                else:
-                    c.draw_rect(bordered_rect)
-            else:
-                c.paint.color = self.properties.border_color
-                c.paint.style = c.paint.Style.STROKE
-                b_rect, p_rect = self.box_model.border_rect, inner_rect
-                if border_spacing.left:
-                    c.paint.stroke_width = border_spacing.left
-                    half = border_spacing.left / 2
-                    c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
-                if border_spacing.right:
-                    c.paint.stroke_width = border_spacing.right
-                    half = border_spacing.right / 2
-                    c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
-                if border_spacing.top:
-                    c.paint.stroke_width = border_spacing.top
-                    half = border_spacing.top / 2
-                    c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
-                if border_spacing.bottom:
-                    c.paint.stroke_width = border_spacing.bottom
-                    half = border_spacing.bottom / 2
-                    c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
-
-    def render_background(self, c: SkiaCanvas, cursor: Cursor):
-        cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)
-        if self.properties.background_color:
-            c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.properties.background_color
-
-            if self.properties.border_radius:
-                properties = RoundRect.from_rect(self.box_model.padding_rect, x=self.properties.border_radius, y=self.properties.border_radius)
-                c.draw_rrect(properties)
-            else:
-                c.draw_rect(self.box_model.padding_rect)
-
-    def render(self, c: SkiaCanvas, cursor: Cursor, scroll_region_key: int = None):
-        self.box_model.position_for_render(cursor, self.properties.flex_direction, self.properties.align_items, self.properties.justify_content)
-
+    def v2_render(self, c):
         render_now = False if self.id and self.element_type == "text" else True
 
-        self.render_borders(c, cursor)
-        self.render_background(c, cursor)
+        self.v2_render_borders(c)
+        self.v2_render_background(c)
 
-        self.move_cursor_to_text_align(cursor)
-        self.cursor_pre_draw_text = (cursor.x, cursor.y + self.text_line_height)
+        # This should be in layout phase
+        text_top_left = self.box_model_v2.content_children_pos.copy()
+        available_width = self.box_model_v2.content_size.width - self.box_model_v2.content_children_size.width
+        if self.properties.text_align == "center":
+            text_top_left.x += available_width // 2
+        elif self.properties.text_align == "right":
+            text_top_left.x += available_width
+
+        self.cursor_pre_draw_text = (text_top_left.x, text_top_left.y + self.text_line_height)
 
         if render_now:
             if self.text_multiline:
                 gap = self.properties.gap or 16
                 for i, line in enumerate(self.text_multiline):
-                    draw_text_simple(c, line, self.properties, cursor.x, cursor.y + (self.text_line_height * (i + 1)) + (gap * i))
+                    draw_text_simple(c, line, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
             else:
-                draw_text_simple(c, self.text, self.properties, cursor.x, cursor.y + self.text_line_height)
-
-        return self.box_model.margin_rect
+                draw_text_simple(c, self.text, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)

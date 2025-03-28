@@ -1,18 +1,20 @@
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.typeface import Typeface
-from talon.canvas import Canvas
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
-import json
-import inspect
-import re
-import os
+from dataclasses import dataclass
 import hashlib
+import inspect
+import json
+import os
+import re
 
 def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
+    c.paint.style = c.paint.Style.FILL
+    c.paint.stroke_width = 0
     c.paint.color = properties.color
     c.paint.textsize = properties.font_size
     c.paint.typeface = Typeface.from_name(properties.font_family)
@@ -35,13 +37,54 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
 
     return hasher.hexdigest()
 
+@dataclass
+class Version:
+    major: int
+    minor: int
+    patch: int
+
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+    def __lt__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
+
+    def __le__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) <= (other.major, other.minor, other.patch)
+
+    def __eq__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
+
+    def __gt__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
+
+    def __ge__(self, version: str) -> bool:
+        other = Version.from_string(version) if isinstance(version, str) else version
+        return (self.major, self.minor, self.patch) >= (other.major, other.minor, other.patch)
+
+    @classmethod
+    def from_string(cls, version: str) -> "Version":
+        major, minor, patch = map(int, version.split("."))
+        return cls(major, minor, patch)
+
+    @classmethod
+    def from_dict(cls, version: dict) -> "Version":
+        return cls(version["major"], version["minor"], version["patch"])
+
+    def to_dict(self) -> dict:
+        return {"major": self.major, "minor": self.minor, "patch": self.patch}
+
 def get_version() -> str:
     manifest = os.path.join(os.path.dirname(__file__), '..', 'manifest.json')
 
     with open(manifest, 'r') as file:
         data = json.load(file)
 
-    return data['version']
+    return Version.from_string(data['version'])
 
 def sanitize_string(text: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_]', '_', text)
@@ -87,3 +130,20 @@ def get_combined_screens_rect() -> Rect:
     width = max_right - x
     height = max_bottom - y
     return Rect(x, y, width, height)
+
+def subtract_rect(outer: Rect, inner: Rect) -> list[Rect]:
+    rects = []
+
+    if inner.top > outer.top:
+        rects.append(Rect(outer.left, outer.top, outer.width, inner.top - outer.top))
+
+    if inner.bot < outer.bot:
+        rects.append(Rect(outer.left, inner.bot, outer.width, outer.bot - inner.bot))
+
+    if inner.left > outer.left:
+        rects.append(Rect(outer.left, inner.top, inner.left - outer.left, inner.height))
+
+    if inner.right < outer.right:
+        rects.append(Rect(inner.right, inner.top, outer.right - inner.right, inner.height))
+
+    return rects

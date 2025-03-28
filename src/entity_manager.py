@@ -1,7 +1,6 @@
 from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
 from talon.skia.typeface import Typeface
-from talon.types import Rect
 from typing import Union
 from .interfaces import NodeType, TreeType
 from .store import store
@@ -74,13 +73,13 @@ class EntityManager:
                         )
                     )
 
-            text_area_input.register("label", on_change)
-            node.tree.meta_state.add_input(node.id, text_area_input, node.properties.value)
+            node.tree.meta_state.add_input(node.id, text_area_input, node.properties.value, on_change)
 
-    def update_input_rect(self, id, rect):
+    def update_input_rect(self, id, rect, top_offset=0):
         input_data = self.get_input_data(id)
         if input_data:
             input_data.input.rect = rect
+            input_data.input.scroll = top_offset
 
     def does_tree_exist(self, renderer: callable) -> bool:
         """Check if a tree exists based on the renderer"""
@@ -135,7 +134,8 @@ class EntityManager:
         for tree in list(store.trees):
             tree.destroy()
             store.trees.remove(tree)
-        store.clear()
+        if not store.trees:
+            store.clear()
 
     def get_node_tree_flattened(self, node) -> list[NodeType]:
         flattened = [node]

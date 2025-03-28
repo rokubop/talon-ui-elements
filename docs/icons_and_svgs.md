@@ -1,26 +1,37 @@
 # Icons and SVGs
 
-All icons use `actions.user.ui_elements_svg` behind the scenes, meaning it's also very easy for you to make your own svg icons if this list doesn't cover your needs.
+The "icon" ui_element defaults to 24 "size" property, and are built using `actions.user.ui_elements_svg` behind the scenes, based on HTML from https://iconsvg.xyz/, so if you don't find an icon you like, you can make one yourself.
 
 - [Icons and SVGs](#icons-and-svgs)
   - [Icons](#icons)
+  - [Default properties](#default-properties)
+  - [Available icons](#available-icons)
   - [SVGs](#svgs)
+  - [Convert HTML SVG to ui\_elements code](#convert-html-svg-to-ui_elements-code)
 
 ## Icons
 
-You can checkout some example icons by saying "elements test".
+You can see some available icons by saying "elements test".
 
 Usage:
 ```py
-div, icon = actions.user.ui_elements(["div", "icon"])
+screen, div, icon = actions.user.ui_elements(["screen", "div", "icon"])
 
-div()[
-    icon("arrow_down")
+return screen()[
+    div()[
+        icon("arrow_down")
+    ]
 ]
 ```
 
-Defaults to `size=24`, `stroke_width=2`, `color="FFFFFF"`.
+## Default properties
+| Property | Default |
+| -- | -- |
+| `size` | 24 |
+| `stroke_width` | 2 |
+| `color` | "FFFFFF" |
 
+## Available icons
 | Icon name |
 | -- |
 arrow_down
@@ -35,6 +46,8 @@ close
 download
 edit
 external_link
+file
+folder
 menu
 mic
 play
@@ -48,6 +61,7 @@ more_vertical
 plus
 settings
 star
+upload
 
 ## SVGs
 
@@ -64,20 +78,31 @@ The following elements are supported for SVGs.
 | `polygon` | Accepts `points` attribute. |
 
 For the most part it matches the HTML SVG spec.
-Based on a standard `view_box="0 0 24 24"`. You can use `size` to resize, and `stroke_width` to change the stroke width.
+Based on a standard `view_box="0 0 24 24"`. You can use `size` on the `svg` element to resize the whole thing, and `stroke_width` to change the stroke width.
 
 Usage:
 ```py
-div = actions.user.ui_elements("div")
+screen = actions.user.ui_elements("screen")
 svg, path, rect = actions.user.ui_elements(["svg", "path", "rect"])
 
 Usage:
 ```py
 # copy icon
-div()[
+screen(align_items="center", justify_content="center")[
     svg()[
         rect(x=9, y=9, width=13, height=13, rx=2, ry=2),
         path(d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"),
     ]
 ]
+```
+
+## Convert HTML SVG to ui_elements code
+
+You can convert HTML SVG code to ui_elements code by changing properties to snake case, and omitting most of the svg properties.
+For example, here's the HTML SVG "copy" icon from https://iconsvg.xyz/:
+```html
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+</svg>
 ```

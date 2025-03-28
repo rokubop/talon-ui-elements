@@ -86,6 +86,29 @@ def icon_copy(props=None, **additional_props):
         ]
     ]
 
+def icon_trash(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, path, polyline, line = actions.user.ui_elements_svg(["svg", "path", "polyline", "line"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    # trash html
+    # <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    #     <polyline points="3 6 5 6 21 6"></polyline>
+    #     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    #     <line x1="10" y1="11" x2="10" y2="17"></line>
+    #     <line x1="14" y1="11" x2="14" y2="17"></line>
+    # </svg>
+
+    return div(**div_props)[
+        svg(**svg_props)[
+            polyline(points="3 6 5 6 21 6"),
+            path(d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"),
+            line(x1=10, y1=11, x2=10, y2=17),
+            line(x1=14, y1=11, x2=14, y2=17),
+        ]
+    ]
+
 def icon_settings(props=None, **additional_props):
     div = actions.user.ui_elements("div")
     svg, circle, path = actions.user.ui_elements_svg(["svg", "circle", "path"])
@@ -184,6 +207,7 @@ ICON_CUSTOM_SVG = {
     "more_horizontal": more_horizontal,
     "more_vertical": more_vertical,
     "plus": icon_plus,
+    "trash": icon_trash,
     "settings": icon_settings,
     "star": icon_star
 }

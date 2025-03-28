@@ -2,7 +2,7 @@ from talon import Module, actions
 from typing import List, Any, Union, Callable
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
-from .src.state_manager import state_manager
+from .src.state_manager import state_manager, debug_gc
 from .src.nodes.tree import render_ui
 from .src.utils import get_version
 from .examples.examples_ui import toggle_elements_examples
@@ -77,10 +77,14 @@ class Actions:
             initial_state: dict[str, Any] = None,
         ):
         """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
-        if entity_manager.does_tree_exist(renderer):
-            actions.user.ui_elements_hide(renderer)
-        else:
+        new_state_visible = not entity_manager.does_tree_exist(renderer)
+
+        if new_state_visible:
             actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+        else:
+            entity_manager.hide_tree(renderer)
+
+        return new_state_visible
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """
@@ -110,12 +114,12 @@ class Actions:
                 raise TypeError("actions.user.ui_elements_set_state requires a string key and a value.")
             state_manager.set_state_value(name, value)
 
-    def ui_elements_get_state(name: str):
+    def ui_elements_get_state(name: str = None):
         """
-        Get global state value by its name.
+        Get global state value by its name or None for all states.
         ```
         """
-        state_manager.get_state_value(name)
+        return state_manager.get_state_value(name) if name else state_manager.get_all_states()
 
     def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
         """
@@ -152,6 +156,11 @@ class Actions:
         else:
             state_manager.set_ref_property_override(id, property_name, value)
 
+    # TODO: Implement
+    # def ui_elements_toggle_hints(enabled: bool = None):
+    #     """Toggle hints visibility"""
+    #     state_manager.toggle_hints(enabled)
+
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""
         return state_manager.get_input_value(id)
@@ -177,16 +186,31 @@ class Actions:
         return entity_manager.get_all_trees()
 
     def ui_elements_version():
-        """Get the current version of `talon-ui-elements`"""
+        """
+        Get the current version of `talon-ui-elements`.
+
+        Returns:
+            Version: A dataclass with the following attributes:
+                - `major` (int): The major version number.
+                - `minor` (int): The minor version number.
+                - `patch` (int): The patch version number.
+
+        Usage:
+            version = ui_elements_version()
+            print(version.minor)  # Access the minor version
+            print(version.major)  # Access the major version
+            print(version)        # Print the full version as a string
+            print(version < "0.6.2")  # Compare with a string version
+        """
         return get_version()
 
     def ui_elements_examples():
         """Test example UIs"""
         toggle_elements_examples()
 
-    def ui_elements_debug():
-        """Prints debug output to talon log"""
-        entity_manager.debug()
+    def ui_elements_debug_gc():
+        """Debug garbage collection - print to log"""
+        debug_gc()
 
     def ui_elements_svg(elements: List[str]) -> Union[tuple[callable], callable]:
         """

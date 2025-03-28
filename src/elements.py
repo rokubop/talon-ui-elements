@@ -87,6 +87,14 @@ class State:
     def set(self, key: str, value: Any):
         return set_state(key, value)
 
+    def __call__(self, *args, **kwargs):
+        raise ValueError("""
+            Cannot call state() directly. Instead use:
+            value = state.get("value", optional_initial_value)
+            value, set_value = state.use("value", optional_initial_value)
+            state.set("value", new_value)
+        """)
+
 def use_state(key: str, initial_state: Any = None):
     tree = state_manager.get_processing_tree()
     if not tree:
@@ -179,16 +187,14 @@ def button(*args, text=None, **additional_props):
 
     props = args[0] if args and isinstance(args[0], dict) else {}
 
-    default_props = {
-        "padding": 8,
-        **(props or {})
-    }
-
-    properties = validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["button"])
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["button"])
 
     if text:
         properties["type"] = "button"
-        text_properties = NodeTextProperties(**properties)
+        text_properties = NodeTextProperties(**{
+            "padding": 8,
+            **properties
+        })
         return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
 
     button_properties = NodeTextProperties(**properties)
