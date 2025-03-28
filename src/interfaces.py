@@ -261,52 +261,6 @@ class BoxModelSpacingType(ABC):
     bottom: int = 0
     left: int = 0
 
-class BoxModelLayoutType(ABC):
-    constraints: dict[str, int]
-    margin_spacing: BoxModelSpacingType
-    padding_spacing: BoxModelSpacingType
-    border_spacing: BoxModelSpacingType
-    margin_rect: Rect
-    padding_rect: Rect
-    border_rect: Rect
-    content_rect: Rect
-    content_children_rect: Rect
-    intrinsic_margin_rect: Rect
-    intrinsic_padding_rect: Rect
-    intrinsic_border_rect: Rect
-    intrinsic_content_rect: Rect
-    intrinsic_content_children_rect: Rect
-    scroll_box_rect: Union[Rect, None] = None
-    scrollable: bool
-    fixed_width: bool
-    fixed_height: bool
-    min_width: int
-    min_height: int
-    max_width: int
-    max_height: int
-    width: int
-    height: int
-
-    @abstractmethod
-    def accumulate_outer_dimensions_width(self, new_width: int):
-        pass
-
-    @abstractmethod
-    def accumulate_outer_dimensions_height(self, new_height: int):
-        pass
-
-    @abstractmethod
-    def accumulate_content_dimensions(self, rect: Rect, axis: str = None):
-        pass
-
-    @abstractmethod
-    def position_for_render(self, cursor: Point2d, flex_direction: str, align_items: str, justify_content: str):
-        pass
-
-    @abstractmethod
-    def gc(self):
-        pass
-
 class BoxModelV2Type(ABC):
     id: Union[str, None]
     width: Union[int, str]
@@ -378,7 +332,6 @@ class NodeType(ABC):
     key: str
     node_type: NodeEnumType
     element_type: ElementEnumType
-    box_model: BoxModelLayoutType
     box_model_v2: BoxModelV2Type
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
@@ -418,14 +371,6 @@ class NodeType(ABC):
     @abstractmethod
     def hide(self):
         pass
-
-    # @abstractmethod
-    # def render(self):
-    #     pass
-
-    # @abstractmethod
-    # def virtual_render(self):
-    #     pass
 
     @abstractmethod
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
@@ -611,46 +556,6 @@ class NodeContainerType(NodeType):
     is_uniform_border: bool
     justify_between_gaps: Optional[int]
 
-    # @abstractmethod
-    # def virtual_render_child(self, c: object, cursor: object, child: NodeType, i: int, move_after_last_child: bool):
-    #     pass
-
-    # @abstractmethod
-    # def grow_intrinsic_size(self, c: object, cursor: object):
-    #     pass
-
-    # @abstractmethod
-    # def virtual_render(self, c: object, cursor: object):
-    #     pass
-
-    # @abstractmethod
-    # def draw_debug_number(self, c: object, cursor: object, new_color: bool):
-    #     pass
-
-    # @abstractmethod
-    # def render_borders(self, c: object, cursor: object):
-    #     pass
-
-    # @abstractmethod
-    # def render_background(self, c: object, cursor: object):
-    #     pass
-
-    # @abstractmethod
-    # def adjust_for_scroll_y_start(self, c: object):
-    #     pass
-
-    # @abstractmethod
-    # def adjust_for_scroll_y_end(self, c: object):
-    #     pass
-
-    # @abstractmethod
-    # def crop_scrollable_region_start(self, c: object):
-    #     pass
-
-    # @abstractmethod
-    # def crop_scrollable_region_end(self, c: object):
-    #     pass
-
     @abstractmethod
     def debugger_should_continue(self, c: object, cursor: object):
         pass
@@ -658,22 +563,6 @@ class NodeContainerType(NodeType):
     @abstractmethod
     def debugger(self, c: object, cursor: object, incrememnt_step: bool, new_color: bool, is_breakpoint: bool):
         pass
-
-    # @abstractmethod
-    # def move_cursor_to_align_axis_before_children_render(self, cursor: object):
-    #     pass
-
-    # @abstractmethod
-    # def move_cursor_to_top_left_child_based_on_align_axis(self, cursor: object, child: NodeType):
-    #     pass
-
-    # @abstractmethod
-    # def move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: object, child: NodeType, rect: object, gap: int):
-    #     pass
-
-    # @abstractmethod
-    # def render(self, c: object, cursor: object):
-    #     pass
 
     @abstractmethod
     def show(self):
@@ -684,17 +573,7 @@ class NodeContainerType(NodeType):
         pass
 
 class NodeSvgType(NodeType):
-    @abstractmethod
-    def grow_intrinsic_size(self, c: object, cursor: object):
-        pass
-
-    # @abstractmethod
-    # def virtual_render(self, c: object, cursor: object):
-    #     pass
-
-    # @abstractmethod
-    # def render(self, c: object, cursor: object):
-    #     pass
+    pass
 
 class TreeType(ABC):
     canvas_base: Canvas
@@ -779,14 +658,6 @@ class NodeComponentType(ABC):
     @abstractmethod
     def setup_children(self):
         pass
-
-    @abstractmethod
-    def virtual_render(self, c: object, cursor: object):
-        pass
-
-    # @abstractmethod
-    # def render(self, c: object, cursor: object):
-    #     pass
 
     @abstractmethod
     def __getitem__(self):

@@ -3,7 +3,7 @@ from talon.types import Rect, Point2d
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 import uuid
-from ..box_model import BoxModelLayout, BoxModelV2
+from ..box_model import BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     NODE_TYPE_MAP,
@@ -32,7 +32,6 @@ class Node(NodeType):
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]
         self.element_type: ElementEnumType = element_type
         self.flex_evaluated: Union[int, float] = None
-        self.box_model: BoxModelLayout = None
         self.children_nodes = []
         self.is_dirty: bool = False
         self.interactive = False
@@ -274,8 +273,6 @@ class Node(NodeType):
     def destroy(self):
         for node in self.children_nodes:
             node.destroy()
-        if self.box_model:
-            self.box_model.gc()
         if self.box_model_v2:
             self.box_model_v2.gc()
         self.properties.gc()
