@@ -781,11 +781,15 @@ class Tree(TreeType):
                 if max_height <= view_height:
                     return
 
-                # mouse wheel uses degrees, trackpad uses pixels
-                scroll_y_wheel_or_trackpad = e.degrees.y if abs(e.degrees.y) > 1e-5 else (e.pixels.y if abs(e.pixels.y) > 1e-5 else 0)
-                if scroll_y_wheel_or_trackpad == 0:
+                # mouse wheel
+                if abs(e.degrees.y) > 1e-5:
+                    offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
+                # touchpad
+                elif abs(e.pixels.y) > 1e-5:
+                    offset_y = e.pixels.y
+                else:
                     return
-                offset_y = self.scroll_amount_per_tick if scroll_y_wheel_or_trackpad > 0 else -self.scroll_amount_per_tick
+
                 max_positive_offset_y = 0
                 max_negative_offset = view_height - max_height
 
