@@ -47,6 +47,9 @@ Properties mostly match standard CSS properties.
 | on_change | callable | None | On change callback, for `input_text`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | opacity | float | None | For example `0.7`. Affects children as well. To only affect one node, use the alpha on the color or background_color instead by specifiying 8 digits instead of 6. |
+| overflow | "visible", "scroll", "auto" | "visible" | Behavior of content that exceeds bounds |
+| overflow_y | "visible", "scroll", "auto" | "visible" | Behavior of content that exceeds bounds in y direction |
+| overflow_x | "visible", "scroll", "auto" | "visible" | Behavior of content that exceeds bounds in x direction |
 | padding | Padding | 0 | Uniform padding width |
 | padding_bottom | int | 0 | Bottom padding |
 | padding_left | int | 0 | Left padding |
@@ -66,3 +69,4 @@ Properties mostly match standard CSS properties.
 | stroke_linecap | "butt", "round", "square" | "round" | Stroke line cap |
 | stroke_linejoin | "miter", "round", "bevel" | "round" | Stroke line join |
 | size | int | 24 | affects both width and height |
+| view_box | str | "0 0 24 24" | View box |

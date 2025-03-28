@@ -56,18 +56,19 @@ def dashboard_ui():
         return div(flex_direction='row', justify_content='space_between', border_bottom=1, border_color="555555")[
             text("Dashboard", font_size=24, padding=16),
             button(on_click=actions.user.ui_elements_hide_all)[
-                icon("close", size=20, padding=6),
+                icon("close", size=20, padding=14),
             ],
         ]
 
     def sidebar():
-        return div(border_right=1, overflow_y="scroll")[
+        return div(border_right=1, overflow_y="scroll", padding=8)[
             *[button(
                 name,
                 on_click=on_click_wrapper(name),
                 padding=16,
                 padding_top=8,
-                padding_bottom=8
+                padding_bottom=8,
+                border_radius=4,
             ) for name in user_lists]
         ]
 
