@@ -143,6 +143,12 @@ class NodeText(Node):
         )
         return self.box_model_v2.intrinsic_margin_size
 
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
+
     def v2_render(self, c):
         render_now = False if self.id and self.element_type == "text" else True
 

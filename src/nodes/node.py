@@ -263,6 +263,15 @@ class Node(NodeType):
             else:
                 c.draw_rect(inner_rect)
 
+    def draw_start(self, c: SkiaCanvas):
+        self.v2_render_background(c)
+        self.v2_render_borders(c)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(self, self.draw_start)
+        for child in self.children_nodes:
+            child.v2_build_render_list()
+
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)
         self.v2_render_borders(c)

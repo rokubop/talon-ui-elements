@@ -3,7 +3,7 @@ from talon.canvas import Canvas, MouseEvent
 from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron, settings
-from typing import Any
+from typing import Any, Callable
 from dataclasses import dataclass
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
@@ -16,6 +16,8 @@ from ..interfaces import (
     Effect,
     ClickEvent,
     RenderCauseStateType,
+    RenderItem,
+    RenderLayer,
     ScrollRegionType,
     ScrollableType,
 )
@@ -33,6 +35,7 @@ from ..render_manager import RenderManager, RenderCause
 import inspect
 import uuid
 import threading
+from collections import defaultdict
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
@@ -294,6 +297,8 @@ class Tree(TreeType):
         self.props = props
         self.render_manager = RenderManager(self)
         self.render_cause = RenderCauseState()
+        self.render_list = []
+        self.render_layers = []
         self._renderer = renderer
         self.render_version = 2
         self.render_debounce_job = None
@@ -348,6 +353,36 @@ class Tree(TreeType):
         for child in node.children_nodes:
             self.test(child)
 
+    def build_render_layers(self):
+        self.render_list.clear()
+        self.root_node.v2_build_render_list()
+
+        # Group by (z_index, is_positioned)
+        layer_map = defaultdict(list)
+        for r in self.render_list:
+            z_index = r.node.properties.z_index or 0
+            is_positioned = r.node.properties.position != "static"
+            layer_map[(z_index, is_positioned)].append(r)
+
+        # Create and sort layers
+        self.render_layers = [
+            RenderLayer(z_index=z, position_priority=1 if p else 0, items=items)
+            for (z, p), items in layer_map.items()
+        ]
+        self.render_layers.sort(key=lambda l: (l.z_index, l.position_priority))
+
+    def commit(self):
+        for layer in self.render_layers:
+            snapshot = layer.render_to_surface(
+                self.current_canvas.width,
+                self.current_canvas.height
+            )
+            self.current_canvas.draw_image(
+                snapshot,
+                self.root_node.boundary_rect.x,
+                self.root_node.boundary_rect.y
+            )
+
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
             self.current_canvas = canvas
@@ -355,11 +390,15 @@ class Tree(TreeType):
 
             if self.render_manager.is_dragging():
                 self.root_node.v2_reposition()
-                self.root_node.v2_render(canvas)
+                # self.root_node.v2_render(canvas)
+                self.build_render_layers()
+                self.commit()
             elif self.render_manager.is_scrolling():
                 self.reset_cursor()
                 self.root_node.v2_layout(self.cursor_v2)
-                self.root_node.v2_render(canvas)
+                # self.root_node.v2_render(canvas)
+                self.build_render_layers()
+                self.commit()
             else:
                 self.reset_cursor()
                 self.init_node_hierarchy(self.root_node)
@@ -367,13 +406,11 @@ class Tree(TreeType):
                 self.root_node.v2_measure_intrinsic_size(canvas)
                 self.root_node.v2_grow_size()
                 self.root_node.v2_constrain_size()
-                # self.test(self.root_node)
                 self.root_node.v2_layout(self.cursor_v2)
-                self.root_node.v2_render(canvas)
+                self.build_render_layers()
+                self.commit()
+                # self.root_node.v2_render(canvas)
 
-            # self.root_node.virtual_render(canvas, self.cursor)
-            # self.root_node.grow_intrinsic_size(canvas, self.cursor)
-            # self.root_node.render(canvas, self.cursor)
             self.show_inputs()
             self.render_decorator_canvas()
             state_manager.set_processing_tree(None)
@@ -600,6 +637,9 @@ class Tree(TreeType):
                 self.show_hints = show_hints
 
             self.render_base_canvas()
+
+    def append_to_render_list(self, node: NodeType, draw: Callable[[SkiaCanvas], None]):
+        self.render_list.append(RenderItem(node, draw))
 
     def _render_debounced_execute(self, *args):
         if not self.render_manager.is_destroying:
@@ -862,6 +902,7 @@ class Tree(TreeType):
         self.drag_handle_node = None
         self.draggable_node_delta_pos = None
         scroll_throttle_job = None
+        self.render_list.clear()
         hint_clear_state()
         self.render_cause.clear()
         state_manager.clear_state()

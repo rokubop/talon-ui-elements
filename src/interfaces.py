@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, List, Optional, Union, Deque, Any
 from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
+from talon.skia import Surface
 from talon.skia.canvas import Canvas as SkiaCanvas
 from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
@@ -47,10 +48,12 @@ class PropertiesDimensionalType(ABC):
     align_self: str
     border_color: str
     border: Border
+    bottom: Union[int, str]
     flex_direction: str
     flex: int
     height: Union[int, str]
     justify_content: str
+    left: Union[int, str]
     margin: Margin
     max_height: int
     max_width: int
@@ -58,6 +61,9 @@ class PropertiesDimensionalType(ABC):
     min_width: int
     overflow: OverflowType
     padding: Padding
+    position: str
+    right: Union[int, str]
+    top: Union[int, str]
     width: Union[int, str]
 
 class CursorType:
@@ -465,6 +471,24 @@ class RenderCauseStateType(ABC):
     def clear(self):
         pass
 
+@dataclass
+class RenderItem:
+    node: NodeType
+    draw: Callable[[SkiaCanvas], None]
+
+@dataclass
+class RenderLayer:
+    z_index: int
+    position_priority: int  # 0 = static, 1 = positioned
+    items: List[RenderItem]
+
+    def render_to_surface(self, width, height):
+        surface = Surface(width, height)
+        canvas = surface.canvas()
+        for item in self.items:
+            item.draw(canvas)
+        return surface.snapshot()
+
 class RenderTaskType(ABC):
     cause: str
     on_render: Callable
@@ -615,6 +639,10 @@ class TreeType(ABC):
 
     @abstractmethod
     def destroy(self):
+        pass
+
+    @abstractmethod
+    def append_to_render_list(self, node: NodeType, draw: Callable[[SkiaCanvas], None]):
         pass
 
 class TreeManagerType(ABC):

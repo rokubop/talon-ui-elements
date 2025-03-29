@@ -39,11 +39,14 @@ class Properties(PropertiesDimensionalType):
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
+    bottom: Union[int, str] = None
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
     draggable: bool = False
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
+    focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
+    focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str] = 0
@@ -51,6 +54,7 @@ class Properties(PropertiesDimensionalType):
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
+    left: Union[int, str] = None
     margin: Margin = Margin(0, 0, 0, 0)
     max_height: int = None
     max_width: int = None
@@ -60,11 +64,13 @@ class Properties(PropertiesDimensionalType):
     on_click: callable = None
     opacity: Union[int, float] = None
     overflow: Overflow = None
-    focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
-    focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
+    position: str = 'static'
+    right: Union[int, str] = None
+    top: Union[int, str] = None
     value: str = None
     width: Union[int, str] = 0
+    z_index: int = 0
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -90,6 +96,17 @@ class Properties(PropertiesDimensionalType):
                     f"\nInvalid value for align_items: '{self.align_items}'\n"
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
                 )
+
+        if self.position:
+            if self.position not in ['absolute', 'relative', 'fixed', 'static']:
+                raise ValueError(
+                    f"\nInvalid value for position: '{self.position}'\n"
+                    f"Valid values are: 'absolute', 'relative', 'fixed', 'static'"
+                )
+        elif any(getattr(self, dir) is not None for dir in ["left", "right", "top", "bottom"]):
+            raise ValueError(
+                f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
+            )
 
         self.update_colors_with_opacity()
 

@@ -48,6 +48,12 @@ class NodeInputText(Node):
             else:
                 c.draw_rect(self.box_model.padding_rect)
 
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
+
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)
         self.v2_render_borders(c)

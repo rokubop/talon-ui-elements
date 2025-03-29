@@ -5,7 +5,7 @@ from talon.types import Rect, Point2d
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
 from ..box_model import BoxModelV2
 from ..cursor import Cursor
-from ..interfaces import NodeContainerType, Size2d, NodeType
+from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem
 from ..properties import Properties
 from .node import Node
 from typing import List
@@ -231,6 +231,29 @@ class NodeContainer(Node, NodeContainerType):
 
         cursor.move_to(last_cursor.x, last_cursor.y)
         return self.box_model_v2.margin_size
+
+    def draw_start(self, c: SkiaCanvas):
+        self.v2_render_borders(c),
+        self.v2_crop_start(c),
+        self.v2_render_background(c)
+
+    def draw_end(self, c: SkiaCanvas):
+        self.v2_crop_end(c),
+        self.render_scroll_bar(c)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.draw_start
+        )
+
+        for child in self.children_nodes:
+            child.v2_build_render_list()
+
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.draw_end
+        )
 
     def v2_render(self, c):
         if self.tree:
