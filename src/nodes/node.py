@@ -37,6 +37,7 @@ class Node(NodeType):
         self.interactive = False
         self.root_node = None
         self.depth: int = None
+        self.participates_in_layout: bool = self.properties.position not in ("absolute", "fixed")
         self.box_model_v2: BoxModelV2 = None
         self.node_index_path: list[int] = []
         self.add_properties_to_cascade(properties)
@@ -73,6 +74,14 @@ class Node(NodeType):
     @property
     def constraint_nodes(self) -> list[NodeType]:
         return [node() for node in self._constraint_nodes if node() is not None]
+
+    @property
+    def participating_children_nodes(self) -> list[NodeType]:
+        return [node for node in self.children_nodes if node.participates_in_layout]
+
+    @property
+    def non_participating_children_nodes(self) -> list[NodeType]:
+        return [node for node in self.children_nodes if not node.participates_in_layout]
 
     def add_constraint_node(self, node: NodeType):
         if node:
@@ -154,7 +163,11 @@ class Node(NodeType):
         return False
 
     def v2_measure_intrinsic_size(self, c):
-        self.box_model_v2 = BoxModelV2(self.properties, Size2d(0, 0), self.clip_nodes)
+        self.box_model_v2 = BoxModelV2(
+            self.properties, Size2d(0, 0),
+            self.clip_nodes,
+            relative_positional_node=self.relative_positional_node
+        )
         return self.box_model_v2.intrinsic_margin_size
 
     def v2_grow_size(self):
@@ -164,6 +177,9 @@ class Node(NodeType):
         self.box_model_v2.constrain_size(available_size, self.properties.overflow)
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
+        if not self.participates_in_layout:
+            self.box_model_v2.position_from_relative_parent(cursor)
+
         self.box_model_v2.position_for_render(
             cursor,
             self.properties.flex_direction,

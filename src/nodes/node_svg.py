@@ -69,7 +69,8 @@ class NodeSvg(Node, NodeSvgType):
         self.box_model_v2 = BoxModelV2(
             self.properties,
             Size2d(self.properties.width, self.properties.height),
-            self.clip_nodes
+            self.clip_nodes,
+            self.relative_positional_node
         )
         return self.box_model_v2.intrinsic_margin_size
 

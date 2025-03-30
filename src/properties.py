@@ -97,7 +97,7 @@ class Properties(PropertiesDimensionalType):
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
                 )
 
-        if self.position:
+        if kwargs.get('position'):
             if self.position not in ['absolute', 'relative', 'fixed', 'static']:
                 raise ValueError(
                     f"\nInvalid value for position: '{self.position}'\n"
@@ -105,15 +105,28 @@ class Properties(PropertiesDimensionalType):
                 )
 
             if self.position == 'relative':
-                if kwargs.get('top') and kwargs.get('bottom'):
+                if kwargs.get('top') is not None and kwargs.get('bottom') is not None:
                     raise ValueError(
                         f"\nCannot set both 'top' and 'bottom' for relative position"
                     )
-                if kwargs.get('left') and kwargs.get('right'):
+                if kwargs.get('left') is not None and kwargs.get('right') is not None:
                     raise ValueError(
                         f"\nCannot set both 'left' and 'right' for relative position"
                     )
-        elif any(getattr(kwargs, dir) is not None for dir in ["left", "right", "top", "bottom"]):
+
+            if self.position in ['absolute', 'fixed']:
+                if all(kwargs.get(p) is not None for p in ['left', 'right', 'width']):
+                    raise ValueError(
+                        f"\nCannot set 3 constraints - 'left', 'right', AND 'width' for absolute/fixed position"
+                        f"\nMust set only 2 constraints"
+                    )
+                if all(kwargs.get(p) is not None for p in ['top', 'bottom', 'height']):
+                    raise ValueError(
+                        f"\nCannot set 3 constraints - 'top', 'bottom', AND 'height' for absolute/fixed position"
+                        f"\nMust set only 2 constraints"
+                    )
+
+        elif any(kwargs.get(dir) is not None for dir in ["left", "right", "top", "bottom"]):
             raise ValueError(
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )

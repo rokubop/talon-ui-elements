@@ -346,6 +346,7 @@ class NodeType(ABC):
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
+    participates_in_layout: bool
     interactive: bool
     is_dirty: bool
     tree: 'TreeType'
@@ -381,6 +382,14 @@ class NodeType(ABC):
 
     @abstractmethod
     def hide(self):
+        pass
+
+    @abstractmethod
+    def participating_children_nodes(self) -> List['NodeType']:
+        pass
+
+    @abstractmethod
+    def non_participating_children_nodes(self) -> List['NodeType']:
         pass
 
     @abstractmethod

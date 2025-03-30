@@ -275,6 +275,7 @@ class Tree(TreeType):
             props: dict[str, Any] = {},
             initial_state = dict[str, Any]
         ):
+        self.absolute_nodes = []
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
@@ -286,6 +287,7 @@ class Tree(TreeType):
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
         self.processing_states = []
+        self.fixed_nodes = []
         self.guid = uuid.uuid4().hex
         self.hashed_renderer = hashed_renderer
         self.interactive_node_list = []
@@ -307,7 +309,7 @@ class Tree(TreeType):
         self.root_node = None
         self.show_hints = False
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
-        self.surfaces = []
+        # self.surfaces = []
         state_manager.init_states(initial_state)
         self.init_nodes_and_boundary()
         state_manager.increment_ref_count_trees()
@@ -340,6 +342,9 @@ class Tree(TreeType):
         else:
             self.root_node = self._renderer()
 
+        self.absolute_nodes.clear()
+        self.fixed_nodes.clear()
+
         if not isinstance(self.root_node, NodeType):
             raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
 
@@ -354,8 +359,28 @@ class Tree(TreeType):
         for child in node.children_nodes:
             self.test(child)
 
+    def nonlayout_flow(self):
+        for node in self.absolute_nodes:
+            node: NodeType = node()
+            if node and node.tree == self:
+                relative_positional_node: NodeType = node.relative_positional_node()
+                node.v2_measure_intrinsic_size(self.current_canvas)
+                node.v2_grow_size()
+                node.v2_constrain_size()
+                cursor = CursorV2(Point2d(
+                    relative_positional_node.box_model_v2.margin_pos.x,
+                    relative_positional_node.box_model_v2.margin_pos.y
+                ))
+                node.v2_layout(cursor)
+
+        # for node in self.fixed_nodes:
+        #     node = node()
+        #     if node and node.tree == self:
+        #         node.v2_layout(self.cursor_v2)
+
     def build_render_layers(self):
         self.render_list.clear()
+        self.render_layers.clear()
         self.root_node.v2_build_render_list()
 
         # Group by (z_index, is_positioned)
@@ -397,6 +422,7 @@ class Tree(TreeType):
             elif self.render_manager.is_scrolling():
                 self.reset_cursor()
                 self.root_node.v2_layout(self.cursor_v2)
+                self.nonlayout_flow()
                 # self.root_node.v2_render(canvas)
                 self.build_render_layers()
                 self.commit()
@@ -408,6 +434,7 @@ class Tree(TreeType):
                 self.root_node.v2_grow_size()
                 self.root_node.v2_constrain_size()
                 self.root_node.v2_layout(self.cursor_v2)
+                self.nonlayout_flow()
                 self.build_render_layers()
                 self.commit()
                 # self.root_node.v2_render(canvas)
@@ -902,8 +929,12 @@ class Tree(TreeType):
         self.draggable_node = None
         self.drag_handle_node = None
         self.draggable_node_delta_pos = None
+        self.absolute_nodes.clear()
+        self.fixed_nodes.clear()
         scroll_throttle_job = None
         self.render_list.clear()
+        self.render_layers.clear()
+        # self.surfaces.clear()
         hint_clear_state()
         self.render_cause.clear()
         state_manager.clear_state()
@@ -993,13 +1024,12 @@ class Tree(TreeType):
         else:
             return weakref.ref(node.tree.root_node)
 
-    def _assign_relative_positional_node(self, node: NodeType):
+    def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":
-            if node.properties.position == "relative":
-                node.relative_positional_node = node
-            elif node.properties.position == "fixed":
-                node.relative_positional_node = node.tree.root_node.boundary_rect
+            if node.properties.position == "fixed":
+                self.fixed_nodes.append(weakref.ref(node))
             elif node.properties.position == "absolute":
+                self.absolute_nodes.append(weakref.ref(node))
                 node.relative_positional_node = self._find_parent_relative_positional_node(node.parent_node)
 
     def init_node_hierarchy(
@@ -1020,7 +1050,7 @@ class Tree(TreeType):
         self._use_meta_state(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
         clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)
-        self._assign_relative_positional_node(current_node)
+        self._setup_nonlayout_nodes(current_node)
         self._check_deprecated_ui(current_node)
         self._apply_justify_content_if_space_evenly(current_node)
 

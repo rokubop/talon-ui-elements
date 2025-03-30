@@ -92,6 +92,8 @@ class BoxModelV2(BoxModelV2Type):
         self.min_height = properties.min_height
         self.max_width = properties.max_width
         self.max_height =  properties.max_height
+        self.width_percent = properties.width if isinstance(properties.width, str) and "%" in properties.width else None
+        self.height_percent = properties.height if isinstance(properties.height, str) and "%" in properties.height else None
         self.fixed_width = bool(properties.width)
         self.fixed_height = bool(properties.height)
         self.overflow = properties.overflow
@@ -255,6 +257,33 @@ class BoxModelV2(BoxModelV2Type):
     def init_intrinsic_sizes(self, content_size: Size2d):
         init_width = self.width or self.min_width or 0
         init_height = self.height or self.min_height or 0
+
+        if self.relative_positional_node:
+            relative_node = self.relative_positional_node()
+            box_model = relative_node.box_model_v2
+            if box_model:
+                container_width = box_model.border_size.width
+                container_height = box_model.border_size.height
+                print("Expect container_height to be like 200 ", container_height)
+
+                if self.width_percent:
+                    init_width = BoxModelV2._resolve_percent(self.width_percent, container_width)
+                if self.height_percent:
+                    init_height = BoxModelV2._resolve_percent(self.height_percent, container_height)
+                print("Expect init_width to be like 100 ", init_width)
+
+                left = BoxModelV2._resolve_percent(self._position_left, container_width)
+                right = BoxModelV2._resolve_percent(self._position_right, container_width)
+                top = BoxModelV2._resolve_percent(self._position_top, container_height)
+                bottom = BoxModelV2._resolve_percent(self._position_bottom, container_height)
+
+                if not init_width and left is not None and right is not None:
+                    init_width = container_width - left - right
+
+                if not init_height and top is not None and bottom is not None:
+                    init_height = container_height - top - bottom
+                print("Expect init_width to be like 100 ", init_width)
+
         if content_size.width or content_size.height:
             if init_width or init_height:
                 content_to_border_size = BoxModelV2.content_size_to_border_size(
@@ -464,6 +493,37 @@ class BoxModelV2(BoxModelV2Type):
                 offset.y = -self.position_bottom
             self.reposition(offset)
             cursor.move_to(cursor.x + offset.x, cursor.y + offset.y)
+
+    def position_from_relative_parent(self, cursor: Point2d):
+        relative_positional_node = self.relative_positional_node()
+        relative_border = relative_positional_node.box_model_v2.border_rect
+
+        x = relative_border.x
+        y = relative_border.y
+        left = self._position_left
+        right = self._position_right
+        top = self._position_top
+        bottom = self._position_bottom
+
+        if left is not None:
+            x += BoxModelV2._resolve_percent(left, relative_border.width)
+        elif right is not None:
+            x += (
+                relative_border.width
+                - BoxModelV2._resolve_percent(right, relative_border.width)
+                - self.margin_size.width
+            )
+
+        if top is not None:
+            y += BoxModelV2._resolve_percent(top, relative_border.height)
+        elif bottom is not None:
+            y += (
+                relative_border.height
+                - BoxModelV2._resolve_percent(bottom, relative_border.height)
+                - self.margin_size.height
+            )
+
+        cursor.move_to(x, y)
 
     def position_for_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_pos = cursor.to_point2d()

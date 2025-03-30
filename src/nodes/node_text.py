@@ -139,7 +139,8 @@ class NodeText(Node):
         self.box_model_v2 = BoxModelV2(
             self.properties,
             Size2d(self.text_width, self.text_body_height),
-            self.clip_nodes
+            self.clip_nodes,
+            self.relative_positional_node
         )
         return self.box_model_v2.intrinsic_margin_size
 

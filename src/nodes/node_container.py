@@ -36,9 +36,10 @@ class NodeContainer(Node, NodeContainerType):
         is_row = self.properties.flex_direction == "row"
         primary_axis = "width" if is_row else "height"
         secondary_axis = "height" if is_row else "width"
+        participating_children_nodes = self.participating_children_nodes
 
-        if self.children_nodes:
-            for i, child in enumerate(self.children_nodes):
+        if participating_children_nodes:
+            for i, child in enumerate(participating_children_nodes):
                 margin_size = child.v2_measure_intrinsic_size(c)
 
                 # find the single item with the maximum length for secondary axis
@@ -59,8 +60,8 @@ class NodeContainer(Node, NodeContainerType):
                 )
 
             fixed_gap = self.determine_intrinsic_fixed_gap()
-            for i, child in enumerate(self.children_nodes):
-                if i != len(self.children_nodes) - 1:
+            for i, child in enumerate(participating_children_nodes):
+                if i != len(participating_children_nodes) - 1:
                     gap = self.gap_between_elements(child, i, fixed_gap)
                     setattr(
                         children_accumulated_size,
@@ -71,7 +72,8 @@ class NodeContainer(Node, NodeContainerType):
         self.box_model_v2 = BoxModelV2(
             self.properties,
             children_accumulated_size,
-            self.clip_nodes
+            self.clip_nodes,
+            self.relative_positional_node
         )
 
         return self.box_model_v2.intrinsic_margin_size_with_bounding_constraints
@@ -89,7 +91,7 @@ class NodeContainer(Node, NodeContainerType):
             # (self.properties.flex_direction == "column" and \
             #  isinstance(self.properties.width, str) and "%" in self.properties.width)
 
-        for i, child in enumerate(self.children_nodes):
+        for i, child in enumerate(self.participating_children_nodes):
             if all_growable_counter_axis or child.properties.align_self == "stretch" or \
                     (self.properties.flex_direction == "row" and \
                     isinstance(child.properties.height, str) and "%" in child.properties.height) or \
@@ -142,7 +144,7 @@ class NodeContainer(Node, NodeContainerType):
                 elif flex_direction == "column":
                     self.box_model_v2.maximize_content_children_height()
 
-        for child in self.children_nodes:
+        for child in self.participating_children_nodes:
             child.v2_grow_size()
 
     def v2_constrain_size(self, available_size: Size2d = None) -> bool:
@@ -170,10 +172,12 @@ class NodeContainer(Node, NodeContainerType):
                 getattr(children_accumulated_size, primary_axis) + getattr(child.box_model_v2.margin_size, primary_axis)
             )
 
+        participating_children_nodes = self.participating_children_nodes
+
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
 
-            for child in self.children_nodes:
+            for child in participating_children_nodes:
                 child.v2_constrain_size(new_available_size)
                 if self.properties.flex_direction == "row" and new_available_size.width != None:
                     new_available_size.width = max(0, new_available_size.width - child.box_model_v2.margin_size.width)
@@ -183,13 +187,13 @@ class NodeContainer(Node, NodeContainerType):
                     # new_available_size.height = max(0, new_available_size.height - child.box_model_v2.calculated_margin_size.height)
                 accumulate(child)
         else:
-            for child in self.children_nodes:
+            for child in participating_children_nodes:
                 child.v2_constrain_size()
                 accumulate(child)
 
         fixed_gap = self.determine_intrinsic_fixed_gap()
-        for i, child in enumerate(self.children_nodes):
-            if i != len(self.children_nodes) - 1:
+        for i, child in enumerate(participating_children_nodes):
+            if i != len(participating_children_nodes) - 1:
                 gap = self.gap_between_elements(child, i, fixed_gap)
                 setattr(
                     children_accumulated_size,
@@ -200,7 +204,11 @@ class NodeContainer(Node, NodeContainerType):
         self.box_model_v2.shrink_content_children_size(children_accumulated_size)
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
-        self.v2_drag_offset(cursor)
+        if self.participates_in_layout:
+            self.v2_drag_offset(cursor)
+        else:
+            self.box_model_v2.position_from_relative_parent(cursor)
+
         self.box_model_v2.position_for_render(
             cursor,
             self.properties.flex_direction,
@@ -217,14 +225,14 @@ class NodeContainer(Node, NodeContainerType):
         last_cursor = Point2d(cursor.x, cursor.y)
         self.box_model_v2.shift_relative_position(cursor)
         fixed_gap = self.determine_layout_fixed_gap()
-        for i, child in enumerate(self.children_nodes):
+        for i, child in enumerate(self.participating_children_nodes):
             self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
 
             child_last_cursor = Point2d(cursor.x, cursor.y)
             size = child.v2_layout(cursor)
             cursor.move_to(child_last_cursor.x, child_last_cursor.y)
 
-            if i == len(self.children_nodes) - 1:
+            if i == len(self.participating_children_nodes) - 1:
                 break
 
             gap = self.gap_between_elements(child, i, fixed_gap)
@@ -388,10 +396,11 @@ class NodeContainer(Node, NodeContainerType):
 
     def gap_between_elements(self, node, i, fixed_gap = 0):
         gap = fixed_gap
+        participating_children_nodes = self.participating_children_nodes
 
         if not gap and node.element_type == ELEMENT_ENUM_TYPE["text"] and \
-                self.children_nodes[i + 1].element_type == ELEMENT_ENUM_TYPE["text"] and \
-                not node.properties.flex and not self.children_nodes[i + 1].properties.flex and \
+                participating_children_nodes[i + 1].element_type == ELEMENT_ENUM_TYPE["text"] and \
+                not node.properties.flex and not participating_children_nodes[i + 1].properties.flex and \
                 not self.properties.justify_content == "space_between":
             if self.tree.render_version == 1:
                 gap = 16
@@ -408,13 +417,14 @@ class NodeContainer(Node, NodeContainerType):
         if self.properties.justify_content == "space_between":
             total_children_width = None
             total_children_height = None
+            participating_children_nodes = self.participating_children_nodes
 
             if self.properties.flex_direction == "row":
-                total_children_width = sum(child.box_model_v2.margin_size.width for child in self.children_nodes)
+                total_children_width = sum(child.box_model_v2.margin_size.width for child in participating_children_nodes)
                 available_space = self.box_model_v2.content_size.width - total_children_width
             else:
-                total_children_height = sum(child.box_model_v2.margin_size.height for child in self.children_nodes)
+                total_children_height = sum(child.box_model_v2.margin_size.height for child in participating_children_nodes)
                 available_space = self.box_model_v2.content_size.height - total_children_height
 
-            fixed_gap = available_space / (len(self.children_nodes) - 1) if len(self.children_nodes) > 1 else 0
+            fixed_gap = available_space / (len(participating_children_nodes) - 1) if len(participating_children_nodes) > 1 else 0
         return fixed_gap
