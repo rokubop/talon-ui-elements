@@ -6,7 +6,7 @@
 
 - 9 Example UIs
 - HTML-like elements such as `div`, `text`, `button`, `input_text`
-- 40+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
+- 60+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
 - Dragging and scrolling
 - Talon actions for highlighting elements, changing state, setting text
