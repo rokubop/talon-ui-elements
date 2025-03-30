@@ -503,6 +503,10 @@ class RenderLayer:
             item.draw(canvas)
         return surface.snapshot()
 
+    def draw_to_canvas(self, canvas: SkiaCanvas):
+        for item in self.items:
+            item.draw(canvas)
+
 class RenderTaskType(ABC):
     cause: str
     on_render: Callable

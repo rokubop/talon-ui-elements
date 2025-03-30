@@ -1,7 +1,7 @@
 {
   "name": "ui_elements",
   "description": "Create stateful UIs using HTML/CSS/React-inspired syntax for python. For use with Talon.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "contributes": {
     "settings": [
       "user.ui_elements_hints_button_first_char",

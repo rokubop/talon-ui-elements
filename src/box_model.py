@@ -264,13 +264,11 @@ class BoxModelV2(BoxModelV2Type):
             if box_model:
                 container_width = box_model.border_size.width
                 container_height = box_model.border_size.height
-                print("Expect container_height to be like 200 ", container_height)
 
                 if self.width_percent:
                     init_width = BoxModelV2._resolve_percent(self.width_percent, container_width)
                 if self.height_percent:
                     init_height = BoxModelV2._resolve_percent(self.height_percent, container_height)
-                print("Expect init_width to be like 100 ", init_width)
 
                 left = BoxModelV2._resolve_percent(self._position_left, container_width)
                 right = BoxModelV2._resolve_percent(self._position_right, container_width)
@@ -282,7 +280,6 @@ class BoxModelV2(BoxModelV2Type):
 
                 if not init_height and top is not None and bottom is not None:
                     init_height = container_height - top - bottom
-                print("Expect init_width to be like 100 ", init_width)
 
         if content_size.width or content_size.height:
             if init_width or init_height:

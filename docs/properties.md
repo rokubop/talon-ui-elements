@@ -19,6 +19,7 @@ Properties mostly match standard CSS properties.
 | border_bottom | int | None | Bottom border width |
 | border_radius | int | 0 | For rounded corners |
 | border_width | int | None | Uniform border width value |
+| bottom | Union[int, str] | None | Used with `"position"` property. Inset from the bottom. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | color | str | "FFFFFF" | Text color - Cascades to children |
 | draggable | bool | False | Draggable for `div` |
 | drag_handle | bool | False | Treat this area as the drag handle for a parent draggable |
@@ -35,6 +36,7 @@ Properties mostly match standard CSS properties.
 | id | str | None | ID |
 | justify_content | "center", "flex_start", "flex_end", "space_between", "space_evenly" | "flex_start" | Justify content in the main axis |
 | key | str | None | Key |
+| left | Union[int, str] | None | Used with `"position"` property. Inset from the left. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | margin | Margin | 0 | Uniform margin width |
 | margin_bottom | int | 0 | Bottom margin |
 | margin_left | int | 0 | Left margin |
@@ -55,10 +57,14 @@ Properties mostly match standard CSS properties.
 | padding_left | int | 0 | Left padding |
 | padding_right | int | 0 | Right padding |
 | padding_top | int | 0 | Top padding |
+| position | "static", "relative", "absolute", "fixed" | "static" | Positioning of element. |
+| right | Union[int, str] | None | Used with `"position"` property. Inset from the right. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | screen | int | 0 | Specify the screen index, only applicable to `screen` element |
+| top | Union[int, str] | None | Used with `"position"` property. Inset from the top. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | text_align | "left", "center", "right" | "left" | Text alignment |
 | value | str | None | Value of `input_text` |
 | width | Union[int, str] | 0 | int value, or you can specify "100%" as a string. |
+| z_index | int | 0 | higher value will render on top of lower values |
 
 # SVG specific properties
 | Property | Type | Default | Description |

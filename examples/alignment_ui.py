@@ -46,20 +46,20 @@ def items_first_flex():
         ],
     ]
 
-def items_all_flex():
+def items():
     div, text = actions.user.ui_elements(["div", "text"])
 
     return [
-        div(item_style, flex=1)[
+        div(item_style)[
             text("Hello")
         ],
-        div(item_style, flex=1)[
+        div(item_style)[
             text("to")
         ],
-        div(item_style, flex=1)[
+        div(item_style)[
             text("the")
         ],
-        div(item_style, flex=1)[
+        div(item_style)[
             text("world")
         ],
     ]
@@ -189,14 +189,13 @@ def example9_ui():
 
     title = div(flex_direction="row", align_items="center")[
         div(flex_direction="row")[
-            text('flex=', color=WHITE),
-            text('1', color=YELLOW),
+            text('justify_content=', color=WHITE),
+            text('"space_evenly"', color=YELLOW),
         ],
-        text(' on every child', color=WHITE),
     ]
 
-    return example_ui(9, title, content=div(padding=8, gap=8, flex_direction="row")[
-        *items_all_flex(),
+    return example_ui(9, title, content=div(padding=8, gap=8, flex_direction="row", justify_content="space_evenly")[
+        *items(),
     ])
 
 def alignment_ui():

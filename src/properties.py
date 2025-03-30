@@ -233,6 +233,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     top: Union[int, str]
     value: str
     width: Union[int, str]
+    z_index: int
 
 NodeDivValidationProperties = ValidationProperties
 

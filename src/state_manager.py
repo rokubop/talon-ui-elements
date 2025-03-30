@@ -3,6 +3,7 @@ from typing import Callable
 from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
 from .store import store
 import gc
+import traceback
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -197,6 +198,13 @@ class StateManager:
             node.tree.render_manager.render_ref_change()
 
     def use_state(self, key, initial_value):
+        # TODO: introspect caller to attach relationship
+        # try:
+        #     for frame in traceback.extract_stack()[-10:]:
+        #         print(f"{key} called by {frame.name}")
+        #         # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
+        # except Exception as e:
+        #     print(f"traceback failed: {e}")
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 

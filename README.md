@@ -345,6 +345,31 @@ div(overflow_y="scroll")[
 ]
 ```
 
+## Positioning and z-index
+```py
+# Will stay fixed to top left of screen inset by 100, 100, and on top of all other elements. Not affected by drag.
+screen()[
+    div(position="fixed", top=100, left=100, z_index=1)[
+        text("Hello world")
+    ]
+]
+```
+
+```py
+# Use absolute with relative
+screen()[
+    div(position="relative", width=50, height=50)[
+        # same size and position as parent
+        div(position="absolute", width="100%", height="100%")
+        # occupies left side of parent
+        div(position="absolute", left=0, right="50%" height="100%")
+        # directly above parent (inset from bottom of parent by 50)
+        div(position="absolute", width="100%", bottom="100%")
+        # horizontal bar overlaying the bottom of parent
+        div(position="absolute", width="100%", height=10, bottom=0)
+    ]
+]
+
 ## Focus outline
 When the UI is interactive (either draggable, or has buttons or inputs), then focus outlines appear when you tab through the elements. To change the color and width of the focus outline, you can use the following properties:
 

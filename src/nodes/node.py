@@ -50,6 +50,9 @@ class Node(NodeType):
         self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
         self.relative_positional_node: weakref.ReferenceType[NodeType] = None
 
+        if self.properties.position == "fixed":
+           self.v2_reposition = self._v2_no_reposition
+
         state_manager.increment_ref_count_nodes()
 
     def __del__(self):
@@ -197,6 +200,9 @@ class Node(NodeType):
             # with meta state
             cursor.x = self.tree.draggable_node_delta_pos.x
             cursor.y = self.tree.draggable_node_delta_pos.y
+
+    def _v2_no_reposition(self, offset = None):
+        pass
 
     def v2_reposition(self, offset = None):
         if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
