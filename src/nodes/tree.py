@@ -4,6 +4,7 @@ from talon.skia import RoundRect
 from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any, Callable
+from collections import defaultdict
 from dataclasses import dataclass
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
@@ -35,7 +36,7 @@ from ..render_manager import RenderManager, RenderCause
 import inspect
 import uuid
 import threading
-from collections import defaultdict
+import weakref
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
@@ -984,6 +985,23 @@ class Tree(TreeType):
             for child_node in node.children_nodes:
                 child_node.properties.flex = 1
 
+    def _find_parent_relative_positional_node(self, node: NodeType):
+        if node.properties.position != "static":
+            return weakref.ref(node)
+        elif node.parent_node:
+            return self._find_parent_relative_positional_node(node.parent_node)
+        else:
+            return weakref.ref(node.tree.root_node)
+
+    def _assign_relative_positional_node(self, node: NodeType):
+        if node.properties.position != "static":
+            if node.properties.position == "relative":
+                node.relative_positional_node = node
+            elif node.properties.position == "fixed":
+                node.relative_positional_node = node.tree.root_node.boundary_rect
+            elif node.properties.position == "absolute":
+                node.relative_positional_node = self._find_parent_relative_positional_node(node.parent_node)
+
     def init_node_hierarchy(
             self,
             current_node: NodeType,
@@ -1002,6 +1020,7 @@ class Tree(TreeType):
         self._use_meta_state(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
         clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)
+        self._assign_relative_positional_node(current_node)
         self._check_deprecated_ui(current_node)
         self._apply_justify_content_if_space_evenly(current_node)
 

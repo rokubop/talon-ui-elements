@@ -215,6 +215,7 @@ class NodeContainer(Node, NodeContainerType):
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)
 
         last_cursor = Point2d(cursor.x, cursor.y)
+        self.box_model_v2.shift_relative_position(cursor)
         fixed_gap = self.determine_layout_fixed_gap()
         for i, child in enumerate(self.children_nodes):
             self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)

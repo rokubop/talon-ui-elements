@@ -54,7 +54,7 @@ class NodeRenderOnly():
         pass
 
     def v2_layout(self, cursor: Cursor):
-        pass
+        self.box_model_v2.shift_relative_position(cursor)
 
 class NodeSvg(Node, NodeSvgType):
     def __init__(self, properties: NodeSvgProperties = None):

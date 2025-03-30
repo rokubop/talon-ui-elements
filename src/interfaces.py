@@ -48,12 +48,10 @@ class PropertiesDimensionalType(ABC):
     align_self: str
     border_color: str
     border: Border
-    bottom: Union[int, str]
     flex_direction: str
     flex: int
     height: Union[int, str]
     justify_content: str
-    left: Union[int, str]
     margin: Margin
     max_height: int
     max_width: int
@@ -62,8 +60,6 @@ class PropertiesDimensionalType(ABC):
     overflow: OverflowType
     padding: Padding
     position: str
-    right: Union[int, str]
-    top: Union[int, str]
     width: Union[int, str]
 
 class CursorType:
@@ -279,6 +275,11 @@ class BoxModelV2Type(ABC):
     fixed_height: bool
     overflow: OverflowType
     overflow_size: Size2d
+    position: str
+    position_left: int
+    position_top: int
+    position_right: int
+    position_bottom: int
 
     margin_spacing: BoxModelSpacingType
     padding_spacing: BoxModelSpacingType
@@ -330,6 +331,9 @@ class BoxModelV2Type(ABC):
     def has_scroll_bar_y(self) -> bool:
         pass
 
+    def shift_relative_position(self, cursor):
+        pass
+
 class NodeType(ABC):
     properties: object
     cascaded_properties: object
@@ -349,6 +353,7 @@ class NodeType(ABC):
     depth: int
     node_index_path: List[int]
     component_node: object
+    relative_positional_node: Optional['NodeType']
 
     @abstractmethod
     def add_child(self, node: 'NodeType'):

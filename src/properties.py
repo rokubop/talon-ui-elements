@@ -101,9 +101,19 @@ class Properties(PropertiesDimensionalType):
             if self.position not in ['absolute', 'relative', 'fixed', 'static']:
                 raise ValueError(
                     f"\nInvalid value for position: '{self.position}'\n"
-                    f"Valid values are: 'absolute', 'relative', 'fixed', 'static'"
+                    f"Valid values are: 'static' (default), 'relative', 'absolute', 'fixed'"
                 )
-        elif any(getattr(self, dir) is not None for dir in ["left", "right", "top", "bottom"]):
+
+            if self.position == 'relative':
+                if kwargs.get('top') and kwargs.get('bottom'):
+                    raise ValueError(
+                        f"\nCannot set both 'top' and 'bottom' for relative position"
+                    )
+                if kwargs.get('left') and kwargs.get('right'):
+                    raise ValueError(
+                        f"\nCannot set both 'left' and 'right' for relative position"
+                    )
+        elif any(getattr(kwargs, dir) is not None for dir in ["left", "right", "top", "bottom"]):
             raise ValueError(
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )
@@ -181,28 +191,33 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_color: str
     border_radius: int
     border_width: int
+    bottom: Union[int, str]
     color: str
     drag_handle: bool
     draggable: bool
-    font_family: str
-    font_size: int
     flex_direction: str
     flex: int
+    focus_outline_color: str
+    focus_outline_width: int
+    font_family: str
+    font_size: int
     gap: int
     height: Union[int, str]
     highlight_color: str
     id: str
     justify_content: str
+    left: Union[int, str]
     max_height: int
     max_width: int
     min_height: int
     min_width: int
     opacity: Union[int, float]
-    overflow: str
     overflow_x: str
     overflow_y: str
-    focus_outline_color: str
-    focus_outline_width: int
+    overflow: str
+    position: str
+    right: Union[int, str]
+    top: Union[int, str]
     value: str
     width: Union[int, str]
 

@@ -47,6 +47,7 @@ class Node(NodeType):
         self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
         self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
         self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
+        self.relative_positional_node: weakref.ReferenceType[NodeType] = None
 
         state_manager.increment_ref_count_nodes()
 
@@ -170,6 +171,8 @@ class Node(NodeType):
             self.properties.justify_content
         )
 
+        self.box_model_v2.shift_relative_position(cursor)
+
         return self.box_model_v2.margin_size
 
     def v2_drag_offset(self, cursor: Cursor):
@@ -288,6 +291,7 @@ class Node(NodeType):
         self.children_nodes.clear()
         self.clear_constraint_nodes()
         self.clear_clip_nodes()
+        self.relative_positional_node = None
         self.parent_node = None
         self.tree = None
 
