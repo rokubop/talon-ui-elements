@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, List, Optional, Union, Deque, Any
 from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
+from talon.skia import Surface
 from talon.skia.canvas import Canvas as SkiaCanvas
 from dataclasses import dataclass
 from .constants import ElementEnumType, NodeEnumType
@@ -58,6 +59,7 @@ class PropertiesDimensionalType(ABC):
     min_width: int
     overflow: OverflowType
     padding: Padding
+    position: str
     width: Union[int, str]
 
 class CursorType:
@@ -273,6 +275,11 @@ class BoxModelV2Type(ABC):
     fixed_height: bool
     overflow: OverflowType
     overflow_size: Size2d
+    position: str
+    position_left: int
+    position_top: int
+    position_right: int
+    position_bottom: int
 
     margin_spacing: BoxModelSpacingType
     padding_spacing: BoxModelSpacingType
@@ -324,6 +331,9 @@ class BoxModelV2Type(ABC):
     def has_scroll_bar_y(self) -> bool:
         pass
 
+    def shift_relative_position(self, cursor):
+        pass
+
 class NodeType(ABC):
     properties: object
     cascaded_properties: object
@@ -336,6 +346,7 @@ class NodeType(ABC):
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
+    participates_in_layout: bool
     interactive: bool
     is_dirty: bool
     tree: 'TreeType'
@@ -343,6 +354,7 @@ class NodeType(ABC):
     depth: int
     node_index_path: List[int]
     component_node: object
+    relative_positional_node: Optional['NodeType']
 
     @abstractmethod
     def add_child(self, node: 'NodeType'):
@@ -370,6 +382,14 @@ class NodeType(ABC):
 
     @abstractmethod
     def hide(self):
+        pass
+
+    @abstractmethod
+    def participating_children_nodes(self) -> List['NodeType']:
+        pass
+
+    @abstractmethod
+    def non_participating_children_nodes(self) -> List['NodeType']:
         pass
 
     @abstractmethod
@@ -464,6 +484,28 @@ class RenderCauseStateType(ABC):
     @abstractmethod
     def clear(self):
         pass
+
+@dataclass
+class RenderItem:
+    node: NodeType
+    draw: Callable[[SkiaCanvas], None]
+
+@dataclass
+class RenderLayer:
+    z_index: int
+    position_priority: int  # 0 = static, 1 = positioned
+    items: List[RenderItem]
+
+    def render_to_surface(self, width, height):
+        surface = Surface(width, height)
+        canvas = surface.canvas()
+        for item in self.items:
+            item.draw(canvas)
+        return surface.snapshot()
+
+    def draw_to_canvas(self, canvas: SkiaCanvas):
+        for item in self.items:
+            item.draw(canvas)
 
 class RenderTaskType(ABC):
     cause: str
@@ -615,6 +657,10 @@ class TreeType(ABC):
 
     @abstractmethod
     def destroy(self):
+        pass
+
+    @abstractmethod
+    def append_to_render_list(self, node: NodeType, draw: Callable[[SkiaCanvas], None]):
         pass
 
 class TreeManagerType(ABC):

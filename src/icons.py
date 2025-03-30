@@ -24,6 +24,7 @@ ICON_SVG_PATH_ONLY = {
     "play": "M 5 3 L 19 12 L 5 21 Z",
     "plus": "M 12 5 V 19 M 5 12 H 19",
     "upload": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 4.2v10.3",
+    "stop": "M6 6h12v12H6z",
 }
 
 svg_only_props = [

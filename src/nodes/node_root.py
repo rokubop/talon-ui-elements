@@ -44,6 +44,7 @@ class NodeRoot(NodeContainer, NodeRootType):
             properties=properties
         )
         self.boundary_rect = None
+        self.position = "relative"
 
         if element_type == "screen":
             ref_screen: Screen = get_screen(None if properties.screen is None else properties.screen)

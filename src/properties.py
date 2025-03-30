@@ -39,11 +39,14 @@ class Properties(PropertiesDimensionalType):
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
+    bottom: Union[int, str] = None
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
     draggable: bool = False
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
+    focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
+    focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str] = 0
@@ -51,6 +54,7 @@ class Properties(PropertiesDimensionalType):
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
+    left: Union[int, str] = None
     margin: Margin = Margin(0, 0, 0, 0)
     max_height: int = None
     max_width: int = None
@@ -60,11 +64,13 @@ class Properties(PropertiesDimensionalType):
     on_click: callable = None
     opacity: Union[int, float] = None
     overflow: Overflow = None
-    focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
-    focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     padding: Padding = Padding(0, 0, 0, 0)
+    position: str = 'static'
+    right: Union[int, str] = None
+    top: Union[int, str] = None
     value: str = None
     width: Union[int, str] = 0
+    z_index: int = 0
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -90,6 +96,40 @@ class Properties(PropertiesDimensionalType):
                     f"\nInvalid value for align_items: '{self.align_items}'\n"
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
                 )
+
+        if kwargs.get('position'):
+            if self.position not in ['absolute', 'relative', 'fixed', 'static']:
+                raise ValueError(
+                    f"\nInvalid value for position: '{self.position}'\n"
+                    f"Valid values are: 'static' (default), 'relative', 'absolute', 'fixed'"
+                )
+
+            if self.position == 'relative':
+                if kwargs.get('top') is not None and kwargs.get('bottom') is not None:
+                    raise ValueError(
+                        f"\nCannot set both 'top' and 'bottom' for relative position"
+                    )
+                if kwargs.get('left') is not None and kwargs.get('right') is not None:
+                    raise ValueError(
+                        f"\nCannot set both 'left' and 'right' for relative position"
+                    )
+
+            if self.position in ['absolute', 'fixed']:
+                if all(kwargs.get(p) is not None for p in ['left', 'right', 'width']):
+                    raise ValueError(
+                        f"\nCannot set 3 constraints - 'left', 'right', AND 'width' for absolute/fixed position"
+                        f"\nMust set only 2 constraints"
+                    )
+                if all(kwargs.get(p) is not None for p in ['top', 'bottom', 'height']):
+                    raise ValueError(
+                        f"\nCannot set 3 constraints - 'top', 'bottom', AND 'height' for absolute/fixed position"
+                        f"\nMust set only 2 constraints"
+                    )
+
+        elif any(kwargs.get(dir) is not None for dir in ["left", "right", "top", "bottom"]):
+            raise ValueError(
+                f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
+            )
 
         self.update_colors_with_opacity()
 
@@ -164,30 +204,36 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_color: str
     border_radius: int
     border_width: int
+    bottom: Union[int, str]
     color: str
     drag_handle: bool
     draggable: bool
-    font_family: str
-    font_size: int
     flex_direction: str
     flex: int
+    focus_outline_color: str
+    focus_outline_width: int
+    font_family: str
+    font_size: int
     gap: int
     height: Union[int, str]
     highlight_color: str
     id: str
     justify_content: str
+    left: Union[int, str]
     max_height: int
     max_width: int
     min_height: int
     min_width: int
     opacity: Union[int, float]
-    overflow: str
     overflow_x: str
     overflow_y: str
-    focus_outline_color: str
-    focus_outline_width: int
+    overflow: str
+    position: str
+    right: Union[int, str]
+    top: Union[int, str]
     value: str
     width: Union[int, str]
+    z_index: int
 
 NodeDivValidationProperties = ValidationProperties
 

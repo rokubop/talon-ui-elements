@@ -37,6 +37,7 @@ class Node(NodeType):
         self.interactive = False
         self.root_node = None
         self.depth: int = None
+        self.participates_in_layout: bool = self.properties.position not in ("absolute", "fixed")
         self.box_model_v2: BoxModelV2 = None
         self.node_index_path: list[int] = []
         self.add_properties_to_cascade(properties)
@@ -47,6 +48,10 @@ class Node(NodeType):
         self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
         self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
         self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
+        self.relative_positional_node: weakref.ReferenceType[NodeType] = None
+
+        if self.properties.position == "fixed":
+           self.v2_reposition = self._v2_no_reposition
 
         state_manager.increment_ref_count_nodes()
 
@@ -72,6 +77,14 @@ class Node(NodeType):
     @property
     def constraint_nodes(self) -> list[NodeType]:
         return [node() for node in self._constraint_nodes if node() is not None]
+
+    @property
+    def participating_children_nodes(self) -> list[NodeType]:
+        return [node for node in self.children_nodes if node.participates_in_layout]
+
+    @property
+    def non_participating_children_nodes(self) -> list[NodeType]:
+        return [node for node in self.children_nodes if not node.participates_in_layout]
 
     def add_constraint_node(self, node: NodeType):
         if node:
@@ -153,7 +166,11 @@ class Node(NodeType):
         return False
 
     def v2_measure_intrinsic_size(self, c):
-        self.box_model_v2 = BoxModelV2(self.properties, Size2d(0, 0), self.clip_nodes)
+        self.box_model_v2 = BoxModelV2(
+            self.properties, Size2d(0, 0),
+            self.clip_nodes,
+            relative_positional_node=self.relative_positional_node
+        )
         return self.box_model_v2.intrinsic_margin_size
 
     def v2_grow_size(self):
@@ -163,12 +180,17 @@ class Node(NodeType):
         self.box_model_v2.constrain_size(available_size, self.properties.overflow)
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
+        if not self.participates_in_layout:
+            self.box_model_v2.position_from_relative_parent(cursor)
+
         self.box_model_v2.position_for_render(
             cursor,
             self.properties.flex_direction,
             self.properties.align_items,
             self.properties.justify_content
         )
+
+        self.box_model_v2.shift_relative_position(cursor)
 
         return self.box_model_v2.margin_size
 
@@ -178,6 +200,9 @@ class Node(NodeType):
             # with meta state
             cursor.x = self.tree.draggable_node_delta_pos.x
             cursor.y = self.tree.draggable_node_delta_pos.y
+
+    def _v2_no_reposition(self, offset = None):
+        pass
 
     def v2_reposition(self, offset = None):
         if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
@@ -263,6 +288,15 @@ class Node(NodeType):
             else:
                 c.draw_rect(inner_rect)
 
+    def draw_start(self, c: SkiaCanvas):
+        self.v2_render_background(c)
+        self.v2_render_borders(c)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(self, self.draw_start)
+        for child in self.children_nodes:
+            child.v2_build_render_list()
+
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)
         self.v2_render_borders(c)
@@ -279,6 +313,7 @@ class Node(NodeType):
         self.children_nodes.clear()
         self.clear_constraint_nodes()
         self.clear_clip_nodes()
+        self.relative_positional_node = None
         self.parent_node = None
         self.tree = None
 

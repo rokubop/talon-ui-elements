@@ -82,7 +82,8 @@ class BoxModelV2(BoxModelV2Type):
         self,
         properties: PropertiesDimensionalType,
         content_size: Size2d = Size2d(0, 0),
-        clip_nodes: list[NodeType] = []
+        clip_nodes: list[NodeType] = [],
+        relative_positional_node: NodeType = None,
     ):
         self.id = properties.id
         self.width = properties.width
@@ -91,10 +92,17 @@ class BoxModelV2(BoxModelV2Type):
         self.min_height = properties.min_height
         self.max_width = properties.max_width
         self.max_height =  properties.max_height
+        self.width_percent = properties.width if isinstance(properties.width, str) and "%" in properties.width else None
+        self.height_percent = properties.height if isinstance(properties.height, str) and "%" in properties.height else None
         self.fixed_width = bool(properties.width)
         self.fixed_height = bool(properties.height)
         self.overflow = properties.overflow
         self.overflow_size = Size2d(0, 0)
+        self.position = properties.position
+        self._position_left = properties.left
+        self._position_top = properties.top
+        self._position_right = properties.right
+        self._position_bottom = properties.bottom
 
         self.margin_spacing = properties.margin
         self.padding_spacing = properties.padding
@@ -128,6 +136,7 @@ class BoxModelV2(BoxModelV2Type):
         self.scroll_bar_thumb_rect = None
 
         self.clip_nodes = clip_nodes
+        self.relative_positional_node = relative_positional_node
 
         if isinstance(self.width, str):
             if "%" in self.width:
@@ -183,6 +192,29 @@ class BoxModelV2(BoxModelV2Type):
     def conditional_scroll_bar_y_width(self):
         return DEFAULT_SCROLL_BAR_WIDTH if self.has_scroll_bar_y() else 0
 
+    @classmethod
+    def _resolve_percent(self, value, total):
+        if isinstance(value, str) and "%" in value and total:
+            percent = float(value.strip().replace("%", "")) / 100
+            return int(total * percent)
+        return value
+
+    @property
+    def position_left(self):
+        return BoxModelV2._resolve_percent(self._position_left, self.border_size.width)
+
+    @property
+    def position_top(self):
+        return BoxModelV2._resolve_percent(self._position_top, self.border_size.height)
+
+    @property
+    def position_right(self):
+        return BoxModelV2._resolve_percent(self._position_right, self.border_size.width)
+
+    @property
+    def position_bottom(self):
+        return BoxModelV2._resolve_percent(self._position_bottom, self.border_size.height)
+
     @property
     def intrinsic_margin_size_with_bounding_constraints(self):
         width = self.intrinsic_margin_size.width
@@ -225,6 +257,30 @@ class BoxModelV2(BoxModelV2Type):
     def init_intrinsic_sizes(self, content_size: Size2d):
         init_width = self.width or self.min_width or 0
         init_height = self.height or self.min_height or 0
+
+        if self.relative_positional_node:
+            relative_node = self.relative_positional_node()
+            box_model = relative_node.box_model_v2
+            if box_model:
+                container_width = box_model.border_size.width
+                container_height = box_model.border_size.height
+
+                if self.width_percent:
+                    init_width = BoxModelV2._resolve_percent(self.width_percent, container_width)
+                if self.height_percent:
+                    init_height = BoxModelV2._resolve_percent(self.height_percent, container_height)
+
+                left = BoxModelV2._resolve_percent(self._position_left, container_width)
+                right = BoxModelV2._resolve_percent(self._position_right, container_width)
+                top = BoxModelV2._resolve_percent(self._position_top, container_height)
+                bottom = BoxModelV2._resolve_percent(self._position_bottom, container_height)
+
+                if not init_width and left is not None and right is not None:
+                    init_width = container_width - left - right
+
+                if not init_height and top is not None and bottom is not None:
+                    init_height = container_height - top - bottom
+
         if content_size.width or content_size.height:
             if init_width or init_height:
                 content_to_border_size = BoxModelV2.content_size_to_border_size(
@@ -422,6 +478,50 @@ class BoxModelV2(BoxModelV2Type):
         diff = top_left - self.margin_pos
         self.reposition(diff)
 
+    def shift_relative_position(self, cursor):
+        if self.position == "relative":
+            offset = Point2d(
+                self.position_left or 0,
+                self.position_top or 0
+            )
+            if self.position_right:
+                offset.x = -self.position_right
+            if self.position_bottom:
+                offset.y = -self.position_bottom
+            self.reposition(offset)
+            cursor.move_to(cursor.x + offset.x, cursor.y + offset.y)
+
+    def position_from_relative_parent(self, cursor: Point2d):
+        relative_positional_node = self.relative_positional_node()
+        relative_border = relative_positional_node.box_model_v2.border_rect
+
+        x = relative_border.x
+        y = relative_border.y
+        left = self._position_left
+        right = self._position_right
+        top = self._position_top
+        bottom = self._position_bottom
+
+        if left is not None:
+            x += BoxModelV2._resolve_percent(left, relative_border.width)
+        elif right is not None:
+            x += (
+                relative_border.width
+                - BoxModelV2._resolve_percent(right, relative_border.width)
+                - self.margin_size.width
+            )
+
+        if top is not None:
+            y += BoxModelV2._resolve_percent(top, relative_border.height)
+        elif bottom is not None:
+            y += (
+                relative_border.height
+                - BoxModelV2._resolve_percent(bottom, relative_border.height)
+                - self.margin_size.height
+            )
+
+        cursor.move_to(x, y)
+
     def position_for_render(self, cursor: Point2d, flex_direction: str = "column", align_items: str = "stretch", justify_content: str = "flex_start"):
         self.margin_pos = cursor.to_point2d()
         self.border_pos = Point2d(
@@ -470,9 +570,6 @@ class BoxModelV2(BoxModelV2Type):
             return "partial"
         return False
 
-    def gc(self):
-        self.clip_nodes = []
-
     def has_scroll_bar_y(self):
         return self.overflow.scrollable_y
 
@@ -503,3 +600,7 @@ class BoxModelV2(BoxModelV2Type):
     def adjust_scroll_y(self, offset_y: int):
         self.content_children_pos.y += offset_y
         self.resolve_scroll_bar_rects(offset_y)
+
+    def gc(self):
+        self.clip_nodes = []
+        self.relative_positional_node = None

@@ -54,7 +54,7 @@ class NodeRenderOnly():
         pass
 
     def v2_layout(self, cursor: Cursor):
-        pass
+        self.box_model_v2.shift_relative_position(cursor)
 
 class NodeSvg(Node, NodeSvgType):
     def __init__(self, properties: NodeSvgProperties = None):
@@ -69,13 +69,20 @@ class NodeSvg(Node, NodeSvgType):
         self.box_model_v2 = BoxModelV2(
             self.properties,
             Size2d(self.properties.width, self.properties.height),
-            self.clip_nodes
+            self.clip_nodes,
+            self.relative_positional_node
         )
         return self.box_model_v2.intrinsic_margin_size
 
 class NodeSvgPath(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_path", properties=properties)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
 
     def v2_render(self, c: SkiaCanvas):
         scale = self.parent_node.size / 24
@@ -105,6 +112,12 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
 class NodeSvgRect(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_rect", properties=properties)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
 
     def v2_render(self, c: SkiaCanvas):
         scale = self.parent_node.size / 24
@@ -138,6 +151,12 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_circle", properties=properties)
 
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
+
     def v2_render(self, c: SkiaCanvas):
         scale = self.parent_node.size / 24
 
@@ -166,6 +185,12 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
 class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
     def __init__(self, element_type: str, properties: NodeSvgProperties = None):
         super().__init__(element_type=element_type, properties=properties)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
 
     def v2_render(self, c: SkiaCanvas):
         scale = self.parent_node.size / 24
@@ -201,6 +226,12 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
 class NodeSvgLine(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_line", properties=properties)
+
+    def v2_build_render_list(self):
+        self.tree.append_to_render_list(
+            node=self,
+            draw=self.v2_render
+        )
 
     def v2_render(self, c: SkiaCanvas):
         scale = self.parent_node.size / 24
