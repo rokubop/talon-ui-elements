@@ -81,29 +81,29 @@ class EntityManager:
             input_data.input.rect = rect
             input_data.input.scroll = top_offset
 
-    def does_tree_exist(self, renderer: callable) -> bool:
-        """Check if a tree exists based on the renderer"""
-        hash = generate_hash(renderer)
+    def does_tree_exist(self, tree_constructor: callable) -> bool:
+        """Check if a tree exists based on the tree_constructor"""
+        hash = generate_hash(tree_constructor)
         for t in store.trees:
-            if t.hashed_renderer == hash:
+            if t.hashed_tree_constructor == hash:
                 return True
         return False
 
-    def get_tree_with_hash_for_renderer(self, renderer: callable) -> TreeType:
+    def get_tree_with_hash(self, tree_constructor: callable) -> TreeType:
         # to hash or not not to hash...
         # - pro: hash ensures if the user accidentally creates new references for their
-        #   renderer every time (e.g. defined inside of a talon action), it will treat
+        #   tree_constructor every time (e.g. defined inside of a talon action), it will treat
         #   it as the same reference.
         # - pro: hash ensures during development and saving files which changes references
-        #   of the renderer, it will treat it as the same reference.
+        #   of the tree_constructor, it will treat it as the same reference.
         # - pro: if you accidentally get into a state where the UI is visible but you
-        #   lost the reference to the renderer, you can still hide it.
+        #   lost the reference to the tree_constructor, you can still hide it.
         # - con: if two renderers are the same, it can't distinguish between them
         # - con: minimally slower to hash
-        hash = generate_hash(renderer)
+        hash = generate_hash(tree_constructor)
         tree = None
         for t in store.trees:
-            if t.hashed_renderer == hash:
+            if t.hashed_tree_constructor == hash:
                 tree = t
                 break
 
@@ -112,16 +112,16 @@ class EntityManager:
             "hash": hash
         }
 
-    def hide_tree(self, renderer: Union[str, callable]):
-        """Hide based on the renderer or an id on the root node (screen)"""
-        if isinstance(renderer, str):
+    def hide_tree(self, tree_constructor: Union[str, callable]):
+        """Hide based on the tree_constructor or an id on the root node (screen)"""
+        if isinstance(tree_constructor, str):
             for tree in store.trees:
-                if tree.root_node.id == renderer:
+                if tree.root_node.id == tree_constructor:
                     tree.destroy()
                     store.trees.remove(tree)
                     break
         else:
-            t = self.get_tree_with_hash_for_renderer(renderer)
+            t = self.get_tree_with_hash(tree_constructor)
             tree = t["tree"]
             if tree:
                 tree.destroy()

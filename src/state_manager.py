@@ -140,6 +140,22 @@ class StateManager:
         store.reactive_state[key].set_value(new_value)
         store.processing_states.append(key)
 
+        # TODO: new plan:
+        # Wait 0ms to allow batching of state changes, then - this is key:
+        # Don’t queue a render task directly. Instead, request a state flush from the render manager.
+        #
+        # If multiple state changes happen rapidly, they won’t pile up separate tasks.
+        # It’s just one deferred flush looking at the latest set of changed states.
+        #
+        # When the render manager processes the flush:
+        # - It applies the most recent values (idempotent)
+        # - Marks relevant nodes and trees dirty
+        # - Queues render tasks for affected trees
+        #
+        # Each render runs to completion.
+        # Afterward, use_effects are fired.
+        # Then the cycle starts again.
+
         if not self.debounce_render_job:
             # Let the current event loop finish before rendering
             self.debounce_render_job = cron.after("1ms", self.rerender_state)
@@ -199,12 +215,12 @@ class StateManager:
 
     def use_state(self, key, initial_value):
         # TODO: introspect caller to attach relationship
-        # try:
-        #     for frame in traceback.extract_stack()[-10:]:
-        #         print(f"{key} called by {frame.name}")
-        #         # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
-        # except Exception as e:
-        #     print(f"traceback failed: {e}")
+        try:
+            for frame in traceback.extract_stack()[-10:]:
+                print(f"{key} called by {frame.name}")
+                # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
+        except Exception as e:
+            print(f"traceback failed: {e}")
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 

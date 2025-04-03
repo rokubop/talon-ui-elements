@@ -1,5 +1,6 @@
 from talon import Module, actions
 from typing import List, Any, Union, Callable
+from .src.dev_tools import dev_tools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager, debug_gc
@@ -207,6 +208,10 @@ class Actions:
     def ui_elements_examples():
         """Test example UIs"""
         toggle_elements_examples()
+
+    def ui_elements_dev_tools():
+        """Opens dev tools"""
+        actions.user.ui_elements_toggle(dev_tools)
 
     def ui_elements_debug_gc():
         """Debug garbage collection - print to log"""

@@ -577,7 +577,7 @@ class BoxModelV2(BoxModelV2Type):
         view_height = self.padding_size.height
         total_scrollable_height = self.content_children_with_padding_size.height
 
-        if total_scrollable_height > view_height:
+        if view_height and total_scrollable_height and total_scrollable_height > view_height:
             self.scroll_bar_track_rect = Rect(
                 self.padding_pos.x + self.padding_size.width,
                 self.padding_pos.y,

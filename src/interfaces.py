@@ -630,26 +630,17 @@ class TreeType(ABC):
     meta_state: MetaStateType
     processing_states: List[str]
     render_manager: RenderManagerType
-    _renderer: callable
+    _tree_constructor: callable
     requires_measure_redistribution: bool
     surfaces: List[object]
-    update_renderer: str
+    hashed_tree_constructor: str
     unused_screens: List[int]
     root_node: 'NodeRootType'
     show_hints: bool
     screen_index: int
-    _renderer: callable
     render_cause: RenderCauseStateType
     render_version: int
     is_mounted: bool
-
-    @abstractmethod
-    def __init__(self, renderer: callable, update_renderer: str):
-        pass
-
-    # @abstractmethod
-    # def render(self):
-    #     pass
 
     @abstractmethod
     def render_debounced(self):
@@ -668,7 +659,7 @@ class TreeManagerType(ABC):
     processing_tree: Optional[TreeType]
 
     @abstractmethod
-    def render(self, renderer: callable):
+    def render(self, tree_constructor: callable):
         pass
 
     @abstractmethod
@@ -676,7 +667,7 @@ class TreeManagerType(ABC):
         pass
 
     @abstractmethod
-    def generate_hash_for_updater(self, renderer: callable):
+    def generate_hash_for_updater(self, tree_constructor: callable):
         pass
 
 class NodeRootType(NodeContainerType):

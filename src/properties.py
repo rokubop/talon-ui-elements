@@ -144,19 +144,39 @@ class Properties(PropertiesDimensionalType):
             opacity_hex = format(int(round(self.opacity * 255)), '02X')
 
             if self.background_color:
+                if self.background_color.startswith("#"):
+                    self.background_color = self.background_color[1:]
                 if len(self.background_color) > 6:
                     self.background_color = self.background_color[:6]
                 self.background_color = self.background_color + opacity_hex
 
             if self.border_color:
+                if self.border_color.startswith("#"):
+                    self.border_color = self.border_color[1:]
                 if len(self.border_color) > 6:
                     self.border_color = self.border_color[:6]
                 self.border_color = self.border_color + opacity_hex
 
             if self.color:
+                if self.color.startswith("#"):
+                    self.color = self.color[1:]
                 if len(self.color) > 6:
                     self.color = self.color[:6]
                 self.color = self.color + opacity_hex
+
+            if getattr(self, 'fill', None):
+                if self.fill.startswith("#"):
+                    self.fill = self.fill[1:]
+                if len(self.fill) > 6:
+                    self.fill = self.fill[:6]
+                self.fill = self.fill + opacity_hex
+
+            if getattr(self, 'stroke', None):
+                if self.stroke.startswith("#"):
+                    self.stroke = self.stroke[1:]
+                if len(self.stroke) > 6:
+                    self.stroke = self.stroke[:6]
+                self.stroke = self.stroke + opacity_hex
 
     def update_property(self, key, value):
         if hasattr(self, key):

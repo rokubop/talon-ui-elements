@@ -271,8 +271,8 @@ class RenderCauseState(RenderCauseStateType):
 class Tree(TreeType):
     def __init__(
             self,
-            renderer: callable,
-            hashed_renderer: str,
+            tree_constructor: callable,
+            hashed_tree_constructor: str,
             props: dict[str, Any] = {},
             initial_state = dict[str, Any]
         ):
@@ -290,7 +290,7 @@ class Tree(TreeType):
         self.processing_states = []
         self.fixed_nodes = []
         self.guid = uuid.uuid4().hex
-        self.hashed_renderer = hashed_renderer
+        self.hashed_tree_constructor = hashed_tree_constructor
         self.interactive_node_list = []
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
@@ -303,7 +303,7 @@ class Tree(TreeType):
         self.render_cause = RenderCauseState()
         self.render_list = []
         self.render_layers = []
-        self._renderer = renderer
+        self._tree_constructor = tree_constructor
         self.render_version = 2
         self.render_debounce_job = None
         self.redistribute_box_model = False
@@ -335,13 +335,13 @@ class Tree(TreeType):
 
     def init_nodes_and_boundary(self):
         state_manager.set_processing_tree(self)
-        if len(inspect.signature(self._renderer).parameters) > 0:
+        if len(inspect.signature(self._tree_constructor).parameters) > 0:
             if self.props and not isinstance(self.props, dict):
                 print(f"props: {self.props}")
                 raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
-            self.root_node = self._renderer(self.props or {})
+            self.root_node = self._tree_constructor(self.props or {})
         else:
-            self.root_node = self._renderer()
+            self.root_node = self._tree_constructor()
 
         self.absolute_nodes.clear()
         self.fixed_nodes.clear()
@@ -753,25 +753,28 @@ class Tree(TreeType):
             self.render_cause.clear()
 
     def on_hover(self, gpos):
-        new_hovered_id = None
-        prev_hovered_id = state_manager.get_hovered_id()
-        for button_id in list(self.meta_state.buttons):
-            node = self.meta_state.id_to_node.get(button_id, None)
-            if node:
-                if node.is_fully_clipped_by_scroll():
-                    continue
-                # if node and node.box_model.padding_rect.contains(gpos):
-                if node and node.box_model_v2.padding_rect.contains(gpos):
-                    new_hovered_id = button_id
-                    if new_hovered_id != prev_hovered_id:
-                        state_manager.set_hovered_id(button_id)
-                        self.unhighlight(prev_hovered_id)
-                        self.highlight(button_id, color=node.properties.highlight_color)
-                    break
+        try:
+            new_hovered_id = None
+            prev_hovered_id = state_manager.get_hovered_id()
+            for button_id in list(self.meta_state.buttons):
+                node = self.meta_state.id_to_node.get(button_id, None)
+                if node:
+                    if node.is_fully_clipped_by_scroll():
+                        continue
+                    # if node and node.box_model.padding_rect.contains(gpos):
+                    if node and node.box_model_v2 and node.box_model_v2.padding_rect.contains(gpos):
+                        new_hovered_id = button_id
+                        if new_hovered_id != prev_hovered_id:
+                            state_manager.set_hovered_id(button_id)
+                            self.unhighlight(prev_hovered_id)
+                            self.highlight(button_id, color=node.properties.highlight_color)
+                        break
 
-        if not new_hovered_id and prev_hovered_id:
-            self.unhighlight(prev_hovered_id)
-            state_manager.set_hovered_id(None)
+            if not new_hovered_id and prev_hovered_id:
+                self.unhighlight(prev_hovered_id)
+                state_manager.set_hovered_id(None)
+        except Exception as e:
+            print(f"talon_ui_elements on_hover error: {e}")
 
     def get_mouse_hovered_input_id(self, gpos):
         for id, input_data in list(self.meta_state.inputs.items()):
@@ -839,28 +842,31 @@ class Tree(TreeType):
             node.on_click(ClickEvent(id=node.id))
 
     def on_mouseup(self, gpos):
-        hovered_id = state_manager.get_hovered_id()
-        mousedown_start_id = state_manager.get_mousedown_start_id()
+        try:
+            hovered_id = state_manager.get_hovered_id()
+            mousedown_start_id = state_manager.get_mousedown_start_id()
 
-        if mousedown_start_id and hovered_id == mousedown_start_id:
-            node = self.meta_state.id_to_node.get(mousedown_start_id)
-            if node:
-                self.highlight(mousedown_start_id, color=node.properties.highlight_color)
-                if not state_manager.is_drag_active():
-                    self.click_node(node)
+            if mousedown_start_id and hovered_id == mousedown_start_id:
+                node = self.meta_state.id_to_node.get(mousedown_start_id)
+                if node:
+                    self.highlight(mousedown_start_id, color=node.properties.highlight_color)
+                    if not state_manager.is_drag_active():
+                        self.click_node(node)
 
-        state_manager.set_mousedown_start_id(None)
+            state_manager.set_mousedown_start_id(None)
 
-        if self.draggable_node and self.drag_handle_node:
-            state_manager.set_drag_relative_offset(None)
-            state_manager.set_mousedown_start_pos(None)
+            if self.draggable_node and self.drag_handle_node:
+                state_manager.set_drag_relative_offset(None)
+                state_manager.set_mousedown_start_pos(None)
 
-            if state_manager.is_drag_active():
-                # move delay to render manager with proper queue
-                self.render_manager.render_drag_end()
-                # cron.after("17ms", self.render_manager.render_drag_end)
+                if state_manager.is_drag_active():
+                    # move delay to render manager with proper queue
+                    self.render_manager.render_drag_end()
+                    # cron.after("17ms", self.render_manager.render_drag_end)
 
-            state_manager.set_drag_active(False)
+                state_manager.set_drag_active(False)
+        except Exception as e:
+            print(f"talon_ui_elements on_mouseup error: {e}")
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)
@@ -954,7 +960,7 @@ class Tree(TreeType):
 
         self.destroy_blockable_canvas()
 
-        self._renderer = None
+        self._tree_constructor = None
         self.current_canvas = None
         self.render_manager.destroy()
         self.meta_state.clear()
@@ -1222,7 +1228,7 @@ class Tree(TreeType):
             # print(f"blockable_5: {t5-t6:.3f}")
 
 def render_ui(
-        renderer: callable,
+        tree_constructor: callable,
         props: dict[str, Any] = None,
         on_mount: callable = None,
         on_unmount: callable = None,
@@ -1230,12 +1236,12 @@ def render_ui(
         initial_state = dict[str, Any],
     ):
 
-    t = entity_manager.get_tree_with_hash_for_renderer(renderer)
+    t = entity_manager.get_tree_with_hash(tree_constructor)
     tree = t["tree"]
     hash = t["hash"]
 
     if not tree:
-        tree = Tree(renderer, hash, props, initial_state)
+        tree = Tree(tree_constructor, hash, props, initial_state)
         entity_manager.add_tree(tree)
 
     if show_hints is None:

@@ -104,18 +104,19 @@ class NodeText(Node):
             self.interactive = True
 
     def v2_measure_and_account_for_multiline(self, paint: Paint):
-        text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
+        # text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
+        text_cleansed = re.sub(r"\s", "x", self.text)
 
         # start/end spaces not counted by c.paint.measure_text, so fill them in
-        if text_cleansed.startswith(" "):
-            text_cleansed = "x" + text_cleansed[1:]
-        if text_cleansed.endswith(" "):
-            text_cleansed = text_cleansed[:-1] + "x"
+        # if text_cleansed.startswith(" "):
+        #     text_cleansed = "x" + text_cleansed[1:]
+        # if text_cleansed.endswith(" "):
+        #     text_cleansed = text_cleansed[:-1] + "x"
         self.text_width = paint.measure_text(text_cleansed)[1].width
         self.text_line_height = paint.measure_text("X")[1].height
         self.text_body_height = self.text_line_height
 
-        if (self.properties.width or self.properties.max_width) and self.text_width > self.box_model_v2.content_size.width:
+        if (self.properties.width or self.properties.max_width) and self.text_width > self.properties.width:
             self.text_multiline = split_lines(text_cleansed, self.box_model_v2.content_size.width, paint.measure_text)
             gap = self.properties.gap or 16
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
