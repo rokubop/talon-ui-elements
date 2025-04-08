@@ -72,6 +72,7 @@ class MetaState(MetaStateType):
         self._inputs = {}
         self._scroll_regions = {}
         self._scrollable = {}
+        self._states = {}
         self._draggable_offset = {}
         self._style_mutations = {}
         self._text_mutations = {}
@@ -101,6 +102,10 @@ class MetaState(MetaStateType):
     @property
     def scrollable(self):
         return self._scrollable
+
+    @property
+    def states(self):
+        return self._states
 
     @property
     def style_mutations(self):
@@ -138,6 +143,10 @@ class MetaState(MetaStateType):
     def add_scrollable(self, id):
         if id not in self._scrollable:
             self._scrollable[id] = Scrollable(id)
+
+    def associate_state(self, key):
+        if key not in self._states:
+            self._states[key] = True
 
     def add_draggable(self, id):
         # TODO: eventually use this instead of a single global draggable state
@@ -210,6 +219,7 @@ class MetaState(MetaStateType):
         self._inputs.clear()
         self._scroll_regions.clear()
         self._scrollable.clear()
+        self._states.clear()
         self._style_mutations.clear()
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
@@ -312,7 +322,7 @@ class Tree(TreeType):
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         # self.surfaces = []
         state_manager.init_states(initial_state)
-        self.init_nodes_and_boundary()
+        self.init_tree_constructor()
         state_manager.increment_ref_count_trees()
 
     def __del__(self):
@@ -333,7 +343,7 @@ class Tree(TreeType):
         if self.root_node.element_type not in ["screen", "active_window"]:
             raise Exception("Root node must be a screen or active_window element")
 
-    def init_nodes_and_boundary(self):
+    def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
         if len(inspect.signature(self._tree_constructor).parameters) > 0:
             if self.props and not isinstance(self.props, dict):
@@ -355,8 +365,8 @@ class Tree(TreeType):
     def test(self, node: NodeType):
         if getattr(node, "text", None):
             print(node.text)
-        if hasattr(node.box_model_v2, "calculated_margin_size"):
-            print('calculated_margin_size', node.box_model_v2.calculated_margin_size)
+        if hasattr(node.box_model, "calculated_margin_size"):
+            print('calculated_margin_size', node.box_model.calculated_margin_size)
         for child in node.children_nodes:
             self.test(child)
 
@@ -369,8 +379,8 @@ class Tree(TreeType):
                 node.v2_grow_size()
                 node.v2_constrain_size()
                 cursor = CursorV2(Point2d(
-                    relative_positional_node.box_model_v2.margin_pos.x,
-                    relative_positional_node.box_model_v2.margin_pos.y
+                    relative_positional_node.box_model.margin_pos.x,
+                    relative_positional_node.box_model.margin_pos.y
                 ))
                 node.v2_layout(cursor)
 
@@ -379,35 +389,39 @@ class Tree(TreeType):
         self.render_layers.clear()
         self.root_node.v2_build_render_list()
 
-        # Group by (z_index, is_positioned)
+        # Group by (z_index, z_subindex)
         layer_map = defaultdict(list)
         for r in self.render_list:
             z_index = r.node.properties.z_index or 0
-            is_positioned = r.node.properties.position != "static"
-            layer_map[(z_index, is_positioned)].append(r)
+            z_subindex = r.node.z_subindex or 0
+            layer_map[(z_index, z_subindex)].append(r)
 
         # Create and sort layers
         self.render_layers = [
-            RenderLayer(z_index=z, position_priority=1 if p else 0, items=items)
-            for (z, p), items in layer_map.items()
+            RenderLayer(z_index=z, z_subindex=s, items=items)
+            for (z, s), items in layer_map.items()
         ]
-        self.render_layers.sort(key=lambda l: (l.z_index, l.position_priority))
+        self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
     def commit(self):
         for layer in self.render_layers:
             # Direct canvas approach:
-            layer.draw_to_canvas(self.current_canvas)
+            # layer.draw_to_canvas(self.current_canvas)
 
             # Snapshot approach:
-            # snapshot = layer.render_to_surface(
-            #     self.current_canvas.width,
-            #     self.current_canvas.height
-            # )
-            # self.current_canvas.draw_image(
-            #     snapshot,
-            #     self.root_node.boundary_rect.x,
-            #     self.root_node.boundary_rect.y
-            # )
+            snapshot = layer.render_to_surface(
+                self.current_canvas.width,
+                self.current_canvas.height,
+                self.current_canvas.x,
+                self.current_canvas.y
+            )
+            self.current_canvas.draw_image(
+                snapshot,
+                self.current_canvas.x,
+                self.current_canvas.y
+                # self.root_node.boundary_rect.x,
+                # self.root_node.boundary_rect.y
+            )
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
@@ -495,7 +509,7 @@ class Tree(TreeType):
         for id, color in list(self.meta_state.highlighted.items()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                rect = node.box_model_v2.visible_rect
+                rect = node.box_model.visible_rect
                 canvas.paint.color = color or node.properties.highlight_color
 
                 if rect:
@@ -586,7 +600,7 @@ class Tree(TreeType):
         node = state_manager.get_focused_node()
         if node and node.tree == self:
             # border_rect = node.box_model.border_rect
-            border_rect = node.box_model_v2.border_rect
+            border_rect = node.box_model.border_rect
             stroke_width = node.properties.focus_outline_width
             focus_outline_rect = Rect(
                 border_rect.x - stroke_width,
@@ -596,9 +610,9 @@ class Tree(TreeType):
             )
 
             apply_clip = False
-            clip_rect = node.box_model_v2.clip_rect
+            clip_rect = node.box_model.clip_rect
             if clip_rect:
-                padding_rect = node.box_model_v2.padding_rect
+                padding_rect = node.box_model.padding_rect
                 apply_clip = clip_rect and \
                     (clip_rect.top > padding_rect.top or \
                     clip_rect.left > padding_rect.left or \
@@ -687,7 +701,7 @@ class Tree(TreeType):
                 # t1 = time.time()
                 self.meta_state.clear_nodes()
                 # t2 = time.time()
-                self.init_nodes_and_boundary()
+                self.init_tree_constructor()
                 # t3 = time.time()
 
                 # print(f"on_mount_reset: {t0-t1:.3f} {t1-t2:.3f} {t2-t3:.3f}")
@@ -762,7 +776,7 @@ class Tree(TreeType):
                     if node.is_fully_clipped_by_scroll():
                         continue
                     # if node and node.box_model.padding_rect.contains(gpos):
-                    if node and node.box_model_v2 and node.box_model_v2.padding_rect.contains(gpos):
+                    if node and node.box_model and node.box_model.padding_rect.contains(gpos):
                         new_hovered_id = button_id
                         if new_hovered_id != prev_hovered_id:
                             state_manager.set_hovered_id(button_id)
@@ -805,8 +819,8 @@ class Tree(TreeType):
         if self.draggable_node and self.drag_handle_node:
             # draggable_rect = self.draggable_node.box_model.margin_rect
             # drag_handle_rect = self.drag_handle_node.box_model.border_rect
-            draggable_top_left_pos = self.draggable_node.box_model_v2.margin_pos
-            drag_handle_rect = self.drag_handle_node.box_model_v2.border_rect
+            draggable_top_left_pos = self.draggable_node.box_model.margin_pos
+            drag_handle_rect = self.drag_handle_node.box_model.border_rect
             if drag_handle_rect.contains(gpos):
                 state_manager.set_mousedown_start_pos(gpos)
                 relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
@@ -828,8 +842,8 @@ class Tree(TreeType):
                 state_manager.focus_node(node)
                 return
 
-        if self.root_node.box_model_v2:
-            if self.root_node.box_model_v2.content_children_rect.contains(gpos):
+        if self.root_node.box_model:
+            if self.root_node.box_model.content_children_rect.contains(gpos):
                 state_manager.blur()
             else:
                 state_manager.blur_all()
@@ -884,12 +898,12 @@ class Tree(TreeType):
             smallest_node = None
             for id, data in list(self.meta_state.scrollable.items()):
                 node = self.meta_state.id_to_node.get(id)
-                if getattr(node, 'box_model_v2', None) and node.box_model_v2.padding_rect.contains(e.gpos):
-                    smallest_node = node if not smallest_node or node.box_model_v2.padding_rect.height < smallest_node.box_model_v2.padding_rect.height else smallest_node
+                if getattr(node, 'box_model', None) and node.box_model.padding_rect.contains(e.gpos):
+                    smallest_node = node if not smallest_node or node.box_model.padding_rect.height < smallest_node.box_model.padding_rect.height else smallest_node
 
             if smallest_node:
-                max_height = smallest_node.box_model_v2.content_children_with_padding_size.height
-                view_height = smallest_node.box_model_v2.padding_size.height
+                max_height = smallest_node.box_model.content_children_with_padding_size.height
+                view_height = smallest_node.box_model.padding_size.height
 
                 if max_height <= view_height:
                     return
@@ -1069,14 +1083,30 @@ class Tree(TreeType):
         else:
             return weakref.ref(node.tree.root_node)
 
+    def _cascade_children_z_subindex(self, node: NodeType):
+        """
+        Within each z_index, we have z_subindex to help with stacking order.
+        This is for example of a parent is position absolute, it should be
+        treated higher than relative positioned siblings, and it's children
+        get the cascaded z_subindex.
+        """
+        if node.children_nodes:
+            for child_node in node.children_nodes:
+                child_node.z_subindex = node.z_subindex
+                self._cascade_children_z_subindex(child_node)
+
+
     def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":
             if node.properties.position == "fixed":
                 self.fixed_nodes.append(weakref.ref(node))
                 node.relative_positional_node = weakref.ref(self.root_node)
+                node.z_subindex += 1
             elif node.properties.position == "absolute":
                 self.absolute_nodes.append(weakref.ref(node))
                 node.relative_positional_node = self._find_parent_relative_positional_node(node.parent_node)
+                node.z_subindex += 1
+            self._cascade_children_z_subindex(node)
 
     def init_node_hierarchy(
             self,
@@ -1152,9 +1182,9 @@ class Tree(TreeType):
         blockable_rects = []
 
         if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node:
-            full_rect = self.draggable_node.box_model_v2.border_rect \
-                if getattr(self.draggable_node, 'box_model_v2', None) \
-                else self.root_node.box_model_v2.content_children_rect
+            full_rect = self.draggable_node.box_model.border_rect \
+                if getattr(self.draggable_node, 'box_model', None) \
+                else self.root_node.box_model.content_children_rect
 
             blockable_rects = [full_rect]
 
@@ -1162,7 +1192,7 @@ class Tree(TreeType):
                 for input_id, input_data in list(self.meta_state.inputs.items()):
                     if not input_data.input:
                         continue
-                    input_rect = self.meta_state.id_to_node[input_id].box_model_v2.visible_rect
+                    input_rect = self.meta_state.id_to_node[input_id].box_model.visible_rect
 
                     new_rects = []
                     for rect in blockable_rects:
@@ -1184,7 +1214,7 @@ class Tree(TreeType):
             else:
                 return
 
-        if not self.root_node or not self.root_node.box_model_v2:
+        if not self.root_node or not self.root_node.box_model:
             return
 
         # t1 = time.time()

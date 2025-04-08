@@ -37,8 +37,9 @@ class Node(NodeType):
         self.interactive = False
         self.root_node = None
         self.depth: int = None
+        self.z_subindex: int = 0
         self.participates_in_layout: bool = self.properties.position not in ("absolute", "fixed")
-        self.box_model_v2: BoxModelV2 = None
+        self.box_model: BoxModelV2 = None
         self.node_index_path: list[int] = []
         self.add_properties_to_cascade(properties)
 
@@ -166,33 +167,33 @@ class Node(NodeType):
         return False
 
     def v2_measure_intrinsic_size(self, c):
-        self.box_model_v2 = BoxModelV2(
+        self.box_model = BoxModelV2(
             self.properties, Size2d(0, 0),
             self.clip_nodes,
             relative_positional_node=self.relative_positional_node
         )
-        return self.box_model_v2.intrinsic_margin_size
+        return self.box_model.intrinsic_margin_size
 
     def v2_grow_size(self):
         pass
 
     def v2_constrain_size(self, available_size: Size2d = None):
-        self.box_model_v2.constrain_size(available_size, self.properties.overflow)
+        self.box_model.constrain_size(available_size, self.properties.overflow)
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         if not self.participates_in_layout:
-            self.box_model_v2.position_from_relative_parent(cursor)
+            self.box_model.position_from_relative_parent(cursor)
 
-        self.box_model_v2.position_for_render(
+        self.box_model.position_for_render(
             cursor,
             self.properties.flex_direction,
             self.properties.align_items,
             self.properties.justify_content
         )
 
-        self.box_model_v2.shift_relative_position(cursor)
+        self.box_model.shift_relative_position(cursor)
 
-        return self.box_model_v2.margin_size
+        return self.box_model.margin_size
 
     def v2_drag_offset(self, cursor: Cursor):
         if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
@@ -206,12 +207,12 @@ class Node(NodeType):
 
     def v2_reposition(self, offset = None):
         if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
-            old_pos = self.box_model_v2.margin_pos
+            old_pos = self.box_model.margin_pos
             new_pos = self.tree.draggable_node_delta_pos
-            self.box_model_v2.set_top_left(new_pos)
+            self.box_model.set_top_left(new_pos)
             offset = new_pos - old_pos
-        elif offset and self.box_model_v2:
-            self.box_model_v2.reposition(offset)
+        elif offset and self.box_model:
+            self.box_model.reposition(offset)
         for child in self.children_nodes:
             child.v2_reposition(offset)
 
@@ -231,12 +232,12 @@ class Node(NodeType):
 
     def v2_render_borders(self, c: SkiaCanvas):
         self.is_uniform_border = True
-        border_spacing = self.box_model_v2.border_spacing
+        border_spacing = self.box_model.border_spacing
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
-            # inner_rect = self.box_model_v2.scroll_box_rect if self.box_model_v2.scrollable else self.box_model_v2.padding_rect
-            inner_rect = self.box_model_v2.padding_rect
+            # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
+            inner_rect = self.box_model.padding_rect
             if self.is_uniform_border:
                 border_width = border_spacing.left
                 c.paint.color = self.properties.border_color
@@ -257,7 +258,7 @@ class Node(NodeType):
             else:
                 c.paint.color = self.properties.border_color
                 c.paint.style = c.paint.Style.STROKE
-                b_rect, p_rect = self.box_model_v2.border_rect, inner_rect
+                b_rect, p_rect = self.box_model.border_rect, inner_rect
                 if border_spacing.left:
                     c.paint.stroke_width = border_spacing.left
                     half = border_spacing.left / 2
@@ -280,8 +281,8 @@ class Node(NodeType):
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.background_color
 
-            # inner_rect = self.box_model_v2.scroll_box_rect if self.box_model_v2.scrollable else self.box_model_v2.padding_rect
-            inner_rect = self.box_model_v2.padding_rect
+            # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
+            inner_rect = self.box_model.padding_rect
 
             if self.properties.border_radius and self.is_uniform_border:
                 c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
@@ -307,8 +308,8 @@ class Node(NodeType):
     def destroy(self):
         for node in self.children_nodes:
             node.destroy()
-        if self.box_model_v2:
-            self.box_model_v2.gc()
+        if self.box_model:
+            self.box_model.gc()
         self.properties.gc()
         self.children_nodes.clear()
         self.clear_constraint_nodes()

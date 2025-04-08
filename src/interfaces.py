@@ -139,6 +139,7 @@ class MetaStateType(ABC):
     _highlighted: dict[str, str]
     _buttons: set[str]
     _scrollable = dict[str, ScrollableType]
+    _states: dict[str, Any]
     _text_mutations: dict[str, str]
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _id_to_node: dict[str, 'NodeType']
@@ -159,6 +160,10 @@ class MetaStateType(ABC):
 
     @property
     def scrollable(self) -> dict[str, ScrollableType]:
+        pass
+
+    @property
+    def states(self) -> dict[str, Any]:
         pass
 
     @property
@@ -231,6 +236,10 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def map_id_to_node(self, id: str, node: object):
+        pass
+
+    @abstractmethod
+    def associate_state(self, key: str):
         pass
 
 class NodeRootStateStoreType(ABC):
@@ -342,7 +351,7 @@ class NodeType(ABC):
     key: str
     node_type: NodeEnumType
     element_type: ElementEnumType
-    box_model_v2: BoxModelV2Type
+    box_model: BoxModelV2Type
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
@@ -493,12 +502,13 @@ class RenderItem:
 @dataclass
 class RenderLayer:
     z_index: int
-    position_priority: int  # 0 = static, 1 = positioned
+    z_subindex: int
     items: List[RenderItem]
 
-    def render_to_surface(self, width, height):
+    def render_to_surface(self, width, height, offset_x=0, offset_y=0):
         surface = Surface(width, height)
         canvas = surface.canvas()
+        canvas.translate(-offset_x, -offset_y)
         for item in self.items:
             item.draw(canvas)
         return surface.snapshot()
@@ -586,6 +596,10 @@ class RenderManagerType(ABC):
 
     @abstractmethod
     def render_drag_end(self):
+        pass
+
+    @abstractmethod
+    def schedule_state_change(self, on_start: callable, on_end: callable = None):
         pass
 
     @abstractmethod

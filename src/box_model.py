@@ -233,9 +233,9 @@ class BoxModelV2(BoxModelV2Type):
         for node_ref in self.clip_nodes:
             node = node_ref()
             if clip_rect:
-                clip_rect = clip_rect.intersect(node.box_model_v2.padding_rect)
+                clip_rect = clip_rect.intersect(node.box_model.padding_rect)
             else:
-                clip_rect = node.box_model_v2.padding_rect
+                clip_rect = node.box_model.padding_rect
         return clip_rect
 
     @property
@@ -260,7 +260,7 @@ class BoxModelV2(BoxModelV2Type):
 
         if self.relative_positional_node:
             relative_node = self.relative_positional_node()
-            box_model = relative_node.box_model_v2
+            box_model = relative_node.box_model
             if box_model:
                 container_width = box_model.border_size.width
                 container_height = box_model.border_size.height
@@ -493,7 +493,7 @@ class BoxModelV2(BoxModelV2Type):
 
     def position_from_relative_parent(self, cursor: Point2d):
         relative_positional_node = self.relative_positional_node()
-        relative_border = relative_positional_node.box_model_v2.border_rect
+        relative_border = relative_positional_node.box_model.border_rect
 
         x = relative_border.x
         y = relative_border.y

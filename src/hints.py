@@ -100,22 +100,22 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
 
     apply_clip = False
     clip_rect = None
-    if node.box_model_v2.is_visible() != True:
+    if node.box_model.is_visible() != True:
         apply_clip = True
-        clip_rect = node.box_model_v2.clip_rect
+        clip_rect = node.box_model.clip_rect
 
     if node.element_type == "button":
-        box_model_v2 = node.box_model_v2.content_rect
+        box_model = node.box_model.content_rect
         offset_x = -hint_padding_width
         offset_y = -hint_padding_height
     else:
-        box_model_v2 = node.box_model_v2.padding_rect
+        box_model = node.box_model.padding_rect
         offset_x = -10
         offset_y = -4
 
     hint_padding_rect = Rect(
-        box_model_v2.x + offset_x,
-        box_model_v2.y + offset_y,
+        box_model.x + offset_x,
+        box_model.y + offset_y,
         hint_padding_width,
         hint_padding_height
     )

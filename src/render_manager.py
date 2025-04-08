@@ -15,11 +15,13 @@ class RenderCause(Enum):
     TEXT_MUTATION = "TEXT_MUTATION"
     HIGHLIGHT_CHANGE = "HIGHLIGHT_CHANGE"
     FOCUS_CHANGE = "FOCUS_CHANGE"
+    REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
 
 @dataclass
 class RenderTask(RenderTaskType):
     cause: RenderCause
-    on_render: callable
+    on_start: callable
+    on_end: callable = None
     args: list[object] = field(default_factory=list)
 
 def on_base_canvas_change(tree: TreeType):
@@ -86,7 +88,7 @@ class RenderManager(RenderManagerType):
         if not self._destroying:
             if not self.current_render_task:
                 self.current_render_task = render_task
-                render_task.on_render(self.tree, *render_task.args)
+                render_task.on_start(self.tree, *render_task.args)
             else:
                 self.queue.append(render_task)
 
@@ -128,9 +130,17 @@ class RenderManager(RenderManagerType):
     def process_next_render(self):
         if not self._destroying and self.queue:
             self.current_render_task = self.queue.popleft()
-            self.current_render_task.on_render(self.tree, *self.current_render_task.args)
+            if self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
+                self.current_render_task.on_start()
+                self.process_next_render()
+                return
+            self.current_render_task.on_start(self.tree, *self.current_render_task.args)
 
     def finish_current_render(self):
+        if self.current_render_task and self.current_render_task.on_end:
+            # print("on_end is", self.current_render_task.on_end)
+            # print("type:", type(self.current_render_task.on_end))
+            self.current_render_task.on_end(self.tree, *self.current_render_task.args)
         self.current_render_task = None
         self.process_next_render()
 
@@ -142,9 +152,9 @@ class RenderManager(RenderManagerType):
             show_hints: bool = None
         ):
         render_task = RenderTask(
-            RenderCause.STATE_CHANGE,
-            on_full_render,
-            [props, on_mount, on_unmount, show_hints],
+            cause=RenderCause.STATE_CHANGE,
+            on_start=on_full_render,
+            args=[props, on_mount, on_unmount, show_hints],
         )
 
         self.queue_render(render_task)
@@ -167,6 +177,20 @@ class RenderManager(RenderManagerType):
 
     def render_state_change(self):
         self.queue_render(RenderStateChange)
+
+    def schedule_state_change(self, on_start: callable, on_end: callable = None):
+        self.queue_render(RenderTask(
+            RenderCause.STATE_CHANGE,
+            on_start,
+            on_end,
+            [],
+        ))
+
+    def request_animation_frame(self, callback: callable):
+        cron.after("500ms", self.queue_render(RenderTask(
+            RenderCause.REQUEST_ANIMATION_FRAME,
+            callback,
+        )))
 
     def prepare_destroy(self):
         self._destroying = True

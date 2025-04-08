@@ -87,6 +87,10 @@ class Actions:
 
         return new_state_visible
 
+    def ui_elements_is_active(renderer: Union[str, Callable]):
+        """Check if a specific ui is active based on its renderer function or an id on the root node"""
+        return entity_manager.does_tree_exist(renderer)
+
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """
         Set global state which will cause a rerender to any respective UIs using the state.

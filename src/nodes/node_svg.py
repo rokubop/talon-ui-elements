@@ -54,7 +54,7 @@ class NodeRenderOnly():
         pass
 
     def v2_layout(self, cursor: Cursor):
-        self.box_model_v2.shift_relative_position(cursor)
+        self.box_model.shift_relative_position(cursor)
 
 class NodeSvg(Node, NodeSvgType):
     def __init__(self, properties: NodeSvgProperties = None):
@@ -66,13 +66,13 @@ class NodeSvg(Node, NodeSvgType):
         self.properties.height = self.properties.height or self.properties.size
 
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        self.box_model_v2 = BoxModelV2(
+        self.box_model = BoxModelV2(
             self.properties,
             Size2d(self.properties.width, self.properties.height),
             self.clip_nodes,
             self.relative_positional_node
         )
-        return self.box_model_v2.intrinsic_margin_size
+        return self.box_model.intrinsic_margin_size
 
 class NodeSvgPath(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
@@ -86,7 +86,7 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
 
     def v2_render(self, c: SkiaCanvas):
         scale = self.parent_node.size / 24
-        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        top_left_pos = self.parent_node.box_model.content_children_pos
         new_d = scale_d(self.properties.d, scale)
         path = Path.from_svg(new_d)
         translated_path = Path()
@@ -131,7 +131,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
 
         prev_paint = c.paint.clone()
 
-        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        top_left_pos = self.parent_node.box_model.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
@@ -166,7 +166,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
 
         prev_paint = c.paint.clone()
 
-        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        top_left_pos = self.parent_node.box_model.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
@@ -196,7 +196,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         scale = self.parent_node.size / 24
 
         raw_points = self.properties.points.split(" ")
-        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        top_left_pos = self.parent_node.box_model.content_children_pos
         points = [
             (
                 float(raw_points[i]) * scale + top_left_pos.x,
@@ -207,7 +207,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
 
         prev_paint = c.paint.clone()
 
-        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        top_left_pos = self.parent_node.box_model.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
@@ -243,7 +243,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
 
         prev_paint = c.paint.clone()
 
-        top_left_pos = self.parent_node.box_model_v2.content_children_pos
+        top_left_pos = self.parent_node.box_model.content_children_pos
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke

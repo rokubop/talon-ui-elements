@@ -79,9 +79,27 @@ def active_window(props=None, **additional_props):
 
 class State:
     def get(self, key: str, initial_state: Any = None):
+        tree = state_manager.get_processing_tree()
+        if not tree:
+            raise ValueError("""
+                state.get() must be called during render, such as during ui_elements_show(ui).
+                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+            """)
+
+        tree.meta_state.associate_state(key)
         return get_state(key, initial_state)
 
     def use(self, key: str, initial_state: Any = None):
+        tree = state_manager.get_processing_tree()
+        if not tree:
+            raise ValueError("""
+                state.use() must be called during render, such as during ui_elements_show(ui).
+                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+            """)
+
+        tree.meta_state.associate_state(key)
         return use_state(key, initial_state)
 
     def set(self, key: str, value: Any):
@@ -89,21 +107,13 @@ class State:
 
     def __call__(self, *args, **kwargs):
         raise ValueError("""
-            Cannot call state() directly. Instead use:
-            value = state.get("value", optional_initial_value)
-            value, set_value = state.use("value", optional_initial_value)
-            state.set("value", new_value)
+            Cannot call state() directly. Instead use one of the following:
+            value = state.get("key", optional_initial_value)
+            value, set_value = state.use("key", optional_initial_value)
+            state.set("key", new_value)
         """)
 
 def use_state(key: str, initial_state: Any = None):
-    tree = state_manager.get_processing_tree()
-    if not tree:
-        raise ValueError("""
-            use_state() must be called during render of a tree, such as during ui_elements_show(ui).
-            If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
-            actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
-        """)
-
     return state_manager.use_state(key, initial_state)
 
 def get_state(key: str, initial_state: Any = None):

@@ -39,7 +39,7 @@ class Properties(PropertiesDimensionalType):
     border_radius: int = 0
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
-    bottom: Union[int, str] = None
+    bottom: Union[int, str, float] = None
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
     draggable: bool = False
@@ -49,12 +49,12 @@ class Properties(PropertiesDimensionalType):
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
-    height: Union[int, str] = 0
+    height: Union[int, str, float] = 0
     highlight_color: str = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
-    left: Union[int, str] = None
+    left: Union[int, str, float] = None
     margin: Margin = Margin(0, 0, 0, 0)
     max_height: int = None
     max_width: int = None
@@ -66,10 +66,10 @@ class Properties(PropertiesDimensionalType):
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)
     position: str = 'static'
-    right: Union[int, str] = None
-    top: Union[int, str] = None
+    right: Union[int, str, float] = None
+    top: Union[int, str, float] = None
     value: str = None
-    width: Union[int, str] = 0
+    width: Union[int, str, float] = 0
     z_index: int = 0
 
     def __init__(self, **kwargs):
@@ -224,7 +224,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_color: str
     border_radius: int
     border_width: int
-    bottom: Union[int, str]
+    bottom: Union[int, str, float]
     color: str
     drag_handle: bool
     draggable: bool
@@ -235,11 +235,11 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     font_family: str
     font_size: int
     gap: int
-    height: Union[int, str]
+    height: Union[int, str, float]
     highlight_color: str
     id: str
     justify_content: str
-    left: Union[int, str]
+    left: Union[int, str, float]
     max_height: int
     max_width: int
     min_height: int
@@ -249,10 +249,10 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow_y: str
     overflow: str
     position: str
-    right: Union[int, str]
-    top: Union[int, str]
+    right: Union[int, str, float]
+    top: Union[int, str, float]
     value: str
-    width: Union[int, str]
+    width: Union[int, str, float]
     z_index: int
 
 NodeDivValidationProperties = ValidationProperties

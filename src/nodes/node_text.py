@@ -117,7 +117,7 @@ class NodeText(Node):
         self.text_body_height = self.text_line_height
 
         if (self.properties.width or self.properties.max_width) and self.text_width > self.properties.width:
-            self.text_multiline = split_lines(text_cleansed, self.box_model_v2.content_size.width, paint.measure_text)
+            self.text_multiline = split_lines(text_cleansed, self.box_model.content_size.width, paint.measure_text)
             gap = self.properties.gap or 16
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
 
@@ -137,13 +137,13 @@ class NodeText(Node):
         paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
         self.v2_measure_and_account_for_multiline(paint)
-        self.box_model_v2 = BoxModelV2(
+        self.box_model = BoxModelV2(
             self.properties,
             Size2d(self.text_width, self.text_body_height),
             self.clip_nodes,
             self.relative_positional_node
         )
-        return self.box_model_v2.intrinsic_margin_size
+        return self.box_model.intrinsic_margin_size
 
     def v2_build_render_list(self):
         self.tree.append_to_render_list(
@@ -158,8 +158,8 @@ class NodeText(Node):
         self.v2_render_background(c)
 
         # This should be in layout phase
-        text_top_left = self.box_model_v2.content_children_pos.copy()
-        available_width = self.box_model_v2.content_size.width - self.box_model_v2.content_children_size.width
+        text_top_left = self.box_model.content_children_pos.copy()
+        available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
         if self.properties.text_align == "center":
             text_top_left.x += available_width // 2
         elif self.properties.text_align == "right":

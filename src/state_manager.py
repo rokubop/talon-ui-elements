@@ -3,7 +3,108 @@ from typing import Callable
 from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
 from .store import store
 import gc
-import traceback
+
+class StateCoordinator:
+    PHASE_FREE = "free"
+    PHASE_BATCH = "batch"
+    PHASE_REQUEST_RENDER = "request_render"
+    PHASE_RENDERING = "rendering"
+
+    def __init__(self):
+        self.locked = False
+        self.phase = "free"
+        self.current_state_keys = set()
+        self.next_state_keys = set()
+        self.pending_tree_renders = set()
+        self.batch_job = None
+
+    def finish_cycle(self, tree: TreeType):
+        # print("finish_cycle")
+        if self.locked:
+            self.current_state_keys.clear()
+            self.locked = False
+            self.phase = self.PHASE_FREE
+
+            if self.next_state_keys:
+                self.current_state_keys.update(self.next_state_keys)
+                self.next_state_keys.clear()
+
+            # Maybe tree code is handling this already
+            # if tree.effects:
+            #     for effect in tree.effects:
+            #         effect.execute()
+
+            if self.current_state_keys:
+                for key in self.current_state_keys:
+                    self.request_state_change(key)
+
+    def flush_state(self):
+        # print("flush_state")
+        for key in self.current_state_keys:
+            store.reactive_state[key].activate_next_state_value()
+
+    def on_tree_render_start(self):
+        def on_start(tree: TreeType, *args):
+            # print("on_start")
+            if not self.locked:
+                self.locked = True
+                self.phase = self.PHASE_RENDERING
+                self.flush_state()
+
+            tree.render(*args)
+
+        return on_start
+
+    def on_tree_render_end(self):
+        def on_end(tree: TreeType, *args):
+            # print("on_end")
+            self.pending_tree_renders.remove(tree.guid)
+
+            if not self.pending_tree_renders:
+                self.finish_cycle(tree)
+
+        return on_end
+
+    def request_tree_renders(self):
+        # print("request_tree_renders")
+        if self.locked:
+            return
+
+        if self.phase == self.PHASE_BATCH:
+            self.phase = self.PHASE_REQUEST_RENDER
+            if self.batch_job:
+                cron.cancel(self.batch_job)
+            self.batch_job = None
+
+        if self.phase == self.PHASE_REQUEST_RENDER:
+            # print("current_state_keys", self.current_state_keys)
+            trees = state_manager.get_trees_for_state_keys(self.current_state_keys)
+            # print("tree guids", [tree.guid for tree in trees])
+            for tree in trees:
+                if tree.guid not in self.pending_tree_renders:
+                    self.pending_tree_renders.add(tree.guid)
+                    tree.render_manager.schedule_state_change(
+                        on_start=self.on_tree_render_start(),
+                        on_end=self.on_tree_render_end()
+                    )
+
+    def request_state_change(self, state_key: str):
+        # print(f"request_state_change: {state_key}")
+        if self.locked:
+            self.next_state_keys.add(state_key)
+            return
+
+        self.current_state_keys.add(state_key)
+
+        if self.phase == self.PHASE_FREE:
+            self.phase = self.PHASE_BATCH
+
+        if self.phase == self.PHASE_BATCH:
+            if self.batch_job:
+                cron.cancel(self.batch_job)
+            self.batch_job = cron.after("1ms", self.request_tree_renders)
+
+state_coordinator = StateCoordinator()
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -91,6 +192,23 @@ class StateManager:
     def get_processing_tree(self) -> TreeType:
         return store.processing_tree
 
+    def get_trees_for_state(self, state_key):
+        try:
+            return [tree for tree in store.trees if state_key in tree.meta_state.state_keys]
+        except Exception as e:
+            return []
+
+    def get_trees_for_state_keys(self, state_keys):
+        # print("store.trees", store.trees)
+        # print("state_keys", state_keys)
+        # print("tree.meta_state.states", [tree.meta_state.states for tree in store.trees])
+        try:
+            return [tree for tree in store.trees if \
+                any(key in state_keys for key in tree.meta_state.states)
+            ]
+        except Exception as e:
+            return []
+
     def init_states(self, states):
         if states is not None:
             for key, value in states.items():
@@ -139,6 +257,7 @@ class StateManager:
         self.init_state(key, new_value)
         store.reactive_state[key].set_value(new_value)
         store.processing_states.append(key)
+        state_coordinator.request_state_change(key)
 
         # TODO: new plan:
         # Wait 0ms to allow batching of state changes, then - this is key:
@@ -156,9 +275,9 @@ class StateManager:
         # Afterward, use_effects are fired.
         # Then the cycle starts again.
 
-        if not self.debounce_render_job:
-            # Let the current event loop finish before rendering
-            self.debounce_render_job = cron.after("1ms", self.rerender_state)
+        # if not self.debounce_render_job:
+        #     # Let the current event loop finish before rendering
+        #     self.debounce_render_job = cron.after("1ms", self.rerender_state)
 
     def get_text_mutation(self, id):
         node = store.id_to_node.get(id)
@@ -215,12 +334,12 @@ class StateManager:
 
     def use_state(self, key, initial_value):
         # TODO: introspect caller to attach relationship
-        try:
-            for frame in traceback.extract_stack()[-10:]:
-                print(f"{key} called by {frame.name}")
-                # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
-        except Exception as e:
-            print(f"traceback failed: {e}")
+        # try:
+        #     for frame in traceback.extract_stack()[-10:]:
+        #         print(f"{key} called by {frame.name}")
+        #         # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
+        # except Exception as e:
+        #     print(f"traceback failed: {e}")
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 

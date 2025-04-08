@@ -61,6 +61,8 @@ class ElementEnumType(TypedDict):
     svg_polyline: str
     svg_polygon: str
     svg_line: str
+    window: str
+
 
 ELEMENT_ENUM_TYPE: ElementEnumType = {
     "button": "button",
@@ -77,12 +79,15 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "svg_polyline": "svg_polyline",
     "svg_polygon": "svg_polygon",
     "svg_line": "svg_line",
+    "window": "window",
 }
+
 
 class NodeEnumType(TypedDict):
     leaf: str
     node: str
     root: str
+
 
 NODE_ENUM_TYPE: NodeEnumType = {
     "leaf": "leaf",
