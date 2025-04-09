@@ -59,10 +59,12 @@ button_action = {
 }
 
 def examples_ui():
-    div, text, screen, button = actions.user.ui_elements(["div", "text", "screen", "button"])
+    window, div, text, screen, button = actions.user.ui_elements(["window", "div", "text", "screen", "button"])
 
+    # return screen()[
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, background_color="272727", border_radius=16, border_width=1, width=200)[
+        window(title="Parrot tester")[
+        # div(draggable=True, background_color="272727", border_radius=16, border_width=1, width=200)[
             div(padding=16, position="relative")[
                 text("Examples", font_size=24, margin_top=8),
                 text("talon-ui-elements", font_size=14, color="FFCC00"),

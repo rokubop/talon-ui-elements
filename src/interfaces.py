@@ -612,13 +612,13 @@ class NodeContainerType(NodeType):
     is_uniform_border: bool
     justify_between_gaps: Optional[int]
 
-    @abstractmethod
-    def debugger_should_continue(self, c: object, cursor: object):
-        pass
+    # @abstractmethod
+    # def debugger_should_continue(self, c: object, cursor: object):
+    #     pass
 
-    @abstractmethod
-    def debugger(self, c: object, cursor: object, incrememnt_step: bool, new_color: bool, is_breakpoint: bool):
-        pass
+    # @abstractmethod
+    # def debugger(self, c: object, cursor: object, incrememnt_step: bool, new_color: bool, is_breakpoint: bool):
+    #     pass
 
     @abstractmethod
     def show(self):

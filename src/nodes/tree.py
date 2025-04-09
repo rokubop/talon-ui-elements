@@ -1000,7 +1000,7 @@ class Tree(TreeType):
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
-            if node.depth > 1 or node.element_type != ELEMENT_ENUM_TYPE["div"]:
+            if node.depth > 1 or node.element_type not in [ELEMENT_ENUM_TYPE["div"], ELEMENT_ENUM_TYPE["window"]]:
                 raise Exception('Only top level divs can be draggable. Assign "draggable" property to the top level div (Not "screen" or "active_window").')
             self.draggable_node = node
             self.drag_handle_node = node

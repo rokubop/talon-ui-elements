@@ -111,6 +111,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["svg_polyline"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["svg_line"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["svg_polygon"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["window"]: NODE_ENUM_TYPE["node"],
 }
 
 LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION = "Use actions.user.ui_elements_show(...) instead, passing it a function that returns an element tree composed of `screen`, `div`, `text`, etc."

@@ -523,6 +523,30 @@ class NodeInputTextValidationProperties(ValidationProperties):
     value: str
     on_change: callable
 
+@dataclass
+class NodeWindowProperties(Properties):
+    title: str = None
+    on_close: callable = None
+    on_minimize: callable = None
+    on_maximize: callable = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_close:
+            self.on_close = None
+        if self.on_minimize:
+            self.on_minimize = None
+        if self.on_maximize:
+            self.on_maximize = None
+
+class NodeWindowValidationProperties(ValidationProperties):
+    title: str
+    on_close: callable
+    on_minimize: callable
+    on_maximize: callable
+
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
@@ -538,6 +562,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["svg_polyline"]: NodeSvgPolylineValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_polygon"]: NodeSvgPolygonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_line"]: NodeSvgLineValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["window"]: NodeWindowValidationProperties.__annotations__,
 }
 
 def validate_combined_props(props, additional_props, element_type):

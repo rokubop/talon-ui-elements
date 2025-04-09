@@ -13,6 +13,7 @@ from .nodes.node_svg import (
 )
 from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
+from .nodes.node_window import NodeWindow
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
@@ -25,6 +26,7 @@ from .properties import (
     NodeSvgPolylineProperties,
     NodeSvgPolygonProperties,
     NodeSvgLineProperties,
+    NodeWindowProperties,
     validate_combined_props
 )
 from .icons import icon
@@ -217,14 +219,16 @@ def input_text(props=None, **additional_props):
         raise ValueError("input_text must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
     return NodeInputText(input_properties)
 
-def css_deprecated(props=None, **additional_props):
-    return validate_combined_props(props, additional_props, "div")
-
-deprecated_elements = {
-    # Just use a dictionary instead
-    # Wrapping with a class doesn't help with intellisense
-    "css": css_deprecated,
-}
+def window(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["window"])
+    window_properties = NodeWindowProperties(**{
+        "draggable": True,
+        "background_color": "222222",
+        "border_radius": 4,
+        "border_width": 1,
+        **properties
+    })
+    return NodeWindow(window_properties)
 
 class UIElementsContainerProxy:
     def __init__(self, func):
@@ -237,6 +241,20 @@ class UIElementsContainerProxy:
         for arg in args:
             if isinstance(arg, str):
                 raise ValueError(f"Tried to provide a string argument to a ui_element that doesn't accept it. Use text() if you want to display a string.")
+
+        return self.func(*args, **kwargs)
+
+class UIElementsWindowProxy:
+    def __init__(self, func):
+        self.func = func
+
+    def __getitem__(self, item):
+        raise TypeError(f"You must call {self.func.__name__}() before declaring children. Use {self.func.__name__}()[..] instead of {self.func.__name__}[..].")
+
+    def __call__(self, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str):
+                raise ValueError(f"Use property 'title' to set the window title instead of passing a string argument.")
 
         return self.func(*args, **kwargs)
 
@@ -274,16 +292,17 @@ class UIElementsLeafProxy:
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-div = UIElementsContainerProxy(div)
-text = UIElementsLeafProxy(text)
-screen = UIElementsContainerProxy(screen)
 active_window = UIElementsContainerProxy(active_window)
 button = UIElementsLeafProxy(button)
+div = UIElementsContainerProxy(div)
+effect = use_effect
 icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
-state = State()
-effect = use_effect
 ref = Ref
+screen = UIElementsContainerProxy(screen)
+state = State()
+text = UIElementsLeafProxy(text)
+window = UIElementsWindowProxy(window)
 
 element_collection: Dict[str, callable] = {
     'button': button,
@@ -296,11 +315,11 @@ element_collection: Dict[str, callable] = {
     'state': state,
     'ref': ref,
     'effect': effect,
+    'window': window
 }
 
 element_collection_full = {
-    **element_collection,
-    **deprecated_elements
+    **element_collection
 }
 
 def svg(props=None, **additional_props):
