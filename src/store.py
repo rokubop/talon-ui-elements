@@ -14,6 +14,7 @@ class Store():
         self.focused_id: Optional[str] = None
         self.focused_tree: Optional[TreeType] = None
         self.processing_tree: Optional[TreeType] = None
+        self.processing_components: list[NodeType] = []
         self.processing_states: list[str] = []
         self.root_nodes: list[NodeType] = []
         self.id_to_node: dict[str, NodeType] = {}
@@ -50,6 +51,7 @@ class Store():
         self.focused_id = None
         self.focused_tree = None
         self.processing_tree = None
+        self.processing_components = []
         self.processing_states = []
         self.root_nodes = []
         self.id_to_node = {}

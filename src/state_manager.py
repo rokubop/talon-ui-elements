@@ -192,6 +192,15 @@ class StateManager:
     def get_processing_tree(self) -> TreeType:
         return store.processing_tree
 
+    def set_processing_component(self, component):
+        store.processing_components.append(component)
+
+    def get_processing_components(self):
+        return store.processing_components
+
+    def remove_processing_component(self, component):
+        store.processing_components.remove(component)
+
     def get_trees_for_state(self, state_key):
         try:
             return [tree for tree in store.trees if state_key in tree.meta_state.state_keys]
@@ -464,6 +473,12 @@ class StateManager:
 
     def get_ref_count_trees(self):
         return store.ref_count_trees
+
+    def get_components(self):
+        components = {}
+        for tree in store.trees:
+            components.update(tree.meta_state.components)
+        return components
 
     def clear_state(self):
         store.reactive_state.clear()

@@ -143,11 +143,17 @@ class MetaStateType(ABC):
     _text_mutations: dict[str, str]
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _id_to_node: dict[str, 'NodeType']
+    _staged_id_to_node: dict[str, 'NodeType']
+    state_to_component_names: dict[str, set[str]]
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     unhighlight_jobs: dict[str, callable]
 
     @property
     def inputs(self) -> dict[str, MetaStateInput]:
+        pass
+
+    @property
+    def components(self) -> dict[str, set[str]]:
         pass
 
     @property
@@ -187,6 +193,10 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
+    def prepare_node_transition(self):
+        pass
+
+    @abstractmethod
     def clear_nodes(self):
         pass
 
@@ -204,6 +214,10 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def add_button(self, id: str):
+        pass
+
+    @abstractmethod
+    def add_component(self, name: str, component):
         pass
 
     @abstractmethod

@@ -67,8 +67,10 @@ class DraggableOffset:
 class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = set()
+        self._components = {}
         self._highlighted = {}
         self._id_to_node = {}
+        self._staged_id_to_node = {}
         self._inputs = {}
         self._scroll_regions = {}
         self._scrollable = {}
@@ -76,6 +78,7 @@ class MetaState(MetaStateType):
         self._draggable_offset = {}
         self._style_mutations = {}
         self._text_mutations = {}
+        self.state_to_component_names = {}
         self.ref_property_overrides = {}
         self.unhighlight_jobs = {}
 
@@ -84,12 +87,25 @@ class MetaState(MetaStateType):
         return self._buttons
 
     @property
+    def components(self):
+        return self._components
+        # c = {}
+        # for name, refs in self._components.items():
+        #     # c[name] = [ref() for ref in refs]
+        #     c[name] = refs
+        # return c
+
+    @property
     def highlighted(self):
         return self._highlighted
 
     @property
     def id_to_node(self):
         return self._id_to_node
+
+    @property
+    def staged_id_to_node(self):
+        return self._staged_id_to_node
 
     @property
     def inputs(self):
@@ -134,6 +150,11 @@ class MetaState(MetaStateType):
     def add_button(self, id):
         self._buttons.add(id)
 
+    def add_component(self, name, component):
+        if name not in self._components:
+            self._components[name] = []
+        self._components[name].append(component)
+
     def map_id_to_node(self, id, node):
         self._id_to_node[id] = node
 
@@ -144,9 +165,14 @@ class MetaState(MetaStateType):
         if id not in self._scrollable:
             self._scrollable[id] = Scrollable(id)
 
-    def associate_state(self, key):
+    def associate_state(self, key, components):
         if key not in self._states:
             self._states[key] = True
+        if key not in self.state_to_component_names:
+            self.state_to_component_names[key] = set()
+        self.state_to_component_names[key].update([c.name for c in components])
+        for c in components:
+            c.states.add(key)
 
     def add_draggable(self, id):
         # TODO: eventually use this instead of a single global draggable state
@@ -201,6 +227,15 @@ class MetaState(MetaStateType):
 
     def clear_nodes(self):
         self._id_to_node.clear()
+        self._staged_id_to_node.clear()
+        entity_manager.synchronize_global_ids()
+
+    def prepare_node_transition(self):
+        self._staged_id_to_node = {}
+
+    def commit_node_transition(self):
+        self._id_to_node = self._staged_id_to_node
+        self._staged_id_to_node = None
         entity_manager.synchronize_global_ids()
 
     def clear(self):
@@ -215,6 +250,7 @@ class MetaState(MetaStateType):
                 cron.cancel(job[0])
 
         self._buttons.clear()
+        self._components.clear()
         self._highlighted.clear()
         self._inputs.clear()
         self._scroll_regions.clear()
@@ -699,6 +735,7 @@ class Tree(TreeType):
                 # t0 = time.time()
                 self.on_state_change_effect_cleanups()
                 # t1 = time.time()
+                # self.meta_state.prepare_node_transition()
                 self.meta_state.clear_nodes()
                 # t2 = time.time()
                 self.init_tree_constructor()

@@ -82,6 +82,7 @@ def active_window(props=None, **additional_props):
 class State:
     def get(self, key: str, initial_state: Any = None):
         tree = state_manager.get_processing_tree()
+        components = state_manager.get_processing_components()
         if not tree:
             raise ValueError("""
                 state.get() must be called during render, such as during ui_elements_show(ui).
@@ -89,11 +90,12 @@ class State:
                 actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
             """)
 
-        tree.meta_state.associate_state(key)
+        tree.meta_state.associate_state(key, components)
         return get_state(key, initial_state)
 
     def use(self, key: str, initial_state: Any = None):
         tree = state_manager.get_processing_tree()
+        components = state_manager.get_processing_components()
         if not tree:
             raise ValueError("""
                 state.use() must be called during render, such as during ui_elements_show(ui).
@@ -101,7 +103,7 @@ class State:
                 actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
             """)
 
-        tree.meta_state.associate_state(key)
+        tree.meta_state.associate_state(key, components)
         return use_state(key, initial_state)
 
     def set(self, key: str, value: Any):

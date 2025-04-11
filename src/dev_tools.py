@@ -1,4 +1,5 @@
 from talon import actions
+from .state_manager import state_manager
 from .store import store
 
 accent_color = "1bd0f5"
@@ -35,12 +36,21 @@ def dev_tools():
 
     # print("state", store.reactive_state)
 
-    for key, s in store.reactive_state.items():
-        print(key, s.value)
+    # for key, s in store.reactive_state.items():
+    #     print(key, s.value)
+
+    components = state_manager.get_components()
+    # print("components", components)
+    for name, c in components.items():
+        print(name, c[0].states)
 
     return screen()[
         div(draggable=True, background_color="333333", border_width=1, padding=16)[
             text("Dev Tools", color="FFFFFF", margin_bottom=16),
+            div(flex_direction="row", align_items="center", gap=8, margin_bottom=8)[
+                icon("chevron_down", size=16, color="FFFFFF"),
+                text("Components", color="FFFFFF"),
+            ],
             div(flex_direction="row", align_items="center", gap=8, margin_bottom=8)[
                 icon("chevron_down", size=16, color="FFFFFF"),
                 text("State", color="FFFFFF"),
