@@ -13,7 +13,6 @@ class NodeWindow(NodeContainer):
         #     properties.top = last_pos.top
         #     properties.right = last_pos.right
 
-
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
         is_minimized, set_is_minimized = state.use(f"is_minimized", False)
 
@@ -28,6 +27,11 @@ class NodeWindow(NodeContainer):
             properties.position = "static"
             properties.top = None
             properties.right = None
+
+        # body_properties = {
+        #     "padding",
+        # }
+        # window_properties = properties
 
         super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=properties)
 
@@ -65,7 +69,7 @@ class NodeWindow(NodeContainer):
                 ],
             ],
 
-        self.body = div(padding=4)
+        self.body = div()
         self.add_child(top_bar())
         self.add_child(self.body)
 

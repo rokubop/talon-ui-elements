@@ -13,7 +13,14 @@ from ..constants import (
 )
 from .component import Component
 from ..cursor import Cursor
-from ..interfaces import NodeType, NodeEnumType, ElementEnumType, TreeType, Size2d
+from ..interfaces import (
+    ComponentType,
+    NodeType,
+    NodeEnumType,
+    ElementEnumType,
+    TreeType,
+    Size2d
+)
 from ..properties import Properties
 from ..utils import sanitize_string
 from ..state_manager import state_manager
@@ -108,14 +115,9 @@ class Node(NodeType):
     def clear_clip_nodes(self):
         self.clip_nodes.clear()
 
-    def parse_component(self, node: NodeType):
+    def wrap_component(self, node: NodeType):
         if callable(node):
-            # print("found callable node")
             node = Component(node)
-        if isinstance(node, Component):
-            # print("found component node")
-            node = node.init_tree()
-        # print(type(node))
         return node
 
     def add_child(self, node):
@@ -123,7 +125,7 @@ class Node(NodeType):
             for n in node:
                 if n:
                     self.check_invalid_child(n)
-                    n = self.parse_component(n)
+                    n = self.wrap_component(n)
                     self.children_nodes.append(n)
                     if isinstance(n, tuple):
                         raise ValueError(
@@ -134,7 +136,7 @@ class Node(NodeType):
                     n.parent_node = self
         elif node:
             self.check_invalid_child(node)
-            node = self.parse_component(node)
+            node = self.wrap_component(node)
             self.children_nodes.append(node)
             node.parent_node = self
 

@@ -123,6 +123,7 @@ screen, div, button = actions.user.ui_elements(["screen", "div", "button"])
 |---------|-------------|
 | `screen` | Root element. A div the size of your screen. |
 | `active_window` | Root element. A div the size of the currently active window. |
+| `component` | Turn a function into a component for optimization. Automatially happens if passing a function by reference |
 | `div` | Standard container element. |
 | `text` | Basic strings supported. Combine multiple together if you want to style differently. |
 | `button` | Accepts `on_click` |
@@ -131,6 +132,7 @@ screen, div, button = actions.user.ui_elements(["screen", "div", "button"])
 | `state` | Global reactive state that rerenders respective UIs when changed. |
 | `effect` | Run side effects on mount, unmount, or state change. |
 | `ref` | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates. Useful for `input_text` value. |
+| `window` | Draggable window element with minimize and close buttons |
 
 Also see [SVG Elements](#svg-elements).
 
@@ -179,6 +181,10 @@ Read more about [state](./docs/state.md).
 ### Disclaimer
 
 If you just need to update text or highlight, use the below methods instead, as those render on a separate decoration layer which are faster, and do not cause a full rerender.
+
+## Components
+
+Components are a way to optimize rendering when using `state`. If you pass a function by reference, it will automatically be turned into a component. Read more about [components](./docs/components.md).
 
 ## Updating text
 We must give a unique id to the thing we want to update.
@@ -407,6 +413,7 @@ The following properties cascade down to children elements:
 | Documentation | Description |
 |---------------|-------------|
 | [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
+| [Components](./docs/components.md) | How to create components |
 | [Defaults](./docs/defaults.md) | Default values for all properties |
 | [Properties](./docs/properties.md) | List of all properties you can use |
 | [Icons and SVGs](./docs/icons_and_svgs.md) | List of supported icons and how to use custom SVGs |

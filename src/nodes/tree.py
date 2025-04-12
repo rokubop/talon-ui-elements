@@ -6,6 +6,7 @@ from talon import cron, settings
 from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
+from .component import Component
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
 from ..cursor import Cursor, CursorV2
@@ -16,6 +17,7 @@ from ..interfaces import (
     MetaStateType,
     Effect,
     ClickEvent,
+    ComponentType,
     RenderCauseStateType,
     RenderItem,
     RenderLayer,
@@ -78,7 +80,6 @@ class MetaState(MetaStateType):
         self._draggable_offset = {}
         self._style_mutations = {}
         self._text_mutations = {}
-        self.state_to_component_names = {}
         self.ref_property_overrides = {}
         self.unhighlight_jobs = {}
 
@@ -89,11 +90,6 @@ class MetaState(MetaStateType):
     @property
     def components(self):
         return self._components
-        # c = {}
-        # for name, refs in self._components.items():
-        #     # c[name] = [ref() for ref in refs]
-        #     c[name] = refs
-        # return c
 
     @property
     def highlighted(self):
@@ -150,10 +146,9 @@ class MetaState(MetaStateType):
     def add_button(self, id):
         self._buttons.add(id)
 
-    def add_component(self, name, component):
-        if name not in self._components:
-            self._components[name] = []
-        self._components[name].append(component)
+    def add_component(self, component):
+        if component.id not in self._components:
+            self._components[component.id] = component
 
     def map_id_to_node(self, id, node):
         self._id_to_node[id] = node
@@ -167,12 +162,16 @@ class MetaState(MetaStateType):
 
     def associate_state(self, key, components):
         if key not in self._states:
-            self._states[key] = True
-        if key not in self.state_to_component_names:
-            self.state_to_component_names[key] = set()
-        self.state_to_component_names[key].update([c.name for c in components])
+            self._states[key] = set()
         for c in components:
+            self._states[key].add(c.id)
             c.states.add(key)
+
+    def associate_local_state(self, key, component):
+        if key not in self._states:
+            self._states[key] = set()
+        self._states[key].add(component.id)
+        component.states.add(key)
 
     def add_draggable(self, id):
         # TODO: eventually use this instead of a single global draggable state
@@ -344,6 +343,7 @@ class Tree(TreeType):
         self.last_blockable_rects = []
         self.lock = threading.Lock()
         self.meta_state = MetaState()
+        self.name = tree_constructor.__name__
         self.props = props
         self.render_manager = RenderManager(self)
         self.render_cause = RenderCauseState()
@@ -1145,6 +1145,15 @@ class Tree(TreeType):
                 node.z_subindex += 1
             self._cascade_children_z_subindex(node)
 
+    def _resolve_component(self, node: NodeType, node_index_path: list[int]):
+        if isinstance(node, ComponentType):
+            state_manager.set_processing_tree(self)
+            node_tree = node.initialize(node_index_path)
+            state_manager.set_processing_tree(None)
+            self.meta_state.add_component(node)
+            return node_tree
+        return node
+
     def init_node_hierarchy(
             self,
             current_node: NodeType,
@@ -1152,10 +1161,12 @@ class Tree(TreeType):
             constraint_nodes: list[NodeType] = None,
             clip_nodes: list[NodeType] = None
         ):
+        current_node = self._resolve_component(current_node, node_index_path)
         current_node.tree = self
         current_node.depth = len(node_index_path)
         current_node.node_index_path = node_index_path
-
+        if getattr(self, 'parent_node', None):
+            current_node.inherit_cascaded_properties(self.parent_node)
         self._assign_dragging_node_and_handle(current_node)
         self._assign_missing_ids(current_node, node_index_path)
         if not self.is_mounted:
@@ -1168,7 +1179,6 @@ class Tree(TreeType):
         self._apply_justify_content_if_space_evenly(current_node)
 
         for i, child_node in enumerate(current_node.children_nodes):
-            child_node.inherit_cascaded_properties(current_node)
             self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes, clip_nodes)
 
         entity_manager.synchronize_global_ids()

@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Union
 from .constants import ELEMENT_ENUM_TYPE
+from .nodes.component import Component
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
@@ -109,11 +110,30 @@ class State:
     def set(self, key: str, value: Any):
         return set_state(key, value)
 
+    def use_local(self, key: str, initial_state: Any = None):
+        tree = state_manager.get_processing_tree()
+        components = state_manager.get_processing_components()
+        if not components:
+            raise ValueError("""
+                state.use_local() must be used inside a component.
+            """)
+        if not tree:
+            raise ValueError("""
+                state.use_local() must be called during render, such as during ui_elements_show(ui).
+                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+            """)
+        last_component = components[-1]
+        unique_key = f"{tree.name}_{key}_{last_component.name}_{last_component.id}"
+        tree.meta_state.associate_local_state(unique_key, last_component)
+        return use_state(unique_key, initial_state)
+
     def __call__(self, *args, **kwargs):
         raise ValueError("""
             Cannot call state() directly. Instead use one of the following:
             value = state.get("key", optional_initial_value)
             value, set_value = state.use("key", optional_initial_value)
+            value, set_value = state.use_local("key", optional_initial_value)
             state.set("key", new_value)
         """)
 
@@ -307,8 +327,9 @@ text = UIElementsLeafProxy(text)
 window = UIElementsWindowProxy(window)
 
 element_collection: Dict[str, callable] = {
-    'button': button,
     'active_window': active_window,
+    'button': button,
+    'component': Component,
     'div': div,
     'icon': icon,
     'input_text': input_text,

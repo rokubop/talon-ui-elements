@@ -58,29 +58,18 @@ button_action = {
     "Todo List": lambda: show_example(todo_list_ui),
 }
 
-def Test():
-    div, text, state = actions.user.ui_elements(["div", "text", "state"])
-    test = state.get("test", False)
-    return div(padding=16, position="relative")[
-        text("Examples", font_size=24, margin_top=8),
-        text("talon-ui-elements", font_size=14, color="FFCC00"),
-    ]
-
 def examples_ui():
     window, div, text, screen, button = actions.user.ui_elements(["window", "div", "text", "screen", "button"])
 
-    # return screen()[
     return screen(justify_content="center", align_items="center")[
-        window(title="Parrot tester")[
-        # div(draggable=True, background_color="272727", border_radius=16, border_width=1, width=200)[
-            # div(padding=16, position="relative")[
-            #     text("Examples", font_size=24, margin_top=8),
-            #     text("talon-ui-elements", font_size=14, color="FFCC00"),
-            # ],
-            Test,
+        window(min_width=200)[
+            div(padding=16)[
+                text("Examples", font_size=24),
+                text("talon-ui-elements", font_size=14, color="FFCC00"),
+            ],
             div()[
-                *[button(name, on_click=action, padding=16) for name, action in button_action.items()],
-                button("Exit", on_click=lambda: actions.user.ui_elements_hide_all(), color="de5474", font_weight="bold", padding=16, margin_bottom=16),
+                *[button(name, on_click=action, padding=16, border_radius=4) for name, action in button_action.items()],
+                button("Exit", on_click=actions.user.ui_elements_hide_all, color="de5474", font_weight="bold", padding=16, border_radius=4),
             ],
         ]
     ]

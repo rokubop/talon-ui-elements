@@ -144,7 +144,6 @@ class MetaStateType(ABC):
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _id_to_node: dict[str, 'NodeType']
     _staged_id_to_node: dict[str, 'NodeType']
-    state_to_component_names: dict[str, set[str]]
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     unhighlight_jobs: dict[str, callable]
 
@@ -153,7 +152,7 @@ class MetaStateType(ABC):
         pass
 
     @property
-    def components(self) -> dict[str, set[str]]:
+    def components(self) -> dict[str, 'ComponentType']:
         pass
 
     @property
@@ -217,7 +216,7 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
-    def add_component(self, name: str, component):
+    def add_component(self, component: 'ComponentType'):
         pass
 
     @abstractmethod
@@ -253,8 +252,21 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
-    def associate_state(self, key: str):
+    def associate_state(self, key: str, components: List['NodeComponentType']):
         pass
+
+    @abstractmethod
+    def associate_local_state(self, key: str, component: 'NodeComponentType'):
+        pass
+
+class ComponentType(ABC):
+    id: tuple[str, tuple[int]]
+    name: str
+    renderer: Callable
+    props: Optional[dict[str, Any]]
+    parent_node: Optional['NodeType']
+    children_nodes: List['NodeType']
+    states: set[str]
 
 class NodeRootStateStoreType(ABC):
     effects: List[Effect]
@@ -656,6 +668,7 @@ class TreeType(ABC):
     drag_handle_node: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
+    name: str
     processing_states: List[str]
     render_manager: RenderManagerType
     _tree_constructor: callable

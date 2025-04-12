@@ -4,7 +4,7 @@ from .store import store
 
 accent_color = "1bd0f5"
 
-def key_val_state(key, value, level=0):
+def key_val_state(key, value = "", level=0):
     div, text = actions.user.ui_elements(["div", "text"])
 
     if isinstance(value, dict):
@@ -27,37 +27,71 @@ def key_val_state(key, value, level=0):
             text(str(value), font_size=14)
         ]
 
-def dev_tools():
-    """
-    This function is a placeholder for development tools.
-    It currently does not perform any operations.
-    """
-    screen, div, text, icon = actions.user.ui_elements(["screen", "div", "text", "icon"])
+def components_breakdown():
+    results = []
 
-    # print("state", store.reactive_state)
+    for tree in store.trees:
+        if tree.name == "DevTools":
+            continue
+        results.append(key_val_state("Tree", tree.name))
+        for id, component in tree.meta_state.components.items():
+            results.append(key_val_state("Component", component.name, 1))
+            results.append(key_val_state("node_index_path", id[1], 2))
+            results.append(key_val_state("states", " ".join(component.states) if component.states else "None", 2))
 
-    # for key, s in store.reactive_state.items():
-    #     print(key, s.value)
+    return results
 
-    components = state_manager.get_components()
-    # print("components", components)
-    for name, c in components.items():
-        print(name, c[0].states)
+def Accordion(props):
+    div, text, icon, button, state = actions.user.ui_elements(["div", "text", "icon", "button", "state"])
+    expanded, set_expanded = state.use_local("expanded", True)
+
+    return div(font_family="consolas")[
+        button(on_click=lambda: set_expanded(not expanded), padding=8, flex_direction="row", align_items="center", gap=8)[
+            icon("chevron_down" if expanded else "chevron_right", size=16, color="FFFFFF"),
+            text(props["title"], color="FFFFFF"),
+        ],
+        expanded and div(margin_left=8, padding=8)[
+            props["content"] if props["content"] else text("None", font_size=14, color="666666"),
+        ]
+    ]
+
+def component_accordion():
+    div, component = actions.user.ui_elements(["div", "component"])
+
+    return component(Accordion, {
+        "title": "Components",
+        "content": div(flex_direction="column", gap=8)[
+            *components_breakdown(),
+        ]
+    })
+
+def state_accordion():
+    div, component = actions.user.ui_elements(["div", "component"])
+
+    if store.reactive_state:
+        reactive_states = {
+            key: state.value for key, state in store.reactive_state.items() if "DevTools" not in key
+        }
+        content = div(flex_direction="column", gap=8)[
+            *[key_val_state(key, val) for key, val in reactive_states.items()]
+        ]
+    else:
+        content = None
+
+    return component(Accordion, {
+        "title": "State",
+        "content": content
+    })
+
+def DevTools():
+    screen, window, div = actions.user.ui_elements(["screen", "window", "div"])
 
     return screen()[
-        div(draggable=True, background_color="333333", border_width=1, padding=16)[
-            text("Dev Tools", color="FFFFFF", margin_bottom=16),
-            div(flex_direction="row", align_items="center", gap=8, margin_bottom=8)[
-                icon("chevron_down", size=16, color="FFFFFF"),
-                text("Components", color="FFFFFF"),
-            ],
-            div(flex_direction="row", align_items="center", gap=8, margin_bottom=8)[
-                icon("chevron_down", size=16, color="FFFFFF"),
-                text("State", color="FFFFFF"),
-            ],
-            div(flex_direction="column", gap=8)[
-                *[key_val_state(k, s.value) for k, s in store.reactive_state.items()]
-            ],
-
+        # top left not working
+        window(title="Dev Tools", min_width=300, min_height=400, position="absolute", top=100, left=100)[
+            div(padding_bottom=8)[
+                component_accordion(),
+                state_accordion(),
+            ]
         ]
     ]

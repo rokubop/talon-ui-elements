@@ -342,13 +342,6 @@ class StateManager:
             node.tree.render_manager.render_ref_change()
 
     def use_state(self, key, initial_value):
-        # TODO: introspect caller to attach relationship
-        # try:
-        #     for frame in traceback.extract_stack()[-10:]:
-        #         print(f"{key} called by {frame.name}")
-        #         # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
-        # except Exception as e:
-        #     print(f"traceback failed: {e}")
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 
@@ -477,7 +470,7 @@ class StateManager:
     def get_components(self):
         components = {}
         for tree in store.trees:
-            components.update(tree.meta_state.components)
+            components[tree.guid] = tree.meta_state.components
         return components
 
     def clear_state(self):
