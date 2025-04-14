@@ -571,7 +571,15 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
+    def is_drag_start(self):
+        pass
+
+    @abstractmethod
     def is_dragging(self):
+        pass
+
+    @abstractmethod
+    def is_drag_end(self):
         pass
 
     @abstractmethod
@@ -618,6 +626,10 @@ class RenderManagerType(ABC):
 
     @abstractmethod
     def render_ref_change(self):
+        pass
+
+    @abstractmethod
+    def render_drag_start(self):
         pass
 
     @abstractmethod
@@ -674,6 +686,7 @@ class TreeType(ABC):
     _tree_constructor: callable
     requires_measure_redistribution: bool
     surfaces: List[object]
+    last_surface_snapshot: object
     hashed_tree_constructor: str
     unused_screens: List[int]
     root_node: 'NodeRootType'

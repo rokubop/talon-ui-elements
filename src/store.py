@@ -1,5 +1,5 @@
 from typing import Optional, TypedDict, Tuple
-from .interfaces import TreeType, NodeType, Effect, ReactiveStateType
+from .interfaces import TreeType, NodeType, Effect, ReactiveStateType, Point2d
 
 class MouseState(TypedDict):
     hovered_id: Optional[str]
@@ -27,6 +27,7 @@ class Store():
             "hovered_id": None,
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
+            "mousedown_start_offset": Point2d(0, 0),
             "is_drag_active": False,
             "drag_relative_offset": None,
         }
@@ -36,6 +37,7 @@ class Store():
             "hovered_id": None,
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
+            "mousedown_start_offset": Point2d(0, 0),
             "is_drag_active": False,
             "drag_relative_offset": None,
         }

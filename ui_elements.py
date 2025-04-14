@@ -111,6 +111,7 @@ class Actions:
         })
         ```
         """
+        print(f"actions.user.ui_elements_set_state({name}, {value})")
         if isinstance(name, dict):
             for key, val in name.items():
                 state_manager.set_state_value(key, val)

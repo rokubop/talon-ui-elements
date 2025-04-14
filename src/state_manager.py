@@ -171,6 +171,9 @@ class StateManager:
     def get_mousedown_start_pos(self):
         return store.mouse_state['mousedown_start_pos']
 
+    def get_mousedown_start_offset(self):
+        return store.mouse_state['mousedown_start_offset']
+
     def is_drag_active(self):
         return store.mouse_state['is_drag_active']
 
@@ -179,6 +182,9 @@ class StateManager:
 
     def set_mousedown_start_pos(self, gpos):
         store.mouse_state['mousedown_start_pos'] = gpos
+
+    def set_mousedown_start_offset(self, offset):
+        store.mouse_state['mousedown_start_offset'] = offset
 
     def set_drag_relative_offset(self, offset):
         store.mouse_state['drag_relative_offset'] = offset

@@ -1,6 +1,6 @@
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas, MouseEvent
-from talon.skia import RoundRect
+from talon.skia import RoundRect, Surface
 from talon.types import Rect, Point2d
 from talon import cron, settings
 from typing import Any, Callable
@@ -325,7 +325,7 @@ class Tree(TreeType):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
-        self.current_canvas = None
+        self.current_base_canvas = None
         self.cursor = None
         self.cursor_v2 = None
         self.effects = []
@@ -341,6 +341,8 @@ class Tree(TreeType):
         self.is_blockable_canvas_init = False
         self.is_mounted = False
         self.last_blockable_rects = []
+        self.last_base_snapshot = None
+        self.last_decorator_snapshot = None
         self.lock = threading.Lock()
         self.meta_state = MetaState()
         self.name = tree_constructor.__name__
@@ -411,7 +413,7 @@ class Tree(TreeType):
             node: NodeType = node()
             if node and node.tree == self:
                 relative_positional_node: NodeType = node.relative_positional_node()
-                node.v2_measure_intrinsic_size(self.current_canvas)
+                node.v2_measure_intrinsic_size(self.current_base_canvas)
                 node.v2_grow_size()
                 node.v2_constrain_size()
                 cursor = CursorV2(Point2d(
@@ -420,7 +422,7 @@ class Tree(TreeType):
                 ))
                 node.v2_layout(cursor)
 
-    def build_render_layers(self):
+    def build_base_render_layers(self):
         self.render_list.clear()
         self.render_layers.clear()
         self.root_node.v2_build_render_list()
@@ -439,63 +441,114 @@ class Tree(TreeType):
         ]
         self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
-    def commit(self):
+    def move_snapshot(self, snapshot: Any, canvas: SkiaCanvas):
+        if snapshot:
+            offset = self.render_manager.current_render_task.metadata.get("offset", None)
+            canvas.draw_image(
+                snapshot,
+                canvas.x + offset.x,
+                canvas.y + offset.y
+            )
+
+    def commit_base_canvas(self):
+        surface = Surface(self.current_base_canvas.width, self.current_base_canvas.height)
+        canvas = surface.canvas()
+        canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
+
         for layer in self.render_layers:
             # Direct canvas approach:
-            # layer.draw_to_canvas(self.current_canvas)
+            # layer.draw_to_canvas(self.current_base_canvas)
 
             # Snapshot approach:
-            snapshot = layer.render_to_surface(
-                self.current_canvas.width,
-                self.current_canvas.height,
-                self.current_canvas.x,
-                self.current_canvas.y
-            )
-            self.current_canvas.draw_image(
-                snapshot,
-                self.current_canvas.x,
-                self.current_canvas.y
-                # self.root_node.boundary_rect.x,
-                # self.root_node.boundary_rect.y
-            )
+            layer.draw_to_canvas(canvas)
+            # snapshot = layer.render_to_surface(
+            #     self.current_base_canvas.width,
+            #     self.current_base_canvas.height,
+            #     self.current_base_canvas.x,
+            #     self.current_base_canvas.y
+            # )
+        self.last_base_snapshot = surface.snapshot()
+
+        self.current_base_canvas.draw_image(
+            self.last_base_snapshot,
+            self.current_base_canvas.x,
+            self.current_base_canvas.y
+            # self.root_node.boundary_rect.x,
+            # self.root_node.boundary_rect.y
+        )
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
-            # t0 = time.time()
+            draw_canvas = canvas
+            surface = None
+            if self.render_manager.is_dragging():
+                # print(" on_draw_decoratoris_dragging")
+                return
+            if self.render_manager.is_drag_start():
+                # print(" on_draw_decoratoris_drag_start")
+                surface, draw_canvas = self.create_surface()
+                # print(" on_draw_decoratorsurface", surface)
+
             state_manager.set_processing_tree(self)
-            self.draw_highlights(canvas)
-            # t1 = time.time()
-            self.draw_text_mutations(canvas)
-            # t2 = time.time()
-            self.draw_focus_outline(canvas)
-            # t3 = time.time()
-            if self.show_hints:
-                self.draw_hints(canvas)
-            # t4 = time.time()
+            self.draw_highlights(draw_canvas)
+            self.draw_text_mutations(draw_canvas)
+            if self.interactive_node_list or self.draggable_node:
+                self.draw_focus_outline(draw_canvas)
+                if self.show_hints:
+                    self.draw_hints(draw_canvas)
+
+            # print(" on_draw_decoratorfound a surface", surface)
+            if surface:
+                self.last_decorator_snapshot = surface.snapshot()
+
             self.init_key_controls()
-            # t5 = time.time()
             self.draw_blockable_canvases()
-            # t6 = time.time()
             self.on_fully_rendered()
-            # t7 = time.time()
             state_manager.set_processing_tree(None)
-            # print(f"decorator: {t1-t0:.3f} {t2-t1:.3f} {t3-t2:.3f} {t4-t3:.3f} {t5-t4:.3f} {t6-t5:.3f} {t7-t6:.3f}")
             self.render_manager.finish_current_render()
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
             # t0 = time.time()
-            self.current_canvas = canvas
+            self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
 
             if self.render_manager.is_dragging():
+            #     print("is_drag_start")
+            #     # self.move_snapshot()
+            #     self.root_node.v2_reposition()
+            #     self.build_base_render_layers()
+            #     self.commit_base_canvas()
+            # elif self.render_manager.is_dragging():
+                # print("is_dragging")
+                self.move_snapshot(self.last_base_snapshot, canvas)
+                # print("moving base snapshot")
+                # if self.last_decorator_snapshot and \
+                #         (self.render_manager.is_drag_start() or \
+                #         self.render_manager.is_dragging() or \
+                #         self.render_manager.is_drag_end()):
+                if self.last_decorator_snapshot:
+                    # print("moving decorator snapshot")
+                    self.move_snapshot(self.last_decorator_snapshot, canvas)
+                self.show_inputs()
+                self.init_key_controls()
+                self.draw_blockable_canvases()
+                self.on_fully_rendered()
+                state_manager.set_processing_tree(None)
+                self.render_manager.finish_current_render()
+                return
+                # self.root_node.v2_reposition()
+                # self.build_base_render_layers()
+                # self.commit_base_canvas()
+            elif self.render_manager.is_drag_end():
+                # print("is_drag_end")
                 # t1 = time.time()
                 self.root_node.v2_reposition()
                 # t2 = time.time()
                 # self.root_node.v2_render(canvas)
-                self.build_render_layers()
+                self.build_base_render_layers()
                 # t3 = time.time()
-                self.commit()
+                self.commit_base_canvas()
                 # t4 = time.time()
                 # print(f"drag base: {t1-t0:.3f} {t2-t1:.3f} {t3-t2:.3f} {t4-t3:.3f}")
             elif self.render_manager.is_scrolling():
@@ -506,9 +559,9 @@ class Tree(TreeType):
                 self.nonlayout_flow()
                 # t3 = time.time()
                 # self.root_node.v2_render(canvas)
-                self.build_render_layers()
+                self.build_base_render_layers()
                 # t4 = time.time()
-                self.commit()
+                self.commit_base_canvas()
                 # t5 = time.time()
                 # print(f"scroll base: {t1-t0:.3f} {t2-t1:.3f} {t3-t2:.3f} {t4-t3:.3f} {t5-t4:.3f}")
             else:
@@ -529,9 +582,9 @@ class Tree(TreeType):
                 # t7 = time.time()
                 self.nonlayout_flow()
                 # t8 = time.time()
-                self.build_render_layers()
+                self.build_base_render_layers()
                 # t9 = time.time()
-                self.commit()
+                self.commit_base_canvas()
                 # t10 = time.time()
                 # self.root_node.v2_render(canvas)
                 # print(f"default base: {t1-t0:.3f} {t2-t1:.3f} {t3-t2:.3f} {t4-t3:.3f} {t5-t4:.3f} {t6-t5:.3f} {t7-t6:.3f} {t8-t7:.3f} {t9-t8:.3f} {t10-t9:.3f}")
@@ -561,6 +614,12 @@ class Tree(TreeType):
                 node = self.meta_state.id_to_node[id]
                 x, y = node.cursor_pre_draw_text
                 draw_text_simple(canvas, text_value, node.properties, x, y)
+
+    def create_surface(self):
+        surface = Surface(self.current_base_canvas.width, self.current_base_canvas.height)
+        canvas = surface.canvas()
+        canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
+        return surface, canvas
 
     def draw_hints(self, canvas: SkiaCanvas):
         if self.meta_state.inputs or self.meta_state.buttons:
@@ -805,25 +864,26 @@ class Tree(TreeType):
 
     def on_hover(self, gpos):
         try:
-            new_hovered_id = None
-            prev_hovered_id = state_manager.get_hovered_id()
-            for button_id in list(self.meta_state.buttons):
-                node = self.meta_state.id_to_node.get(button_id, None)
-                if node:
-                    if node.is_fully_clipped_by_scroll():
-                        continue
-                    # if node and node.box_model.padding_rect.contains(gpos):
-                    if node and node.box_model and node.box_model.padding_rect.contains(gpos):
-                        new_hovered_id = button_id
-                        if new_hovered_id != prev_hovered_id:
-                            state_manager.set_hovered_id(button_id)
-                            self.unhighlight(prev_hovered_id)
-                            self.highlight(button_id, color=node.properties.highlight_color)
-                        break
+            if not state_manager.is_drag_active():
+                new_hovered_id = None
+                prev_hovered_id = state_manager.get_hovered_id()
+                for button_id in list(self.meta_state.buttons):
+                    node = self.meta_state.id_to_node.get(button_id, None)
+                    if node:
+                        if node.is_fully_clipped_by_scroll():
+                            continue
+                        # if node and node.box_model.padding_rect.contains(gpos):
+                        if node and node.box_model and node.box_model.padding_rect.contains(gpos):
+                            new_hovered_id = button_id
+                            if new_hovered_id != prev_hovered_id:
+                                state_manager.set_hovered_id(button_id)
+                                self.unhighlight(prev_hovered_id)
+                                self.highlight(button_id, color=node.properties.highlight_color)
+                            break
 
-            if not new_hovered_id and prev_hovered_id:
-                self.unhighlight(prev_hovered_id)
-                state_manager.set_hovered_id(None)
+                if not new_hovered_id and prev_hovered_id:
+                    self.unhighlight(prev_hovered_id)
+                    state_manager.set_hovered_id(None)
         except Exception as e:
             print(f"talon_ui_elements on_hover error: {e}")
 
@@ -835,23 +895,33 @@ class Tree(TreeType):
 
     def on_mousemove(self, gpos):
         drag_relative_offset = state_manager.get_drag_relative_offset()
+        start_pos = state_manager.get_mousedown_start_pos()
+        if start_pos:
+            state_manager.set_mousedown_start_offset(gpos - start_pos)
+
         if drag_relative_offset:
+            is_drag_start = False
             if not state_manager.is_drag_active():
-                drag_start_pos = state_manager.get_mousedown_start_pos()
-                if abs(gpos.x - drag_start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - drag_start_pos.y) > DRAG_INIT_THRESHOLD:
+                if abs(gpos.x - start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - start_pos.y) > DRAG_INIT_THRESHOLD:
                     state_manager.set_drag_active(True)
+                    is_drag_start = True
 
             if state_manager.is_drag_active():
                 x = gpos.x - drag_relative_offset.x
                 y = gpos.y - drag_relative_offset.y
                 self.draggable_node_delta_pos = Point2d(x, y)
 
-        if state_manager.get_mousedown_start_pos():
+            if is_drag_start:
+                self.render_manager.render_drag_start(state_manager.get_mousedown_start_offset())
+                return
+
+        if state_manager.get_mousedown_start_pos() and state_manager.is_drag_active():
         # if state_manager.is_drag_active():
-            self.render_manager.render_dragging()
+            self.render_manager.render_dragging(state_manager.get_mousedown_start_offset())
 
     def on_mousedown(self, gpos):
         hovered_id = state_manager.get_hovered_id()
+        state_manager.set_mousedown_start_pos(gpos)
 
         if self.draggable_node and self.drag_handle_node:
             # draggable_rect = self.draggable_node.box_model.margin_rect
@@ -859,7 +929,6 @@ class Tree(TreeType):
             draggable_top_left_pos = self.draggable_node.box_model.margin_pos
             drag_handle_rect = self.drag_handle_node.box_model.border_rect
             if drag_handle_rect.contains(gpos):
-                state_manager.set_mousedown_start_pos(gpos)
                 relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
                 state_manager.set_drag_relative_offset(relative_offset)
 
@@ -908,7 +977,6 @@ class Tree(TreeType):
 
             if self.draggable_node and self.drag_handle_node:
                 state_manager.set_drag_relative_offset(None)
-                state_manager.set_mousedown_start_pos(None)
 
                 if state_manager.is_drag_active():
                     # move delay to render manager with proper queue
@@ -916,6 +984,8 @@ class Tree(TreeType):
                     # cron.after("17ms", self.render_manager.render_drag_end)
 
                 state_manager.set_drag_active(False)
+
+            state_manager.set_mousedown_start_pos(None)
         except Exception as e:
             print(f"talon_ui_elements on_mouseup error: {e}")
 
@@ -1012,7 +1082,7 @@ class Tree(TreeType):
         self.destroy_blockable_canvas()
 
         self._tree_constructor = None
-        self.current_canvas = None
+        self.current_base_canvas = None
         self.render_manager.destroy()
         self.meta_state.clear()
         self.effects.clear()
@@ -1033,6 +1103,8 @@ class Tree(TreeType):
         # self.surfaces.clear()
         hint_clear_state()
         self.render_cause.clear()
+        self.last_base_snapshot = None
+        self.last_decorator_snapshot = None
         state_manager.clear_state()
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
@@ -1218,7 +1290,7 @@ class Tree(TreeType):
 
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
-            or self.render_cause.is_dragging() \
+            or self.render_manager.render_cause == RenderCause.DRAGGING \
             or self.render_manager.render_cause == RenderCause.DRAG_END
 
     def calculate_blockable_rects(self):
@@ -1272,7 +1344,8 @@ class Tree(TreeType):
         # print(f"blockable_1: {t0-t1:.3f} {t1-t2:.3f}")
 
         if is_rerender:
-            if self.render_cause.is_dragging():
+            if self.render_manager.render_cause == RenderCause.DRAGGING \
+                    or self.render_manager.render_cause == RenderCause.DRAG_END:
                 self.move_blockable_canvas_rects(blockable_rects)
                 # t3 = time.time()
                 # print(f"blockable_2: {t3-t2:.3f}")

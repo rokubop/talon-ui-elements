@@ -4,12 +4,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from talon import cron
 from typing import Any
-from .interfaces import TreeType, RenderTaskType, RenderManagerType
+from .interfaces import TreeType, RenderTaskType, RenderManagerType, Point2d
 
 class RenderCause(Enum):
     SCROLLING = "SCROLLING"
     STATE_CHANGE = "STATE_CHANGE"
     REF_CHANGE = "REF_CHANGE"
+    DRAG_START = "DRAG_START"
     DRAG_END = "DRAG_END"
     DRAGGING = "DRAGGING"
     TEXT_MUTATION = "TEXT_MUTATION"
@@ -17,12 +18,19 @@ class RenderCause(Enum):
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
 
+# @dataclass
+# class Dirty():
+#     layout = False
+#     position = False
+
 @dataclass
 class RenderTask(RenderTaskType):
     cause: RenderCause
     on_start: callable
     on_end: callable = None
     args: list[object] = field(default_factory=list)
+    # dirty: Dirty = field(default_factory=Dirty)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 def on_base_canvas_change(tree: TreeType):
     tree.render_base_canvas()
@@ -43,13 +51,13 @@ RenderTaskRefChange = RenderTask(
     on_full_render,
 )
 
-RenderTaskDragging = RenderTask(
-    RenderCause.DRAGGING,
+RenderTaskScrolling = RenderTask(
+    RenderCause.SCROLLING,
     on_base_canvas_change,
 )
 
-RenderTaskScrolling = RenderTask(
-    RenderCause.SCROLLING,
+RenderTaskDragStart = RenderTask(
+    RenderCause.DRAG_START,
     on_base_canvas_change,
 )
 
@@ -94,8 +102,15 @@ class RenderManager(RenderManagerType):
 
     def is_dragging(self):
         return self.current_render_task and \
-            (self.current_render_task.cause == RenderCause.DRAGGING or \
-            self.current_render_task.cause == RenderCause.DRAG_END)
+            self.current_render_task.cause == RenderCause.DRAGGING
+
+    def is_drag_end(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.DRAG_END
+
+    def is_drag_start(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.DRAG_START
 
     def is_scrolling(self):
         return self.current_render_task and \
@@ -166,11 +181,37 @@ class RenderManager(RenderManagerType):
     def render_ref_change(self):
         self._queue_render_after_debounce("1ms", RenderTaskRefChange)
 
+    def render_drag_start(self, offset: Point2d):
+        render_task = RenderTask(
+            cause=RenderCause.DRAG_START,
+            on_start=on_base_canvas_change,
+            metadata = {
+                "offset": offset,
+            }
+        )
+        self.queue_render(render_task)
+        # self.render_dragging(offset)
+        # task = RenderTask(
+        #     cause=RenderCause.DRAGGING,
+        #     on_start=on_base_canvas_change,
+        #     props = {
+        #         "offset": offset,
+        #     }
+        # )
+        # self.queue_render(task)
+
     def render_drag_end(self):
         self.queue_render(RenderTaskDragEnd)
 
-    def render_dragging(self):
-        self._render_throttle("16ms", RenderTaskDragging)
+    def render_dragging(self, offset: Point2d):
+        render_task = RenderTask(
+            cause=RenderCause.DRAGGING,
+            on_start=on_base_canvas_change,
+            metadata = {
+                "offset": offset,
+            }
+        )
+        self._render_throttle("10ms", render_task)
 
     def render_scroll(self):
         self._render_throttle("16ms", RenderTaskScrolling)
