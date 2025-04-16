@@ -2,7 +2,7 @@ from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
 from talon.skia.typeface import Typeface
 from typing import Union
-from .interfaces import NodeType, TreeType
+from .interfaces import NodeType, TreeType, Point2d
 from .store import store
 from .utils import generate_hash
 
@@ -78,8 +78,14 @@ class EntityManager:
     def update_input_rect(self, id, rect, top_offset=0):
         input_data = self.get_input_data(id)
         if input_data:
+            input_data.rect = rect # this can be the reference when using offset for moving
             input_data.input.rect = rect
             input_data.input.scroll = top_offset
+
+    # def move_input(self, id, offset: Point2d):
+    #     input_data = self.get_input_data(id)
+    #     if input_data:
+    #         input_data.input.rect = input_data.input.rect.move(offset.x, offset.y)
 
     def does_tree_exist(self, tree_constructor: callable) -> bool:
         """Check if a tree exists based on the tree_constructor"""

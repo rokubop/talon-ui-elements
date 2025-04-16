@@ -133,6 +133,7 @@ class MetaStateInput:
     previous_value: str
     input: TextArea
     on_change: Callable[[str], None]
+    rect: Rect = None
 
 class MetaStateType(ABC):
     _inputs: dict[str, MetaStateInput]

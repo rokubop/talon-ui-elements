@@ -443,7 +443,8 @@ class Tree(TreeType):
 
     def move_snapshot(self, snapshot: Any, canvas: SkiaCanvas):
         if snapshot:
-            offset = self.render_manager.current_render_task.metadata.get("mouse_start_offset", None)
+            offset = state_manager.get_mousedown_start_offset()
+            # offset = self.render_manager.current_render_task.metadata.get("mouse_start_offset", None)
             canvas.draw_image(
                 snapshot,
                 canvas.x + offset.x,
@@ -548,8 +549,9 @@ class Tree(TreeType):
             # t0 = time.time()
             self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
+            dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
 
-            if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
+            if dragging:
             #     print("is_drag_start")
             #     # self.move_snapshot()
             #     self.root_node.v2_reposition()
@@ -558,6 +560,7 @@ class Tree(TreeType):
             # elif self.render_manager.is_dragging():
                 # print("is_dragging")
                 self.move_snapshot(self.last_base_snapshot, canvas)
+                self.move_inputs()
                 # print("moving base snapshot")
                 # if self.last_decorator_snapshot and \
                 #         (self.render_manager.is_drag_start() or \
@@ -625,7 +628,8 @@ class Tree(TreeType):
                 # self.root_node.v2_render(canvas)
                 # print(f"default base: {t1-t0:.3f} {t2-t1:.3f} {t3-t2:.3f} {t4-t3:.3f} {t5-t4:.3f} {t6-t5:.3f} {t7-t6:.3f} {t8-t7:.3f} {t9-t8:.3f} {t10-t9:.3f}")
 
-            self.show_inputs()
+            if not dragging:
+                self.show_inputs()
             self.render_decorator_canvas()
             state_manager.set_processing_tree(None)
 
@@ -704,6 +708,17 @@ class Tree(TreeType):
         self.highlight(id, color)
         pending_unhighlight = lambda: self.unhighlight(id)
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
+
+    def move_inputs(self):
+        offset = state_manager.get_mousedown_start_offset()
+        for id, input_data in list(self.meta_state.inputs.items()):
+            if input_data.input:
+                input_data.input.rect = Rect(
+                    input_data.rect.x + offset.x,
+                    input_data.rect.y + offset.y,
+                    input_data.rect.width,
+                    input_data.rect.height
+                )
 
     def show_inputs(self):
         if self.meta_state.inputs and not self.is_mounted:
