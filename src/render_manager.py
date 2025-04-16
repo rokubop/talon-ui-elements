@@ -181,12 +181,13 @@ class RenderManager(RenderManagerType):
     def render_ref_change(self):
         self._queue_render_after_debounce("1ms", RenderTaskRefChange)
 
-    def render_drag_start(self, offset: Point2d):
+    def render_drag_start(self, mouse_pos: Point2d, mouse_start_offset: Point2d):
         render_task = RenderTask(
             cause=RenderCause.DRAG_START,
             on_start=on_base_canvas_change,
             metadata = {
-                "offset": offset,
+                "mouse_start_offset": mouse_start_offset,
+                "mouse_pos": mouse_pos,
             }
         )
         self.queue_render(render_task)
@@ -200,15 +201,24 @@ class RenderManager(RenderManagerType):
         # )
         # self.queue_render(task)
 
-    def render_drag_end(self):
-        self.queue_render(RenderTaskDragEnd)
+    def render_drag_end(self, mouse_pos: Point2d, mouse_start_offset: Point2d):
+        render_task = RenderTask(
+            cause=RenderCause.DRAG_END,
+            on_start=on_base_canvas_change,
+            metadata = {
+                "mouse_start_offset": mouse_start_offset,
+                "mouse_pos": mouse_pos,
+            }
+        )
+        self.queue_render(render_task)
 
-    def render_dragging(self, offset: Point2d):
+    def render_dragging(self, mouse_pos: Point2d, mouse_start_offset: Point2d):
         render_task = RenderTask(
             cause=RenderCause.DRAGGING,
             on_start=on_base_canvas_change,
             metadata = {
-                "offset": offset,
+                "mouse_start_offset": mouse_start_offset,
+                "mouse_pos": mouse_pos,
             }
         )
         self._render_throttle("10ms", render_task)
