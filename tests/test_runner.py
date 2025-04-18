@@ -26,9 +26,7 @@ def play_button():
     play_bg_color = "161616"
 
     def on_play():
-        # set_play(True)
         run_tests()
-        # set_play(False)
 
     if play:
         return button(button_style)[
@@ -46,7 +44,7 @@ def runner_ui():
 
     # TODO: top and left not working
     return screen()[
-        window(title="ui elements tests", min_width=400, min_height=300, margin_left=100, margin_top=100)[
+        window(title="ui_elements test runner", min_width=400, min_height=300, margin_left=100, margin_top=100)[
         # window(title="ui elements tests", min_width=400, min_height=300, top=100, left=100, position="absolute")[
             play_button(),
             div(margin=16, padding=8, gap=8, background_color="111111", border_radius=4, min_height=250)[
@@ -58,5 +56,5 @@ def runner_ui():
 @mod.action_class
 class Actions:
     def ui_elements_test_runner():
-        """Run the UI tests."""
+        """Run the test runner UI"""
         actions.user.ui_elements_toggle(runner_ui)

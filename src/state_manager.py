@@ -265,7 +265,7 @@ class StateManager:
         return {key: store.reactive_state[key].value for key in store.reactive_state.keys()}
 
     def set_state_value(self, key, new_value):
-        print(f"Setting state for key: {key} with new value: {new_value}")
+        # print(f"Setting state for key: {key} with new value: {new_value}")
         if key in store.reactive_state:
             if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
                 return

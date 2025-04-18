@@ -1,6 +1,6 @@
 from talon import actions
 
-test_cases = []
+test_module_runners = {}
 success = 0
 failure = 0
 total = 0
@@ -14,15 +14,20 @@ def run_tests():
     failure = 0
     total = 0
     actions.user.ui_elements_set_state("log", [])
-    for test in test_cases:
-        test()
+    for runner in test_module_runners.values():
+        runner()
     log(f"Tests complete: {success} passed, {failure} failed")
 
-def test_module(fn):
-    def wrapper():
-        log(f"Test: {fn.__name__}", color=test_title_color)
-        fn()
-    test_cases.append(wrapper)
+def test_module(cls):
+    def runner():
+        instance = cls()
+        if hasattr(instance, "run"):
+            log(f"Running {cls.__name__}", color=test_title_color)
+            instance.run()
+        return instance
+
+    test_module_runners[cls.__name__] = runner
+    return cls
 
 def test(test_name, expect, actual):
     global success, failure, total
