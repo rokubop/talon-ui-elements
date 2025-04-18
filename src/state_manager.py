@@ -41,10 +41,12 @@ class StateCoordinator:
     def flush_state(self):
         # print("flush_state")
         for key in self.current_state_keys:
+            # print(f"flush_state: {key}")
             store.reactive_state[key].activate_next_state_value()
 
     def on_tree_render_start(self):
         def on_start(tree: TreeType, *args):
+            # When I enabled this and saved, state suddenly worked
             # print("on_start")
             if not self.locked:
                 self.locked = True
@@ -131,17 +133,15 @@ class ReactiveState(ReactiveStateType):
             self._value = value
 
     def set_value(self, value_or_callable):
+        # print(f"Setting value: {value_or_callable}")
         self.next_state_queue.append(value_or_callable)
 
     def activate_next_state_value(self):
-        next_state = self._value
-
+        # print("activate_next_state_value", len(self.next_state_queue), self.next_state_queue)
         for new_state in self.next_state_queue:
-            next_state = self.resolve_value(new_state)
+            self._value = self.resolve_value(new_state)
 
         self.next_state_queue.clear()
-
-        self._value = next_state
 
 class DeprecatedLifecycleEvent:
     def __init__(self, event_type: str, tree: TreeType):
@@ -265,6 +265,7 @@ class StateManager:
         return {key: store.reactive_state[key].value for key in store.reactive_state.keys()}
 
     def set_state_value(self, key, new_value):
+        print(f"Setting state for key: {key} with new value: {new_value}")
         if key in store.reactive_state:
             if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
                 return

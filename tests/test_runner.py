@@ -1,0 +1,62 @@
+from talon import actions, Module
+from .test_helpers import run_tests
+
+mod = Module()
+
+button_style = {
+    "padding": 8,
+    "padding_left": 12,
+    "padding_right": 12,
+    "flex_direction": "row",
+    "font_size": 14,
+    "border_width": 1,
+    "border_color": "111111",
+    "background_color": "333333",
+    "border_radius": 8,
+    "align_items": "center",
+    "justify_content": "center",
+    "gap": 8,
+    "margin": 16,
+    "margin_bottom": 0,
+}
+
+def play_button():
+    div, text, icon, button, state = actions.user.ui_elements(["div", "text", "icon", "button", "state"])
+    play, set_play = state.use("play", False)
+    play_bg_color = "161616"
+
+    def on_play():
+        # set_play(True)
+        run_tests()
+        # set_play(False)
+
+    if play:
+        return button(button_style)[
+            text("Running..."),
+        ]
+    else:
+        return button(button_style, on_click=on_play, autofocus=True)[
+            icon("play", fill=play_bg_color, size=14, stroke_width=6),
+            text("Run tests"),
+        ]
+
+def runner_ui():
+    screen, window, div, text, state = actions.user.ui_elements(["screen", "window", "div", "text", "state"])
+    log = state.get("log", [])
+
+    # TODO: top and left not working
+    return screen()[
+        window(title="ui elements tests", min_width=400, min_height=300, margin_left=100, margin_top=100)[
+        # window(title="ui elements tests", min_width=400, min_height=300, top=100, left=100, position="absolute")[
+            play_button(),
+            div(margin=16, padding=8, gap=8, background_color="111111", border_radius=4, min_height=250)[
+                *log,
+            ]
+        ]
+    ]
+
+@mod.action_class
+class Actions:
+    def ui_elements_test_runner():
+        """Run the UI tests."""
+        actions.user.ui_elements_toggle(runner_ui)

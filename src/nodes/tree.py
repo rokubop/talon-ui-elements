@@ -443,8 +443,9 @@ class Tree(TreeType):
 
     def move_snapshot(self, snapshot: Any, canvas: SkiaCanvas):
         if snapshot:
-            offset = state_manager.get_mousedown_start_offset()
-            # offset = self.render_manager.current_render_task.metadata.get("mouse_start_offset", None)
+            offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
+            # offset = state_manager.get_mousedown_start_offset()
+            # offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
             canvas.draw_image(
                 snapshot,
                 canvas.x + offset.x,
@@ -482,7 +483,7 @@ class Tree(TreeType):
         if not self.render_manager.is_destroying:
             draw_canvas = canvas
             surface = None
-            offset = state_manager.get_mousedown_start_offset() \
+            offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None) \
                 if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
                 else Point2d(0, 0)
             # if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
@@ -512,10 +513,12 @@ class Tree(TreeType):
                     # print("moving decorator snapshot")
                         self.move_snapshot(self.last_decorator_snapshot, canvas)
                     elif self.render_manager.render_cause == RenderCause.STATE_CHANGE or \
-                            self.render_manager.render_cause == RenderCause.DRAG_END:
+                            self.render_manager.render_cause == RenderCause.DRAG_END or \
+                            self.render_manager.render_cause == RenderCause.SCROLLING:
                         surface, draw_canvas = self.create_surface()
                         self.draw_hints(draw_canvas)
                         self.last_decorator_snapshot = surface.snapshot()
+                        canvas.paint.color = "FFFFFF"
                         canvas.draw_image(
                             self.last_decorator_snapshot,
                             canvas.x,
@@ -547,6 +550,7 @@ class Tree(TreeType):
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
             # t0 = time.time()
+            print(f"Render cause: {self.render_manager.render_cause}")
             self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
             dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
@@ -710,7 +714,7 @@ class Tree(TreeType):
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
 
     def move_inputs(self):
-        offset = state_manager.get_mousedown_start_offset()
+        offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
         for id, input_data in list(self.meta_state.inputs.items()):
             if input_data.input:
                 input_data.input.rect = Rect(
@@ -969,14 +973,22 @@ class Tree(TreeType):
             #     self.draggable_node_delta_pos = Point2d(x, y)
 
             if is_drag_start:
-                self.render_manager.render_drag_start(gpos, state_manager.get_mousedown_start_offset())
+                self.render_manager.render_drag_start(
+                    mouse_pos=gpos,
+                    mousedown_start_pos=state_manager.get_mousedown_start_pos(),
+                    mousedown_start_offset=state_manager.get_mousedown_start_offset()
+                )
                 # print(f"expect mousemove drag_start gpos to be 934 330: {gpos}")
                 # print(f"expect mousemove drag start relative_offset to be 79 62: {drag_relative_offset}")
                 return
 
         if state_manager.get_mousedown_start_pos() and state_manager.is_drag_active():
         # if state_manager.is_drag_active():
-            self.render_manager.render_dragging(gpos, state_manager.get_mousedown_start_offset())
+            self.render_manager.render_dragging(
+                mouse_pos=gpos,
+                mousedown_start_pos=state_manager.get_mousedown_start_pos(),
+                mousedown_start_offset=state_manager.get_mousedown_start_offset()
+            )
             # print(f"expect mousemove drag gpos to be ~933 330: {gpos}")
             # print(f"expect mousemove get_mousedown_start_offset to be 79 62: {state_manager.get_mousedown_start_offset()}")
 
@@ -1045,12 +1057,17 @@ class Tree(TreeType):
 
                 if state_manager.is_drag_active():
                     # move delay to render manager with proper queue
-                    self.render_manager.render_drag_end(gpos, state_manager.get_mousedown_start_offset())
+                    self.render_manager.render_drag_end(
+                        mouse_pos=gpos,
+                        mousedown_start_pos=state_manager.get_mousedown_start_pos(),
+                        mousedown_start_offset=state_manager.get_mousedown_start_offset()
+                    )
                     # cron.after("17ms", self.render_manager.render_drag_end)
 
                 state_manager.set_drag_active(False)
 
             state_manager.set_mousedown_start_pos(None)
+            # state_manager.set_mousedown_start_offset(Noine)
         except Exception as e:
             print(f"talon_ui_elements on_mouseup error: {e}")
 
@@ -1350,7 +1367,7 @@ class Tree(TreeType):
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
                 # self.canvas_blockable[i].resume()
-                offset = state_manager.get_mousedown_start_offset()
+                offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
                 x = rect.x + offset.x
                 y = rect.y + offset.y
                 self.canvas_blockable[i].move(x, y)
@@ -1428,7 +1445,7 @@ class Tree(TreeType):
 
         if self.render_manager.render_cause == RenderCause.DRAGGING \
                 or self.render_manager.render_cause == RenderCause.DRAG_START:
-            offset = state_manager.get_mousedown_start_offset()
+            offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
             self.move_blockable_canvas_rects(blockable_rects, offset)
             return
         elif self.render_manager.render_cause == RenderCause.DRAG_END:

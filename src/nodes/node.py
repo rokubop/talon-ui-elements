@@ -241,7 +241,7 @@ class Node(NodeType):
         if self.tree.render_manager.is_drag_end() and self.properties.draggable:
             # top_left_offset = state_manager.get_drag_relative_offset()
             # start_mouse_pos = state_manager.get_mousedown_start_pos()
-            offset = self.tree.render_manager.current_render_task.metadata.get("mouse_start_offset", None)
+            offset = self.tree.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
             print('offset', offset)
             # print(f"v2_reposition top_left_offset: {top_left_offset}")
             # print(f"v2_reposition start_mouse_pos: {start_mouse_pos}")

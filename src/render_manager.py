@@ -18,19 +18,37 @@ class RenderCause(Enum):
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
 
-# @dataclass
-# class Dirty():
-#     layout = False
-#     position = False
+class Policy(Enum):
+    TAKE_LATEST = "take_latest"
+    TAKE_FIRST = "take_first"
+    TAKE_ALL = "take_all"
+    THROTTLE = "throttle"
+    DEBOUNCE = "debounce"
 
-@dataclass
 class RenderTask(RenderTaskType):
-    cause: RenderCause
-    on_start: callable
-    on_end: callable = None
-    args: list[object] = field(default_factory=list)
-    # dirty: Dirty = field(default_factory=Dirty)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    def __init__(
+        self,
+        cause: RenderCause,
+        on_start: callable,
+        on_end: callable = None,
+        args: list[object] = None,
+        metadata: dict[str, Any] = None,
+        group: str = None,
+        policy: Policy = Policy.TAKE_LATEST,
+    ):
+        self.running = False
+        self.cause = cause
+        self.on_start = on_start
+        self.on_end = on_end
+        self.args = args if args is not None else []
+        self.group = group if group is not None else cause
+        self.policy = policy
+        self.metadata = metadata if metadata is not None else {}
+
+    def start(self):
+        self.running = True
+        if self.on_start:
+            self.on_start(*self.args)
 
 def on_base_canvas_change(tree: TreeType):
     tree.render_base_canvas()
@@ -181,13 +199,19 @@ class RenderManager(RenderManagerType):
     def render_ref_change(self):
         self._queue_render_after_debounce("1ms", RenderTaskRefChange)
 
-    def render_drag_start(self, mouse_pos: Point2d, mouse_start_offset: Point2d):
+    def render_drag_start(
+        self,
+        mouse_pos: Point2d,
+        mousedown_start_pos: Point2d,
+        mousedown_start_offset: Point2d
+    ):
         render_task = RenderTask(
             cause=RenderCause.DRAG_START,
             on_start=on_base_canvas_change,
             metadata = {
-                "mouse_start_offset": mouse_start_offset,
                 "mouse_pos": mouse_pos,
+                "mousedown_start_pos": mousedown_start_pos,
+                "mousedown_start_offset": mousedown_start_offset,
             }
         )
         self.queue_render(render_task)
@@ -201,24 +225,36 @@ class RenderManager(RenderManagerType):
         # )
         # self.queue_render(task)
 
-    def render_drag_end(self, mouse_pos: Point2d, mouse_start_offset: Point2d):
+    def render_drag_end(
+        self,
+        mouse_pos: Point2d,
+        mousedown_start_pos: Point2d,
+        mousedown_start_offset: Point2d
+    ):
         render_task = RenderTask(
             cause=RenderCause.DRAG_END,
             on_start=on_base_canvas_change,
             metadata = {
-                "mouse_start_offset": mouse_start_offset,
                 "mouse_pos": mouse_pos,
+                "mousedown_start_pos": mousedown_start_pos,
+                "mousedown_start_offset": mousedown_start_offset,
             }
         )
         self.queue_render(render_task)
 
-    def render_dragging(self, mouse_pos: Point2d, mouse_start_offset: Point2d):
+    def render_dragging(
+        self,
+        mouse_pos: Point2d,
+        mousedown_start_pos: Point2d,
+        mousedown_start_offset: Point2d
+    ):
         render_task = RenderTask(
             cause=RenderCause.DRAGGING,
             on_start=on_base_canvas_change,
             metadata = {
-                "mouse_start_offset": mouse_start_offset,
                 "mouse_pos": mouse_pos,
+                "mousedown_start_pos": mousedown_start_pos,
+                "mousedown_start_offset": mousedown_start_offset,
             }
         )
         self._render_throttle("10ms", render_task)

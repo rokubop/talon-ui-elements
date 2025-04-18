@@ -546,8 +546,13 @@ class RenderLayer:
 
 class RenderTaskType(ABC):
     cause: str
-    on_render: Callable
+    start: Callable
     args: List[object]
+    on_start: Callable
+    on_end: Callable
+    group: str
+    policy: str
+    metadata: dict[str, Any]
 
 class RenderManagerType(ABC):
     queue: Deque[RenderTaskType]

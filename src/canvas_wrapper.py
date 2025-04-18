@@ -42,10 +42,6 @@ class CanvasWeakRef:
         setattr(self, weak_attr, None)
         setattr(self, f"_{event}_handler", None)
 
-    # @property
-    # def rect(self):
-    #     return object.__getattribute__(self, "canvas").rect
-
     def __getattr__(self, name):
         """passthrough to canvas"""
         return getattr(self.canvas, name)
