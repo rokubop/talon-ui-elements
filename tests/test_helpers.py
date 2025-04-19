@@ -1,4 +1,5 @@
 from talon import actions
+from time import time
 
 test_module_runners = {}
 success = 0
@@ -21,15 +22,16 @@ def run_tests():
 def test_module(cls):
     def runner():
         instance = cls()
-        if hasattr(instance, "run"):
-            log(f"Running {cls.__name__}", color=test_title_color)
-            instance.run()
+        log(f"Running {cls.__name__}", color=test_title_color)
+        for attr in dir(instance):
+            if attr.startswith("test_"):
+                getattr(instance, attr)()
         return instance
 
     test_module_runners[cls.__name__] = runner
     return cls
 
-def test(test_name, expect, actual):
+def it(test_name, expect, actual):
     global success, failure, total
     total += 1
     if expect == actual:
@@ -50,6 +52,27 @@ def test_truthy(test_name, actual):
         failure += 1
         log_failure(test_name)
         log(f"     Expected True but got False", color=error_message_color)
+
+class Spy:
+    def __init__(self, func: callable = None):
+        self.func = func or (lambda *args, **kwargs: None)
+        self.call_count = 0
+        self.args = None
+
+    @property
+    def called(self):
+        return self.call_count > 0
+
+    def __call__(self, *args, **kwargs):
+        self.call_count += 1
+        self.args = args
+        return self.func(*args, **kwargs)
+
+    def reset(self):
+        self.call_count = 0
+        self.args = None
+
+spy = Spy
 
 def log(message: str, color: str = "FFFFFF"):
     text = actions.user.ui_elements(["text"])

@@ -8,43 +8,47 @@ last_pos = None
 class NodeWindow(NodeContainer):
     def __init__(self, properties: Properties = None):
         global last_pos
-        # if last_pos:
-        #     properties.position = "absolute"
-        #     properties.top = last_pos.top
-        #     properties.right = last_pos.right
-
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
         is_minimized, set_is_minimized = state.use(f"is_minimized", False)
+        window_properties = properties
 
         self.is_minimized = is_minimized
 
         if self.is_minimized:
-            properties.position = "absolute"
-            properties.top = last_pos.top
-            # properties.left = last_pos.right - last_pos.width
-            properties.right = 1920 - last_pos.right
+            window_properties = Properties(
+                position="absolute",
+                top=last_pos.top,
+                left=last_pos.left,
+                min_width=200,
+                draggable=True,
+                background_color=properties.background_color,
+                border_radius=properties.border_radius,
+                border_width=properties.border_width,
+                border_color=properties.border_color,
+            )
         else:
-            properties.position = "static"
-            properties.top = None
-            properties.right = None
+            window_properties.position = "static"
+            window_properties.top = None
+            window_properties.left = None
 
         # body_properties = {
         #     "padding",
         # }
         # window_properties = properties
 
-        super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=properties)
+        super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
 
         print("my guid is ", self.guid)
 
         def on_minimize():
             global last_pos
             new_is_minimized = not is_minimized
-            last_pos = actions.user.ui_elements_get_node(f"title_bar_{self.guid}").box_model.border_rect
-            if new_is_minimized:
-                print("on_minimize last_pos", last_pos)
-                print("top", last_pos.top)
-                print("expect right to be 180", last_pos.right)
+            last_pos = actions.user.ui_elements_get_node(self.id).box_model.border_rect
+            print("last_pos", last_pos)
+            # if new_is_minimized:
+            #     print("on_minimize last_pos", last_pos)
+            #     print("top", last_pos.top)
+            #     print("expect right to be 180", last_pos.right)
             set_is_minimized(new_is_minimized)
 
         # def on_maximize():
@@ -54,7 +58,7 @@ class NodeWindow(NodeContainer):
             actions.user.ui_elements_hide_all()
 
         def top_bar():
-            return div(id=f"title_bar_{self.guid}", background_color="272727", flex_direction="row", justify_content="space_between", align_items="center")[
+            return div(background_color="272727", flex_direction="row", justify_content="space_between", align_items="center")[
                 text(properties.title or "", padding=8, padding_left=10),
                 div(flex_direction="row")[
                     button(on_click=on_minimize, padding=8)[

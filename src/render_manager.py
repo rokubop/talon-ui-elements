@@ -89,6 +89,13 @@ RenderStateChange = RenderTask(
     on_full_render,
 )
 
+@dataclass
+class RenderCallbackEvent:
+    tree: TreeType = None
+    cause: RenderCause = None
+    args: list[object] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
 class RenderManager(RenderManagerType):
     def __init__(self, tree: TreeType):
         self.queue = deque()
@@ -173,7 +180,12 @@ class RenderManager(RenderManagerType):
         if self.current_render_task and self.current_render_task.on_end:
             # print("on_end is", self.current_render_task.on_end)
             # print("type:", type(self.current_render_task.on_end))
-            self.current_render_task.on_end(self.tree, *self.current_render_task.args)
+            self.current_render_task.on_end(RenderCallbackEvent(
+                tree=self.tree,
+                cause=self.current_render_task.cause,
+                args=self.current_render_task.args,
+                metadata=self.current_render_task.metadata,
+            ))
         self.current_render_task = None
         self.process_next_render()
 
@@ -229,11 +241,20 @@ class RenderManager(RenderManagerType):
         self,
         mouse_pos: Point2d,
         mousedown_start_pos: Point2d,
-        mousedown_start_offset: Point2d
+        mousedown_start_offset: Point2d,
+        on_start: callable = None,
+        on_end: callable = None
     ):
         render_task = RenderTask(
             cause=RenderCause.DRAG_END,
-            on_start=on_base_canvas_change,
+            on_start=lambda tree: (
+                on_start(RenderCallbackEvent(
+                    tree=tree,
+                    cause=RenderCause.DRAG_END,
+                )),
+                on_base_canvas_change(tree)
+            ),
+            on_end=on_end,
             metadata = {
                 "mouse_pos": mouse_pos,
                 "mousedown_start_pos": mousedown_start_pos,

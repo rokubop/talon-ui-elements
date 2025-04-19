@@ -6,6 +6,7 @@ from .src.entity_manager import entity_manager
 from .src.state_manager import state_manager, debug_gc
 from .src.nodes.tree import render_ui
 from .src.utils import get_version
+from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
 
 mod = Module()
@@ -257,20 +258,6 @@ class Actions:
         """
         use_effect_without_tree(callback, arg2, arg3)
 
-    def ui_elements_register_on_lifecycle(callback: callable):
-        """
-        DEPRECATED: Register a callback to be called on mount or unmount.
-
-        Deprecated note: Use `ui_elements_register_effect` instead.
-        """
-        print("actions.user.ui_elements_register_on_lifecycle is deprecated. Use `actions.user.ui_elements_register_effect` or `effect` from `actions.user.ui_elements` instead.")
-        state_manager.deprecated_event_register_on_lifecycle(callback)
-
-    def ui_elements_unregister_on_lifecycle(callback: callable):
-        """
-        DEPRECATED: Unregister a lifecycle callback.
-
-        Deprecated note: Use `effect` instead inside your renderer, or use `on_mount` and `on_unmount` kwargs in `ui_elements_show`.
-        """
-        print("actions.user.ui_elements_unregister_on_lifecycle is deprecated. Use `actions.user.ui_elements_register_effect` or `effect` from `actions.user.ui_elements` instead.")
-        state_manager.deprecated_event_unregister_on_lifecycle(callback)
+    def ui_elements_test_runner():
+        """Run the test runner for regression tests"""
+        actions.user.ui_elements_toggle(runner_ui)

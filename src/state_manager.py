@@ -58,12 +58,12 @@ class StateCoordinator:
         return on_start
 
     def on_tree_render_end(self):
-        def on_end(tree: TreeType, *args):
+        def on_end(e):
             # print("on_end")
-            self.pending_tree_renders.remove(tree.guid)
+            self.pending_tree_renders.remove(e.tree.guid)
 
             if not self.pending_tree_renders:
-                self.finish_cycle(tree)
+                self.finish_cycle(e.tree)
 
         return on_end
 

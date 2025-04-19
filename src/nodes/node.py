@@ -211,44 +211,17 @@ class Node(NodeType):
         return self.box_model.margin_size
 
     def v2_drag_offset(self, cursor: Cursor):
-        if getattr(self.properties, "draggable", None) and getattr(self.tree, "draggable_node_delta_pos", None):
-            return
-            # This can be improved in the future to support multi-node dragging
-            # with meta state
-            # top_left_offset = state_manager.get_drag_relative_offset()
-            # start_mouse_pos = state_manager.get_mousedown_start_pos()
-            # offset = self.tree.render_manager.current_render_task.metadata.get("offset", None)
-            # render_mouse_pos = start_mouse_pos + offset
-            # top_left = render_mouse_pos - top_left_offset
-            # print(f"v2_drag_offset top_left_offset: {top_left_offset}")
-            # print(f"v2_drag_offset start_mouse_pos: {start_mouse_pos}")
-            # print(f"v2_drag_offset offset: {offset}")
-            # print(f"v2_drag_offset render_mouse_pos: {render_mouse_pos}")
-            # print(f"v2_drag_offset top_left: {top_left}")
-
-            # cursor.x += offset.x
-            # cursor.y += offset.y
-
-            # cursor.x = top_left.x
-            # cursor.y = top_left.y
+        if getattr(self.properties, "draggable", None):
+            offset = self.tree.meta_state.get_accumulated_drag_offset(self.id)
+            cursor.x += offset.x
+            cursor.y += offset.y
 
     def _v2_no_reposition(self, offset = None):
         pass
 
     def v2_reposition(self, offset = None):
-        # if getattr(self.properties, "draggable", None):
-        #     print('reposition', offset)
         if self.tree.render_manager.is_drag_end() and self.properties.draggable:
-            # top_left_offset = state_manager.get_drag_relative_offset()
-            # start_mouse_pos = state_manager.get_mousedown_start_pos()
             offset = self.tree.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
-            print('offset', offset)
-            # print(f"v2_reposition top_left_offset: {top_left_offset}")
-            # print(f"v2_reposition start_mouse_pos: {start_mouse_pos}")
-            # print(f"v2_reposition offset: {offset}")
-            # render_mouse_pos = start_mouse_pos + offset
-            # top_left = render_mouse_pos - top_left_offset
-
             old_pos = self.box_model.margin_pos
             new_pos = self.box_model.margin_pos + offset
             self.box_model.set_top_left(new_pos)

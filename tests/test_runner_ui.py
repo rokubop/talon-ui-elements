@@ -52,9 +52,3 @@ def runner_ui():
             ]
         ]
     ]
-
-@mod.action_class
-class Actions:
-    def ui_elements_test_runner():
-        """Run the test runner UI"""
-        actions.user.ui_elements_toggle(runner_ui)

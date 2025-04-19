@@ -139,6 +139,8 @@ class MetaStateType(ABC):
     _inputs: dict[str, MetaStateInput]
     _highlighted: dict[str, str]
     _buttons: set[str]
+    _draggable_offset: dict[str, Point2d]
+    _last_drag_offset: dict[str, Point2d]
     _scrollable = dict[str, ScrollableType]
     _states: dict[str, Any]
     _text_mutations: dict[str, str]
@@ -202,6 +204,22 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def add_input(self, id: str, input: TextArea, initial_value: str, on_change: callable):
+        pass
+
+    @abstractmethod
+    def set_drag_offset(self, id: str, offset: Point2d):
+        pass
+
+    @abstractmethod
+    def get_accumulated_drag_offset(self, id: str) -> Point2d:
+        pass
+
+    @abstractmethod
+    def get_current_drag_offset(self, id: str) -> Point2d:
+        pass
+
+    @abstractmethod
+    def commit_drag_offset(self, id: str):
         pass
 
     @abstractmethod
