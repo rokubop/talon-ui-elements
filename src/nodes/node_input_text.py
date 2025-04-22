@@ -1,13 +1,11 @@
 from talon import app
-from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
-from ..constants import ELEMENT_ENUM_TYPE
-from ..box_model import BoxModelV2
-from ..cursor import Cursor
-from ..entity_manager import entity_manager
-from ..properties import NodeInputTextProperties
 from .node import Node
+from ..box_model import BoxModelV2
+from ..constants import ELEMENT_ENUM_TYPE
+from ..core.entity_manager import entity_manager
+from ..properties import NodeInputTextProperties
 
 class NodeInputText(Node):
     def __init__(self, properties: NodeInputTextProperties = None):

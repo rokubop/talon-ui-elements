@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from talon import cron
 from typing import Any
-from .interfaces import TreeType, RenderTaskType, RenderManagerType, Point2d
+from ..interfaces import TreeType, RenderTaskType, RenderManagerType, Point2d
 
 class RenderCause(Enum):
     SCROLLING = "SCROLLING"

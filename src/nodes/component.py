@@ -1,8 +1,8 @@
-from ..interfaces import NodeType, TreeType, ComponentType
-from typing import Optional, List
-from ..state_manager import state_manager
 import inspect
 import weakref
+from typing import List
+from ..core.state_manager import state_manager
+from ..interfaces import NodeType, TreeType, ComponentType
 
 class Component(ComponentType):
     def __init__(self, renderer: callable, props: dict = None):

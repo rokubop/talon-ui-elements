@@ -1,6 +1,6 @@
 from talon import Context, cron
 from typing import Callable
-from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
+from ..interfaces import NodeType, ReactiveStateType, TreeType, Effect
 from .store import store
 import gc
 
@@ -68,7 +68,6 @@ class StateCoordinator:
         return on_end
 
     def request_tree_renders(self):
-        # print("request_tree_renders")
         if self.locked:
             return
 
@@ -79,9 +78,7 @@ class StateCoordinator:
             self.batch_job = None
 
         if self.phase == self.PHASE_REQUEST_RENDER:
-            # print("current_state_keys", self.current_state_keys)
             trees = state_manager.get_trees_for_state_keys(self.current_state_keys)
-            # print("tree guids", [tree.guid for tree in trees])
             for tree in trees:
                 if tree.guid not in self.pending_tree_renders:
                     self.pending_tree_renders.add(tree.guid)
@@ -137,7 +134,6 @@ class ReactiveState(ReactiveStateType):
         self.next_state_queue.append(value_or_callable)
 
     def activate_next_state_value(self):
-        # print("activate_next_state_value", len(self.next_state_queue), self.next_state_queue)
         for new_state in self.next_state_queue:
             self._value = self.resolve_value(new_state)
 
@@ -214,9 +210,6 @@ class StateManager:
             return []
 
     def get_trees_for_state_keys(self, state_keys):
-        # print("store.trees", store.trees)
-        # print("state_keys", state_keys)
-        # print("tree.meta_state.states", [tree.meta_state.states for tree in store.trees])
         try:
             return [tree for tree in store.trees if \
                 any(key in state_keys for key in tree.meta_state.states)
@@ -265,7 +258,6 @@ class StateManager:
         return {key: store.reactive_state[key].value for key in store.reactive_state.keys()}
 
     def set_state_value(self, key, new_value):
-        # print(f"Setting state for key: {key} with new value: {new_value}")
         if key in store.reactive_state:
             if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
                 return
@@ -274,26 +266,6 @@ class StateManager:
         store.reactive_state[key].set_value(new_value)
         store.processing_states.append(key)
         state_coordinator.request_state_change(key)
-
-        # TODO: new plan:
-        # Wait 0ms to allow batching of state changes, then - this is key:
-        # Don’t queue a render task directly. Instead, request a state flush from the render manager.
-        #
-        # If multiple state changes happen rapidly, they won’t pile up separate tasks.
-        # It’s just one deferred flush looking at the latest set of changed states.
-        #
-        # When the render manager processes the flush:
-        # - It applies the most recent values (idempotent)
-        # - Marks relevant nodes and trees dirty
-        # - Queues render tasks for affected trees
-        #
-        # Each render runs to completion.
-        # Afterward, use_effects are fired.
-        # Then the cycle starts again.
-
-        # if not self.debounce_render_job:
-        #     # Let the current event loop finish before rendering
-        #     self.debounce_render_job = cron.after("1ms", self.rerender_state)
 
     def get_text_mutation(self, id):
         node = store.id_to_node.get(id)
@@ -484,6 +456,22 @@ class StateManager:
         store.reactive_state.clear()
         store.processing_states.clear()
         store.reset_mouse_state()
+
+    def clear_state_for_tree(self, tree: TreeType):
+        for state_key in tree.meta_state.states:
+            if state_key in store.reactive_state:
+                del store.reactive_state[state_key]
+            if state_key in store.processing_states:
+                store.processing_states.remove(state_key)
+
+    def clear_tree(self, tree: TreeType):
+        if tree in store.trees:
+            store.root_nodes = [node for node in store.root_nodes if node.tree != tree]
+            store.trees.remove(tree)
+            self.clear_state_for_tree(tree)
+            store.synchronize_ids()
+        else:
+            raise ValueError("Tree not found in store.")
 
     def clear_all(self):
         store.clear()

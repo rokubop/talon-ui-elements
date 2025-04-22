@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Union, Deque, Any
-from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
+from talon.experimental.textarea import TextArea
 from talon.skia import Surface
 from talon.skia.canvas import Canvas as SkiaCanvas
-from dataclasses import dataclass
-from .constants import ElementEnumType, NodeEnumType
 from talon.types import Rect, Point2d
+from .constants import ElementEnumType, NodeEnumType
 
 @dataclass
 class Size2d:

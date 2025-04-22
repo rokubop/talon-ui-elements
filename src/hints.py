@@ -2,9 +2,9 @@ from talon import Module, Context, cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
-from .state_manager import state_manager
+from .core.state_manager import state_manager
+from .core.store import store
 from .interfaces import NodeType, ClickEvent
-from .store import store
 from .utils import safe_callback
 
 mod = Module()

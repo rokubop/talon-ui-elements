@@ -15,17 +15,24 @@ def run_tests():
     failure = 0
     total = 0
     actions.user.ui_elements_set_state("log", [])
+    pending = len(test_module_runners)
+
+    def on_runner_done():
+        nonlocal pending
+        pending -= 1
+        if pending == 0:
+            log(f"Tests complete: {success} passed, {failure} failed")
+
     for runner in test_module_runners.values():
-        runner()
-    log(f"Tests complete: {success} passed, {failure} failed")
+        runner(on_runner_done)
 
 def test_module(cls):
-    def runner():
+    def runner(done_callback):
         instance = cls()
         log(f"Running {cls.__name__}", color=test_title_color)
         for attr in dir(instance):
             if attr.startswith("test_"):
-                getattr(instance, attr)()
+                getattr(instance, attr)(done_callback)
         return instance
 
     test_module_runners[cls.__name__] = runner

@@ -2,9 +2,9 @@ from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
 from talon.skia.typeface import Typeface
 from typing import Union
-from .interfaces import NodeType, TreeType, Point2d
+from ..interfaces import NodeType, TreeType, Point2d
 from .store import store
-from .utils import generate_hash
+from ..utils import generate_hash
 
 @dataclass
 class ChangeEvent:
@@ -124,14 +124,12 @@ class EntityManager:
             for tree in store.trees:
                 if tree.root_node.id == tree_constructor:
                     tree.destroy()
-                    store.trees.remove(tree)
                     break
         else:
             t = self.get_tree_with_hash(tree_constructor)
             tree = t["tree"]
             if tree:
                 tree.destroy()
-                store.trees.remove(tree)
 
         if not store.trees:
             store.clear()
@@ -139,7 +137,6 @@ class EntityManager:
     def hide_all_trees(self):
         for tree in list(store.trees):
             tree.destroy()
-            store.trees.remove(tree)
         if not store.trees:
             store.clear()
 

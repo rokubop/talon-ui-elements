@@ -1,9 +1,9 @@
 from talon import actions, ui
 from talon.screen import Screen
+from .node_container import NodeContainer
+from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
 from ..interfaces import NodeRootType
 from ..properties import NodeRootProperties
-from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
-from .node_container import NodeContainer
 from ..utils import get_screen
 
 def print_deprecated_show():

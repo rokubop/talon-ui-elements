@@ -1,13 +1,12 @@
-from typing import Literal
+import re
 from talon.skia.canvas import Canvas as SkiaCanvas, Paint
-from talon.skia.typeface import Typeface
+from typing import Literal
+from .node import Node
 from ..box_model import BoxModelV2
+from ..core.state_manager import state_manager
 from ..interfaces import Size2d
 from ..properties import NodeTextProperties
-from ..state_manager import state_manager
-from ..utils import draw_text_simple
-from .node import Node
-import re
+from ..utils import draw_text_simple, get_typeface
 
 def split_lines(text, max_width, measure_text):
     lines = []
@@ -133,7 +132,9 @@ class NodeText(Node):
 
         paint = Paint()
         paint.textsize = self.properties.font_size
-        paint.typeface = Typeface.from_name(self.properties.font_family)
+        if self.properties.font_family:
+            paint.typeface = get_typeface(self.properties.font_family)
+
         paint.font.embolden = True if self.properties.font_weight == "bold" else False
 
         self.v2_measure_and_account_for_multiline(paint)

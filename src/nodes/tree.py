@@ -1,14 +1,22 @@
-from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.canvas import Canvas, MouseEvent
-from talon.skia import RoundRect, Surface
-from talon.types import Rect, Point2d
+import inspect
+import uuid
+import threading
+import weakref
+import time
 from talon import cron, settings
+from talon.canvas import Canvas as RealCanvas, MouseEvent
+from talon.skia import RoundRect, Surface as RealSurface
+from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.types import Rect, Point2d
 from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
-from .component import Component
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
+from ..core.entity_manager import entity_manager
+from ..core.render_manager import RenderManager, RenderCause
+from ..core.state_manager import state_manager
+from ..core.store import store
 from ..cursor import Cursor, CursorV2
 from ..interfaces import (
     TreeType,
@@ -24,22 +32,13 @@ from ..interfaces import (
     ScrollRegionType,
     ScrollableType,
 )
-from ..entity_manager import entity_manager
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
-from ..state_manager import state_manager
-from ..store import store
 from ..utils import (
     draw_text_simple,
     get_active_color_from_highlight_color,
     get_combined_screens_rect,
     subtract_rect
 )
-from ..render_manager import RenderManager, RenderCause
-import inspect
-import uuid
-import threading
-import weakref
-import time
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
@@ -337,6 +336,8 @@ class RenderCauseState(RenderCauseStateType):
         return self.state
 
 class Tree(TreeType):
+    Canvas = RealCanvas # override for testing
+    Surface = RealSurface # override for testing
     def __init__(
             self,
             tree_constructor: callable,
@@ -408,18 +409,14 @@ class Tree(TreeType):
         state_manager.set_processing_tree(self)
         if len(inspect.signature(self._tree_constructor).parameters) > 0:
             if self.props and not isinstance(self.props, dict):
-                print(f"props: {self.props}")
                 raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
             self.root_node = self._tree_constructor(self.props or {})
         else:
             self.root_node = self._tree_constructor()
-
         self.absolute_nodes.clear()
         self.fixed_nodes.clear()
-
         if not isinstance(self.root_node, NodeType):
             raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
-
         self.validate_root_node()
         state_manager.set_processing_tree(None)
 
@@ -477,7 +474,7 @@ class Tree(TreeType):
             )
 
     def commit_base_canvas(self):
-        surface = Surface(self.current_base_canvas.width, self.current_base_canvas.height)
+        surface = self.Surface(self.current_base_canvas.width, self.current_base_canvas.height)
         canvas = surface.canvas()
         canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
 
@@ -622,7 +619,7 @@ class Tree(TreeType):
                 draw_text_simple(canvas, text_value, node.properties, x, y)
 
     def create_surface(self):
-        surface = Surface(self.current_base_canvas.width, self.current_base_canvas.height)
+        surface = self.Surface(self.current_base_canvas.width, self.current_base_canvas.height)
         canvas = surface.canvas()
         canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
         return surface, canvas
@@ -774,7 +771,7 @@ class Tree(TreeType):
             rect.width - 0.001,
             rect.height - 0.001
         )
-        return CanvasWeakRef(Canvas.from_rect(safe_rect))
+        return CanvasWeakRef(self.Canvas.from_rect(safe_rect))
 
     def render_decorator_canvas(self):
         if not self.canvas_decorator and not self.render_manager.is_destroying:
@@ -875,8 +872,6 @@ class Tree(TreeType):
                     cleanup = effect.callback()
                     if cleanup and not effect.cleanup:
                         effect.cleanup = cleanup
-
-                state_manager.deprecated_event_fire_on_mount(self)
 
             self.processing_states.clear()
             # if self.render_manager.is_drag_end():
@@ -1021,7 +1016,6 @@ class Tree(TreeType):
         try:
             hovered_id = state_manager.get_hovered_id()
             mousedown_start_id = state_manager.get_mousedown_start_id()
-
             if mousedown_start_id and hovered_id == mousedown_start_id:
                 node = self.meta_state.id_to_node.get(mousedown_start_id)
                 if node:
@@ -1130,8 +1124,6 @@ class Tree(TreeType):
             if effect.cleanup:
                 effect.cleanup()
 
-        state_manager.deprecated_event_fire_on_unmount(self)
-
         if self.render_debounce_job:
             cron.cancel(self.render_debounce_job)
             self.render_debounce_job = None
@@ -1154,6 +1146,7 @@ class Tree(TreeType):
         self._tree_constructor = None
         self.current_base_canvas = None
         self.render_manager.destroy()
+        state_manager.clear_state_for_tree(self)
         self.meta_state.clear()
         self.effects.clear()
         self.processing_states.clear()
@@ -1175,7 +1168,8 @@ class Tree(TreeType):
         self.render_cause.clear()
         self.last_base_snapshot = None
         self.last_decorator_snapshot = None
-        state_manager.clear_state()
+        state_manager.clear_tree(self)
+        # state_manager.clear_all()
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
@@ -1456,32 +1450,10 @@ class Tree(TreeType):
             self.last_blockable_rects.clear()
             self.last_blockable_rects.extend(blockable_rects)
             for rect in blockable_rects:
-                canvas = CanvasWeakRef(Canvas.from_rect(rect))
+                canvas = CanvasWeakRef(self.Canvas.from_rect(rect))
                 self.canvas_blockable.append(canvas)
                 canvas.blocks_mouse = True
                 canvas.register("mouse", self.on_mouse)
                 canvas.register("scroll", self.on_scroll)
                 # canvas.register("draw", self.on_test_draw_blockable_canvas)
                 canvas.freeze()
-
-def render_ui(
-        tree_constructor: callable,
-        props: dict[str, Any] = None,
-        on_mount: callable = None,
-        on_unmount: callable = None,
-        show_hints: bool = None,
-        initial_state = dict[str, Any],
-    ):
-
-    t = entity_manager.get_tree_with_hash(tree_constructor)
-    tree = t["tree"]
-    hash = t["hash"]
-
-    if not tree:
-        tree = Tree(tree_constructor, hash, props, initial_state)
-        entity_manager.add_tree(tree)
-
-    if show_hints is None:
-        show_hints = settings.get("user.ui_elements_hints_show")
-
-    tree.render_manager.render_mount(props, on_mount, on_unmount, show_hints)

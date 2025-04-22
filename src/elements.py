@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Union
 from .constants import ELEMENT_ENUM_TYPE
+from .core.state_manager import state_manager
 from .nodes.component import Component
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
@@ -33,7 +34,6 @@ from .properties import (
 from .icons import icon
 from .interfaces import Effect
 from .ref import Ref
-from .state_manager import state_manager
 
 def screen(*args, **additional_props):
     """

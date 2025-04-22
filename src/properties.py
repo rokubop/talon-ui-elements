@@ -388,6 +388,10 @@ class NodeIconValidationProperties(ValidationProperties):
     name: str
     size: int
     stroke_width: int
+    stroke_linecap: str = None
+    stroke_linejoin: str = None
+    stroke_width: int = None
+    stroke: str = None
     fill: str
 
 @dataclass

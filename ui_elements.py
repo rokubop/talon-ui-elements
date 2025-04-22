@@ -1,16 +1,15 @@
 from talon import Module, actions
 from typing import List, Any, Union, Callable
+from .src.core.entity_manager import entity_manager
+from .src.core.state_manager import state_manager, debug_gc
 from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
-from .src.entity_manager import entity_manager
-from .src.state_manager import state_manager, debug_gc
-from .src.nodes.tree import render_ui
+from .src.entry import render_ui
 from .src.utils import get_version
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
 
 mod = Module()
-
 UNSET = object()
 
 @mod.action_class
@@ -112,7 +111,6 @@ class Actions:
         })
         ```
         """
-        print(f"actions.user.ui_elements_set_state({name}, {value})")
         if isinstance(name, dict):
             for key, val in name.items():
                 state_manager.set_state_value(key, val)

@@ -1,8 +1,10 @@
+import uuid
+import weakref
 from typing import Union, Optional
 from talon.types import Rect, Point2d
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
-import uuid
+from .component import Component
 from ..box_model import BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
@@ -11,10 +13,9 @@ from ..constants import (
     LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION,
     CASCADED_PROPERTIES
 )
-from .component import Component
+from ..core.state_manager import state_manager
 from ..cursor import Cursor
 from ..interfaces import (
-    ComponentType,
     NodeType,
     NodeEnumType,
     ElementEnumType,
@@ -23,8 +24,7 @@ from ..interfaces import (
 )
 from ..properties import Properties
 from ..utils import sanitize_string
-from ..state_manager import state_manager
-import weakref
+
 
 class Node(NodeType):
     def __init__(self,

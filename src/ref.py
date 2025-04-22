@@ -1,7 +1,7 @@
 from typing import Any
 from talon.experimental.textarea import Span
-from .entity_manager import entity_manager
-from .state_manager import state_manager
+from .core.entity_manager import entity_manager
+from .core.state_manager import state_manager
 
 class Ref:
     """

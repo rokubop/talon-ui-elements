@@ -1,12 +1,12 @@
+import re
 from talon.skia import Path
 from talon.skia.canvas import Canvas as SkiaCanvas, Paint
 from talon.types import Rect
+from .node import Node
 from ..box_model import BoxModelV2
 from ..cursor import Cursor
 from ..interfaces import NodeSvgType, NodeType, Size2d
 from ..properties import NodeSvgProperties
-from .node import Node
-import re
 
 def scale_d(path, scale_factor):
     def scale_coordinates(coords):

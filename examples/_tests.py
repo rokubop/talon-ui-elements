@@ -1,5 +1,5 @@
 from talon import Module, actions
-from ..src.entity_manager import entity_manager
+from ..src.core.entity_manager import entity_manager
 from .hello_world_ui import hello_world_ui
 from .todo_list_ui import todo_list_ui
 from .alignment_ui import alignment_ui

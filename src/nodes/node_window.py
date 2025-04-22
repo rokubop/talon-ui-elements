@@ -1,7 +1,7 @@
 from talon import actions
+from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..properties import Properties
-from .node_container import NodeContainer
 
 last_pos = None
 
@@ -31,28 +31,13 @@ class NodeWindow(NodeContainer):
             window_properties.top = None
             window_properties.left = None
 
-        # body_properties = {
-        #     "padding",
-        # }
-        # window_properties = properties
-
         super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
-
-        print("my guid is ", self.guid)
 
         def on_minimize():
             global last_pos
             new_is_minimized = not is_minimized
             last_pos = actions.user.ui_elements_get_node(self.id).box_model.border_rect
-            print("last_pos", last_pos)
-            # if new_is_minimized:
-            #     print("on_minimize last_pos", last_pos)
-            #     print("top", last_pos.top)
-            #     print("expect right to be 180", last_pos.right)
             set_is_minimized(new_is_minimized)
-
-        # def on_maximize():
-        #     print("Maximize window")
 
         def on_close():
             actions.user.ui_elements_hide_all()
@@ -64,9 +49,6 @@ class NodeWindow(NodeContainer):
                     button(on_click=on_minimize, padding=8)[
                         icon("minimize", stroke_width=1, size=20),
                     ],
-                    # button(on_click=on_maximize)[
-                    #     icon("maximize", padding=8, stroke_width=1, size=20),
-                    # ],
                     button(on_click=on_close, padding=8)[
                         icon("close", stroke_width=1, size=20),
                     ],

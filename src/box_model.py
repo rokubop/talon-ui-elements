@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Union
-from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .interfaces import (
     BoxModelSpacing,

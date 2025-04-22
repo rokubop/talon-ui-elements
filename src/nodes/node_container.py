@@ -1,14 +1,13 @@
 from itertools import cycle
-from itertools import cycle
+from typing import List
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
-from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
+from .node import Node
 from ..box_model import BoxModelV2
+from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem
 from ..properties import Properties
-from .node import Node
-from typing import List
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):

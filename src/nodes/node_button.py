@@ -1,5 +1,5 @@
-from ..properties import Properties
 from .node_container import NodeContainer
+from ..properties import Properties
 
 class NodeButton(NodeContainer):
     def __init__(self, properties: Properties = None):

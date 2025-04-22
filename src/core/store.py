@@ -1,5 +1,5 @@
 from typing import Optional, TypedDict, Tuple
-from .interfaces import TreeType, NodeType, Effect, ReactiveStateType, Point2d
+from ..interfaces import TreeType, NodeType, Effect, ReactiveStateType, Point2d
 
 class MouseState(TypedDict):
     hovered_id: Optional[str]

@@ -1,6 +1,6 @@
 from talon import actions
-from .state_manager import state_manager
-from .store import store
+from .core.state_manager import state_manager
+from .core.store import store
 
 accent_color = "1bd0f5"
 

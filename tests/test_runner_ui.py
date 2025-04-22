@@ -1,4 +1,4 @@
-from talon import actions, Module
+from talon import actions, Module, cron
 from .test_helpers import run_tests
 
 mod = Module()
@@ -26,7 +26,7 @@ def play_button():
     play_bg_color = "161616"
 
     def on_play():
-        run_tests()
+        cron.after("10ms", run_tests)
 
     if play:
         return button(button_style)[
@@ -39,7 +39,7 @@ def play_button():
         ]
 
 def runner_ui():
-    screen, window, div, text, state = actions.user.ui_elements(["screen", "window", "div", "text", "state"])
+    screen, window, div, state = actions.user.ui_elements(["screen", "window", "div", "state"])
     log = state.get("log", [])
 
     # TODO: top and left not working
