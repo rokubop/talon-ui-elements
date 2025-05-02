@@ -246,6 +246,7 @@ def window(props=None, **additional_props):
     window_properties = NodeWindowProperties(**{
         "draggable": True,
         "background_color": "222222",
+        "drop_shadow": (0, 20, 25, 25, "000000CC"),
         "border_radius": 4,
         "border_width": 1,
         **properties

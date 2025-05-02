@@ -43,6 +43,7 @@ class Properties(PropertiesDimensionalType):
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
     draggable: bool = False
+    drop_shadow: tuple[int, int, int, int, str] = None
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
@@ -95,6 +96,33 @@ class Properties(PropertiesDimensionalType):
                 raise ValueError(
                     f"\nInvalid value for align_items: '{self.align_items}'\n"
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
+                )
+
+        if self.drop_shadow:
+            if not isinstance(self.drop_shadow, tuple):
+                raise ValueError(
+                    f"\nInvalid value for drop_shadow: '{self.drop_shadow}'\n"
+                    f"Valid values are: drop_shadow=(x_offset, y_offset, blur_x, blur_y, color)"
+                )
+            if len(self.drop_shadow) != 5:
+                raise ValueError(
+                    f"\nInvalid value for drop_shadow: '{self.drop_shadow}'\n"
+                    f"Valid values are: drop_shadow=(x_offset, y_offset, blur_x, blur_y, color)"
+                )
+            if not isinstance(self.drop_shadow[0], int) or not isinstance(self.drop_shadow[1], int):
+                raise ValueError(
+                    f"\nInvalid value for x_offset or y_offset in drop_shadow: '{self.drop_shadow}'\n"
+                    f"Use int for x_offset and y_offset: drop_shadow=(x_offset, y_offset, blur_x, blur_y, color)"
+                )
+            if not isinstance(self.drop_shadow[2], int) or not isinstance(self.drop_shadow[3], int):
+                raise ValueError(
+                    f"\nInvalid value for blur_x or blur_y in drop_shadow: '{self.drop_shadow}'\n"
+                    f"Use int for blur_x and blur_y: drop_shadow=(x_offset, y_offset, blur_x, blur_y, color)"
+                )
+            if not isinstance(self.drop_shadow[4], str):
+                raise ValueError(
+                    f"\nInvalid value for color in drop_shadow.: '{self.drop_shadow}'\n"
+                    f"Use a string for the 'color' value: drop_shadow=(x_offset, y_offset, blur_x, blur_y, color)"
                 )
 
         if kwargs.get('position'):
@@ -228,6 +256,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     color: str
     drag_handle: bool
     draggable: bool
+    drop_shadow: tuple[int, int, int, int, str]
     flex_direction: str
     flex: int
     focus_outline_color: str
@@ -533,6 +562,7 @@ class NodeWindowProperties(Properties):
     on_close: callable = None
     on_minimize: callable = None
     on_maximize: callable = None
+    drop_shadow: tuple[int, int, int, int, str] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -550,6 +580,7 @@ class NodeWindowValidationProperties(ValidationProperties):
     on_close: callable
     on_minimize: callable
     on_maximize: callable
+    drop_shadow: tuple[int, int, int, int, str]
 
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,

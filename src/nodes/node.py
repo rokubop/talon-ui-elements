@@ -4,6 +4,7 @@ from typing import Union, Optional
 from talon.types import Rect, Point2d
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.imagefilter import ImageFilter
 from .component import Component
 from ..box_model import BoxModelV2
 from ..constants import (
@@ -290,6 +291,26 @@ class Node(NodeType):
                     c.paint.stroke_width = border_spacing.bottom
                     half = border_spacing.bottom / 2
                     c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
+
+    def v2_render_drop_shadow(self, c: SkiaCanvas):
+        if self.properties.drop_shadow:
+            # tuple[offset_x, offset_y, blur_x, blur_y, color]
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = self.properties.drop_shadow[4]
+            c.paint.imagefilter = ImageFilter.drop_shadow(
+                self.properties.drop_shadow[0],
+                self.properties.drop_shadow[1],
+                self.properties.drop_shadow[2],
+                self.properties.drop_shadow[3],
+                self.properties.drop_shadow[4],
+            )
+            inner_rect = self.box_model.padding_rect
+
+            if self.properties.border_radius and self.is_uniform_border:
+                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
+            else:
+                c.draw_rect(inner_rect)
+            c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas):
         if self.properties.background_color:

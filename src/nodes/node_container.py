@@ -153,6 +153,9 @@ class NodeContainer(Node, NodeContainerType):
         primary_axis = "width" if is_row else "height"
         secondary_axis = "height" if is_row else "width"
 
+        if not self.participating_children_nodes:
+            return
+
         def accumulate(child: NodeType):
             # find the single item with the maximum length for secondary axis
             setattr(
@@ -241,6 +244,7 @@ class NodeContainer(Node, NodeContainerType):
         return self.box_model.margin_size
 
     def draw_start(self, c: SkiaCanvas):
+        self.v2_render_drop_shadow(c),
         self.v2_render_borders(c),
         self.v2_crop_start(c),
         self.v2_render_background(c)

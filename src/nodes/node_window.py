@@ -30,6 +30,7 @@ class NodeWindow(NodeContainer):
             window_properties.position = "static"
             window_properties.top = None
             window_properties.left = None
+            window_properties.drop_shadow = properties.drop_shadow
 
         super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
 
@@ -40,6 +41,8 @@ class NodeWindow(NodeContainer):
             set_is_minimized(new_is_minimized)
 
         def on_close():
+            if window_properties.on_close:
+                window_properties.on_close()
             actions.user.ui_elements_hide_all()
 
         def top_bar():
