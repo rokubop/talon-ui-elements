@@ -486,6 +486,9 @@ class NodeType(ABC):
     def __init__(self, element_type: ElementEnumType, properties: object):
         pass
 
+    def get_children_nodes(self) -> List['NodeType']:
+        pass
+
 class RenderCauseStateType(ABC):
     @abstractmethod
     def state_change(self):

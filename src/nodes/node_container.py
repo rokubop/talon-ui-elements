@@ -259,7 +259,7 @@ class NodeContainer(Node, NodeContainerType):
             draw=self.draw_start
         )
 
-        for child in self.children_nodes:
+        for child in self.get_children_nodes():
             child.v2_build_render_list()
 
         self.tree.append_to_render_list(
@@ -272,7 +272,7 @@ class NodeContainer(Node, NodeContainerType):
             self.v2_render_borders(c)
             self.v2_crop_start(c)
             self.v2_render_background(c)
-            for child in self.children_nodes:
+            for child in self.get_children_nodes():
                 child.v2_render(c)
             self.v2_crop_end(c)
             self.render_scroll_bar(c)

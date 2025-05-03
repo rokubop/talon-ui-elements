@@ -52,7 +52,11 @@ class ElementEnumType(TypedDict):
     icon: str
     input_text: str
     screen: str
+    table: str
+    td: str
     text: str
+    th: str
+    tr: str
     svg: str
     svg_path: str
     svg_rect: str
@@ -62,7 +66,6 @@ class ElementEnumType(TypedDict):
     svg_line: str
     window: str
 
-
 ELEMENT_ENUM_TYPE: ElementEnumType = {
     "button": "button",
     "active_window": "active_window",
@@ -70,7 +73,11 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "icon": "icon",
     "input_text": "input_text",
     "screen": "screen",
+    "table": "table",
+    "td": "td",
     "text": "text",
+    "th": "th",
+    "tr": "tr",
     "svg": "svg",
     "svg_path": "svg_path",
     "svg_rect": "svg_rect",
@@ -101,7 +108,11 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["screen"]: NODE_ENUM_TYPE["root"],
+    ELEMENT_ENUM_TYPE["table"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["td"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["text"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["th"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["tr"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["svg"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["svg_path"]: NODE_ENUM_TYPE["leaf"],

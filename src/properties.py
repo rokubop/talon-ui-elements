@@ -424,6 +424,38 @@ class NodeIconValidationProperties(ValidationProperties):
     fill: str
 
 @dataclass
+class NodeTableProperties(NodeDivProperties):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeTableRowProperties(NodeDivProperties):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeTableHeaderProperties(NodeDivProperties):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+@dataclass
+class NodeTableDataProperties(NodeDivProperties):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+class NodeTableValidationProperties(NodeDivValidationProperties):
+    pass
+
+class NodeTableRowValidationProperties(NodeDivValidationProperties):
+    pass
+
+class NodeTableHeaderValidationProperties(NodeDivValidationProperties):
+    pass
+
+class NodeTableDataValidationProperties(NodeDivValidationProperties):
+    pass
+
+@dataclass
 class NodeSvgPathProperties(Properties):
     d: str = ""
     stroke_linecap: str = None
@@ -589,6 +621,10 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["table"]: NodeTableValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["td"]: NodeTableDataValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["th"]: NodeTableHeaderValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["tr"]: NodeTableRowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg"]: NodeSvgValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_path"]: NodeSvgPathValidationProperties.__annotations__,

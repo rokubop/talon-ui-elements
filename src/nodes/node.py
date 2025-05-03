@@ -90,11 +90,14 @@ class Node(NodeType):
 
     @property
     def participating_children_nodes(self) -> list[NodeType]:
-        return [node for node in self.children_nodes if node.participates_in_layout]
+        return [node for node in self.get_children_nodes() if node.participates_in_layout]
 
     @property
     def non_participating_children_nodes(self) -> list[NodeType]:
-        return [node for node in self.children_nodes if not node.participates_in_layout]
+        return [node for node in self.get_children_nodes() if not node.participates_in_layout]
+
+    def get_children_nodes(self) -> list[NodeType]:
+        return self.children_nodes
 
     def add_constraint_node(self, node: NodeType):
         if node:
@@ -155,8 +158,9 @@ class Node(NodeType):
 
     def invalidate(self):
         self.is_dirty = True
-        if self.children_nodes:
-            for node in self.children_nodes:
+        children_nodes = self.get_children_nodes()
+        if children_nodes:
+            for node in children_nodes:
                 node.invalidate()
 
     def add_properties_to_cascade(self, properties: Properties):
@@ -229,7 +233,7 @@ class Node(NodeType):
             offset = new_pos - old_pos
         elif offset and self.box_model:
             self.box_model.reposition(offset)
-        for child in self.children_nodes:
+        for child in self.get_children_nodes():
             child.v2_reposition(offset)
 
     def v2_scroll_layout(self, offset: Point2d = None):
@@ -240,10 +244,10 @@ class Node(NodeType):
                 self.tree.meta_state.scrollable[self.id].offset_y
             )
             node_offset = new_offset if not node_offset else node_offset + new_offset
-            for child in self.children_nodes:
+            for child in self.get_children_nodes():
                 child.v2_reposition(node_offset)
 
-        for child in self.children_nodes:
+        for child in self.get_children_nodes():
             child.v2_scroll_layout(node_offset)
 
     def v2_render_borders(self, c: SkiaCanvas):
@@ -331,14 +335,14 @@ class Node(NodeType):
 
     def v2_build_render_list(self):
         self.tree.append_to_render_list(self, self.draw_start)
-        for child in self.children_nodes:
+        for child in self.get_children_nodes():
             child.v2_build_render_list()
 
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)
         self.v2_render_borders(c)
 
-        for child in self.children_nodes:
+        for child in self.get_children_nodes():
             child.v2_render(c)
 
     def destroy(self):

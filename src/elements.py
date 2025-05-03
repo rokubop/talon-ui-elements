@@ -13,6 +13,7 @@ from .nodes.node_svg import (
     NodeSvgPolyline,
     NodeSvgLine,
 )
+from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
 from .nodes.node_window import NodeWindow
@@ -20,6 +21,10 @@ from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
     NodeDivProperties,
+    NodeTableProperties,
+    NodeTableDataProperties,
+    NodeTableHeaderProperties,
+    NodeTableRowProperties,
     NodeTextProperties,
     NodeSvgProperties,
     NodeSvgPathProperties,
@@ -209,6 +214,29 @@ def div(props=None, **additional_props):
     div_properties = NodeDivProperties(**properties)
     return NodeContainer(ELEMENT_ENUM_TYPE["div"], div_properties)
 
+def table(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["table"])
+    table_properties = NodeTableProperties(**{
+        **properties,
+        "flex_direction": "row",
+    })
+    return NodeTable(table_properties)
+
+def tr(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["tr"])
+    table_row_properties = NodeTableRowProperties(**properties)
+    return NodeTableRow(table_row_properties)
+
+def td(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["td"])
+    table_data_properties = NodeTableDataProperties(**properties)
+    return NodeTableData(table_data_properties)
+
+def th(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["th"])
+    table_header_properties = NodeTableHeaderProperties(**properties)
+    return NodeTableHeader(table_header_properties)
+
 def text(text_str: str = "", props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
@@ -324,7 +352,11 @@ input_text = UIElementsInputTextProxy(input_text)
 ref = Ref
 screen = UIElementsContainerProxy(screen)
 state = State()
+table = UIElementsContainerProxy(table)
+td = UIElementsContainerProxy(td)
 text = UIElementsLeafProxy(text)
+th = UIElementsContainerProxy(th)
+tr = UIElementsContainerProxy(tr)
 window = UIElementsWindowProxy(window)
 
 element_collection: Dict[str, callable] = {
@@ -335,6 +367,10 @@ element_collection: Dict[str, callable] = {
     'icon': icon,
     'input_text': input_text,
     'screen': screen,
+    'table': table,
+    'td': td,
+    'th': th,
+    'tr': tr,
     'text': text,
     'state': state,
     'ref': ref,

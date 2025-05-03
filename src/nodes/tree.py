@@ -425,7 +425,7 @@ class Tree(TreeType):
             print(node.text)
         if hasattr(node.box_model, "calculated_margin_size"):
             print('calculated_margin_size', node.box_model.calculated_margin_size)
-        for child in node.children_nodes:
+        for child in node.get_children_nodes():
             self.test(child)
 
     def nonlayout_flow(self):
@@ -754,7 +754,7 @@ class Tree(TreeType):
 
     def _is_draggable_ui(self):
         # Just check 1 level deep
-        return any([node.properties.draggable for node in self.root_node.children_nodes])
+        return any([node.properties.draggable for node in self.root_node.get_children_nodes()])
 
     def create_canvas(self):
         rect = self.root_node.boundary_rect
@@ -1247,7 +1247,7 @@ class Tree(TreeType):
 
     def _apply_justify_content_if_space_evenly(self, node: NodeType):
         if node.properties.justify_content == "space_evenly":
-            for child_node in node.children_nodes:
+            for child_node in node.get_children_nodes():
                 child_node.properties.flex = 1
 
     def _find_parent_relative_positional_node(self, node: NodeType):
@@ -1265,8 +1265,9 @@ class Tree(TreeType):
         treated higher than relative positioned siblings, and it's children
         get the cascaded z_subindex.
         """
-        if node.children_nodes:
-            for child_node in node.children_nodes:
+        children_nodes = node.get_children_nodes()
+        if children_nodes:
+            for child_node in children_nodes:
                 child_node.z_subindex = node.z_subindex
                 self._cascade_children_z_subindex(child_node)
 
@@ -1316,7 +1317,7 @@ class Tree(TreeType):
         self._check_deprecated_ui(current_node)
         self._apply_justify_content_if_space_evenly(current_node)
 
-        for i, child_node in enumerate(current_node.children_nodes):
+        for i, child_node in enumerate(current_node.get_children_nodes()):
             self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes, clip_nodes)
 
         entity_manager.synchronize_global_ids()
