@@ -25,20 +25,32 @@ class NodeTable(NodeContainer):
                         td_node.properties.inherit_explicit_properties(tr_node.properties)
                         row.append(td_node)
                 self.rows.append(row)
-        self.add_missing_cells()
+
+        # Check if rows have different lengths
+        if len(set(len(row) for row in self.rows)) > 1:
+            self.add_missing_cells()
+
         self.create_column_layout()
 
     def add_missing_cells(self):
         """Add missing cells to the rows to make them uniform."""
         total_cols = max(len(row) for row in self.rows)
 
-        for i, row in enumerate(self.rows):
+        for row, tr_node in zip(self.rows, self.children_nodes):
             if len(row) < total_cols:
-                tr_node = self.children_nodes[i]
-                empty_cell = actions.user.ui_elements("td")()
-                empty_cell.properties.inherit_explicit_properties(tr_node.properties)
-                tr_node.add_child(empty_cell)
-                self.rows[i].append(empty_cell)
+                # Add missing cells to the current row
+                missing_cells = total_cols - len(row)
+                for _ in range(missing_cells):
+                    empty_cell = actions.user.ui_elements("td")()
+                    empty_cell.properties.inherit_explicit_properties(tr_node.properties)
+                    tr_node.add_child(empty_cell)
+                    row.append(empty_cell)
+
+        # print("len(self.rows)", len(self.rows))
+        # print("len(self.rows[0])", len(self.rows[0]))
+        # print("len(self.rows[1])", len(self.rows[1]))
+        # print("len(self.rows[2])", len(self.rows[2]))
+        # print("len(self.children_nodes)", len(self.children_nodes))
 
     def get_children_nodes(self):
         return self.column_layout_children_nodes
