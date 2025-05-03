@@ -17,14 +17,28 @@ class NodeTable(NodeContainer):
     def _process_children(self):
         """Process child nodes to extract rows and their contents."""
         self.rows = []
-        for child in self.children_nodes:
-            if child.element_type == "tr":
+        for tr_node in self.children_nodes:
+            if tr_node.element_type == "tr":
                 row = []
-                for cell in child.children_nodes:
-                    if cell.element_type in ["td", "th"]:
-                        row.append(cell)
+                for td_node in tr_node.children_nodes:
+                    if td_node.element_type in ["td", "th"]:
+                        td_node.properties.inherit_explicit_properties(tr_node.properties)
+                        row.append(td_node)
                 self.rows.append(row)
+        self.add_missing_cells()
         self.create_column_layout()
+
+    def add_missing_cells(self):
+        """Add missing cells to the rows to make them uniform."""
+        total_cols = max(len(row) for row in self.rows)
+
+        for i, row in enumerate(self.rows):
+            if len(row) < total_cols:
+                tr_node = self.children_nodes[i]
+                empty_cell = actions.user.ui_elements("td")()
+                empty_cell.properties.inherit_explicit_properties(tr_node.properties)
+                tr_node.add_child(empty_cell)
+                self.rows[i].append(empty_cell)
 
     def get_children_nodes(self):
         return self.column_layout_children_nodes

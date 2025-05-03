@@ -166,6 +166,17 @@ class Properties(PropertiesDimensionalType):
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
         self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'))
 
+    def inherit_explicit_properties(self, properties: 'Properties'):
+        """Inherit properties from another Properties object."""
+        for key in properties._explicitly_set:
+            value = getattr(properties, key)
+            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
+                value = hex_color(value)
+            if key in ["padding", "margin", "border"]:
+                value = parse_box_model(type(getattr(self, key)), **value)
+            setattr(self, key, value)
+            self._explicitly_set.add(key)
+
     def update_colors_with_opacity(self):
         if self.opacity is not None:
             # convert float to 2 digit hex e.g. 00, 44, 88, AA, FF
@@ -431,6 +442,25 @@ class NodeTableProperties(NodeDivProperties):
 @dataclass
 class NodeTableRowProperties(NodeDivProperties):
     def __init__(self, **kwargs):
+        allowed_properties = [
+            "background_color",
+            "border_color",
+            "border_width",
+            "border_top",
+            "border_bottom",
+            "height",
+            "padding_top",
+            "padding_bottom",
+        ]
+
+        for key in kwargs.keys():
+            if key not in allowed_properties:
+                raise ValueError(
+                    f"\nInvalid property for 'tr': {key}\n"
+                    f"Valid properties are: {', '.join(allowed_properties)}\n"
+                    f"Or set properties directly on the child 'td' or 'th' elements"
+                )
+
         super().__init__(**kwargs)
 
 @dataclass
