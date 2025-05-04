@@ -21,11 +21,26 @@ from ..interfaces import (
     NodeEnumType,
     ElementEnumType,
     TreeType,
-    Size2d
+    Size2d,
 )
 from ..properties import Properties
 from ..utils import sanitize_string
 
+#   14:                       user\talon-ui-elements\src\elements.py:303 | return self.func(*args, **kwargs)
+#    13:                                                                                   ^^^^^^^^^^^^^^^^^^
+#    12:                       user\talon-ui-elements\src\elements.py:245 | return NodeTableHeader(table_header_pr..
+#    11:                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#    10:               user\talon-ui-elements\src\nodes\node_table.py:94  | super().__init__(element_type="th", pr..
+#     9:                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#     8:           user\talon-ui-elements\src\nodes\node_container.py:14  | super().__init__(element_type=element_..
+#     7:                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#     6:                     user\talon-ui-elements\src\nodes\node.py:54  | self.inherit_processing_style()
+#     5:                                                                            ^^^^^^^^^^^^^^^^^^^^^^^
+#     4:                     user\talon-ui-elements\src\nodes\node.py:378 | self.properties.inherit_kwarg_properti..
+#     3:                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#     2:                     user\talon-ui-elements\src\properties.py:176 | value = parse_box_model(type(getattr(self, key)), **value)
+#     1:                                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# TypeError: user.talon-ui-elements.src.box_model.parse_box_model() argument after ** must be a mapping, not int
 
 class Node(NodeType):
     def __init__(self,
@@ -35,6 +50,7 @@ class Node(NodeType):
         self.properties: Properties = properties or Properties()
         self.cascaded_properties = set()
         self.guid: str = uuid.uuid4().hex
+        self.class_name: str = None
         self.id: str = sanitize_string(self.properties.id) if self.properties.id else None
         self.is_uniform_border = True
         self.key: str = self.properties.key
@@ -50,6 +66,7 @@ class Node(NodeType):
         self.participates_in_layout: bool = self.properties.position not in ("absolute", "fixed")
         self.box_model: BoxModelV2 = None
         self.node_index_path: list[int] = []
+        self.inherit_processing_style()
         self.add_properties_to_cascade(properties)
 
         # Use weakref to avoid circular references
@@ -369,3 +386,9 @@ class Node(NodeType):
             raise TypeError(
                 "Invalid child type: str. Use `ui_elements` `text` element."
             )
+
+    def inherit_processing_style(self):
+        if style := state_manager.get_processing_style():
+            if new_properties := style.get(self):
+                print("new_properties", new_properties)
+                self.properties.inherit_kwarg_properties(new_properties)

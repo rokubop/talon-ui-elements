@@ -33,6 +33,7 @@ from ..interfaces import (
     ScrollableType,
 )
 from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
+from ..style import Style
 from ..utils import (
     draw_text_simple,
     get_active_color_from_highlight_color,
@@ -380,9 +381,9 @@ class Tree(TreeType):
         self.render_debounce_job = None
         self.redistribute_box_model = False
         self.root_node = None
-        self.show_hints = False
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
-        # self.surfaces = []
+        self.show_hints = False
+        self.style: Style = None
         state_manager.init_states(initial_state)
         self.init_tree_constructor()
         state_manager.increment_ref_count_trees()
@@ -1163,13 +1164,11 @@ class Tree(TreeType):
         scroll_throttle_job = None
         self.render_list.clear()
         self.render_layers.clear()
-        # self.surfaces.clear()
         hint_clear_state()
         self.render_cause.clear()
         self.last_base_snapshot = None
         self.last_decorator_snapshot = None
         state_manager.clear_tree(self)
-        # state_manager.clear_all()
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
@@ -1351,29 +1350,12 @@ class Tree(TreeType):
     def move_blockable_canvas_rects(self, blockable_rects, offset=Point2d):
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
-                # self.canvas_blockable[i].resume()
-                # offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
                 x = rect.x + offset.x
                 y = rect.y + offset.y
                 self.canvas_blockable[i].move(x, y)
-                # self.canvas_blockable[i].pause()
-                # self.canvas_blockable[i].freeze()
         self.last_blockable_rects.clear()
         self.last_blockable_rects.extend(blockable_rects)
-
-    # def move_existing_blockable_canvas_rects(self, offset=Point2d):
-    #     if self.canvas_blockable:
-    #         for canvas_wrapper in self.canvas_blockable:
-    #             canvas = canvas_wrapper.canvas
-    #             print('canvas', canvas)
-    #             print('canvas.rect', canvas.rect)
-                # print('rect', canvas.rect)
-                # rect = canvas.rect
-                # offset = state_manager.get_mousedown_start_offset()
-                # x = rect.x + offset.x
-                # y = rect.y + offset.y
-                # canvas.move(x, y)
 
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \

@@ -8,6 +8,7 @@ from .box_model import (
     parse_box_model
 )
 from .interfaces import (
+    PropertiesType,
     PropertiesDimensionalType,
     Border,
     Margin,
@@ -26,7 +27,7 @@ from .constants import (
 )
 from .utils import hex_color
 
-class Properties(PropertiesDimensionalType):
+class Properties(PropertiesDimensionalType, PropertiesType):
     """
     These are base properties and not all inclusive.
     Other property classes inherit from this class.
@@ -165,6 +166,16 @@ class Properties(PropertiesDimensionalType):
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
         self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'))
+
+    def inherit_kwarg_properties(self, kwargs: dict):
+        """Inherit properties from kwargs dictionary."""
+        for key, value in kwargs.items():
+            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
+                value = hex_color(value)
+            if key in ["padding", "margin", "border"]:
+                value = parse_box_model(type(getattr(self, key)), **value)
+            setattr(self, key, value)
+            self._explicitly_set.add(key)
 
     def inherit_explicit_properties(self, properties: 'Properties'):
         """Inherit properties from another Properties object."""

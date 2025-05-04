@@ -39,6 +39,7 @@ from .properties import (
 from .icons import icon
 from .interfaces import Effect
 from .ref import Ref
+from .style import Style
 
 def screen(*args, **additional_props):
     """
@@ -152,6 +153,12 @@ def get_state(key: str, initial_state: Any = None):
 def set_state(key: str, value: Any):
     _, set_value = state_manager.set_state_value(key, value)
     return set_value
+
+def style(style_dict: dict[str, Any]):
+    context = state_manager.get_processing_component() \
+        or state_manager.get_processing_tree()
+    if context:
+        context.style = Style(style_dict)
 
 def use_effect_without_tree(callback, arg2, arg3=None):
     dependencies: list[str] = []
@@ -364,17 +371,18 @@ element_collection: Dict[str, callable] = {
     'button': button,
     'component': Component,
     'div': div,
+    'effect': effect,
     'icon': icon,
     'input_text': input_text,
+    'ref': ref,
     'screen': screen,
+    'state': state,
+    'style': style,
     'table': table,
     'td': td,
+    'text': text,
     'th': th,
     'tr': tr,
-    'text': text,
-    'state': state,
-    'ref': ref,
-    'effect': effect,
     'window': window
 }
 

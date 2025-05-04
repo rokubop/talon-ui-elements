@@ -1,6 +1,12 @@
 from talon import Context, cron
-from typing import Callable
-from ..interfaces import NodeType, ReactiveStateType, TreeType, Effect
+from typing import Callable, Optional
+from ..interfaces import (
+    Effect,
+    NodeType,
+    ReactiveStateType,
+    StyleType,
+    TreeType,
+)
 from .store import store
 import gc
 
@@ -191,6 +197,12 @@ class StateManager:
     def set_processing_tree(self, tree: TreeType):
         store.processing_tree = tree
 
+    def get_processing_style(self) -> StyleType:
+        context = state_manager.get_processing_component() \
+            or state_manager.get_processing_tree()
+        if context and getattr(context, 'style', None):
+            return context.style
+
     def get_processing_tree(self) -> TreeType:
         return store.processing_tree
 
@@ -199,6 +211,11 @@ class StateManager:
 
     def get_processing_components(self):
         return store.processing_components
+
+    def get_processing_component(self):
+        if store.processing_components:
+            return store.processing_components[-1]
+        return None
 
     def remove_processing_component(self, component):
         store.processing_components.remove(component)

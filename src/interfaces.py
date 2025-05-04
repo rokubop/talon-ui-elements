@@ -62,6 +62,39 @@ class PropertiesDimensionalType(ABC):
     position: str
     width: Union[int, str]
 
+class PropertiesType(ABC):
+    @abstractmethod
+    def inherit_kwarg_properties(self, kwargs: dict[str, Any]):
+        pass
+
+    @abstractmethod
+    def inherit_explicit_properties(self, properties: 'PropertiesType'):
+        pass
+
+    @abstractmethod
+    def update_colors_with_opacity(self):
+        pass
+
+    @abstractmethod
+    def update_property(self, key: str, value: Any):
+        pass
+
+    @abstractmethod
+    def update_overrides(self, overrides: dict[str, Any]):
+        pass
+
+    @abstractmethod
+    def is_user_set(self, key: str) -> bool:
+        pass
+
+    @abstractmethod
+    def is_scrollable(self) -> bool:
+        pass
+
+    @abstractmethod
+    def gc(self):
+        pass
+
 class CursorType:
     x: int
     y: int
@@ -389,8 +422,8 @@ class BoxModelV2Type(ABC):
         pass
 
 class NodeType(ABC):
-    properties: object
-    cascaded_properties: object
+    properties: PropertiesType
+    cascaded_properties: set[str]
     guid: str
     id: str
     key: str
@@ -483,7 +516,7 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
-    def __init__(self, element_type: ElementEnumType, properties: object):
+    def __init__(self, element_type: ElementEnumType, properties: PropertiesType):
         pass
 
     def get_children_nodes(self) -> List['NodeType']:
@@ -761,7 +794,7 @@ class NodeComponentType(ABC):
     element_type: ElementEnumType
     guid: str
     func: Callable
-    properties: object
+    properties: PropertiesType
     inner_node: NodeType
     is_initialized: bool
     children_nodes: List[NodeType]
@@ -785,3 +818,16 @@ class NodeComponentType(ABC):
 class ClickEvent:
     id: str
     cause: str = "click"
+
+class StyleType(ABC):
+    tags: dict[str, dict]
+    ids: dict[str, dict]
+    classes: dict[str, dict]
+
+    @abstractmethod
+    def apply(self, style_dict: dict):
+        pass
+
+    @abstractmethod
+    def get(self, node: NodeType) -> dict:
+        pass

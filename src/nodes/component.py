@@ -2,43 +2,12 @@ import inspect
 import weakref
 from typing import List
 from ..core.state_manager import state_manager
+from ..style import Style
 from ..interfaces import NodeType, TreeType, ComponentType
-
-# ComponentTree
-  # has renderer
-  # has props
-  # has ref to portal
-# ComponentPortal
-  # has initiator
-    # initiator will check store for the component
-    # it will never create a new one if it exists
-  # has def render
-    # returns one portal node
-    # needs to check if ComponentTree is init
-      # init only if the component is not already initialized
-    # needs to check if component layout is dirty from...
-      # store?
-      # tree?
-      # probably the tree meta state
-        # components
-          # dirty layout
-          # id
-      # how do you negotiate intrinsic, grow, constrain between portal and tree?
-        # intrinsic = easy
-        # grow... imagine no width provided. parent is 500.
-          # does the portal have the same props as the root node of the tree?
-        # constrain - what if component is larger than portal allows?
-        # probably too bad. component renders on top, and will just show.
-  # has consistent id
-# store has components
-
-# the node is component portal
-# ugh. what about scrolling.
 
 class Component(ComponentType):
     """
-    Think about components like an interface to interact
-    with a subtree.
+    Has it's own renderer for containing rerenders, state, and styles.
     """
     def __init__(self, renderer: callable, props: dict = None):
         if not callable(renderer):
@@ -53,6 +22,7 @@ class Component(ComponentType):
         self.renderer = renderer
         self.name = renderer.__name__
         self.props = props or {}
+        self.style: Style = None
         self._parent_node: weakref.ReferenceType[NodeType] = None
         self._children_nodes: List[weakref.ReferenceType[NodeType]] = []
         self._tree: weakref.ReferenceType[TreeType] = weakref.ref(tree)
