@@ -390,5 +390,4 @@ class Node(NodeType):
     def inherit_processing_style(self):
         if style := state_manager.get_processing_style():
             if new_properties := style.get(self):
-                print("new_properties", new_properties)
                 self.properties.inherit_kwarg_properties(new_properties)

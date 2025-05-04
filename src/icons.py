@@ -3,7 +3,6 @@ from .constants import ELEMENT_ENUM_TYPE
 from .properties import validate_combined_props
 
 # https://iconsvg.xyz/ used for references
-
 ICON_SVG_PATH_ONLY = {
     "arrow_down": "M12 5v13M5 12l7 7 7-7",
     "arrow_left": "M19 12H6M12 5l-7 7 7 7",
@@ -14,6 +13,8 @@ ICON_SVG_PATH_ONLY = {
     "chevron_right": "M 9 6 L 15 12 L 9 18",
     "chevron_up": "M 6 15 L 12 9 L 18 15",
     "close": "M 6 6 L 18 18 M 18 6 L 6 18",
+    # "delta": "M12 2l10 18H2z",
+    "delta": "M3 20h18L12 4z",
     "download": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5",
     "edit": "M 16 3 L 21 8 L 8 21 L 3 21 L 3 16 L 16 3",
     "external_link": "M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8c0-1.1.9-2 2-2h5M15 3h6v6M10 14L20.2 3.8",

@@ -86,12 +86,19 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         if not self.highlight_color:
             self.highlight_color = f"{self.color}33"
 
+        self.validate_properties(kwargs)
+        self.update_colors_with_opacity()
+        self.init_box_model_properties(kwargs)
+
+    def validate_justify_content(self):
         if self.justify_content:
             if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center', 'space_evenly']:
                 raise ValueError(
                     f"\nInvalid value for justify_content: '{self.justify_content}'\n"
                     f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'space_evenly', 'center'"
                 )
+
+    def validate_align_items(self):
         if self.align_items:
             if self.align_items not in ['stretch', 'center', 'flex_start', 'flex_end']:
                 raise ValueError(
@@ -99,6 +106,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
                 )
 
+    def validate_drop_shadow(self):
         if self.drop_shadow:
             if not isinstance(self.drop_shadow, tuple):
                 raise ValueError(
@@ -126,6 +134,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     f"Use a string for the 'color' value: drop_shadow=(x_offset, y_offset, blur_x, blur_y, color)"
                 )
 
+    def validate_position_constraints(self, kwargs):
         if kwargs.get('position'):
             if self.position not in ['absolute', 'relative', 'fixed', 'static']:
                 raise ValueError(
@@ -160,8 +169,13 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )
 
-        self.update_colors_with_opacity()
+    def validate_properties(self, kwargs):
+        self.validate_justify_content()
+        self.validate_align_items()
+        self.validate_drop_shadow()
+        self.validate_position_constraints(kwargs)
 
+    def init_box_model_properties(self, kwargs):
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
@@ -169,13 +183,27 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def inherit_kwarg_properties(self, kwargs: dict):
         """Inherit properties from kwargs dictionary."""
+        update_padding = False
+        update_margin = False
+        update_border = False
+
         for key, value in kwargs.items():
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value)
-            if key in ["padding", "margin", "border"]:
-                value = parse_box_model(type(getattr(self, key)), **value)
+            update_padding = 'padding' in key or update_padding
+            update_margin = 'margin' in key or update_margin
+            update_border = 'border' in key or update_border
             setattr(self, key, value)
             self._explicitly_set.add(key)
+
+        if update_padding:
+            self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
+        if update_margin:
+            self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
+        if update_border:
+            self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
+
+        self.validate_properties(kwargs)
 
     def inherit_explicit_properties(self, properties: 'Properties'):
         """Inherit properties from another Properties object."""
