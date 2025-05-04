@@ -26,22 +26,6 @@ from ..interfaces import (
 from ..properties import Properties
 from ..utils import sanitize_string
 
-#   14:                       user\talon-ui-elements\src\elements.py:303 | return self.func(*args, **kwargs)
-#    13:                                                                                   ^^^^^^^^^^^^^^^^^^
-#    12:                       user\talon-ui-elements\src\elements.py:245 | return NodeTableHeader(table_header_pr..
-#    11:                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#    10:               user\talon-ui-elements\src\nodes\node_table.py:94  | super().__init__(element_type="th", pr..
-#     9:                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#     8:           user\talon-ui-elements\src\nodes\node_container.py:14  | super().__init__(element_type=element_..
-#     7:                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#     6:                     user\talon-ui-elements\src\nodes\node.py:54  | self.inherit_processing_style()
-#     5:                                                                            ^^^^^^^^^^^^^^^^^^^^^^^
-#     4:                     user\talon-ui-elements\src\nodes\node.py:378 | self.properties.inherit_kwarg_properti..
-#     3:                                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#     2:                     user\talon-ui-elements\src\properties.py:176 | value = parse_box_model(type(getattr(self, key)), **value)
-#     1:                                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# TypeError: user.talon-ui-elements.src.box_model.parse_box_model() argument after ** must be a mapping, not int
-
 class Node(NodeType):
     def __init__(self,
             element_type: ElementEnumType,

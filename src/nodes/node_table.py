@@ -1,5 +1,10 @@
+import weakref
 from talon import actions
+from talon.skia.canvas import Canvas as SkiaCanvas
+from typing import Optional
 from .node_container import NodeContainer
+from ..box_model import BoxModelV2
+from ..interfaces import Size2d
 from ..properties import Properties
 
 class NodeTable(NodeContainer):
@@ -8,6 +13,8 @@ class NodeTable(NodeContainer):
         self.rows = []
         self.columns = []
         self.column_layout_children_nodes = []
+        self.row_heights = []
+        self.col_widths = []
 
     def __getitem__(self, children_nodes=None):
         super().__getitem__(children_nodes)
@@ -30,6 +37,12 @@ class NodeTable(NodeContainer):
         if len(set(len(row) for row in self.rows)) > 1:
             self.add_missing_cells()
 
+        for r, row in enumerate(self.rows):
+            for i, td_node in enumerate(row):
+                td_node._table_node = weakref.ref(self)
+                td_node.row_index = r
+                td_node.column_index = i
+
         self.create_column_layout()
 
     def add_missing_cells(self):
@@ -46,28 +59,40 @@ class NodeTable(NodeContainer):
                     tr_node.add_child(empty_cell)
                     row.append(empty_cell)
 
-        # print("len(self.rows)", len(self.rows))
-        # print("len(self.rows[0])", len(self.rows[0]))
-        # print("len(self.rows[1])", len(self.rows[1]))
-        # print("len(self.rows[2])", len(self.rows[2]))
-        # print("len(self.children_nodes)", len(self.children_nodes))
-
     def get_children_nodes(self):
         return self.column_layout_children_nodes
 
     def create_column_layout(self):
         if self.rows:
-            columns = list(map(list, zip(*self.rows)))
+            self.columns = list(map(list, zip(*self.rows)))
         else:
-            columns = []
+            self.columns = []
 
         div = actions.user.ui_elements(["div"])
         self.column_layout_children_nodes = [
             div()[
                 *column
             ]
-            for column in columns
+            for column in self.columns
         ]
+
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        self.row_heights = [0] * len(self.rows)
+        col_count = max(len(row) for row in self.rows)
+        self.col_widths = [0] * col_count
+
+        measured_sizes = {}
+
+        for row_index, row in enumerate(self.rows):
+            for col_index, td_node in enumerate(row):
+                if td_node not in measured_sizes:
+                    measured_sizes[td_node] = td_node.v2_measure_children_intrinsic_size(c)
+
+                size = measured_sizes[td_node]
+                self.row_heights[row_index] = max(self.row_heights[row_index], getattr(size, 'height'))
+                self.col_widths[col_index] = max(self.col_widths[col_index], getattr(size, 'width'))
+
+        return super().v2_measure_intrinsic_size(c)
 
     def check_invalid_child(self, c):
         super().check_invalid_child(c)
@@ -95,4 +120,26 @@ class NodeTableHeader(NodeContainer):
 
 class NodeTableData(NodeContainer):
     def __init__(self, properties: Properties = None):
+        self._table_node: Optional[weakref.ReferenceType[NodeTable]] = None
+        self.column_index = None
+        self.row_index = None
         super().__init__(element_type="td", properties=properties)
+
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        table_node = self._table_node()
+        width = table_node.col_widths[self.column_index] if table_node else 0
+        height = table_node.row_heights[self.row_index] if table_node else 0
+
+        self.box_model = BoxModelV2(
+            self.properties,
+            Size2d(width, height),
+            self.clip_nodes,
+            self.relative_positional_node
+        )
+
+        return self.box_model.intrinsic_margin_size_with_bounding_constraints
+
+    def destroy(self):
+        if self._table_node is not None:
+            self._table_node = None
+        super().destroy()

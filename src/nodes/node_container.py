@@ -26,11 +26,7 @@ class NodeContainer(Node, NodeContainerType):
             c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
             c.draw_rect(self.box_model.scroll_bar_thumb_rect)
 
-    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        """
-        First step in the layout process. Calculates the intrinsic size.
-        Determines natural width/height based on content or user-defined size.
-        """
+    def v2_measure_children_intrinsic_size(self, c: SkiaCanvas) -> Size2d:
         children_accumulated_size = Size2d(0, 0)
         is_row = self.properties.flex_direction == "row"
         primary_axis = "width" if is_row else "height"
@@ -67,6 +63,15 @@ class NodeContainer(Node, NodeContainerType):
                         primary_axis,
                         getattr(children_accumulated_size, primary_axis) + gap
                     )
+
+        return children_accumulated_size
+
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        """
+        First step in the layout process. Calculates the intrinsic size.
+        Determines natural width/height based on content or user-defined size.
+        """
+        children_accumulated_size = self.v2_measure_children_intrinsic_size(c)
 
         self.box_model = BoxModelV2(
             self.properties,

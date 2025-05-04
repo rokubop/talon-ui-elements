@@ -84,6 +84,8 @@ class StateCoordinator:
             self.batch_job = None
 
         if self.phase == self.PHASE_REQUEST_RENDER:
+            # adding this line caused it to work
+            # print("request_tree_renders PHASE_REQUEST_RENDER")
             trees = state_manager.get_trees_for_state_keys(self.current_state_keys)
             for tree in trees:
                 if tree.guid not in self.pending_tree_renders:

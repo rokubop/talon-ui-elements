@@ -188,6 +188,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         update_border = False
 
         for key, value in kwargs.items():
+            if key in self._explicitly_set:
+                continue
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value)
             update_padding = 'padding' in key or update_padding

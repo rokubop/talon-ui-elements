@@ -41,6 +41,7 @@ def test_module(cls):
 def it(test_name, expect, actual):
     global success, failure, total
     total += 1
+    print("it", test_name, expect, actual)
     if expect == actual:
         success += 1
         log_success(test_name)
@@ -84,10 +85,13 @@ spy = Spy
 def log(message: str, color: str = "FFFFFF"):
     text = actions.user.ui_elements(["text"])
     result = text(message, font_size=14, color=color)
+    print("log", message, color)
     actions.user.ui_elements_set_state("log", lambda log: log + [result])
 
 def log_success(message: str):
     div, text, icon = actions.user.ui_elements(["div", "text", "icon"])
+
+    print("log_success", message)
 
     result = div(flex_direction="row", gap=8, align_items="center")[
         icon("check", color="00FF00", size=14, stroke_width=6),
@@ -98,6 +102,8 @@ def log_success(message: str):
 
 def log_failure(message: str):
     div, text, icon = actions.user.ui_elements(["div", "text", "icon"])
+
+    print("log_failure", message)
 
     result = div(flex_direction="row", gap=8, align_items="center")[
         icon("close", color="ff0000", size=14, stroke_width=6),

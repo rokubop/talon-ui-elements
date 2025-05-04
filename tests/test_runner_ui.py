@@ -42,6 +42,8 @@ def runner_ui():
     screen, window, div, state = actions.user.ui_elements(["screen", "window", "div", "state"])
     log = state.get("log", [])
 
+    print("whats the log", log)
+
     # TODO: top and left not working
     return screen()[
         window(title="ui_elements test runner", min_width=400, min_height=300, margin_left=100, margin_top=100)[

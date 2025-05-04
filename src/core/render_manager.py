@@ -284,9 +284,11 @@ class RenderManager(RenderManagerType):
         self._render_throttle("16ms", RenderTaskScrolling)
 
     def render_state_change(self):
+        print("IM QUEUEING A STATE CHANGE")
         self.queue_render(RenderStateChange)
 
     def schedule_state_change(self, on_start: callable, on_end: callable = None):
+        print("SCHEDULING STATE CHANGE")
         self.queue_render(RenderTask(
             RenderCause.STATE_CHANGE,
             on_start,
