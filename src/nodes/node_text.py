@@ -133,7 +133,9 @@ class NodeText(Node):
         paint = Paint()
         paint.textsize = self.properties.font_size
         if self.properties.font_family:
-            paint.typeface = get_typeface(self.properties.font_family)
+            typeface = get_typeface(self.properties.font_family)
+            if typeface:
+                paint.typeface = typeface
 
         paint.font.embolden = True if self.properties.font_weight == "bold" else False
 

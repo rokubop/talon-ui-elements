@@ -25,6 +25,8 @@ class NodeWindow(NodeContainer):
                 border_radius=properties.border_radius,
                 border_width=properties.border_width,
                 border_color=properties.border_color,
+                # TODO: fix close when minimized
+                # on_close=properties.on_close,
             )
         else:
             window_properties.position = "static"

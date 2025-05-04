@@ -6,7 +6,7 @@ import platform
 import re
 from dataclasses import dataclass
 from talon import ui
-from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.canvas import Canvas as SkiaCanvas, Paint
 from talon.skia.typeface import Typeface
 from talon.screen import Screen
 from talon.types import Rect
@@ -29,14 +29,16 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     return None
 
 def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
-    c.paint.style = c.paint.Style.FILL
-    c.paint.stroke_width = 0
-    c.paint.color = properties.color
-    c.paint.textsize = properties.font_size
+    paint = Paint()
+    paint.color = properties.color
+    paint.textsize = properties.font_size
     if properties.font_family:
-        c.paint.typeface = get_typeface(properties.font_family, properties.font_weight)
-    c.paint.font.embolden = True if properties.font_weight == "bold" else False
-    c.draw_text(str(text), x, y)
+        typeface = get_typeface(properties.font_family, properties.font_weight)
+        if typeface:
+            paint.typeface = typeface
+    if properties.font_weight == "bold":
+        paint.font.embolden = True
+    c.draw_text(str(text), x, y, paint)
 
 def get_screen(index: int = None) -> Screen:
     return ui.main_screen() if index is None else ui.screens()[index]
@@ -174,9 +176,15 @@ weight_keywords = {
     "black": ["black"],
 }
 
+font_aliases = {
+    "consolas": ["consola", "consolas"],
+    "menlo": ["menlo"],
+    "courier new": ["cour", "courier"],
+}
+
 def find_installed_font(font_family: str, font_weight: str = None) -> str | None:
     system = platform.system()
-    font_family = font_family.lower()
+    font_family_key = font_family.lower()
     font_weight = font_weight.lower() if font_weight else None
     search_dirs = []
 
@@ -198,6 +206,7 @@ def find_installed_font(font_family: str, font_weight: str = None) -> str | None
             os.path.expanduser("~/.local/share/fonts"),
         ]
 
+    aliases = font_aliases.get(font_family_key, [font_family_key])
     candidates = []
 
     for dir_path in search_dirs:
@@ -205,7 +214,7 @@ def find_installed_font(font_family: str, font_weight: str = None) -> str | None
             continue
         for file_name in os.listdir(dir_path):
             lower = file_name.lower()
-            if font_family in lower and (lower.endswith(".ttf") or lower.endswith(".otf")):
+            if any(alias in lower for alias in aliases) and lower.endswith((".ttf", ".otf", ".ttc")):
                 candidates.append((file_name, os.path.join(dir_path, file_name)))
 
     # Prefer exact matches
@@ -221,5 +230,3 @@ def find_installed_font(font_family: str, font_weight: str = None) -> str | None
             return path
 
     return candidates[0][1] if candidates else None
-
-    return None
