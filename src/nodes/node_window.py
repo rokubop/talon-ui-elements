@@ -51,10 +51,10 @@ class NodeWindow(NodeContainer):
             return div(background_color="272727", flex_direction="row", justify_content="space_between", align_items="center")[
                 text(properties.title or "", padding=8, padding_left=10),
                 div(flex_direction="row")[
-                    button(on_click=on_minimize, padding=8)[
+                    button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12)[
                         icon("minimize", stroke_width=1, size=20),
                     ],
-                    button(on_click=on_close, padding=8)[
+                    button(on_click=on_close, padding=8, padding_left=12, padding_right=12)[
                         icon("close", stroke_width=1, size=20),
                     ],
                 ],

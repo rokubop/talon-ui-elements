@@ -218,10 +218,12 @@ class BoxModelV2(BoxModelV2Type):
     def intrinsic_margin_size_with_bounding_constraints(self):
         width = self.intrinsic_margin_size.width
         max_width = self.width or self.max_width
+        max_width = max_width + self.margin_spacing.left + self.margin_spacing.right if max_width is not None else None
         if max_width and max_width < width:
             width = max_width
         height = self.intrinsic_margin_size.height
         max_height = self.height or self.max_height
+        max_height = max_height + self.margin_spacing.top + self.margin_spacing.bottom if max_height is not None else None
         if max_height and max_height < height:
             height = max_height
         return Size2d(width, height)

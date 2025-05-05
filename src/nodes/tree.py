@@ -516,7 +516,8 @@ class Tree(TreeType):
             self.draw_highlights(draw_canvas, offset)
             self.draw_text_mutations(draw_canvas, offset)
             if self.interactive_node_list or self.draggable_node:
-                self.draw_focus_outline(draw_canvas, offset)
+                if state_manager.is_focus_visible():
+                    self.draw_focus_outline(draw_canvas, offset)
                 if self.show_hints:
                     if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
                         self.move_snapshot(self.last_decorator_snapshot, canvas)
@@ -642,6 +643,11 @@ class Tree(TreeType):
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
             self.canvas_decorator.freeze()
+
+    def highlight_forced(self, id: str, color: str = None):
+        self.render_cause.highlight_change()
+        self.meta_state.set_highlighted(id, color)
+        self.canvas_decorator.freeze()
 
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
@@ -983,15 +989,15 @@ class Tree(TreeType):
             if node:
                 state_manager.set_mousedown_start_id(hovered_id)
                 active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
-                state_manager.focus_node(node)
-                self.highlight(hovered_id, color=active_color)
+                state_manager.focus_node(node, visible=False)
+                self.highlight_forced(hovered_id, color=active_color)
                 return
 
         input_id = self.get_mouse_hovered_input_id(gpos)
         if input_id:
             node = self.meta_state.id_to_node.get(input_id)
             if node:
-                state_manager.focus_node(node)
+                state_manager.focus_node(node, visible=False)
                 return
 
         if self.root_node.box_model:
@@ -1011,8 +1017,6 @@ class Tree(TreeType):
         self.meta_state.commit_drag_offset(self.draggable_node.id)
         state_manager.set_drag_active(False)
 
-    # def on_drag_mouseup_cleanup(self, e):
-
     def on_mouseup(self, gpos):
         try:
             hovered_id = state_manager.get_hovered_id()
@@ -1020,7 +1024,7 @@ class Tree(TreeType):
             if mousedown_start_id and hovered_id == mousedown_start_id:
                 node = self.meta_state.id_to_node.get(mousedown_start_id)
                 if node:
-                    self.highlight(mousedown_start_id, color=node.properties.highlight_color)
+                    self.highlight_forced(mousedown_start_id, color=node.properties.highlight_color)
                     if not state_manager.is_drag_active():
                         self.click_node(node)
 

@@ -320,6 +320,9 @@ class StateManager:
     def is_focused(self, id):
         return store.focused_id == id
 
+    def is_focus_visible(self):
+        return store.focused_visible
+
     def get_focused_node(self):
         if store.focused_id:
             return store.id_to_node.get(store.focused_id)
@@ -383,13 +386,14 @@ class StateManager:
             node.input.hide()
             node.input.show()
 
-    def focus_node(self, node: NodeType):
+    def focus_node(self, node: NodeType, visible=True):
         blur_tree = None
         if node.tree != store.focused_tree:
             blur_tree = store.focused_tree
 
         store.focused_id = node.id
         store.focused_tree = node.tree
+        store.focused_visible = visible
 
         if node.element_type == "input_text":
             self.focus_input(node.id)

@@ -50,7 +50,8 @@ class Node(NodeType):
         self.participates_in_layout: bool = self.properties.position not in ("absolute", "fixed")
         self.box_model: BoxModelV2 = None
         self.node_index_path: list[int] = []
-        self.inherit_processing_style()
+        if self.node_type != "root":
+            self.inherit_processing_style()
         self.add_properties_to_cascade(properties)
 
         # Use weakref to avoid circular references

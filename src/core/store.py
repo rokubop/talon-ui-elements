@@ -19,6 +19,7 @@ class Store():
         self.trees: list[TreeType] = []
         self.focused_id: Optional[str] = None
         self.focused_tree: Optional[TreeType] = None
+        self.focused_visible: Optional[bool] = None
         self.processing_tree: Optional[TreeType] = None
         self.processing_components: list[NodeType] = []
         self.processing_states: list[str] = []
@@ -58,6 +59,7 @@ class Store():
         self.trees = []
         self.focused_id = None
         self.focused_tree = None
+        self.focused_visible = None
         self.processing_tree = None
         self.processing_components = []
         self.processing_states = []
