@@ -367,7 +367,7 @@ class Tree(TreeType):
         self.is_mounted = False
         self.last_blockable_rects = []
         self.last_base_snapshot = None
-        self.last_decorator_snapshot = None
+        self.last_hints_snapshot = None
         self.lock = threading.Lock()
         self.meta_state = MetaState()
         self.name = tree_constructor.__name__
@@ -520,23 +520,23 @@ class Tree(TreeType):
                     self.draw_focus_outline(draw_canvas, offset)
                 if self.show_hints:
                     if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
-                        self.move_snapshot(self.last_decorator_snapshot, canvas)
+                        self.move_snapshot(self.last_hints_snapshot, canvas)
                     elif self.render_manager.render_cause == RenderCause.STATE_CHANGE or \
                             self.render_manager.render_cause == RenderCause.DRAG_END or \
                             self.render_manager.render_cause == RenderCause.SCROLLING:
                         surface, draw_canvas = self.create_surface()
                         self.draw_hints(draw_canvas)
-                        self.last_decorator_snapshot = surface.snapshot()
+                        self.last_hints_snapshot = surface.snapshot()
                         canvas.paint.color = "FFFFFF"
                         canvas.draw_image(
-                            self.last_decorator_snapshot,
+                            self.last_hints_snapshot,
                             canvas.x,
                             canvas.y,
                         )
                     else:
                         canvas.paint.color = "FFFFFF"
                         canvas.draw_image(
-                            self.last_decorator_snapshot,
+                            self.last_hints_snapshot,
                             canvas.x,
                             canvas.y
                         )
@@ -1171,7 +1171,7 @@ class Tree(TreeType):
         hint_clear_state()
         self.render_cause.clear()
         self.last_base_snapshot = None
-        self.last_decorator_snapshot = None
+        self.last_hints_snapshot = None
         state_manager.clear_tree(self)
 
     def _assign_dragging_node_and_handle(self, node: NodeType):

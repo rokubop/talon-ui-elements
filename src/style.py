@@ -21,7 +21,6 @@ class Style(StyleType):
                 self.tags[selector] = props
 
     def get(self, node) -> dict:
-        # Resolves the matching style for a given node
         result = {}
         if self.universal:
             result.update(self.universal)
@@ -31,5 +30,4 @@ class Style(StyleType):
             result.update(self.ids[node.id])
         if node.class_name and node.class_name in self.classes:
             result.update(self.classes[node.class_name])
-        # print("result", result)
         return result
