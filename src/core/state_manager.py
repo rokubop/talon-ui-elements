@@ -25,7 +25,6 @@ class StateCoordinator:
         self.batch_job = None
 
     def finish_cycle(self, tree: TreeType):
-        # print("finish_cycle")
         if self.locked:
             self.current_state_keys.clear()
             self.locked = False
@@ -45,9 +44,7 @@ class StateCoordinator:
                     self.request_state_change(key)
 
     def flush_state(self):
-        # print("flush_state")
         for key in self.current_state_keys:
-            # print(f"flush_state: {key}")
             store.reactive_state[key].activate_next_state_value()
 
     def on_tree_render_start(self):
@@ -65,7 +62,6 @@ class StateCoordinator:
 
     def on_tree_render_end(self):
         def on_end(e):
-            # print("on_end")
             self.pending_tree_renders.remove(e.tree.guid)
 
             if not self.pending_tree_renders:
