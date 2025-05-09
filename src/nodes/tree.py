@@ -184,9 +184,7 @@ class MetaState(MetaStateType):
         self._last_drag_offset[id] = offset
 
     def commit_drag_offset(self, id: str):
-        # print('commit_drag_offset', id, self._draggable_offset[id], self._last_drag_offset[id])
         self._draggable_offset[id] += self._last_drag_offset[id]
-        # print('new offset', self._draggable_offset[id])
         self._last_drag_offset[id] = Point2d(0, 0)
 
     def get_accumulated_drag_offset(self, id):
@@ -354,6 +352,7 @@ class Tree(TreeType):
         self.cursor = None
         self.cursor_v2 = None
         self.effects = []
+        self.drag_end_phase = False
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
@@ -505,15 +504,12 @@ class Tree(TreeType):
         if not self.render_manager.is_destroying:
             draw_canvas = canvas
             surface = None
-            # offset = Point2d(0, 0)
             offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
                 if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
                 else Point2d(0, 0)
-                # if self.draggable_node else Point2d(0, 0)
-            # print('decorator offset', offset)
             state_manager.set_processing_tree(self)
-            # print("on_draw_decorator_canvas", self.render_manager.render_cause)
             self.draw_highlights(draw_canvas, offset)
+            canvas.paint.color = "FFFFFF"
             self.draw_text_mutations(draw_canvas, offset)
             if self.interactive_node_list or self.draggable_node:
                 if state_manager.is_focus_visible():
@@ -523,18 +519,18 @@ class Tree(TreeType):
                         self.move_snapshot(self.last_hints_snapshot, canvas)
                     elif self.render_manager.render_cause == RenderCause.STATE_CHANGE or \
                             self.render_manager.render_cause == RenderCause.DRAG_END or \
-                            self.render_manager.render_cause == RenderCause.SCROLLING:
+                            self.render_manager.render_cause == RenderCause.SCROLLING or \
+                            self.drag_end_phase:
                         surface, draw_canvas = self.create_surface()
                         self.draw_hints(draw_canvas)
                         self.last_hints_snapshot = surface.snapshot()
-                        canvas.paint.color = "FFFFFF"
                         canvas.draw_image(
                             self.last_hints_snapshot,
                             canvas.x,
                             canvas.y,
                         )
+                        self.drag_end_phase = False
                     else:
-                        canvas.paint.color = "FFFFFF"
                         canvas.draw_image(
                             self.last_hints_snapshot,
                             canvas.x,
@@ -582,7 +578,7 @@ class Tree(TreeType):
 
             if dragging:
                 self.on_draw_base_canvas_dragging(canvas)
-            elif self.render_manager.is_drag_end():
+            elif self.is_drag_end():
                 self.on_draw_base_canvas_drag_end(canvas)
             elif self.render_manager.is_scrolling():
                 self.on_draw_base_canvas_scroll(canvas)
@@ -649,6 +645,11 @@ class Tree(TreeType):
         self.meta_state.set_highlighted(id, color)
         self.canvas_decorator.freeze()
 
+    def highlight_no_render(self, id: str, color: str = None):
+        if id in self.meta_state.highlighted:
+            return
+        self.meta_state.set_highlighted(id, color)
+
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
             return
@@ -656,6 +657,14 @@ class Tree(TreeType):
         self.render_cause.highlight_change()
         self.meta_state.set_highlighted(id, color)
         self.canvas_decorator.freeze()
+
+    def unhighlight_no_render(self, id: str):
+        if id in self.meta_state.highlighted:
+            self.meta_state.set_unhighlighted(id)
+
+            job = self.meta_state.unhighlight_jobs.pop(id, None)
+            if job:
+                cron.cancel(job[0])
 
     def unhighlight(self, id: str):
         if id in self.meta_state.highlighted:
@@ -888,6 +897,7 @@ class Tree(TreeType):
     def on_hover(self, gpos):
         try:
             if not state_manager.is_drag_active():
+                changed = False
                 new_hovered_id = None
                 prev_hovered_id = state_manager.get_hovered_id()
                 for button_id in list(self.meta_state.buttons):
@@ -900,13 +910,17 @@ class Tree(TreeType):
                             new_hovered_id = button_id
                             if new_hovered_id != prev_hovered_id:
                                 state_manager.set_hovered_id(button_id)
-                                self.unhighlight(prev_hovered_id)
-                                self.highlight(button_id, color=node.properties.highlight_color)
+                                changed = True
+                                self.unhighlight_no_render(prev_hovered_id)
+                                self.highlight_no_render(button_id, color=node.properties.highlight_color)
                             break
 
                 if not new_hovered_id and prev_hovered_id:
-                    self.unhighlight(prev_hovered_id)
+                    self.unhighlight_no_render(prev_hovered_id)
+                    changed = True
                     state_manager.set_hovered_id(None)
+                if changed:
+                    self.render_manager.render_mouse_highlight()
         except Exception as e:
             print(f"talon_ui_elements on_hover error: {e}")
 
@@ -917,8 +931,7 @@ class Tree(TreeType):
         return None
 
     def on_mousemove(self, gpos):
-        current_render_task = self.render_manager.current_render_task
-        if current_render_task and current_render_task.cause == RenderCause.DRAG_END:
+        if self.is_drag_end():
             return
         # drag_relative_offset = state_manager.get_drag_relative_offset()
         start_pos = state_manager.get_mousedown_start_pos()
@@ -939,6 +952,10 @@ class Tree(TreeType):
 
             if is_drag_start:
                 offset = state_manager.get_mousedown_start_offset()
+                hovered_id = state_manager.get_hovered_id()
+                if hovered_id:
+                    self.meta_state.set_unhighlighted(hovered_id)
+                    self.render_manager.render_mouse_highlight()
                 self.render_manager.render_drag_start(
                     mouse_pos=gpos,
                     mousedown_start_pos=state_manager.get_mousedown_start_pos(),
@@ -948,8 +965,6 @@ class Tree(TreeType):
                     self.draggable_node.id,
                     offset
                 )
-                # print(f"expect mousemove drag_start gpos to be 934 330: {gpos}")
-                # print(f"expect mousemove drag start relative_offset to be 79 62: {drag_relative_offset}")
                 return
 
         if state_manager.get_mousedown_start_pos() and state_manager.is_drag_active():
@@ -964,25 +979,17 @@ class Tree(TreeType):
                 self.draggable_node.id,
                 offset
             )
-            # print(f"expect mousemove drag gpos to be ~933 330: {gpos}")
-            # print(f"expect mousemove get_mousedown_start_offset to be 79 62: {state_manager.get_mousedown_start_offset()}")
 
     def on_mousedown(self, gpos):
         hovered_id = state_manager.get_hovered_id()
         state_manager.set_mousedown_start_pos(gpos)
-        # print("------------------------------------------")
-        # print(f"expect mousedown gpos to be 939 330 = {gpos}")
 
         if self.draggable_node and self.drag_handle_node:
-            # draggable_rect = self.draggable_node.box_model.margin_rect
-            # drag_handle_rect = self.drag_handle_node.box_model.border_rect
             draggable_top_left_pos = self.draggable_node.box_model.margin_pos
             drag_handle_rect = self.drag_handle_node.box_model.border_rect
-            # print(f"expect mousedown draggable_top_left_pos to be 860 268 = {draggable_top_left_pos}")
             if drag_handle_rect.contains(gpos):
                 relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
                 state_manager.set_drag_relative_offset(relative_offset)
-                # print(f"expect mousedown set_drag_relative_offset to be 79 62 = {relative_offset}")
 
         if hovered_id in list(self.meta_state.buttons):
             node = self.meta_state.id_to_node.get(hovered_id)
@@ -990,7 +997,8 @@ class Tree(TreeType):
                 state_manager.set_mousedown_start_id(hovered_id)
                 active_color = get_active_color_from_highlight_color(node.properties.highlight_color)
                 state_manager.focus_node(node, visible=False)
-                self.highlight_forced(hovered_id, color=active_color)
+                self.meta_state.set_highlighted(hovered_id, active_color)
+                self.render_manager.render_mouse_highlight()
                 return
 
         input_id = self.get_mouse_hovered_input_id(gpos)
@@ -1014,6 +1022,7 @@ class Tree(TreeType):
             node.on_click(ClickEvent(id=node.id))
 
     def on_drag_mouseup_begin(self, e):
+        self.drag_end_phase = True
         self.meta_state.commit_drag_offset(self.draggable_node.id)
         state_manager.set_drag_active(False)
 
@@ -1024,20 +1033,17 @@ class Tree(TreeType):
             if mousedown_start_id and hovered_id == mousedown_start_id:
                 node = self.meta_state.id_to_node.get(mousedown_start_id)
                 if node:
-                    self.highlight_forced(mousedown_start_id, color=node.properties.highlight_color)
+                    self.meta_state.set_highlighted(mousedown_start_id, node.properties.highlight_color)
                     if not state_manager.is_drag_active():
                         self.click_node(node)
 
             state_manager.set_mousedown_start_id(None)
 
             if self.draggable_node and self.drag_handle_node:
-                # state_manager.set_drag_relative_offset(None)
 
                 if state_manager.is_drag_active():
                     # move delay to render manager with proper queue
                     offset = state_manager.get_mousedown_start_offset()
-                    # id = state_manager.get_mousedown_start_id()
-                    # print(f"offset: {offset}, id: {id}")
                     self.meta_state.set_drag_offset(
                         self.draggable_node.id,
                         offset
@@ -1049,12 +1055,8 @@ class Tree(TreeType):
                         on_start=self.on_drag_mouseup_begin,
                         # on_end=self.on_drag_mouseup_cleanup
                     )
-                    # cron.after("17ms", self.render_manager.render_drag_end)
-
-                # state_manager.set_drag_active(False)
 
             state_manager.set_mousedown_start_pos(None)
-            # state_manager.set_mousedown_start_offset(Noine)
         except Exception as e:
             print(f"talon_ui_elements on_mouseup error: {e}")
 
@@ -1107,10 +1109,10 @@ class Tree(TreeType):
                 self.render_manager.render_scroll()
 
     def on_scroll(self, e):
-        # global scroll_throttle_job
-        # if not scroll_throttle_job:
         self.on_scroll_tick(e)
-            # scroll_throttle_job = cron.after(scroll_throttle_time, scroll_throttle_clear)
+
+    def is_drag_end(self):
+        return self.drag_end_phase or self.render_manager.is_drag_end()
 
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
@@ -1365,7 +1367,7 @@ class Tree(TreeType):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
             or self.render_manager.render_cause == RenderCause.DRAG_START \
             or self.render_manager.render_cause == RenderCause.DRAGGING \
-            or self.render_manager.render_cause == RenderCause.DRAG_END
+            or self.is_drag_end()
 
     def calculate_blockable_rects(self):
         """
@@ -1418,7 +1420,6 @@ class Tree(TreeType):
         if self.render_manager.render_cause == RenderCause.DRAGGING \
                 or self.render_manager.render_cause == RenderCause.DRAG_START:
             offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-            # offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
             self.move_blockable_canvas_rects(blockable_rects, offset)
             return
         elif self.render_manager.render_cause == RenderCause.DRAG_END:
@@ -1442,5 +1443,4 @@ class Tree(TreeType):
                 canvas.blocks_mouse = True
                 canvas.register("mouse", self.on_mouse)
                 canvas.register("scroll", self.on_scroll)
-                # canvas.register("draw", self.on_test_draw_blockable_canvas)
                 canvas.freeze()

@@ -15,6 +15,7 @@ class RenderCause(Enum):
     DRAGGING = "DRAGGING"
     TEXT_MUTATION = "TEXT_MUTATION"
     HIGHLIGHT_CHANGE = "HIGHLIGHT_CHANGE"
+    MOUSE_HIGHLIGHT = "MOUSE_HIGHLIGHT"
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
 
@@ -87,6 +88,11 @@ RenderTaskDragEnd = RenderTask(
 RenderStateChange = RenderTask(
     RenderCause.STATE_CHANGE,
     on_full_render,
+)
+
+RenderMouseHighlight = RenderTask(
+    RenderCause.MOUSE_HIGHLIGHT,
+    on_decorator_canvas_change,
 )
 
 @dataclass
@@ -285,6 +291,9 @@ class RenderManager(RenderManagerType):
 
     def render_state_change(self):
         self.queue_render(RenderStateChange)
+
+    def render_mouse_highlight(self):
+        self.queue_render(RenderMouseHighlight)
 
     def schedule_state_change(self, on_start: callable, on_end: callable = None):
         self.queue_render(RenderTask(

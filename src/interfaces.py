@@ -697,6 +697,10 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
+    def render_mouse_highlight(self):
+        pass
+
+    @abstractmethod
     def schedule_state_change(self, on_start: callable, on_end: callable = None):
         pass
 
