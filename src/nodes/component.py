@@ -41,6 +41,9 @@ class Component(ComponentType):
     def children_nodes(self):
         return [node() for node in self._children_nodes if node() is not None]
 
+    def get_children_nodes(self):
+        return [node() for node in self._children_nodes if node() is not None]
+
     @property
     def tree(self):
         return self._tree() if self._tree else None

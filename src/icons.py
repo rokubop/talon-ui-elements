@@ -15,6 +15,7 @@ ICON_SVG_PATH_ONLY = {
     "close": "M 6 6 L 18 18 M 18 6 L 6 18",
     # "delta": "M12 2l10 18H2z",
     "delta": "M3 20h18L12 4z",
+    "diamond": "M12 2 L22 12 L12 22 L2 12 Z",
     "download": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5",
     "edit": "M 16 3 L 21 8 L 8 21 L 3 21 L 3 16 L 16 3",
     "external_link": "M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8c0-1.1.9-2 2-2h5M15 3h6v6M10 14L20.2 3.8",
@@ -27,6 +28,7 @@ ICON_SVG_PATH_ONLY = {
     "mic": ["M12 2c-1.7 0-3 1.2-3 2.6v6.8c0 1.4 1.3 2.6 3 2.6s3-1.2 3-2.6V4.6C15 3.2 13.7 2 12 2z", "M19 10v1a7 7 0 0 1-14 0v-1M12 18.4v3.3M8 22h8"],
     "maximize": "M 5 5 H 19 V 19 H 5 Z",
     "minimize": "M 4 14 H 19",
+    "multiply": "M 6 18 L 18 6 M 6 6 L 18 18",
     "play": "M 5 3 L 19 12 L 5 21 Z",
     "plus": "M 12 5 V 19 M 5 12 H 19",
     "upload": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 4.2v10.3",
@@ -77,6 +79,19 @@ def icon_home(props=None, **additional_props):
         svg(**svg_props)[
             path(d="M20 9v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9"),
             path(d="M9 22V12h6v10M2 10.6L12 2l10 8.6")
+        ]
+    ]
+
+def icon_clock(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, circle, path = actions.user.ui_elements_svg(["svg", "circle", "path"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    return div(**div_props)[
+        svg(**svg_props)[
+            circle(cx=12, cy=12, r=10),
+            path(d="M12 6v6l4 2"),
         ]
     ]
 
@@ -208,6 +223,7 @@ def icon_star(props=None, **additional_props):
 
 ICON_CUSTOM_SVG = {
     "check": icon_check,
+    "clock": icon_clock,
     "copy": icon_copy,
     "home": icon_home,
     "minus": icon_minus,

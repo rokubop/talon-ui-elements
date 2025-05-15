@@ -984,7 +984,7 @@ class Tree(TreeType):
         hovered_id = state_manager.get_hovered_id()
         state_manager.set_mousedown_start_pos(gpos)
 
-        if self.draggable_node and self.drag_handle_node:
+        if self.draggable_node and self.drag_handle_node and self.draggable_node.box_model:
             draggable_top_left_pos = self.draggable_node.box_model.margin_pos
             drag_handle_rect = self.drag_handle_node.box_model.border_rect
             if drag_handle_rect.contains(gpos):
