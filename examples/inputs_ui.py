@@ -1,8 +1,8 @@
 from talon import actions
 
 def inputs_ui(props):
-    elements = ["div", "text", "screen", "input_text", "button", "ref", "state"]
-    div, text, screen, input_text, button, ref, state = actions.user.ui_elements(elements)
+    elements = ["checkbox", "div", "text", "screen", "input_text", "button", "ref", "state"]
+    checkbox, div, text, screen, input_text, button, ref, state = actions.user.ui_elements(elements)
 
     is_valid, set_is_valid = state.use("is_valid", False)
     first_input = ref("first")
@@ -20,6 +20,14 @@ def inputs_ui(props):
         div(draggable=True, background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
             div(drag_handle=True, border_bottom=1, padding_bottom=16, margin_bottom=8)[
                 text("Enter your name", font_size=24),
+            ],
+            div(flex_direction="row", align_items="center", gap=16)[
+                checkbox(),
+                text("I agree to the terms and conditions", font_size=16),
+            ],
+            div(flex_direction="row", align_items="center", gap=16)[
+                checkbox(),
+                text("I don't agree to the terms and conditions", font_size=16),
             ],
             text("First"),
             input_text(id="first", autofocus=True, background_color="444444", on_change=on_change),

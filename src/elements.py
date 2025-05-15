@@ -20,6 +20,7 @@ from .nodes.node_window import NodeWindow
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
+    NodeCheckboxProperties,
     NodeDivProperties,
     NodeTableProperties,
     NodeTableDataProperties,
@@ -288,6 +289,28 @@ def window(props=None, **additional_props):
     })
     return NodeWindow(window_properties)
 
+def checkbox_local(props):
+    div, button, state = ui_elements(["div", "button", "state"])
+    is_checked, set_is_checked = state.use_local("checkbox", False)
+    svg, polyline = ui_elements_svg(["svg", "polyline"])
+
+    return button(
+        border_width=1,
+        border_color="888888",
+        border_radius=4,
+        highlight_color="88888833",
+        on_click=lambda: set_is_checked(not is_checked)
+    )[
+        svg(size=20, stroke_width=2)[
+            polyline(points="20 6 9 17 4 12")
+        ] if is_checked else div(width=20, height=20)
+    ]
+
+def checkbox(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["checkbox"])
+    checkbox_properties = NodeCheckboxProperties(**properties)
+    return Component(checkbox_local, props=checkbox_properties)
+
 class UIElementsContainerProxy:
     def __init__(self, func):
         self.func = func
@@ -352,6 +375,7 @@ class UIElementsLeafProxy:
 
 active_window = UIElementsContainerProxy(active_window)
 button = UIElementsLeafProxy(button)
+# checkbox = UIElementsLeafProxy(checkbox)
 div = UIElementsContainerProxy(div)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
@@ -369,6 +393,7 @@ window = UIElementsWindowProxy(window)
 element_collection: Dict[str, callable] = {
     'active_window': active_window,
     'button': button,
+    'checkbox': checkbox,
     'component': Component,
     'div': div,
     'effect': effect,
@@ -383,7 +408,7 @@ element_collection: Dict[str, callable] = {
     'text': text,
     'th': th,
     'tr': tr,
-    'window': window
+    'window': window,
 }
 
 element_collection_full = {

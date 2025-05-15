@@ -9,7 +9,8 @@ class NodeWindow(NodeContainer):
     def __init__(self, properties: Properties = None):
         global last_pos
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
-        is_minimized, set_is_minimized = state.use(f"is_minimized", False)
+        # TODO: Allow multiple windows - is_minimized state
+        is_minimized, set_is_minimized = state.use("is_minimized", False)
         window_properties = properties
 
         self.is_minimized = is_minimized

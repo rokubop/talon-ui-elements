@@ -47,6 +47,7 @@ NAMED_COLORS_TO_HEX = {
 
 class ElementEnumType(TypedDict):
     button: str
+    checkbox: str
     active_window: str
     div: str
     icon: str
@@ -67,8 +68,9 @@ class ElementEnumType(TypedDict):
     window: str
 
 ELEMENT_ENUM_TYPE: ElementEnumType = {
-    "button": "button",
     "active_window": "active_window",
+    "button": "button",
+    "checkbox": "checkbox",
     "div": "div",
     "icon": "icon",
     "input_text": "input_text",
@@ -102,8 +104,9 @@ NODE_ENUM_TYPE: NodeEnumType = {
 }
 
 NODE_TYPE_MAP = {
-    ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["active_window"]: NODE_ENUM_TYPE["root"],
+    ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["checkbox"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],

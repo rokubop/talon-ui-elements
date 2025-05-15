@@ -685,9 +685,28 @@ class NodeWindowValidationProperties(ValidationProperties):
     on_maximize: callable
     drop_shadow: tuple[int, int, int, int, str]
 
+@dataclass
+class NodeCheckboxProperties(Properties):
+    checked: bool = False
+    size: int = 20
+    on_change: callable = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
+
+class NodeCheckboxValidationProperties(ValidationProperties):
+    checked: bool
+    size: int
+    on_change: callable
+
 VALID_ELEMENT_PROP_TYPES = {
-    ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
