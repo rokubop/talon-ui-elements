@@ -344,6 +344,7 @@ class NodeTextValidationProperties(ValidationProperties):
     font_family: str
     font_weight: str
     text_align: str
+    for_id: str
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
@@ -354,8 +355,9 @@ class NodeTextProperties(Properties):
     font_family: str = ""
     font_size: int = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
-    text_align: str = "left"
+    for_id: str = None
     on_click: any = None
+    text_align: str = "left"
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -686,9 +688,8 @@ class NodeWindowValidationProperties(ValidationProperties):
     drop_shadow: tuple[int, int, int, int, str]
 
 @dataclass
-class NodeCheckboxProperties(Properties):
+class NodeCheckboxProperties(NodeSvgProperties):
     checked: bool = False
-    size: int = 20
     on_change: callable = None
 
     def __init__(self, **kwargs):
@@ -698,9 +699,8 @@ class NodeCheckboxProperties(Properties):
         if self.on_change:
             self.on_change = None
 
-class NodeCheckboxValidationProperties(ValidationProperties):
+class NodeCheckboxValidationProperties(ValidationProperties, NodeSvgValidationProperties):
     checked: bool
-    size: int
     on_change: callable
 
 VALID_ELEMENT_PROP_TYPES = {

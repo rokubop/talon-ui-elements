@@ -77,6 +77,7 @@ class MetaState(MetaStateType):
         self._scroll_regions = {}
         self._scrollable = {}
         self._states = {}
+        self._text_with_for_ids = {}
         self._draggable_offset = {}
         self._last_drag_offset = {}
         self._style_mutations = {}
@@ -128,6 +129,10 @@ class MetaState(MetaStateType):
     def text_mutations(self):
         return self._text_mutations
 
+    @property
+    def text_with_for_ids(self):
+        return self._text_with_for_ids
+
     def add_input(self, id, input, initial_value = None, on_change = None):
         if id in self._inputs:
             input_data = self._inputs.pop(id)
@@ -160,6 +165,10 @@ class MetaState(MetaStateType):
     def add_scrollable(self, id):
         if id not in self._scrollable:
             self._scrollable[id] = Scrollable(id)
+
+    def add_text_with_for_id(self, id, for_id):
+        if id not in self._text_with_for_ids:
+            self._text_with_for_ids[id] = for_id
 
     def associate_state(self, key, components):
         if key not in self._states:
@@ -255,6 +264,20 @@ class MetaState(MetaStateType):
         self._id_to_node = self._staged_id_to_node
         self._staged_id_to_node = None
         entity_manager.synchronize_global_ids()
+
+    def get_hover_links(self):
+        return list(
+            (b, b) for b in self._buttons
+        ) + list(
+            self._text_with_for_ids.items()
+        )
+
+    def get_interaction_links(self):
+        return list(
+            (b, b) for b in self._buttons
+        ) + list(
+            self._text_with_for_ids.items()
+        )
 
     def clear(self):
         for input_data in list(self._inputs.values()):
@@ -900,19 +923,22 @@ class Tree(TreeType):
                 changed = False
                 new_hovered_id = None
                 prev_hovered_id = state_manager.get_hovered_id()
-                for button_id in list(self.meta_state.buttons):
-                    node = self.meta_state.id_to_node.get(button_id, None)
-                    if node:
-                        if node.is_fully_clipped_by_scroll():
+                for source_id, target_id in self.meta_state.get_hover_links():
+                    source_node = self.meta_state.id_to_node.get(source_id, None)
+                    target_node = source_node
+                    if source_id != target_id:
+                        target_node = self.meta_state.id_to_node.get(target_id, None)
+                    if source_node:
+                        if source_node.is_fully_clipped_by_scroll():
                             continue
-                        # if node and node.box_model.padding_rect.contains(gpos):
-                        if node and node.box_model and node.box_model.padding_rect.contains(gpos):
-                            new_hovered_id = button_id
+                        if source_node and source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                            # print(f"on_hover: {source_id} -> {target_id}")
+                            new_hovered_id = target_id
                             if new_hovered_id != prev_hovered_id:
-                                state_manager.set_hovered_id(button_id)
+                                state_manager.set_hovered_id(target_id)
                                 changed = True
                                 self.unhighlight_no_render(prev_hovered_id)
-                                self.highlight_no_render(button_id, color=node.properties.highlight_color)
+                                self.highlight_no_render(target_id, color=target_node.properties.highlight_color)
                             break
 
                 if not new_hovered_id and prev_hovered_id:
@@ -1195,6 +1221,8 @@ class Tree(TreeType):
             requires_id = True
         elif node.element_type == ELEMENT_ENUM_TYPE["window"]:
             requires_id = True
+        elif getattr(node.properties, "for_id", False):
+            requires_id = True
 
         if requires_id and not node.id:
             node_index_path_str = "-".join(map(str, node_index_path)) # "1-2-0"
@@ -1210,7 +1238,10 @@ class Tree(TreeType):
             if node.element_type == ELEMENT_ENUM_TYPE["button"]:
                 self.meta_state.add_button(node.id)
             elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
-                self.meta_state.use_text_mutation(node.id, initial_text=node.text)
+                if node.properties.for_id:
+                    self.meta_state.add_text_with_for_id(node.id, node.properties.for_id)
+                else:
+                    self.meta_state.use_text_mutation(node.id, initial_text=node.text)
 
             if node.properties.is_scrollable():
                 self.meta_state.add_scrollable(node.id)

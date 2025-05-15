@@ -102,6 +102,10 @@ class NodeText(Node):
             self.is_hovering = False
             self.interactive = True
 
+    @property
+    def own_id(self):
+        return self.id and not self.properties.for_id
+
     def v2_measure_and_account_for_multiline(self, paint: Paint):
         # text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
         text_cleansed = re.sub(r"\s", "x", self.text)
@@ -127,7 +131,7 @@ class NodeText(Node):
         user defined width/height it takes up.
         """
         # TODO: remove mutation from measure phase
-        if self.element_type == "text" and self.id:
+        if self.element_type == "text" and self.own_id:
             self.text = str(state_manager.use_text_mutation(self))
 
         paint = Paint()
@@ -155,7 +159,7 @@ class NodeText(Node):
         )
 
     def v2_render(self, c):
-        render_now = False if self.id and self.element_type == "text" else True
+        render_now = False if self.own_id and self.element_type == "text" else True
 
         self.v2_render_borders(c)
         self.v2_render_background(c)

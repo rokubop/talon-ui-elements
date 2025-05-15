@@ -177,6 +177,7 @@ class MetaStateType(ABC):
     _scrollable = dict[str, ScrollableType]
     _states: dict[str, Any]
     _text_mutations: dict[str, str]
+    _text_with_for_ids: dict[str, str]
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _id_to_node: dict[str, 'NodeType']
     _staged_id_to_node: dict[str, 'NodeType']
@@ -213,6 +214,10 @@ class MetaStateType(ABC):
 
     @property
     def text_mutations(self) -> dict[str, str]:
+        pass
+
+    @property
+    def text_with_for_ids(self) -> dict[str, str]:
         pass
 
     @property
@@ -272,6 +277,10 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
+    def add_text_with_for_id(self, id: str, for_id: str):
+        pass
+
+    @abstractmethod
     def set_text_mutation(self, id: str, text: str):
         pass
 
@@ -309,6 +318,14 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def associate_local_state(self, key: str, component: 'NodeComponentType'):
+        pass
+
+    @abstractmethod
+    def get_interaction_links(self) -> list[tuple[str, str]]:
+        pass
+
+    @abstractmethod
+    def get_hover_links(self) -> list[tuple[str, str]]:
         pass
 
 class ComponentType(ABC):
