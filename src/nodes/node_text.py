@@ -6,7 +6,8 @@ from ..box_model import BoxModelV2
 from ..core.state_manager import state_manager
 from ..interfaces import Size2d
 from ..properties import NodeTextProperties
-from ..utils import draw_text_simple, get_typeface
+from ..fonts import get_typeface
+from ..utils import draw_text_simple
 
 def split_lines(text, max_width, measure_text):
     lines = []
