@@ -8,6 +8,7 @@ from .src.entry import render_ui
 from .src.utils import get_version
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
+from .storybook.main import storybook_ui
 
 mod = Module()
 UNSET = object()
@@ -189,6 +190,10 @@ class Actions:
     def ui_elements_get_trees():
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
+
+    def ui_elements_storybook_toggle():
+        """Toggle the storybook UI"""
+        actions.user.ui_elements_toggle(storybook_ui)
 
     def ui_elements_version():
         """

@@ -1,6 +1,12 @@
 from talon import actions
 from dataclasses import dataclass
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_INTERACTIVE_BORDER_COLOR,
+    DEFAULT_INTERACTIVE_BORDER_WIDTH,
+    DEFAULT_CHECKBOX_SIZE,
+    DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR
+)
 from ..properties import validate_combined_props
 from .component import Component
 
@@ -28,14 +34,14 @@ class CheckboxEvent:
     id: str = None
 
 default_button_props = {
-    "border_width": 1,
-    "border_color": "888888",
+    "border_width": DEFAULT_INTERACTIVE_BORDER_WIDTH,
+    "border_color": DEFAULT_INTERACTIVE_BORDER_COLOR,
     "border_radius": 4,
-    "highlight_color": "88888833",
+    "highlight_color": DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
 }
 
 default_svg_props = {
-    "size": 20,
+    "size": DEFAULT_CHECKBOX_SIZE,
     "stroke_width": 2,
 }
 
