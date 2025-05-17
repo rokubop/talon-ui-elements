@@ -1,4 +1,6 @@
 from talon import actions
+from .elements.button import button_storybook
+from .placeholder_storybook import placeholder_storybook
 
 elements = [
     "active_window",
@@ -19,6 +21,27 @@ elements = [
     "tr",
     "window"
 ]
+
+storybook_pages = {
+    "button": button_storybook,
+    # Placeholders for other elements
+    "active_window": lambda: placeholder_storybook("active_window"),
+    "checkbox": lambda: placeholder_storybook("checkbox"),
+    "component": lambda: placeholder_storybook("component"),
+    "div": lambda: placeholder_storybook("div"),
+    "effect": lambda: placeholder_storybook("effect"),
+    "icon": lambda: placeholder_storybook("icon"),
+    "input_text": lambda: placeholder_storybook("input_text"),
+    "ref": lambda: placeholder_storybook("ref"),
+    "screen": lambda: placeholder_storybook("screen"),
+    "state": lambda: placeholder_storybook("state"),
+    "table": lambda: placeholder_storybook("table"),
+    "td": lambda: placeholder_storybook("td"),
+    "text": lambda: placeholder_storybook("text"),
+    "th": lambda: placeholder_storybook("th"),
+    "tr": lambda: placeholder_storybook("tr"),
+    "window": lambda: placeholder_storybook("window"),
+}
 
 def sidebar():
     div, text, icon, button = actions.user.ui_elements(["div", "text", "icon", "button"])
@@ -60,17 +83,8 @@ def main_content():
 
     page = state.get("page")
 
-    return div(
-        padding=32,
-        min_width=500,
-        # background_color="#23242A",
-        color="#F1F1F1",
-        # border_radius=12,
-        margin=16,
-        # box_shadow="0 2px 16px #0006"
-    )[
-        text(page, font_size=20, font_weight="bold", color="#F1F1F1"),
-    ]
+    page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color="#888888")])
+    return page_fn()
 
 def storybook_ui():
     screen, window, div, component = actions.user.ui_elements(["screen", "window", "div", "component"])
