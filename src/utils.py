@@ -134,6 +134,9 @@ def get_active_color_from_highlight_color(highlight_color: str) -> str:
 def hex_color(color: str) -> str:
     """Resolve color to hex if it's a named color or validate hex format."""
 
+    if not color:
+        return color
+
     if all(c in "0123456789ABCDEFabcdef" for c in color):
         # already hex
         return color
