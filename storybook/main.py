@@ -53,10 +53,10 @@ def sidebar():
         min_width=180,
         background_color="#181A20",
         color="#F1F1F1",
-        # height="100vh",
         border_right=1,
         border_color="#23242A",
-        # box_shadow="2px 0 8px #0008"
+        height="100%",
+        overflow_y="scroll",
     )[
         button(flex_direction="row", border_bottom=1, border_color="#23242A", padding=12, gap=8)[
             icon("chevron_down", size=18, color="#A0A0A0"),
@@ -84,7 +84,9 @@ def main_content():
     page = state.get("page")
 
     page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color="#888888")])
-    return page_fn()
+    return div(height="100%", overflow_y="scroll")[
+        page_fn()
+    ]
 
 def storybook_ui():
     screen, window, div, component = actions.user.ui_elements(["screen", "window", "div", "component"])
@@ -95,8 +97,8 @@ def storybook_ui():
         justify_content="center",
         # min_height="100vh"
     )[
-        window()[
-            div(flex_direction="row", background_color="#181A20")[
+        window(title="UI Elements Storybook", width=1200, height=800, background_color="#181A20")[
+            div(flex_direction="row", height="100%")[
                 component(sidebar),
                 component(main_content)
             ]

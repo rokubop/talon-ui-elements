@@ -15,6 +15,10 @@ font_aliases = {
     "consolas": ["consola", "consolas"],
     "menlo": ["menlo"],
     "courier new": ["cour", "courier"],
+    # Add monospace support with prioritized common monospace fonts
+    "monospace": [
+        "consola", "consolas", "menlo", "dejavu sans mono", "liberation mono", "courier new", "monaco", "andale mono", "ubuntu mono", "source code pro"
+    ],
 }
 
 font_cache = {}
