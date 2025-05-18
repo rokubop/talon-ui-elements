@@ -70,6 +70,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     position: str = 'static'
     right: Union[int, str, float] = None
     top: Union[int, str, float] = None
+    transition: list[str] = None
     value: str = None
     width: Union[int, str, float] = 0
     z_index: int = 0
@@ -169,10 +170,26 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )
 
+    def validate_transition(self):
+        if self.transition:
+            VALID_VALUES = ['opacity']
+
+            if not isinstance(self.transition, list):
+                raise ValueError(
+                    f"\nInvalid value for transition: '{self.transition}'\n"
+                    f"transition property should be a list: transition=['opacity']"
+                )
+            if any(prop not in VALID_VALUES for prop in self.transition):
+                raise ValueError(
+                    f"\nInvalid value for transition: '{self.transition}'\n"
+                    f"Valid values are: {VALID_VALUES}\n"
+                )
+
     def validate_properties(self, kwargs):
         self.validate_justify_content()
         self.validate_align_items()
         self.validate_drop_shadow()
+        self.validate_transition()
         self.validate_position_constraints(kwargs)
 
     def init_box_model_properties(self, kwargs):
@@ -332,6 +349,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     position: str
     right: Union[int, str, float]
     top: Union[int, str, float]
+    transition: list[str]
     value: str
     width: Union[int, str, float]
     z_index: int
@@ -703,6 +721,22 @@ class NodeCheckboxValidationProperties(ValidationProperties, NodeSvgValidationPr
     checked: bool
     on_change: callable
 
+@dataclass
+class NodeSwitchProperties(NodeSvgProperties):
+    checked: bool = False
+    on_change: callable = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
+
+class NodeSwitchValidationProperties(ValidationProperties, NodeSvgValidationProperties):
+    checked: bool
+    on_change: callable
+
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
@@ -723,6 +757,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["svg_polyline"]: NodeSvgPolylineValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_polygon"]: NodeSvgPolygonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_line"]: NodeSvgLineValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["switch"]: NodeSwitchValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["window"]: NodeWindowValidationProperties.__annotations__,
 }
 

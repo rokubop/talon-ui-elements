@@ -248,11 +248,12 @@ def th(props=None, **additional_props):
     return NodeTableHeader(table_header_properties)
 
 def text(text_str: str = "", props=None, **additional_props):
-    lines = text_str.replace("\r\n", "\n").split("\n")
-    if len(lines) > 1:
-        return div()[
-            *[text(line, props=props, **additional_props) for line in lines]
-        ]
+    if isinstance(text_str, str):
+        lines = text_str.replace("\r\n", "\n").split("\n")
+        if len(lines) > 1:
+            return div()[
+                *[text(line, props=props, **additional_props) for line in lines]
+            ]
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
@@ -393,6 +394,7 @@ element_collection: Dict[str, callable] = {
     'text': text,
     'th': th,
     'tr': tr,
+    'switch': switch,
     'window': window,
 }
 

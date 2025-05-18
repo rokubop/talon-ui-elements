@@ -1,6 +1,6 @@
 from talon import actions
-from .elements.button import button_storybook
-from .placeholder_storybook import placeholder_storybook
+from .elements.button import button_stories
+from .placeholder_stories import placeholder_stories
 
 elements = [
     "active_window",
@@ -23,24 +23,24 @@ elements = [
 ]
 
 storybook_pages = {
-    "button": button_storybook,
+    "button": button_stories,
     # Placeholders for other elements
-    "active_window": lambda: placeholder_storybook("active_window"),
-    "checkbox": lambda: placeholder_storybook("checkbox"),
-    "component": lambda: placeholder_storybook("component"),
-    "div": lambda: placeholder_storybook("div"),
-    "effect": lambda: placeholder_storybook("effect"),
-    "icon": lambda: placeholder_storybook("icon"),
-    "input_text": lambda: placeholder_storybook("input_text"),
-    "ref": lambda: placeholder_storybook("ref"),
-    "screen": lambda: placeholder_storybook("screen"),
-    "state": lambda: placeholder_storybook("state"),
-    "table": lambda: placeholder_storybook("table"),
-    "td": lambda: placeholder_storybook("td"),
-    "text": lambda: placeholder_storybook("text"),
-    "th": lambda: placeholder_storybook("th"),
-    "tr": lambda: placeholder_storybook("tr"),
-    "window": lambda: placeholder_storybook("window"),
+    "active_window": lambda: placeholder_stories("active_window"),
+    "checkbox": lambda: placeholder_stories("checkbox"),
+    "component": lambda: placeholder_stories("component"),
+    "div": lambda: placeholder_stories("div"),
+    "effect": lambda: placeholder_stories("effect"),
+    "icon": lambda: placeholder_stories("icon"),
+    "input_text": lambda: placeholder_stories("input_text"),
+    "ref": lambda: placeholder_stories("ref"),
+    "screen": lambda: placeholder_stories("screen"),
+    "state": lambda: placeholder_stories("state"),
+    "table": lambda: placeholder_stories("table"),
+    "td": lambda: placeholder_stories("td"),
+    "text": lambda: placeholder_stories("text"),
+    "th": lambda: placeholder_stories("th"),
+    "tr": lambda: placeholder_stories("tr"),
+    "window": lambda: placeholder_stories("window"),
 }
 
 def sidebar():

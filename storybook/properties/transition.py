@@ -2,24 +2,22 @@ from talon import actions
 from ..common import example_with_code, code
 import textwrap
 
-def button_stories():
+def transition_stories():
     component, div, text, button, icon, input_text = actions.user.ui_elements([
         "component", "div", "text", "button", "icon", "input_text"
     ])
 
     return div(padding=32, gap=24)[
-        text("Button", font_size=22, font_weight="bold", color="#F1F1F1"),
-        code(
-            textwrap.dedent("""\
-                button = actions.user.ui_elements(['button'])"""
-            )
-        ),
+        text("transition", font_size=22, font_weight="bold", color="#F1F1F1"),
+        text("transition is a property that can be used to animate changes to certain properties on a state change.", font_size=16, color="#888888"),
 
         div(gap=16)[
             text("Stories", font_size=18, font_weight="bold", color="#F1F1F1", border_bottom=1, padding_bottom=12,border_color="#333333"),
             component(example_with_code, props={
-                "title": "Default Button",
-                "example": button("Default"),
+                "title": "Transition opacity",
+                "example": div()[
+                    button("Default"),
+                ],
                 "code": textwrap.dedent("""\
                     button('Default')"""
                 )
