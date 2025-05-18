@@ -18,6 +18,7 @@ from .nodes.node_svg import (
 from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
+from .nodes.switch import switch
 from .nodes.node_window import NodeWindow
 from .properties import (
     NodeInputTextProperties,

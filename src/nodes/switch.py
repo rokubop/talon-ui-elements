@@ -48,7 +48,6 @@ def switch_impl(props):
     svg_props, button_props, switch_props = split_switch_props(props)
     div, button, state = actions.user.ui_elements(["div", "button", "state"])
     is_checked, set_is_checked = state.use_local("switch", switch_props.get("checked", False))
-    svg, polyline = actions.user.ui_elements_svg(["svg", "polyline"])
 
     def on_trigger(e):
         new_checked = not is_checked
@@ -58,16 +57,31 @@ def switch_impl(props):
                 SwitchEvent(checked=new_checked, id=button_props.get("id", None))
             )
 
+    # Switch styling (no transition, no box shadow)
+    track_width = 40
+    track_height = 22
+    thumb_size = 18
+    track_color = "#444444" if not is_checked else "#2196f3"  # dark gray or blue
+    thumb_color = "#ffffff"
+
     return button(
-        {
-            **default_button_props,
-            **button_props,
-        },
+        width=track_width,
+        height=track_height,
+        background_color=track_color,
+        border_radius=track_height // 2,
+        position="relative",
+        align_items="center",
         on_click=on_trigger,
     )[
-        svg({ **default_svg_props, **svg_props })[
-            polyline(points="20 6 9 17 4 12")
-        ] if is_checked else div(width=20, height=20)
+        div(
+            width=thumb_size,
+            height=thumb_size,
+            background_color=thumb_color,
+            border_radius=18,
+            position="absolute",
+            top=(track_height - thumb_size) // 2,
+            left=(track_width - thumb_size - 2) if is_checked else 2,
+        )
     ]
 
 def switch(props=None, **additional_props):

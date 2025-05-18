@@ -91,6 +91,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "svg_polyline": "svg_polyline",
     "svg_polygon": "svg_polygon",
     "svg_line": "svg_line",
+    "switch": "switch",
     "window": "window",
 }
 
@@ -128,6 +129,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["svg_polyline"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["svg_line"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["svg_polygon"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["switch"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["window"]: NODE_ENUM_TYPE["node"],
 }
 
