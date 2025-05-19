@@ -31,6 +31,7 @@ ICON_SVG_PATH_ONLY = {
     "multiply": "M 6 18 L 18 6 M 6 6 L 18 18",
     "play": "M 5 3 L 19 12 L 5 21 Z",
     "plus": "M 12 5 V 19 M 5 12 H 19",
+    "rotate_left": "M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38",
     "upload": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 4.2v10.3",
     "stop": "M6 6h12v12H6z",
 }
@@ -103,8 +104,13 @@ def icon_copy(props=None, **additional_props):
 
     return div(**div_props)[
         svg(**svg_props)[
-            rect(x=9, y=9, width=13, height=13, rx=2, ry=2),
-            path(d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"),
+
+            rect(x=2, y=7, width=12, height=12, rx=2, ry=2),
+        # Back copy (partial top-right outline using path)
+        path(d="M6 4.75V3.75a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5v9a2 2 0 0 1-2 2h-1"),
+
+            # rect(x=2, y=7, width=12, height=12, rx=2, ry=2),
+            # path(d="M9 5 H9 V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-1"),
         ]
     ]
 
