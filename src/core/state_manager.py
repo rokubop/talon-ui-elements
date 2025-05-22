@@ -107,6 +107,13 @@ class StateCoordinator:
                 cron.cancel(self.batch_job)
             self.batch_job = cron.after("1ms", self.request_tree_renders)
 
+    def reset(self):
+        self.locked = False
+        self.phase = self.PHASE_FREE
+        self.current_state_keys.clear()
+        self.next_state_keys.clear()
+        self.pending_tree_renders.clear()
+
 state_coordinator = StateCoordinator()
 
 class ReactiveState(ReactiveStateType):
@@ -475,6 +482,7 @@ class StateManager:
         store.reactive_state.clear()
         store.processing_states.clear()
         store.reset_mouse_state()
+        state_coordinator.reset()
 
     def clear_state_for_tree(self, tree: TreeType):
         for state_key in tree.meta_state.states:
@@ -482,6 +490,8 @@ class StateManager:
                 del store.reactive_state[state_key]
             if state_key in store.processing_states:
                 store.processing_states.remove(state_key)
+        if not store.processing_states:
+            state_coordinator.reset()
 
     def clear_tree(self, tree: TreeType):
         if tree in store.trees:
@@ -494,6 +504,7 @@ class StateManager:
 
     def clear_all(self):
         store.clear()
+        state_coordinator.reset()
 
     def deprecated_event_register_on_lifecycle(self, callback):
         if callback not in _deprecated_event_subscribers:

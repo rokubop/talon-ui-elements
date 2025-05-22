@@ -528,11 +528,15 @@ class NodeTableRowProperties(NodeDivProperties):
 
 @dataclass
 class NodeTableHeaderProperties(NodeDivProperties):
+    colspan: int = 1
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
 @dataclass
 class NodeTableDataProperties(NodeDivProperties):
+    colspan: int = 1
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -546,7 +550,7 @@ class NodeTableHeaderValidationProperties(NodeDivValidationProperties):
     pass
 
 class NodeTableDataValidationProperties(NodeDivValidationProperties):
-    pass
+    colspan: int
 
 @dataclass
 class NodeSvgPathProperties(Properties):

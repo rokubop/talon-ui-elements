@@ -1,5 +1,6 @@
 from talon import actions
 from .elements.button import button_stories
+from .elements.table import table_stories
 from .placeholder_stories import placeholder_stories
 
 elements = [
@@ -35,11 +36,11 @@ storybook_pages = {
     "ref": lambda: placeholder_stories("ref"),
     "screen": lambda: placeholder_stories("screen"),
     "state": lambda: placeholder_stories("state"),
-    "table": lambda: placeholder_stories("table"),
-    "td": lambda: placeholder_stories("td"),
+    "table": table_stories,
+    "td": table_stories,
     "text": lambda: placeholder_stories("text"),
-    "th": lambda: placeholder_stories("th"),
-    "tr": lambda: placeholder_stories("tr"),
+    "th": table_stories,
+    "tr": table_stories,
     "window": lambda: placeholder_stories("window"),
 }
 
