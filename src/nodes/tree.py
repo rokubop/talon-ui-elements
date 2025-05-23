@@ -368,6 +368,7 @@ class Tree(TreeType):
             initial_state = dict[str, Any]
         ):
         self.absolute_nodes = []
+        self.active_modal_count = 0
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
@@ -379,7 +380,7 @@ class Tree(TreeType):
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
-        self.processing_states = []
+        self.processing_states = set()
         self.fixed_nodes = []
         self.guid = uuid.uuid4().hex
         self.hashed_tree_constructor = hashed_tree_constructor
@@ -964,7 +965,7 @@ class Tree(TreeType):
         if start_pos:
             state_manager.set_mousedown_start_offset(gpos - start_pos)
 
-        if start_pos:
+        if start_pos and not self.active_modal_count:
             is_drag_start = False
             if not state_manager.is_drag_active():
                 if abs(gpos.x - start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - start_pos.y) > DRAG_INIT_THRESHOLD:
@@ -1066,7 +1067,6 @@ class Tree(TreeType):
             state_manager.set_mousedown_start_id(None)
 
             if self.draggable_node and self.drag_handle_node:
-
                 if state_manager.is_drag_active():
                     # move delay to render manager with proper queue
                     offset = state_manager.get_mousedown_start_offset()
@@ -1307,6 +1307,9 @@ class Tree(TreeType):
                 child_node.z_subindex = node.z_subindex
                 self._cascade_children_z_subindex(child_node)
 
+    def _check_modals(self, node: NodeType):
+        if node.element_type == ELEMENT_ENUM_TYPE["modal"] and node.properties.open:
+            self.active_modal_count += 1
 
     def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":
@@ -1347,6 +1350,7 @@ class Tree(TreeType):
         if not self.is_mounted:
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
+        self._check_modals(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
         clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)
         self._setup_nonlayout_nodes(current_node)

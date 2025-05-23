@@ -18,7 +18,7 @@ class StateCoordinator:
 
     def __init__(self):
         self.locked = False
-        self.phase = "free"
+        self.phase = self.PHASE_FREE
         self.current_state_keys = set()
         self.next_state_keys = set()
         self.pending_tree_renders = set()
@@ -49,8 +49,6 @@ class StateCoordinator:
 
     def on_tree_render_start(self):
         def on_start(tree: TreeType, *args):
-            # When I enabled this and saved, state suddenly worked
-            # print("on_start")
             if not self.locked:
                 self.locked = True
                 self.phase = self.PHASE_RENDERING
@@ -80,9 +78,8 @@ class StateCoordinator:
             self.batch_job = None
 
         if self.phase == self.PHASE_REQUEST_RENDER:
-            # adding this line caused it to work
-            # print("request_tree_renders PHASE_REQUEST_RENDER")
             trees = state_manager.get_trees_for_state_keys(self.current_state_keys)
+
             for tree in trees:
                 if tree.guid not in self.pending_tree_renders:
                     self.pending_tree_renders.add(tree.guid)
@@ -91,8 +88,10 @@ class StateCoordinator:
                         on_end=self.on_tree_render_end()
                     )
 
+            if not self.pending_tree_renders:
+                self.finish_cycle(None)
+
     def request_state_change(self, state_key: str):
-        # print(f"request_state_change: {state_key}")
         if self.locked:
             self.next_state_keys.add(state_key)
             return
@@ -113,6 +112,9 @@ class StateCoordinator:
         self.current_state_keys.clear()
         self.next_state_keys.clear()
         self.pending_tree_renders.clear()
+        if self.batch_job:
+            cron.cancel(self.batch_job)
+            self.batch_job = None
 
 state_coordinator = StateCoordinator()
 
@@ -141,7 +143,6 @@ class ReactiveState(ReactiveStateType):
             self._value = value
 
     def set_value(self, value_or_callable):
-        # print(f"Setting value: {value_or_callable}")
         self.next_state_queue.append(value_or_callable)
 
     def activate_next_state_value(self):
@@ -258,7 +259,7 @@ class StateManager:
             state.activate_next_state_value()
 
         for tree in store.trees:
-            tree.processing_states.extend(store.processing_states)
+            tree.processing_states.update(store.processing_states)
             # tree.queue_render(RenderTask(
             #     cause=RenderCause.STATE_CHANGE,
             #     before_render=lambda: tree.processing_states.clear()
@@ -286,7 +287,7 @@ class StateManager:
 
         self.init_state(key, new_value)
         store.reactive_state[key].set_value(new_value)
-        store.processing_states.append(key)
+        store.processing_states.add(key)
         state_coordinator.request_state_change(key)
 
     def get_text_mutation(self, id):

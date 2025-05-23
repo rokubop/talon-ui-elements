@@ -50,25 +50,26 @@ NAMED_COLORS_TO_HEX = {
 }
 
 class ElementEnumType(TypedDict):
+    active_window: str
     button: str
     checkbox: str
-    active_window: str
     div: str
     icon: str
     input_text: str
+    modal: str
     screen: str
+    svg_circle: str
+    svg_line: str
+    svg_path: str
+    svg_polygon: str
+    svg_polyline: str
+    svg_rect: str
+    svg: str
     table: str
     td: str
     text: str
     th: str
     tr: str
-    svg: str
-    svg_path: str
-    svg_rect: str
-    svg_circle: str
-    svg_polyline: str
-    svg_polygon: str
-    svg_line: str
     window: str
 
 ELEMENT_ENUM_TYPE: ElementEnumType = {
@@ -78,20 +79,21 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "div": "div",
     "icon": "icon",
     "input_text": "input_text",
+    "modal": "modal",
     "screen": "screen",
+    "svg_circle": "svg_circle",
+    "svg_line": "svg_line",
+    "svg_path": "svg_path",
+    "svg_polygon": "svg_polygon",
+    "svg_polyline": "svg_polyline",
+    "svg_rect": "svg_rect",
+    "svg": "svg",
+    "switch": "switch",
     "table": "table",
     "td": "td",
     "text": "text",
     "th": "th",
     "tr": "tr",
-    "svg": "svg",
-    "svg_path": "svg_path",
-    "svg_rect": "svg_rect",
-    "svg_circle": "svg_circle",
-    "svg_polyline": "svg_polyline",
-    "svg_polygon": "svg_polygon",
-    "svg_line": "svg_line",
-    "switch": "switch",
     "window": "window",
 }
 
@@ -115,21 +117,21 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["modal"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["screen"]: NODE_ENUM_TYPE["root"],
+    ELEMENT_ENUM_TYPE["svg_circle"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["svg_line"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["svg_path"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["svg_polygon"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["svg_polyline"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["svg_rect"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["svg"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["switch"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["table"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["td"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["text"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["th"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["tr"]: NODE_ENUM_TYPE["node"],
-    ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["svg"]: NODE_ENUM_TYPE["node"],
-    ELEMENT_ENUM_TYPE["svg_path"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["svg_rect"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["svg_circle"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["svg_polyline"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["svg_line"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["svg_polygon"]: NODE_ENUM_TYPE["leaf"],
-    ELEMENT_ENUM_TYPE["switch"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["window"]: NODE_ENUM_TYPE["node"],
 }
 

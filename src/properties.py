@@ -743,6 +743,32 @@ class NodeSwitchValidationProperties(ValidationProperties, NodeSvgValidationProp
     checked: bool
     on_change: callable
 
+@dataclass
+class NodeModalProperties(Properties):
+    title: str = None
+    on_close: callable = None
+    open: bool = False
+    backdrop: bool = True
+    backdrop_color: str = "00000000"
+    backdrop_click_close: bool = True
+    show_title_bar: bool = True
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_close:
+            self.on_close = None
+
+class NodeModalValidationProperties(ValidationProperties):
+    title: str
+    on_close: callable
+    open: bool
+    backdrop: bool
+    backdrop_color: str
+    backdrop_click_close: bool
+    show_title_bar: bool
+
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
@@ -750,20 +776,21 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["modal"]: NodeModalValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_circle"]: NodeSvgCircleValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_line"]: NodeSvgLineValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_path"]: NodeSvgPathValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_polygon"]: NodeSvgPolygonValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_polyline"]: NodeSvgPolylineValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg_rect"]: NodeSvgRectValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["svg"]: NodeSvgValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["switch"]: NodeSwitchValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["table"]: NodeTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["td"]: NodeTableDataValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["th"]: NodeTableHeaderValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["tr"]: NodeTableRowValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg"]: NodeSvgValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg_path"]: NodeSvgPathValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg_rect"]: NodeSvgRectValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg_circle"]: NodeSvgCircleValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg_polyline"]: NodeSvgPolylineValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg_polygon"]: NodeSvgPolygonValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["svg_line"]: NodeSvgLineValidationProperties.__annotations__,
-    ELEMENT_ENUM_TYPE["switch"]: NodeSwitchValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["window"]: NodeWindowValidationProperties.__annotations__,
 }
 

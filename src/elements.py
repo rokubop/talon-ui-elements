@@ -20,6 +20,7 @@ from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
 from .nodes.switch import switch
 from .nodes.node_window import NodeWindow
+from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
@@ -38,6 +39,7 @@ from .properties import (
     NodeSvgPolygonProperties,
     NodeSvgLineProperties,
     NodeWindowProperties,
+    NodeModalProperties,
     validate_combined_props
 )
 from .icons import icon
@@ -118,7 +120,7 @@ class State:
         return use_state(key, initial_state)
 
     def set(self, key: str, value: Any):
-        return set_state(key, value)
+        set_state(key, value)
 
     def use_local(self, key: str, initial_state: Any = None):
         tree = state_manager.get_processing_tree()
@@ -155,8 +157,7 @@ def get_state(key: str, initial_state: Any = None):
     return value
 
 def set_state(key: str, value: Any):
-    _, set_value = state_manager.set_state_value(key, value)
-    return set_value
+   state_manager.set_state_value(key, value)
 
 def style(style_dict: dict[str, Any]):
     context = state_manager.get_processing_component() \
@@ -298,6 +299,52 @@ def window(props=None, **additional_props):
     })
     return NodeWindow(window_properties)
 
+def modal(title=None, open=False, on_close=None, draggable=False, show_title_bar=True,
+         backdrop=True, backdrop_color="00000080", backdrop_click_close=True, props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["modal"])
+
+    # Set up modal-specific properties
+    if title is not None:
+        properties["title"] = title
+    if open is not None:
+        properties["open"] = open
+    if on_close is not None:
+        properties["on_close"] = on_close
+    # if draggable is not None:
+    #     properties["draggable"] = draggable
+    if show_title_bar is not None:
+        properties["show_title_bar"] = show_title_bar
+    if backdrop is not None:
+        properties["backdrop"] = backdrop
+    if backdrop_color is not None:
+        properties["backdrop_color"] = backdrop_color
+    if backdrop_click_close is not None:
+        properties["backdrop_click_close"] = backdrop_click_close
+
+    # Set default modal styling
+    if "background_color" not in properties:
+        properties["background_color"] = "222222"
+    if "drop_shadow" not in properties:
+        properties["drop_shadow"] = (0, 8, 16, 16, "00000080")
+    if "border_radius" not in properties:
+        properties["border_radius"] = 8
+    if "border_width" not in properties:
+        properties["border_width"] = 1
+    if "position" not in properties:
+        properties["position"] = "absolute"
+    if "z_index" not in properties:
+        properties["z_index"] = 100
+    if "top" not in properties:
+        properties["top"] = "50%"
+    if "left" not in properties:
+        properties["left"] = "50%"
+    if "margin_top" not in properties:
+        properties["margin_top"] = -150
+    if "margin_left" not in properties:
+        properties["margin_left"] = -200
+
+    return NodeModal(NodeModalProperties(**properties))
+
 class UIElementsContainerProxy:
     def __init__(self, func):
         self.func = func
@@ -367,6 +414,7 @@ div = UIElementsContainerProxy(div)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
+modal = UIElementsContainerProxy(modal)
 ref = Ref
 screen = UIElementsContainerProxy(screen)
 state = State()
@@ -386,6 +434,7 @@ element_collection: Dict[str, callable] = {
     'effect': effect,
     'icon': icon,
     'input_text': input_text,
+    'modal': modal,
     'ref': ref,
     'screen': screen,
     'state': state,

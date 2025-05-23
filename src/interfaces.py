@@ -754,7 +754,7 @@ class TreeType(ABC):
     effects: List[Effect]
     meta_state: MetaStateType
     name: str
-    processing_states: List[str]
+    processing_states: set[str]
     render_manager: RenderManagerType
     _tree_constructor: callable
     requires_measure_redistribution: bool
