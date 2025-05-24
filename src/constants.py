@@ -27,6 +27,7 @@ CASCADED_PROPERTIES = {
     "highlight_color",
     "focus_outline_color",
     "focus_outline_width",
+    "z_index",
 }
 
 NAMED_COLORS_TO_HEX = {

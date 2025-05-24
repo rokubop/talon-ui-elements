@@ -18,7 +18,7 @@ class NodeInputText(Node):
         self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
         self.properties.background_color = self.properties.background_color or "333333"
         self.properties.color = self.properties.color or "FFFFFF"
-        self.properties.value = self.properties.value or ""
+        self.properties.value = str(self.properties.value) if self.properties.value else ""
         if self.properties.gap is None:
             self.properties.gap = 16
 

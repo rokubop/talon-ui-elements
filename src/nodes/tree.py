@@ -1057,6 +1057,7 @@ class Tree(TreeType):
         try:
             hovered_id = state_manager.get_hovered_id()
             mousedown_start_id = state_manager.get_mousedown_start_id()
+
             if mousedown_start_id and hovered_id == mousedown_start_id:
                 node = self.meta_state.id_to_node.get(mousedown_start_id)
                 if node:
@@ -1420,7 +1421,7 @@ class Tree(TreeType):
 
             if self.meta_state.inputs:
                 for input_id, input_data in list(self.meta_state.inputs.items()):
-                    if not input_data.input:
+                    if not input_data.input or not self.meta_state.id_to_node.get(input_id):
                         continue
                     input_rect = self.meta_state.id_to_node[input_id].box_model.visible_rect
 

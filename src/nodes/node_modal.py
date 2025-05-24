@@ -4,10 +4,9 @@ from ..constants import ELEMENT_ENUM_TYPE
 from ..properties import Properties
 
 class NodeModal(NodeContainer):
-    def __init__(self, properties: Properties = None):
+    def __init__(self, modal_properties: Properties = None, contents_properties: dict = None):
         # self.children_nodes = []
         div, icon, button, text = actions.user.ui_elements(["div", "icon", "button", "text"])
-        modal_properties = properties
 
         # Use the open property to determine visibility
         self.is_open = modal_properties.open if hasattr(modal_properties, 'open') else False
@@ -39,7 +38,7 @@ class NodeModal(NodeContainer):
                 height="100%",
                 highlight_color="00000000",
                 background_color=backdrop_color,
-                z_index=99,
+                z_index=1,
                 on_click=on_close_modal if backdrop_click_close else None
             )
 
@@ -56,7 +55,7 @@ class NodeModal(NodeContainer):
                 ],
             ]
 
-        self.body = div()
+        self.body = div(contents_properties)
 
         # Add backdrop if needed
         # backdrop_element = create_backdrop()
@@ -84,6 +83,7 @@ class NodeModal(NodeContainer):
             children_nodes = [children_nodes]
 
         for node in children_nodes:
+            print(f"Adding child node: {node}")
             self.body.add_child(node)
 
         return self

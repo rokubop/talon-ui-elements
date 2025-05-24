@@ -356,7 +356,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     width: Union[int, str, float]
     z_index: int
 
-NodeDivValidationProperties = ValidationProperties
+class NodeDivValidationProperties(ValidationProperties):
+    drop_shadow: tuple
 
 class NodeTextValidationProperties(ValidationProperties):
     text: str
@@ -407,6 +408,8 @@ class NodeRootValidationProperties(ValidationProperties):
 
 @dataclass
 class NodeDivProperties(Properties):
+    drop_shadow: tuple
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -661,6 +664,8 @@ class NodeInputTextProperties(Properties):
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
+        if kwargs.get('value'):
+            kwargs['value'] = str(kwargs['value'])
         if app.platform == "mac":
             # Talon TextArea for mac defaults to a text that looks like code,
             # so change it to something that looks more like normal prose
@@ -682,7 +687,7 @@ class NodeInputTextProperties(Properties):
 class NodeInputTextValidationProperties(ValidationProperties):
     id: str
     font_size: int
-    value: str
+    value: Union[str, int, float] = None
     on_change: callable
 
 @dataclass
