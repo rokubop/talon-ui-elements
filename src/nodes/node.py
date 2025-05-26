@@ -227,7 +227,7 @@ class Node(NodeType):
         pass
 
     def v2_reposition(self, offset = None):
-        if self.tree.render_manager.is_drag_end() and self.properties.draggable:
+        if self.tree and self.tree.render_manager.is_drag_end() and self.properties.draggable:
             offset = self.tree.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
             old_pos = self.box_model.margin_pos
             new_pos = self.box_model.margin_pos + offset

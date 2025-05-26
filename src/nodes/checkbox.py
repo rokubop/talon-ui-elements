@@ -4,6 +4,7 @@ from ..constants import (
     ELEMENT_ENUM_TYPE,
     DEFAULT_INTERACTIVE_BORDER_COLOR,
     DEFAULT_INTERACTIVE_BORDER_WIDTH,
+    DEFAULT_INPUT_BACKGROUND_COLOR,
     DEFAULT_CHECKBOX_SIZE,
     DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR
 )
@@ -34,15 +35,16 @@ class CheckboxEvent:
     id: str = None
 
 default_button_props = {
-    "border_width": DEFAULT_INTERACTIVE_BORDER_WIDTH,
-    "border_color": DEFAULT_INTERACTIVE_BORDER_COLOR,
-    "border_radius": 4,
+    # "border_width": DEFAULT_INTERACTIVE_BORDER_WIDTH,
+    # "border_color": DEFAULT_INTERACTIVE_BORDER_COLOR,
+    # "border_radius": 4,
+    "background_color": DEFAULT_INPUT_BACKGROUND_COLOR,
     "highlight_color": DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
 }
 
 default_svg_props = {
     "size": DEFAULT_CHECKBOX_SIZE,
-    "stroke_width": 2,
+    "stroke_width": 3,
 }
 
 def checkbox_impl(props):

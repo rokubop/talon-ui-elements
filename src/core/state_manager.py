@@ -223,6 +223,9 @@ class StateManager:
             return store.processing_components[-1]
         return None
 
+    def get_processing_states(self):
+        return state_coordinator.current_state_keys
+
     def remove_processing_component(self, component):
         store.processing_components.remove(component)
 
@@ -254,23 +257,23 @@ class StateManager:
 
         store.reactive_state[key].set_initial_value(initial_value)
 
-    def rerender_state(self):
-        for state in store.reactive_state.values():
-            state.activate_next_state_value()
+    # def rerender_state(self):
+    #     for state in store.reactive_state.values():
+    #         state.activate_next_state_value()
 
-        for tree in store.trees:
-            tree.processing_states.update(store.processing_states)
-            # tree.queue_render(RenderTask(
-            #     cause=RenderCause.STATE_CHANGE,
-            #     before_render=lambda: tree.processing_states.clear()
-            #     after_render=lambda: tree.processing_states.clear()
-            # )),
-            tree.render_manager.render_state_change()
+    #     for tree in store.trees:
+    #         tree.processing_states.update(store.processing_states)
+    #         # tree.queue_render(RenderTask(
+    #         #     cause=RenderCause.STATE_CHANGE,
+    #         #     before_render=lambda: tree.processing_states.clear()
+    #         #     after_render=lambda: tree.processing_states.clear()
+    #         # )),
+    #         tree.render_manager.render_state_change()
 
-        # TODO: queue into render manager
-        cron.after("30ms", store.processing_states.clear)
-        # store.processing_states.clear()
-        self.debounce_render_job = None
+    #     # TODO: queue into render manager
+    #     cron.after("30ms", store.processing_states.clear)
+    #     # store.processing_states.clear()
+    #     self.debounce_render_job = None
 
     def get_state_value(self, key):
         if key in store.reactive_state:
@@ -479,6 +482,14 @@ class StateManager:
             components[tree.guid] = tree.meta_state.components
         return components
 
+    def toggle_hints(self, enabled: bool):
+        if isinstance(enabled, bool):
+            for tree in store.trees:
+                tree.show_hints = enabled
+        else:
+            for tree in store.trees:
+                tree.show_hints = not tree.show_hints
+
     def clear_state(self):
         store.reactive_state.clear()
         store.processing_states.clear()
@@ -491,7 +502,7 @@ class StateManager:
                 del store.reactive_state[state_key]
             if state_key in store.processing_states:
                 store.processing_states.remove(state_key)
-        if not store.processing_states:
+        if not store.processing_states or not store.trees:
             state_coordinator.reset()
 
     def clear_tree(self, tree: TreeType):

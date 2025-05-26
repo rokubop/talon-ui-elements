@@ -22,12 +22,13 @@ class Style(StyleType):
 
     def get(self, node) -> dict:
         result = {}
+        id = node.id or node.properties.id
         if self.universal:
             result.update(self.universal)
         if node.element_type in self.tags:
             result.update(self.tags[node.element_type])
-        if node.id and node.id in self.ids:
-            result.update(self.ids[node.id])
-        if node.class_name and node.class_name in self.classes:
-            result.update(self.classes[node.class_name])
+        if id and id in self.ids:
+            result.update(self.ids[id])
+        if node.properties.class_name and node.properties.class_name in self.classes:
+            result.update(self.classes[node.properties.class_name])
         return result

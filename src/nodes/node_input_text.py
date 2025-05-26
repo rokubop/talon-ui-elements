@@ -3,7 +3,7 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
 from .node import Node
 from ..box_model import BoxModelV2
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
 from ..core.entity_manager import entity_manager
 from ..properties import NodeInputTextProperties
 
@@ -16,7 +16,7 @@ class NodeInputText(Node):
         self.interactive = True
         self.properties.width = self.properties.width or round(self.properties.font_size * 15)
         self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
-        self.properties.background_color = self.properties.background_color or "333333"
+        self.properties.background_color = self.properties.background_color or DEFAULT_INPUT_BACKGROUND_COLOR
         self.properties.color = self.properties.color or "FFFFFF"
         self.properties.value = str(self.properties.value) if self.properties.value else ""
         if self.properties.gap is None:

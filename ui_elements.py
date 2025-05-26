@@ -162,10 +162,9 @@ class Actions:
         else:
             state_manager.set_ref_property_override(id, property_name, value)
 
-    # TODO: Implement
-    # def ui_elements_toggle_hints(enabled: bool = None):
-    #     """Toggle hints visibility"""
-    #     state_manager.toggle_hints(enabled)
+    def ui_elements_toggle_hints(enabled: bool = None):
+        """Toggle hints visibility"""
+        state_manager.toggle_hints(enabled)
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""

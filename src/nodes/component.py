@@ -66,6 +66,10 @@ class Component(ComponentType):
         self.replace_self_with_nodes(node_tree)
         return node_tree
 
+    def v2_reposition(self, offset = None):
+        # Should not be called - should be calling nodes instead
+        return
+
     def destroy(self):
         for node in self.children_nodes:
             node.destroy()

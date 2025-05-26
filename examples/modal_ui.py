@@ -37,6 +37,3 @@ def modal_example():
             ]
         ]
     ]
-
-# Add to examples registry
-actions.user.ui_elements_register_example("modal", modal_example)

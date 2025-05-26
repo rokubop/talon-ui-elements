@@ -1,6 +1,7 @@
 import inspect
 import uuid
 import threading
+import traceback
 import weakref
 import time
 from talon import cron, settings
@@ -10,7 +11,7 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from typing import Any, Callable
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
 from ..core.entity_manager import entity_manager
@@ -44,6 +45,16 @@ from ..utils import (
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
 
+debug = True
+
+def log_trace():
+    if debug:
+        traceback.print_stack()
+
+def log(*args):
+    if debug:
+        print("LOG:", *args)
+
 def scroll_throttle_clear():
     global scroll_throttle_job
     if scroll_throttle_job:
@@ -65,6 +76,10 @@ class Scrollable(ScrollableType):
 class DraggableOffset:
     x: int
     y: int
+
+@dataclass
+class StateEvent:
+    not_implemented: Any = field(default=None)
 
 class MetaState(MetaStateType):
     def __init__(self):
@@ -525,74 +540,100 @@ class Tree(TreeType):
         )
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
-        if not self.render_manager.is_destroying:
-            draw_canvas = canvas
-            surface = None
-            offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
-                if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
-                else Point2d(0, 0)
-            state_manager.set_processing_tree(self)
-            self.draw_highlights(draw_canvas, offset)
-            canvas.paint.color = "FFFFFF"
-            self.draw_text_mutations(draw_canvas, offset)
-            if self.interactive_node_list or self.draggable_node:
-                if state_manager.is_focus_visible():
-                    self.draw_focus_outline(draw_canvas, offset)
-                if self.show_hints:
-                    if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
-                        self.move_snapshot(self.last_hints_snapshot, canvas)
-                    elif self.render_manager.render_cause == RenderCause.STATE_CHANGE or \
-                            self.render_manager.render_cause == RenderCause.DRAG_END or \
-                            self.render_manager.render_cause == RenderCause.SCROLLING or \
-                            self.drag_end_phase:
-                        surface, draw_canvas = self.create_surface()
-                        self.draw_hints(draw_canvas)
-                        self.last_hints_snapshot = surface.snapshot()
-                        canvas.draw_image(
-                            self.last_hints_snapshot,
-                            canvas.x,
-                            canvas.y,
-                        )
-                        self.drag_end_phase = False
-                    else:
-                        canvas.draw_image(
-                            self.last_hints_snapshot,
-                            canvas.x,
-                            canvas.y
-                        )
-            self.init_key_controls()
-            self.draw_blockable_canvases()
-            self.on_fully_rendered()
-            state_manager.set_processing_tree(None)
+        try:
+            if not self.render_manager.is_destroying:
+                draw_canvas = canvas
+                surface = None
+                offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
+                    if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
+                    else Point2d(0, 0)
+                state_manager.set_processing_tree(self)
+                self.draw_highlights(draw_canvas, offset)
+                canvas.paint.color = "FFFFFF"
+                self.draw_text_mutations(draw_canvas, offset)
+                if self.interactive_node_list or self.draggable_node:
+                    if state_manager.is_focus_visible():
+                        self.draw_focus_outline(draw_canvas, offset)
+                    if self.show_hints:
+                        if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
+                            self.move_snapshot(self.last_hints_snapshot, canvas)
+                        elif self.render_manager.render_cause == RenderCause.STATE_CHANGE or \
+                                self.render_manager.render_cause == RenderCause.DRAG_END or \
+                                self.render_manager.render_cause == RenderCause.SCROLLING or \
+                                self.drag_end_phase or \
+                                not self.last_hints_snapshot:
+                            surface, draw_canvas = self.create_surface()
+                            self.draw_hints(draw_canvas)
+                            self.last_hints_snapshot = surface.snapshot()
+                            canvas.draw_image(
+                                self.last_hints_snapshot,
+                                canvas.x,
+                                canvas.y,
+                            )
+                            self.drag_end_phase = False
+                        else:
+                            canvas.draw_image(
+                                self.last_hints_snapshot,
+                                canvas.x,
+                                canvas.y
+                            )
+                self.init_key_controls()
+                self.draw_blockable_canvases()
+                self.on_fully_rendered()
+                state_manager.set_processing_tree(None)
+                self.render_manager.finish_current_render()
+        except Exception as e:
+            print(f"Error during decorator canvas rendering: {e}")
+            log_trace()
             self.render_manager.finish_current_render()
 
     def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
-        self.move_snapshot(self.last_base_snapshot, canvas)
-        self.move_inputs()
+        try:
+            self.move_snapshot(self.last_base_snapshot, canvas)
+            self.move_inputs()
+        except Exception as e:
+            print(f"Error during dragging rendering: {e}")
+            log_trace()
+            self.render_manager.finish_current_render()
 
     def on_draw_base_canvas_drag_end(self, canvas: SkiaCanvas):
-        self.root_node.v2_reposition()
-        self.build_base_render_layers()
-        self.commit_base_canvas()
+        try:
+            self.root_node.v2_reposition()
+            self.build_base_render_layers()
+            self.commit_base_canvas()
+        except Exception as e:
+            print(f"Error during drag end rendering: {e}")
+            log_trace()
+            self.render_manager.finish_current_render()
 
     def on_draw_base_canvas_scroll(self, canvas: SkiaCanvas):
-        self.reset_cursor()
-        self.root_node.v2_layout(self.cursor_v2)
-        self.nonlayout_flow()
-        self.build_base_render_layers()
-        self.commit_base_canvas()
+        try:
+            self.reset_cursor()
+            self.root_node.v2_layout(self.cursor_v2)
+            self.nonlayout_flow()
+            self.build_base_render_layers()
+            self.commit_base_canvas()
+        except Exception as e:
+            print(f"Error during scroll rendering: {e}")
+            log_trace()
+            self.render_manager.finish_current_render()
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
-        self.reset_cursor()
-        self.init_node_hierarchy(self.root_node)
-        self.consume_effects()
-        self.root_node.v2_measure_intrinsic_size(canvas)
-        self.root_node.v2_grow_size()
-        self.root_node.v2_constrain_size()
-        self.root_node.v2_layout(self.cursor_v2)
-        self.nonlayout_flow()
-        self.build_base_render_layers()
-        self.commit_base_canvas()
+        try:
+            self.reset_cursor()
+            self.init_node_hierarchy(self.root_node)
+            self.consume_effects()
+            self.root_node.v2_measure_intrinsic_size(canvas)
+            self.root_node.v2_grow_size()
+            self.root_node.v2_constrain_size()
+            self.root_node.v2_layout(self.cursor_v2)
+            self.nonlayout_flow()
+            self.build_base_render_layers()
+            self.commit_base_canvas()
+        except Exception as e:
+            print(f"Error during base canvas draw: {e}")
+            log_trace()
+            self.render_manager.finish_current_render()
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
@@ -888,17 +929,24 @@ class Tree(TreeType):
         self.destroy()
 
     def on_state_change_effect_callbacks(self):
-        for state in self.processing_states:
+        for state in state_manager.get_processing_states():
             for effect in self.effects:
                 if state in effect.dependencies:
-                    effect.callback()
+                    # check if expecting 1 argument
+                    if len(inspect.signature(effect.callback).parameters) == 1:
+                        effect.callback(StateEvent())
+                    else:
+                        effect.callback()
 
     def on_state_change_effect_cleanups(self):
-        for state in self.processing_states:
+        for state in state_manager.get_processing_states():
             for effect in reversed(self.effects):
                 if state in effect.dependencies:
                     if effect.cleanup:
-                        effect.cleanup()
+                        if len(inspect.signature(effect.cleanup).parameters) == 1:
+                            effect.cleanup(StateEvent())
+                        else:
+                            effect.cleanup()
 
     def on_fully_rendered(self):
         if not self.render_manager.is_destroying:
@@ -909,7 +957,11 @@ class Tree(TreeType):
                 self.is_mounted = True
 
                 for effect in self.effects:
-                    cleanup = effect.callback()
+                    if effect.callback:
+                        if len(inspect.signature(effect.callback).parameters) == 1:
+                            cleanup = effect.callback(StateEvent())
+                        else:
+                            cleanup = effect.callback()
                     if cleanup and not effect.cleanup:
                         effect.cleanup = cleanup
 
@@ -1156,7 +1208,10 @@ class Tree(TreeType):
         self.render_manager.prepare_destroy()
         for effect in reversed(self.effects):
             if effect.cleanup:
-                effect.cleanup()
+                if len(inspect.signature(effect.cleanup).parameters) == 1:
+                    effect.cleanup(StateEvent())
+                else:
+                    effect.cleanup()
 
         if self.render_debounce_job:
             cron.cancel(self.render_debounce_job)
@@ -1440,43 +1495,46 @@ class Tree(TreeType):
         canvas.draw_rect(canvas.rect)
 
     def draw_blockable_canvases(self):
-        is_rerender = False
+        try:
+            is_rerender = False
 
-        if self.is_blockable_canvas_init:
-            if self.should_rerender_blockable_canvas():
-                is_rerender = True
-            else:
+            if self.is_blockable_canvas_init:
+                if self.should_rerender_blockable_canvas():
+                    is_rerender = True
+                else:
+                    return
+
+            if not self.root_node or not self.root_node.box_model:
                 return
 
-        if not self.root_node or not self.root_node.box_model:
-            return
+            blockable_rects = self.calculate_blockable_rects()
 
-        blockable_rects = self.calculate_blockable_rects()
-
-        if self.render_manager.render_cause == RenderCause.DRAGGING \
-                or self.render_manager.render_cause == RenderCause.DRAG_START:
-            offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-            self.move_blockable_canvas_rects(blockable_rects, offset)
-            return
-        elif self.render_manager.render_cause == RenderCause.DRAG_END:
-            return
-
-        if is_rerender:
-            dimension_change, position_change = self.have_blockable_rects_changed(blockable_rects)
-            if dimension_change:
-                self.destroy_blockable_canvas()
-            elif position_change:
-                self.move_blockable_canvas_rects(blockable_rects)
+            if self.render_manager.render_cause == RenderCause.DRAGGING \
+                    or self.render_manager.render_cause == RenderCause.DRAG_START:
+                offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
+                self.move_blockable_canvas_rects(blockable_rects, offset)
+                return
+            elif self.render_manager.render_cause == RenderCause.DRAG_END:
                 return
 
-        if not self.is_blockable_canvas_init:
-            self.is_blockable_canvas_init = True
-            self.last_blockable_rects.clear()
-            self.last_blockable_rects.extend(blockable_rects)
-            for rect in blockable_rects:
-                canvas = CanvasWeakRef(self.Canvas.from_rect(rect))
-                self.canvas_blockable.append(canvas)
-                canvas.blocks_mouse = True
-                canvas.register("mouse", self.on_mouse)
-                canvas.register("scroll", self.on_scroll)
-                canvas.freeze()
+            if is_rerender:
+                dimension_change, position_change = self.have_blockable_rects_changed(blockable_rects)
+                if dimension_change:
+                    self.destroy_blockable_canvas()
+                elif position_change:
+                    self.move_blockable_canvas_rects(blockable_rects)
+                    return
+
+            if not self.is_blockable_canvas_init:
+                self.is_blockable_canvas_init = True
+                self.last_blockable_rects.clear()
+                self.last_blockable_rects.extend(blockable_rects)
+                for rect in blockable_rects:
+                    canvas = CanvasWeakRef(self.Canvas.from_rect(rect))
+                    self.canvas_blockable.append(canvas)
+                    canvas.blocks_mouse = True
+                    canvas.register("mouse", self.on_mouse)
+                    canvas.register("scroll", self.on_scroll)
+                    canvas.freeze()
+        except Exception as e:
+            print(f"talon_ui_elements draw_blockable_canvases error: {e}")

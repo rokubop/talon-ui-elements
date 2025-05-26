@@ -32,7 +32,7 @@ default_button_props = {
 }
 
 default_svg_props = {
-    "size": 20,
+    "size": 14,
     "stroke_width": 2,
 }
 
@@ -50,11 +50,11 @@ def switch_impl(props):
             )
 
     # Extract styles from props
-    size = int(switch_props.get("size", 20))  # Default size scaling factor is 20
-    track_width = int(button_props.get("width", 40) * size / 20)
-    track_height = int(button_props.get("height", 22) * size / 20)
-    thumb_size = int(button_props.get("thumb_size", 18) * size / 20)
-    padding = int(button_props.get("padding", 2) * size / 20)
+    size = int(switch_props.get("size", 14))  # Default size scaling factor is 14
+    track_width = int(button_props.get("width", 40) * size / 14)
+    track_height = int(button_props.get("height", 22) * size / 14)
+    thumb_size = int(button_props.get("thumb_size", 16) * size / 14)
+    padding = int(button_props.get("padding", 2) * size / 14)
     track_color = button_props.get("background_color", "#444444" if not is_checked else "#2196f3")
     thumb_color = button_props.get("thumb_color", "#ffffff")
     border_radius = int(button_props.get("border_radius", track_height // 2))

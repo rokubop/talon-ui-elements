@@ -41,6 +41,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
     bottom: Union[int, str, float] = None
+    class_name: str = None
     color: str = DEFAULT_COLOR
     drag_handle: bool = False
     draggable: bool = False
@@ -208,8 +209,9 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key, value in kwargs.items():
             if key in self._explicitly_set:
                 continue
-            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
+            if key in ["background_color", "border_color", "color", "stroke", "fill"]:
                 value = hex_color(value)
+
             update_padding = 'padding' in key or update_padding
             update_margin = 'margin' in key or update_margin
             update_border = 'border' in key or update_border
@@ -229,7 +231,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         """Inherit properties from another Properties object."""
         for key in properties._explicitly_set:
             value = getattr(properties, key)
-            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
+            if key in ["background_color", "border_color", "color", "stroke", "fill"]:
                 value = hex_color(value)
             if key in ["padding", "margin", "border"]:
                 value = parse_box_model(type(getattr(self, key)), **value)
@@ -323,6 +325,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     border_radius: int
     border_width: int
     bottom: Union[int, str, float]
+    class_name: str
     color: str
     drag_handle: bool
     draggable: bool
@@ -416,7 +419,7 @@ class NodeDivProperties(Properties):
 class NodeSvgValidationProperties(TypedDict):
     color: str
     background_color: str
-    fill: str
+    fill: Union[str, bool]
     stroke: str
     stroke_width: int
     stroke_linejoin: str
@@ -426,8 +429,8 @@ class NodeSvgValidationProperties(TypedDict):
 
 @dataclass
 class NodeSvgProperties(Properties):
-    fill: str = DEFAULT_COLOR
-    stroke: str = DEFAULT_COLOR
+    fill: Union[str, bool] = DEFAULT_COLOR
+    stroke: Union[str, bool] = DEFAULT_COLOR
     stroke_width: int = 2
     stroke_linejoin: str = "round"
     stroke_linecap: str = "round"
@@ -435,6 +438,8 @@ class NodeSvgProperties(Properties):
     size: int = 24
 
     def __init__(self, **kwargs):
+        if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
+            kwargs['fill'] = DEFAULT_COLOR
         super().__init__(**kwargs)
 
 class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
@@ -443,7 +448,7 @@ class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
-    fill: str
+    fill: Union[str, bool]
 
 class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
     x: int
@@ -456,7 +461,7 @@ class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
-    fill: str
+    fill: Union[str, bool]
 
 class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
     cx: int
@@ -466,7 +471,7 @@ class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
-    fill: str
+    fill: Union[str, bool]
 
 class NodeSvgPolylineValidationProperties(NodeSvgValidationProperties):
     points: str
@@ -474,7 +479,7 @@ class NodeSvgPolylineValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
-    fill: str
+    fill: Union[str, bool]
 
 class NodeSvgPolygonValidationProperties(NodeSvgPolylineValidationProperties):
     pass
@@ -488,7 +493,7 @@ class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
     stroke_linejoin: str
     stroke_width: int
     stroke: str
-    fill: str
+    fill: Union[str, bool]
 
 class NodeIconValidationProperties(ValidationProperties):
     name: str
@@ -498,7 +503,7 @@ class NodeIconValidationProperties(ValidationProperties):
     stroke_linejoin: str = None
     stroke_width: int = None
     stroke: str = None
-    fill: str
+    fill: Union[str, bool] = None
 
 @dataclass
 class NodeTableProperties(NodeDivProperties):
@@ -582,6 +587,8 @@ class NodeSvgRectProperties(Properties):
     fill: str = None
 
     def __init__(self, **kwargs):
+        if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
+            kwargs['fill'] = DEFAULT_COLOR
         if not kwargs.get('width') or not kwargs.get('height'):
             raise ValueError(
                 f"\nInvalid property value for 'width' or 'height' for svg rect: {kwargs.get('width')}, {kwargs.get('height')}\n"
@@ -602,6 +609,8 @@ class NodeSvgCircleProperties(Properties):
     fill: str = None
 
     def __init__(self, **kwargs):
+        if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
+            kwargs['fill'] = DEFAULT_COLOR
         if not kwargs.get('r'):
             raise ValueError(
                 f"\nInvalid property value for 'r' for svg circle: {kwargs.get('r')}\n"
@@ -631,6 +640,8 @@ class NodeSvgPolylineProperties(Properties):
 @dataclass
 class NodeSvgPolygonProperties(NodeSvgPolylineProperties):
     def __init__(self, **kwargs):
+        if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
+            kwargs['fill'] = DEFAULT_COLOR
         super().__init__(**kwargs)
 
 @dataclass

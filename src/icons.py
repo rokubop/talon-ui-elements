@@ -29,7 +29,7 @@ ICON_SVG_PATH_ONLY = {
     "maximize": "M 5 5 H 19 V 19 H 5 Z",
     "minimize": "M 4 14 H 19",
     "multiply": "M 6 18 L 18 6 M 6 6 L 18 18",
-    "play": "M 5 3 L 19 12 L 5 21 Z",
+    # "play": "M 5 3 L 19 12 L 5 21 Z",
     "plus": "M 12 5 V 19 M 5 12 H 19",
     "rotate_left": "M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38",
     "upload": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 4.2v10.3",
@@ -150,6 +150,31 @@ def icon_settings(props=None, **additional_props):
         ]
     ]
 
+def icon_play(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, polygon = actions.user.ui_elements_svg(["svg", "polygon"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    return div(**div_props)[
+        svg(**svg_props)[
+            polygon(points="5 3 19 12 5 21 5 3", fill=True),
+        ]
+    ]
+
+def icon_pause(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, rect = actions.user.ui_elements_svg(["svg", "rect"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    return div(**div_props)[
+        svg(**svg_props)[
+            rect(x=6, y=4, width=4, height=16, fill=True),
+            rect(x=14, y=4, width=4, height=16, fill=True),
+        ]
+    ]
+
 def icon_check(props=None, **additional_props):
     div = actions.user.ui_elements("div")
     svg, polyline = actions.user.ui_elements_svg(["svg", "polyline"])
@@ -235,6 +260,8 @@ ICON_CUSTOM_SVG = {
     "minus": icon_minus,
     "more_horizontal": more_horizontal,
     "more_vertical": more_vertical,
+    "pause": icon_pause,
+    "play": icon_play,
     "plus": icon_plus,
     "trash": icon_trash,
     "settings": icon_settings,

@@ -77,9 +77,9 @@ class NodeTable(NodeContainer):
         ]
 
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        self.row_heights = [0] * len(self.rows)
-        col_count = max(len(row) for row in self.rows)
-        self.col_widths = [0] * col_count
+        self.row_heights = [0] * len(self.rows) if self.rows else []
+        col_count = max(len(row) for row in self.rows) if self.rows else 0
+        self.col_widths = [0] * col_count if col_count else []
 
         measured_sizes = {}
 
@@ -100,10 +100,10 @@ class NodeTable(NodeContainer):
             raise ValueError(f"Invalid child element type '{c.element_type}' for table. Expected 'tr'.")
 
     def destroy(self):
+        self.rows.clear()
+        self.columns.clear()
+        self.column_layout_children_nodes.clear()
         super().destroy()
-        self.rows = []
-        self.columns = []
-        self.column_layout_children_nodes = []
 
 class NodeTableRow(NodeContainer):
     def __init__(self, properties: Properties = None):
