@@ -391,6 +391,7 @@ class Tree(TreeType):
         self.cursor = None
         self.cursor_v2 = None
         self.effects = []
+        self.disable_mouse = False
         self.drag_end_phase = False
         self.draggable_node = False
         self.draggable_node_delta_pos = None
@@ -889,12 +890,14 @@ class Tree(TreeType):
 
             if self.is_mounted:
                 # t0 = time.time()
+                self.disable_mouse = True
                 self.on_state_change_effect_cleanups()
                 # t1 = time.time()
                 # self.meta_state.prepare_node_transition()
                 self.meta_state.clear_nodes()
                 # t2 = time.time()
                 self.init_tree_constructor()
+                self.disable_mouse = False
                 # t3 = time.time()
 
                 # print(f"on_mount_reset: {t0-t1:.3f} {t1-t2:.3f} {t2-t3:.3f}")
@@ -1117,7 +1120,7 @@ class Tree(TreeType):
                     if not state_manager.is_drag_active():
                         self.click_node(node)
 
-            state_manager.set_mousedown_start_id(None)
+            state_manager.set_mousedown_start_pos(None)
 
             if self.draggable_node and self.drag_handle_node:
                 if state_manager.is_drag_active():
@@ -1141,7 +1144,7 @@ class Tree(TreeType):
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)
-        if not self.render_manager.is_destroying:
+        if not self.disable_mouse and not self.render_manager.is_destroying:
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
                 self.on_hover(e.gpos)

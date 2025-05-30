@@ -54,6 +54,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str, float] = 0
+    highlight: dict = None
     highlight_color: str = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
@@ -81,6 +82,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.font_size = DEFAULT_FONT_SIZE
         self.color = DEFAULT_COLOR
         self.border_color = DEFAULT_BORDER_COLOR
+        self.element_type = kwargs.get('element_type', None)
         self._explicitly_set = set()
 
         for key, value in kwargs.items():
@@ -330,6 +332,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     drag_handle: bool
     draggable: bool
     drop_shadow: tuple[int, int, int, int, str]
+    element_type: str
     flex_direction: str
     flex: int
     flex_wrap: bool
@@ -339,6 +342,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     font_size: int
     gap: int
     height: Union[int, str, float]
+    highlight: dict
     highlight_color: str
     id: str
     justify_content: str
@@ -810,16 +814,15 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["window"]: NodeWindowValidationProperties.__annotations__,
 }
 
-def validate_combined_props(props, additional_props, element_type):
-    all_props = None
+def combine_props(props, additional_props):
     if props is None:
-        all_props = additional_props
-    elif not additional_props:
-        all_props = props
-    else:
-        all_props = {**props, **additional_props}
+        return additional_props
+    if additional_props is None:
+        return props
+    return {**props, **additional_props}
 
-    invalid_props = all_props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
+def validate_props(props, element_type):
+    invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))
         raise ValueError(
@@ -829,7 +832,7 @@ def validate_combined_props(props, additional_props, element_type):
         )
 
     type_errors = []
-    for key, value in all_props.items():
+    for key, value in props.items():
         expected_type = VALID_ELEMENT_PROP_TYPES[element_type][key]
         if expected_type is callable:
             if not callable(value):
@@ -843,4 +846,9 @@ def validate_combined_props(props, additional_props, element_type):
             "\n".join(type_errors)
         )
 
-    return all_props
+    return props
+
+def validate_combined_props(props, additional_props, element_type):
+    combined_props = combine_props(props, additional_props)
+    validate_props(combined_props, element_type)
+    return combined_props

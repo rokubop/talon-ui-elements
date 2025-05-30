@@ -40,6 +40,8 @@ from .properties import (
     NodeSvgLineProperties,
     NodeWindowProperties,
     NodeModalProperties,
+    combine_props,
+    validate_props,
     validate_combined_props
 )
 from .icons import icon
@@ -267,7 +269,12 @@ def button(*args, text=None, **additional_props):
 
     props = args[0] if args and isinstance(args[0], dict) else {}
 
-    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["button"])
+    all_props = combine_props(props, additional_props)
+
+    properties = validate_props(
+        all_props,
+        ELEMENT_ENUM_TYPE["button"]
+    )
 
     if text:
         properties["type"] = "button"
@@ -276,6 +283,9 @@ def button(*args, text=None, **additional_props):
             **properties
         })
         return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
+
+    if all_props.get("element_type", None):
+        properties["element_type"] = all_props["element_type"]
 
     button_properties = NodeTextProperties(**properties)
     return NodeButton(button_properties)

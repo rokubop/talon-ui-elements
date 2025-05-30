@@ -18,7 +18,7 @@ def split_checkbox_props(props):
     for key, value in props.items():
         if key in ["checked", "on_change"]:
             checkbox_props[key] = value
-        elif key in ["size", "stroke_width", "background_color", "view_box", "stroke_linejoin", "stroke_linecap"]:
+        elif key in ["size", "stroke_width", "view_box", "stroke_linejoin", "stroke_linecap"]:
             svg_props[key] = value
         elif key in ["color", "stroke", "fill"]:
             if key == "color":
@@ -67,6 +67,7 @@ def checkbox_impl(props):
             **button_props,
         },
         on_click=on_trigger,
+        # element_type="checkbox",
     )[
         svg({ **default_svg_props, **svg_props })[
             polyline(points="20 6 9 17 4 12")
