@@ -26,6 +26,13 @@ from ..interfaces import (
 from ..properties import Properties
 from ..utils import sanitize_string
 
+STYLE_MAP = {
+    "highlight": "highlight_style",
+    # "hover": "hover_style",
+    # "focus": "focus_style",
+    # "active": "active_style",
+}
+
 class Node(NodeType):
     def __init__(self,
             element_type: ElementEnumType,
@@ -44,6 +51,7 @@ class Node(NodeType):
         self.children_nodes = []
         self.is_dirty: bool = False
         self.interactive = False
+        self.uses_decoration_render: bool = False
         self.root_node = None
         self.depth: int = None
         self.z_subindex: int = 0
@@ -125,6 +133,42 @@ class Node(NodeType):
         if callable(node):
             node = Component(node)
         return node
+
+    def get_active_variant(self):
+        id = self.id
+        meta_state = self.tree.meta_state
+
+        if id in meta_state.highlighted:
+            return "highlight", 1.0
+        return None, 0
+
+    def resolve_render_property(self, property_name: str):
+        base = getattr(self.properties, property_name)
+        variant, t = self.get_active_variant()
+        if not variant or t == 0:
+            return base
+
+        style_key = STYLE_MAP.get(variant)
+        style = getattr(self.properties, style_key, None)
+
+        if not style or property_name not in style:
+            return base
+
+        override = style[property_name]
+
+        # future interpolation logic
+        # if t == 1.0:
+        #     return override
+
+        # if isinstance(base, str) and property_name.endswith("color"):
+        #     return interpolate_color(base, override, t)
+        # elif isinstance(base, (int, float)) and isinstance(override, (int, float)):
+        #     return base + (override - base) * t
+        # else:
+        #     return override
+
+        return override
+
 
     def add_child(self, node):
         if isinstance(node, tuple):
@@ -260,9 +304,10 @@ class Node(NodeType):
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
             # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             inner_rect = self.box_model.padding_rect
+            border_color = self.resolve_render_property("border_color")
             if self.is_uniform_border:
                 border_width = border_spacing.left
-                c.paint.color = self.properties.border_color
+                c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
                 c.paint.stroke_width = border_width
 
@@ -278,7 +323,7 @@ class Node(NodeType):
                 else:
                     c.draw_rect(bordered_rect)
             else:
-                c.paint.color = self.properties.border_color
+                c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
                 b_rect, p_rect = self.box_model.border_rect, inner_rect
                 if border_spacing.left:
@@ -319,9 +364,10 @@ class Node(NodeType):
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas):
-        if self.properties.background_color:
+        background_color = self.resolve_render_property("background_color")
+        if background_color:
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.properties.background_color
+            c.paint.color = background_color
 
             # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             inner_rect = self.box_model.padding_rect
@@ -336,9 +382,17 @@ class Node(NodeType):
         self.v2_render_borders(c)
 
     def v2_build_render_list(self):
-        self.tree.append_to_render_list(self, self.draw_start)
+        if not self.uses_decoration_render:
+            self.tree.append_to_render_list(self, self.draw_start)
+            for child in self.get_children_nodes():
+                child.v2_build_render_list()
+
+    def v2_render_decorator(self, c: SkiaCanvas):
+        self.v2_render_background(c)
+        self.v2_render_borders(c)
+
         for child in self.get_children_nodes():
-            child.v2_build_render_list()
+            child.v2_render_decorator(c)
 
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)

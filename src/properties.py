@@ -54,7 +54,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     font_size: int = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str, float] = 0
-    highlight: dict = None
+    highlight_style: dict = None
     highlight_color: str = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
@@ -84,6 +84,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.border_color = DEFAULT_BORDER_COLOR
         self.element_type = kwargs.get('element_type', None)
         self._explicitly_set = set()
+        self._highlighted_variant = None
 
         for key, value in kwargs.items():
             self.update_property(key, value)
@@ -189,12 +190,29 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     f"Valid values are: {VALID_VALUES}\n"
                 )
 
+    def validate_highlight_style(self):
+        if self.highlight_style:
+            VALID_VALUES = ['background_color', 'border_color', 'color', 'fill', 'stroke']
+
+            if not isinstance(self.highlight_style, dict):
+                raise ValueError(
+                    f"\nInvalid value for highlight_style: '{self.highlight_style}'\n"
+                    f"highlight_style property should be a dictionary: highlight_style={{'background_color': '...', 'border_color': '...', ...}}"
+                )
+
+            if any(prop not in VALID_VALUES for prop in self.highlight_style):
+                raise ValueError(
+                    f"\nInvalid value for highlight_style: '{self.highlight_style}'\n"
+                    f"Valid values are: {VALID_VALUES}\n"
+                )
+
     def validate_properties(self, kwargs):
         self.validate_justify_content()
         self.validate_align_items()
         self.validate_drop_shadow()
         self.validate_transition()
         self.validate_position_constraints(kwargs)
+        self.validate_highlight_style()
 
     def init_box_model_properties(self, kwargs):
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
@@ -291,6 +309,23 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key, value in overrides.items():
             self.update_property(key, value)
 
+    def get_variant(self, state: str) -> 'Properties':
+        """Get a variant of the properties based on the state"""
+        if state == "highlighted" and self.highlight_style:
+            if hasattr(self, "_highlighted_variant"):
+                return self._highlighted_variant
+
+            variant = Properties.__new__(Properties)
+            variant.__dict__ = self.__dict__.copy()
+            variant.__dict__.update({
+                k: hex_color(v) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
+                for k, v in self.highlight_style.items()
+            })
+            self._highlighted_variant = variant
+            return variant
+
+        return self
+
     def is_user_set(self, key: str) -> bool:
         """Check if a property was explicitly set by the user."""
         return key in self._explicitly_set
@@ -342,7 +377,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     font_size: int
     gap: int
     height: Union[int, str, float]
-    highlight: dict
+    highlight_style: dict
     highlight_color: str
     id: str
     justify_content: str

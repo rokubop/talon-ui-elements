@@ -43,6 +43,9 @@ class NodeInputText(Node):
             draw=self.v2_render
         )
 
+    def v2_render_decorator(self, c):
+        return self.v2_render(c)
+
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)
         self.v2_render_borders(c)

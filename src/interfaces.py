@@ -92,6 +92,10 @@ class PropertiesType(ABC):
         pass
 
     @abstractmethod
+    def get_variant(self, variant: str) -> 'PropertiesType':
+        pass
+
+    @abstractmethod
     def gc(self):
         pass
 
@@ -170,6 +174,7 @@ class MetaStateInput:
 
 class MetaStateType(ABC):
     _inputs: dict[str, MetaStateInput]
+    decoration_renders: dict
     _highlighted: dict[str, str]
     _buttons: set[str]
     _draggable_offset: dict[str, Point2d]
@@ -242,6 +247,10 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def add_input(self, id: str, input: TextArea, initial_value: str, on_change: callable):
+        pass
+
+    @abstractmethod
+    def add_decoration_render(self, id: str):
         pass
 
     @abstractmethod
@@ -455,6 +464,7 @@ class NodeType(ABC):
     is_dirty: bool
     tree: 'TreeType'
     root_node: 'NodeRootType'
+    uses_decoration_render: bool
     depth: int
     node_index_path: List[int]
     component_node: object
@@ -517,6 +527,10 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
+    def v2_render_decorator(self, c: SkiaCanvas):
+        pass
+
+    @abstractmethod
     def v2_scroll_layout(self, offset: Point2d = None):
         pass
 
@@ -537,6 +551,16 @@ class NodeType(ABC):
         pass
 
     def get_children_nodes(self) -> List['NodeType']:
+        pass
+
+    @abstractmethod
+    def get_active_variant(self) -> tuple[str, float]:
+        """Get the active variant of the node, if any."""
+        pass
+
+    @abstractmethod
+    def resolve_render_property(self, property_name: str) -> Any:
+        """Resolve a render property for the node."""
         pass
 
 class RenderCauseStateType(ABC):

@@ -154,13 +154,38 @@ class NodeText(Node):
         return self.box_model.intrinsic_margin_size
 
     def v2_build_render_list(self):
-        self.tree.append_to_render_list(
-            node=self,
-            draw=self.v2_render
-        )
+        if not self.uses_decoration_render:
+            self.tree.append_to_render_list(
+                node=self,
+                draw=self.v2_render
+            )
+
+    def v2_render_decorator(self, c: SkiaCanvas):
+        self.v2_render_borders(c)
+        self.v2_render_background(c)
+
+        # This should be in layout phase
+        text_top_left = self.box_model.content_children_pos.copy()
+        available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
+        if self.properties.text_align == "center":
+            text_top_left.x += available_width // 2
+        elif self.properties.text_align == "right":
+            text_top_left.x += available_width
+
+        self.cursor_pre_draw_text = (text_top_left.x, text_top_left.y + self.text_line_height)
+        color = self.resolve_render_property("color")
+
+        if self.text_multiline:
+            gap = self.properties.gap or 16
+            for i, line in enumerate(self.text_multiline):
+                draw_text_simple(c, line, color, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
+        else:
+            draw_text_simple(c, self.text, color, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)
 
     def v2_render(self, c):
-        render_now = False if self.own_id and self.element_type == "text" else True
+        render_now = not self.uses_decoration_render
+        if self.own_id and self.element_type == "text":
+            render_now = False
 
         self.v2_render_borders(c)
         self.v2_render_background(c)
@@ -179,6 +204,6 @@ class NodeText(Node):
             if self.text_multiline:
                 gap = self.properties.gap or 16
                 for i, line in enumerate(self.text_multiline):
-                    draw_text_simple(c, line, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
+                    draw_text_simple(c, line, self.properties.color, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
             else:
-                draw_text_simple(c, self.text, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)
+                draw_text_simple(c, self.text, self.properties.color, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)

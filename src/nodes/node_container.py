@@ -259,18 +259,29 @@ class NodeContainer(Node, NodeContainerType):
         self.render_scroll_bar(c)
 
     def v2_build_render_list(self):
-        self.tree.append_to_render_list(
-            node=self,
-            draw=self.draw_start
-        )
+        if not self.uses_decoration_render:
+            self.tree.append_to_render_list(
+                node=self,
+                draw=self.draw_start
+            )
 
-        for child in self.get_children_nodes():
-            child.v2_build_render_list()
+            for child in self.get_children_nodes():
+                child.v2_build_render_list()
 
-        self.tree.append_to_render_list(
-            node=self,
-            draw=self.draw_end
-        )
+            self.tree.append_to_render_list(
+                node=self,
+                draw=self.draw_end
+            )
+
+    def v2_render_decorator(self, c):
+        if self.tree:
+            self.v2_render_borders(c)
+            # self.v2_crop_start(c)
+            self.v2_render_background(c)
+            for child in self.get_children_nodes():
+                child.v2_render_decorator(c)
+            # self.v2_crop_end(c)
+            # self.render_scroll_bar(c)
 
     def v2_render(self, c):
         if self.tree:

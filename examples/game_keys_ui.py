@@ -10,6 +10,10 @@ key_style = {
     "width": 60,
     "height": 60,
     "opacity": 0.8,
+    "highlight_style": {
+        "background_color": "FF0000",
+        "color": "000000",
+    },
 }
 
 def get_additional_props(display: str):

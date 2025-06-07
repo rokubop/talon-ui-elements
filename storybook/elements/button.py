@@ -31,7 +31,7 @@ def button_stories():
                     padding=12,
                     border_radius=6,
                     background_color="#3689E8",
-                    color="#F1F1F1"
+                    color="#F1F1F1",
                 ),
                 "code": textwrap.dedent("""\
                     button(

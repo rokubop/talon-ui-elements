@@ -2,7 +2,6 @@ import hashlib
 import inspect
 import json
 import os
-import platform
 import re
 from dataclasses import dataclass
 from talon import ui
@@ -13,9 +12,9 @@ from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
 from .fonts import get_typeface
 
-def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
+def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
-    paint.color = properties.color
+    paint.color = color
     paint.textsize = properties.font_size
     if properties.font_family:
         typeface = get_typeface(properties.font_family, properties.font_weight)
@@ -154,3 +153,12 @@ def subtract_rect(outer: Rect, inner: Rect) -> list[Rect]:
         rects.append(Rect(inner.right, inner.top, outer.right - inner.right, inner.height))
 
     return rects
+
+def find_closest_parent_with_id(node):
+    """Find the closest parent node that has an ID."""
+    current_node = node
+    while current_node:
+        if current_node.id:
+            return current_node
+        current_node = current_node.parent_node
+    return None

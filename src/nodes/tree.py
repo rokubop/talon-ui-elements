@@ -37,9 +37,10 @@ from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_s
 from ..style import Style
 from ..utils import (
     draw_text_simple,
+    find_closest_parent_with_id,
     get_active_color_from_highlight_color,
     get_combined_screens_rect,
-    subtract_rect
+    subtract_rect,
 )
 
 scroll_throttle_job = None
@@ -85,6 +86,7 @@ class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = set()
         self._components = {}
+        self.decoration_renders = {}
         self._highlighted = {}
         self._id_to_node = {}
         self._staged_id_to_node = {}
@@ -184,6 +186,9 @@ class MetaState(MetaStateType):
     def add_text_with_for_id(self, id, for_id):
         if id not in self._text_with_for_ids:
             self._text_with_for_ids[id] = for_id
+
+    def add_decoration_render(self, id):
+        self.decoration_renders[id] = True
 
     def associate_state(self, key, components):
         if key not in self._states:
@@ -307,6 +312,7 @@ class MetaState(MetaStateType):
 
         self._buttons.clear()
         self._components.clear()
+        self.decoration_renders.clear()
         self._draggable_offset.clear()
         self._last_drag_offset.clear()
         self._highlighted.clear()
@@ -540,6 +546,12 @@ class Tree(TreeType):
             # self.root_node.boundary_rect.y
         )
 
+    def draw_decoration_renders(self, canvas: SkiaCanvas):
+        for id in list(self.meta_state.decoration_renders.keys()):
+            if id in self.meta_state.id_to_node:
+                node = self.meta_state.id_to_node[id]
+                node.v2_render_decorator(canvas)
+
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
             if not self.render_manager.is_destroying:
@@ -549,7 +561,9 @@ class Tree(TreeType):
                     if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
                     else Point2d(0, 0)
                 state_manager.set_processing_tree(self)
-                self.draw_highlights(draw_canvas, offset)
+
+                self.draw_decoration_renders(draw_canvas)
+                self.draw_highlight_overlays(draw_canvas, offset)
                 canvas.paint.color = "FFFFFF"
                 self.draw_text_mutations(draw_canvas, offset)
                 if self.interactive_node_list or self.draggable_node:
@@ -656,31 +670,39 @@ class Tree(TreeType):
             self.render_decorator_canvas()
             state_manager.set_processing_tree(None)
 
-    def draw_highlights(self, canvas: SkiaCanvas, offset: Point2d):
+    def draw_highlight_overlay(self, canvas: SkiaCanvas, node: NodeType, offset: Point2d, color: str = None):
+        rect = node.box_model.visible_rect
+        rect.x += offset.x
+        rect.y += offset.y
+        canvas.paint.color = color or node.properties.highlight_color
+
+        if rect:
+            if hasattr(node.properties, 'border_radius'):
+                border_radius = node.properties.border_radius
+                canvas.draw_rrect(RoundRect.from_rect(rect, x=border_radius, y=border_radius))
+            else:
+                canvas.draw_rect(rect)
+
+    def draw_highlight_overlays(self, canvas: SkiaCanvas, offset: Point2d):
         canvas.paint.style = canvas.paint.Style.FILL
         for id, color in list(self.meta_state.highlighted.items()):
-            if id in self.meta_state.id_to_node:
+            # migrating to new highlight system - decoration renders
+            # so if we have decoration renders, prioritize that instead
+            if not id in self.meta_state.decoration_renders and id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                rect = node.box_model.visible_rect
-                rect.x += offset.x
-                rect.y += offset.y
-                canvas.paint.color = color or node.properties.highlight_color
+                self.draw_highlight_overlay(canvas, node, offset, color)
 
-                if rect:
-                    if hasattr(node.properties, 'border_radius'):
-                        border_radius = node.properties.border_radius
-                        canvas.draw_rrect(RoundRect.from_rect(rect, x=border_radius, y=border_radius))
-                    else:
-                        canvas.draw_rect(rect)
+    def draw_text_mutation(self, canvas: SkiaCanvas, node: NodeType, id: str, offset: Point2d):
+        x, y = node.cursor_pre_draw_text
+        x += offset.x
+        y += offset.y
+        draw_text_simple(canvas, self.meta_state.get_text_mutation(id), node.properties.color, node.properties, x, y)
 
     def draw_text_mutations(self, canvas: SkiaCanvas, offset: Point2d):
         for id, text_value in list(self.meta_state.text_mutations.items()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                x, y = node.cursor_pre_draw_text
-                x += offset.x
-                y += offset.y
-                draw_text_simple(canvas, text_value, node.properties, x, y)
+                self.draw_text_mutation(canvas, node, id, offset)
 
     def create_surface(self):
         surface = self.Surface(self.current_base_canvas.width, self.current_base_canvas.height)
@@ -1003,6 +1025,7 @@ class Tree(TreeType):
                     state_manager.set_hovered_id(None)
                 if changed:
                     self.render_manager.render_mouse_highlight()
+
         except Exception as e:
             print(f"talon_ui_elements on_hover error: {e}")
 
@@ -1308,6 +1331,15 @@ class Tree(TreeType):
             if node.properties.draggable:
                 self.meta_state.add_draggable(node.id)
 
+    def _use_decorator(self, node: NodeType):
+        if node.properties.highlight_style:
+            target_node = node if node.id else find_closest_parent_with_id(node.parent_node)
+            if target_node and target_node.id:
+                self.meta_state.add_decoration_render(target_node.id)
+                node.uses_decoration_render = True
+                for child_node in target_node.get_children_nodes():
+                    child_node.uses_decoration_render = True
+
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
         if node.properties.width is not None or \
                 node.properties.max_width is not None or \
@@ -1409,6 +1441,7 @@ class Tree(TreeType):
         if not self.is_mounted:
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
+        self._use_decorator(current_node)
         self._check_modals(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
         clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)
