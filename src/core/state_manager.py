@@ -34,11 +34,6 @@ class StateCoordinator:
                 self.current_state_keys.update(self.next_state_keys)
                 self.next_state_keys.clear()
 
-            # Maybe tree code is handling this already
-            # if tree.effects:
-            #     for effect in tree.effects:
-            #         effect.execute()
-
             if self.current_state_keys:
                 for key in self.current_state_keys:
                     self.request_state_change(key)

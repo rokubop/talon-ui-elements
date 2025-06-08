@@ -594,7 +594,6 @@ class Tree(TreeType):
                                 canvas.x,
                                 canvas.y,
                             )
-                            self.drag_end_phase = False
                         else:
                             canvas.draw_image(
                                 self.last_hints_snapshot,
@@ -1022,6 +1021,7 @@ class Tree(TreeType):
 
             self.processing_states.clear()
             self.render_cause.clear()
+            self.drag_end_phase = False
 
     def on_hover(self, gpos):
         try:
@@ -1077,11 +1077,6 @@ class Tree(TreeType):
                 if abs(gpos.x - start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - start_pos.y) > DRAG_INIT_THRESHOLD:
                     state_manager.set_drag_active(True)
                     is_drag_start = True
-
-            # if state_manager.is_drag_active():
-            #     x = gpos.x - drag_relative_offset.x
-            #     y = gpos.y - drag_relative_offset.y
-            #     self.draggable_node_delta_pos = Point2d(x, y)
 
             if is_drag_start:
                 offset = state_manager.get_mousedown_start_offset()

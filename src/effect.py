@@ -49,11 +49,8 @@ def use_effect(callback, arg2, arg3=None):
             You can also optionally use register on_mount and on_unmount effects directly with ui_elements_show(ui, on_mount=callback, on_unmount=callback)
         """)
 
-    print("registering effect with component id:", component.id if component else None)
-
     if (component and component.id and not component.id in tree.meta_state.components) \
             or not tree.is_mounted:
-        print("Yes, registering effect with component id:", component.id if component else None)
         effect = Effect(
             name=callback.__name__,
             callback=callback,
