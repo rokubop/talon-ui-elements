@@ -50,7 +50,7 @@ debug = True
 
 def log_trace():
     if debug:
-        traceback.print_stack()
+        traceback.print_exc()
 
 def log(*args):
     if debug:
@@ -86,6 +86,7 @@ class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = set()
         self._components = {}
+        self._staged_components = {}
         self.decoration_renders = {}
         self._highlighted = {}
         self._id_to_node = {}
@@ -101,6 +102,8 @@ class MetaState(MetaStateType):
         self._text_mutations = {}
         self.ref_property_overrides = {}
         self.unhighlight_jobs = {}
+        self.new_component_ids = set()
+        self.removed_component_ids = set()
 
     @property
     def buttons(self):
@@ -170,8 +173,11 @@ class MetaState(MetaStateType):
         self._buttons.add(id)
 
     def add_component(self, component):
-        if component.id not in self._components:
-            self._components[component.id] = component
+        if component.id not in self._staged_components:
+            if component.id in self._components:
+                self._staged_components[component.id] = self._components[component.id]
+            else:
+                self._staged_components[component.id] = component
 
     def map_id_to_node(self, id, node):
         self._id_to_node[id] = node
@@ -312,6 +318,7 @@ class MetaState(MetaStateType):
 
         self._buttons.clear()
         self._components.clear()
+        self._staged_components.clear()
         self.decoration_renders.clear()
         self._draggable_offset.clear()
         self._last_drag_offset.clear()
@@ -324,6 +331,8 @@ class MetaState(MetaStateType):
         self._text_mutations.clear()
         self.unhighlight_jobs.clear()
         self.ref_property_overrides.clear()
+        self.new_component_ids.clear()
+        self.removed_component_ids.clear()
         self.clear_nodes()
 
 class RenderCauseState(RenderCauseStateType):
@@ -637,6 +646,7 @@ class Tree(TreeType):
         try:
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
+            self.consume_components()
             self.consume_effects()
             self.root_node.v2_measure_intrinsic_size(canvas)
             self.root_node.v2_grow_size()
@@ -956,8 +966,8 @@ class Tree(TreeType):
     def on_state_change_effect_callbacks(self):
         for state in state_manager.get_processing_states():
             for effect in self.effects:
-                if state in effect.dependencies:
-                    # check if expecting 1 argument
+                component_mount = effect.component and effect.component.id in self.meta_state.new_component_ids
+                if component_mount or state in effect.dependencies:
                     if len(inspect.signature(effect.callback).parameters) == 1:
                         effect.callback(StateEvent())
                     else:
@@ -972,6 +982,20 @@ class Tree(TreeType):
                             effect.cleanup(StateEvent())
                         else:
                             effect.cleanup()
+
+    def on_component_unmount_effect_cleanups(self):
+        for state in state_manager.get_processing_states():
+            effects_to_keep = []
+            for effect in reversed(self.effects):
+                if effect.cleanup and effect.component and effect.component.id in self.meta_state.removed_component_ids:
+                    if len(inspect.signature(effect.cleanup).parameters) == 1:
+                        effect.cleanup(StateEvent())
+                    else:
+                        effect.cleanup()
+                else:
+                    effects_to_keep.append(effect)
+            self.effects = list(reversed(effects_to_keep))
+            self.meta_state.removed_component_ids.clear()
 
     def on_fully_rendered(self):
         if not self.render_manager.is_destroying:
@@ -990,9 +1014,13 @@ class Tree(TreeType):
                     if cleanup and not effect.cleanup:
                         effect.cleanup = cleanup
 
-            self.processing_states.clear()
-            # if self.render_manager.is_drag_end():
+            # component mounted
+            if self.meta_state.new_component_ids:
+                for id in list(self.meta_state.new_component_ids):
+                    if id in self.meta_state.components:
+                        self.meta_state.new_component_ids.clear()
 
+            self.processing_states.clear()
             self.render_cause.clear()
 
     def on_hover(self, gpos):
@@ -1164,6 +1192,8 @@ class Tree(TreeType):
             state_manager.set_mousedown_start_pos(None)
         except Exception as e:
             print(f"talon_ui_elements on_mouseup error: {e}")
+            log_trace()
+            self.render_manager.finish_current_render()
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)
@@ -1459,6 +1489,21 @@ class Tree(TreeType):
             if effect.tree == self or effect.tree is None:
                 self.effects.append(effect)
                 store.staged_effects.remove(effect)
+
+    def consume_components(self):
+        if not self.meta_state._staged_components and not self.meta_state._components:
+            return
+        prev_ids = set(self.meta_state._components)
+        new_ids = set(self.meta_state._staged_components)
+
+        self.meta_state.new_component_ids = new_ids - prev_ids
+        self.meta_state.removed_component_ids = prev_ids - new_ids
+
+        self.meta_state._components = self.meta_state._staged_components
+        self.meta_state._staged_components = {}
+
+        if self.meta_state.removed_component_ids:
+            self.on_component_unmount_effect_cleanups()
 
     def have_blockable_rects_changed(self, blockable_rects):
         dimension_change = False

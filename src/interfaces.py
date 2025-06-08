@@ -121,6 +121,7 @@ class Effect:
     tree: 'TreeType'
     cleanup: Optional[Callable[[], None]] = None
     name: Optional[str] = None
+    component: Optional['NodeComponentType'] = None
 
 StateValueType = Union[int, float, str, bool, dict, list, None]
 StateValueOrCallableType = Union[StateValueType, Callable[[StateValueType], StateValueType]]
@@ -188,6 +189,8 @@ class MetaStateType(ABC):
     _staged_id_to_node: dict[str, 'NodeType']
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     unhighlight_jobs: dict[str, callable]
+    new_component_ids: set[str]
+    removed_component_ids: set[str]
 
     @property
     def inputs(self) -> dict[str, MetaStateInput]:

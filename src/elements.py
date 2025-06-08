@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Any, Union
 from .constants import ELEMENT_ENUM_TYPE
 from .core.state_manager import state_manager
+from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
 from .nodes.checkbox import checkbox
 from .nodes.node_container import NodeContainer
@@ -45,7 +46,6 @@ from .properties import (
     validate_combined_props
 )
 from .icons import icon
-from .interfaces import Effect
 from .ref import Ref
 from .style import Style
 
@@ -166,62 +166,6 @@ def style(style_dict: dict[str, Any]):
         or state_manager.get_processing_tree()
     if context:
         context.style = Style(style_dict)
-
-def use_effect_without_tree(callback, arg2, arg3=None):
-    dependencies: list[str] = []
-    cleanup = None
-
-    if arg3 is not None:
-        cleanup = arg2
-        dependencies = arg3
-    else:
-        dependencies = arg2
-
-    effect = Effect(
-        name=callback.__name__,
-        callback=callback,
-        cleanup=cleanup,
-        dependencies=dependencies,
-        tree=None
-    )
-    state_manager.register_effect(effect)
-
-def use_effect(callback, arg2, arg3=None):
-    """
-    Register callbacks on state change or on mount/unmount.
-
-    Usage #1: `effect(callback, dependencies)`
-
-    Usage #2: `effect(callback, cleanup, dependencies)`
-
-    Dependencies are `str` state keys, or empty `[]` for mount/unmount effects.
-    """
-    dependencies: list[str] = []
-    cleanup = None
-
-    if arg3 is not None:
-        cleanup = arg2
-        dependencies = arg3
-    else:
-        dependencies = arg2
-
-    tree = state_manager.get_processing_tree()
-
-    if not tree:
-        raise ValueError("""
-            effect(callback, [cleanup], dependencies) must be called during render of a tree, such as during ui_elements_show(ui).
-            You can also optionally use register on_mount and on_unmount effects directly with ui_elements_show(ui, on_mount=callback, on_unmount=callback)
-        """)
-
-    if not tree.is_mounted:
-        effect = Effect(
-            name=callback.__name__,
-            callback=callback,
-            cleanup=cleanup,
-            dependencies=dependencies,
-            tree=tree
-        )
-        state_manager.register_effect(effect)
 
 def div(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["div"])
@@ -422,6 +366,8 @@ class UIElementsLeafProxy:
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
+
+use_effect_without_tree = use_effect_no_tree
 
 active_window = UIElementsContainerProxy(active_window)
 button = UIElementsLeafProxy(button)
