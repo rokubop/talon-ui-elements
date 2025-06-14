@@ -506,8 +506,6 @@ class StateManager:
             store.trees.remove(tree)
             self.clear_state_for_tree(tree)
             store.synchronize_ids()
-        else:
-            raise ValueError("Tree not found in store.")
 
     def clear_all(self):
         store.clear()

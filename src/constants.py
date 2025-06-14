@@ -28,6 +28,7 @@ CASCADED_PROPERTIES = {
     "font_family",
     "opacity",
     "highlight_color",
+    # "highlight_style",
     "focus_outline_color",
     "focus_outline_width",
     "z_index",

@@ -85,7 +85,7 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c):
+    def v2_render_decorator(self, c, offset):
         return self.v2_render(c)
 
     def v2_render(self, c: SkiaCanvas):
@@ -124,7 +124,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c):
+    def v2_render_decorator(self, c, offset):
         return self.v2_render(c)
 
     def v2_render(self, c: SkiaCanvas):
@@ -166,7 +166,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c):
+    def v2_render_decorator(self, c, offset):
         return self.v2_render(c)
 
     def v2_render(self, c: SkiaCanvas):
@@ -205,7 +205,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c):
+    def v2_render_decorator(self, c, offset):
         return self.v2_render(c)
 
     def v2_render(self, c: SkiaCanvas):
@@ -250,7 +250,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c):
+    def v2_render_decorator(self, c, offset):
         return self.v2_render(c)
 
     def v2_render(self, c: SkiaCanvas):

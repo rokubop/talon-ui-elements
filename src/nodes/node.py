@@ -387,12 +387,12 @@ class Node(NodeType):
             for child in self.get_children_nodes():
                 child.v2_build_render_list()
 
-    def v2_render_decorator(self, c: SkiaCanvas):
+    def v2_render_decorator(self, c: SkiaCanvas, offset):
         self.v2_render_background(c)
         self.v2_render_borders(c)
 
         for child in self.get_children_nodes():
-            child.v2_render_decorator(c)
+            child.v2_render_decorator(c, offset)
 
     def v2_render(self, c: SkiaCanvas):
         self.v2_render_background(c)

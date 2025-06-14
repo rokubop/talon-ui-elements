@@ -747,14 +747,17 @@ class NodeInputTextValidationProperties(ValidationProperties):
 
 @dataclass
 class NodeWindowProperties(Properties):
-    title: str = None
+    drop_shadow: tuple[int, int, int, int, str] = None
+    minimized: bool = False
+    minimized_ui: callable = None
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
     show_close: bool = True
     show_minimize: bool = True
-    titlebar_style: dict = None
-    drop_shadow: tuple[int, int, int, int, str] = None
+    show_title_bar: bool = True
+    title_bar_style: dict = None
+    title: str = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -766,16 +769,21 @@ class NodeWindowProperties(Properties):
             self.on_minimize = None
         if self.on_restore:
             self.on_restore = None
+        if self.minimized_ui:
+            self.minimized_ui = None
 
 class NodeWindowValidationProperties(ValidationProperties):
-    title: str
+    drop_shadow: tuple[int, int, int, int, str]
+    minimized: bool
+    minimized_ui: callable
     on_close: callable
     on_minimize: callable
     on_restore: callable
     show_close: bool
     show_minimize: bool
-    titlebar_style: dict
-    drop_shadow: tuple[int, int, int, int, str]
+    show_title_bar: bool
+    title_bar_style: dict
+    title: str
 
 @dataclass
 class NodeCheckboxProperties(NodeSvgProperties):

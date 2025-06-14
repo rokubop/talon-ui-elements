@@ -160,7 +160,7 @@ class NodeText(Node):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c: SkiaCanvas):
+    def v2_render_decorator(self, c: SkiaCanvas, offset):
         self.v2_render_borders(c)
         self.v2_render_background(c)
 

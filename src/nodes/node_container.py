@@ -274,13 +274,13 @@ class NodeContainer(Node, NodeContainerType):
                 draw=self.draw_end
             )
 
-    def v2_render_decorator(self, c):
+    def v2_render_decorator(self, c, offset: Point2d = None):
         if self.tree:
             self.v2_render_borders(c)
             # self.v2_crop_start(c)
             self.v2_render_background(c)
             for child in self.get_children_nodes():
-                child.v2_render_decorator(c)
+                child.v2_render_decorator(c, offset)
             # self.v2_crop_end(c)
             # self.render_scroll_bar(c)
 

@@ -566,11 +566,11 @@ class Tree(TreeType):
             # self.root_node.boundary_rect.y
         )
 
-    def draw_decoration_renders(self, canvas: SkiaCanvas):
+    def draw_decoration_renders(self, canvas: SkiaCanvas, offset: Point2d):
         for id in list(self.meta_state.decoration_renders.keys()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                node.v2_render_decorator(canvas)
+                node.v2_render_decorator(canvas, offset)
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
@@ -582,7 +582,7 @@ class Tree(TreeType):
                     else Point2d(0, 0)
                 state_manager.set_processing_tree(self)
 
-                self.draw_decoration_renders(draw_canvas)
+                self.draw_decoration_renders(draw_canvas, offset)
                 self.draw_highlight_overlays(draw_canvas, offset)
                 canvas.paint.color = "FFFFFF"
                 self.draw_text_mutations(draw_canvas, offset)

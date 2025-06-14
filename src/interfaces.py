@@ -536,7 +536,7 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
-    def v2_render_decorator(self, c: SkiaCanvas):
+    def v2_render_decorator(self, c: SkiaCanvas, offset: Point2d = None):
         pass
 
     @abstractmethod
