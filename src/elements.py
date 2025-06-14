@@ -245,18 +245,28 @@ def link(*args, text=None, **additional_props):
 
     properties = validate_props(
         all_props,
-        ELEMENT_ENUM_TYPE["button"]
+        ELEMENT_ENUM_TYPE["link"]
     )
 
-    properties["type"] = "button"
-    text_properties = NodeTextProperties(**{
-        "color": DEFAULT_LINK_COLOR,
-        "highlight_style": {
-            "color": DEFAULT_LINK_HOVER_COLOR,
-        },
-        **properties
-    })
-    return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
+    if text:
+        properties["type"] = "link"
+        text_properties = NodeTextProperties(**{
+            "color": DEFAULT_LINK_COLOR,
+            "highlight_style": {
+                "color": DEFAULT_LINK_HOVER_COLOR,
+            },
+            **properties,
+            "on_click": lambda: print("Link clicked!")
+        })
+        return NodeText(ELEMENT_ENUM_TYPE["link"], text, text_properties)
+
+    if all_props.get("element_type", None):
+        properties["element_type"] = all_props["element_type"]
+    properties["on_click"] = lambda: print("Link clicked!")
+
+    button_properties = NodeTextProperties(**properties)
+    button_properties.element_type = ELEMENT_ENUM_TYPE["link"]
+    return NodeButton(button_properties)
 
 def input_text(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["input_text"])

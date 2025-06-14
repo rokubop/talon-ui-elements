@@ -432,8 +432,8 @@ class NodeTextValidationProperties(ValidationProperties):
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
 
-class NodeLinkValidationProperties(NodeTextValidationProperties):
-    to: str
+class NodeLinkValidationProperties(NodeButtonValidationProperties):
+    url: str
     close_on_click: bool = False
     minimize_on_click: bool = False
 
@@ -871,6 +871,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["modal"]: NodeModalValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,

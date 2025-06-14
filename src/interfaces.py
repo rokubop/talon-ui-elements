@@ -470,6 +470,7 @@ class NodeType(ABC):
     parent_node: Optional['NodeType']
     participates_in_layout: bool
     interactive: bool
+    interactive_id: str
     is_dirty: bool
     tree: 'TreeType'
     root_node: 'NodeRootType'

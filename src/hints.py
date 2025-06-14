@@ -20,25 +20,29 @@ first_time_setup = False
 
 class HintGenerator:
     def __init__(self):
-        c_char = 99
-        d_char = 100
-        z_char = 123
+        a_ord = 97
+        c_ord = 99
+        d_ord = 100
+        z_ord = 123
 
         # Arbitrary decisions:
-        # - Start buttons with 'b' and input_text with 'i'
+        # - Start buttons with 'b', link with 'l', and input_text with 'i'
         # - Second character start is based on personal
         #   preference for better recognition
         b_char = settings.get("user.ui_elements_hints_button_first_char")
         i_char = settings.get("user.ui_elements_hints_input_text_first_char")
+        l_char = settings.get("user.ui_elements_hints_link_first_char")
         self.char_map = {
-            "button": (b_char, [chr(i) for i in range(c_char, z_char)]),
-            "input_text": (i_char, [chr(i) for i in range(d_char, z_char)])
+            "button": (b_char, [chr(i) for i in range(c_ord, z_ord)]),
+            "input_text": (i_char, [chr(i) for i in range(d_ord, z_ord)]),
+            "link": (l_char, [chr(i) for i in range(a_ord, z_ord)])
         }
 
         # rather than using a generator, we increment char index
         self.state = {
             "button": (ord(b_char), 0),
-            "input_text": (ord(i_char), 0)
+            "input_text": (ord(i_char), 0),
+            "link": (ord(l_char), 0)
         }
 
     def generate_hint(self, node: NodeType):
@@ -74,7 +78,7 @@ def trigger_hint_click(hint_trigger: str):
         if hint == hint_trigger:
             node = store.id_to_node.get(id)
             if node:
-                if node.element_type == "button":
+                if node.element_type == "button" or node.element_type == "link":
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
@@ -104,7 +108,7 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         apply_clip = True
         clip_rect = node.box_model.clip_rect
 
-    if node.element_type == "button":
+    if node.element_type == "button" or node.element_type == "link":
         box_model = node.box_model.content_rect
         offset_x = -hint_padding_width
         offset_y = -hint_padding_height

@@ -51,6 +51,7 @@ class Node(NodeType):
         self.children_nodes = []
         self.is_dirty: bool = False
         self.interactive = False
+        self.interactive_id: str = None
         self.uses_decoration_render: bool = False
         self.root_node = None
         self.depth: int = None
@@ -135,7 +136,7 @@ class Node(NodeType):
         return node
 
     def get_active_variant(self):
-        id = self.id
+        id = self.id or self.interactive_id
         meta_state = self.tree.meta_state
 
         if id in meta_state.highlighted:
@@ -223,6 +224,12 @@ class Node(NodeType):
                     # Talon's TextArea doesn't support opacity
                     set_opacity = True
                 if not self.properties.is_user_set(prop):
+                    # only cascade color from highlight_style
+                    # if prop == "highlight_style":
+                    #     self.properties.update_property(prop, {
+                    #         "color": parent_node.properties.highlight_style.get("color", None),
+                    #     })
+                    # else:
                     self.properties.update_property(prop, getattr(parent_node.properties, prop))
                     self.cascaded_properties.add(prop)
 

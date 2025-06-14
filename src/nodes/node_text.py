@@ -81,7 +81,7 @@ class TextBlock():
     def __str__(self):
         return self.value
 
-ElementType = Literal['button', 'text']
+ElementType = Literal['button', 'text', 'link']
 
 class NodeText(Node):
     def __init__(self, element_type, text: str, properties: NodeTextProperties = None):
@@ -98,7 +98,7 @@ class NodeText(Node):
         self.text_line_height = 0
         self.text_body_height = 0
 
-        if element_type == "button":
+        if element_type == "button" or element_type == "link":
             self.on_click = self.properties.on_click or (lambda: None)
             self.is_hovering = False
             self.interactive = True

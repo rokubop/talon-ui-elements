@@ -620,11 +620,11 @@ class Tree(TreeType):
                 self.draw_blockable_canvases()
                 self.on_fully_rendered()
                 state_manager.set_processing_tree(None)
-                self.render_manager.finish_current_render()
+                self.finish_current_render()
         except Exception as e:
             print(f"Error during decorator canvas rendering: {e}")
             log_trace()
-            self.render_manager.finish_current_render()
+            self.finish_current_render()
 
     def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
         try:
@@ -633,7 +633,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"Error during dragging rendering: {e}")
             log_trace()
-            self.render_manager.finish_current_render()
+            self.finish_current_render()
 
     def on_draw_base_canvas_drag_end(self, canvas: SkiaCanvas):
         try:
@@ -643,7 +643,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"Error during drag end rendering: {e}")
             log_trace()
-            self.render_manager.finish_current_render()
+            self.finish_current_render()
 
     def on_draw_base_canvas_scroll(self, canvas: SkiaCanvas):
         try:
@@ -655,7 +655,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"Error during scroll rendering: {e}")
             log_trace()
-            self.render_manager.finish_current_render()
+            self.finish_current_render()
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
@@ -673,7 +673,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"Error during base canvas draw: {e}")
             log_trace()
-            self.render_manager.finish_current_render()
+            self.finish_current_render()
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
@@ -729,6 +729,10 @@ class Tree(TreeType):
                 node = self.meta_state.id_to_node[id]
                 self.draw_text_mutation(canvas, node, id, offset)
 
+    def finish_current_render(self):
+        self.disable_mouse = False
+        self.render_manager.finish_current_render()
+
     def create_surface(self):
         surface = self.Surface(self.current_base_canvas.width, self.current_base_canvas.height)
         canvas = surface.canvas()
@@ -740,7 +744,7 @@ class Tree(TreeType):
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
-                if node.element_type in ["button", "input_text"]:
+                if node.element_type in ["button", "input_text", "link"]:
                     # print("draw hint from ", self.render_manager.render_cause)
                     draw_hint(canvas, node, hint_generator(node))
 
@@ -937,14 +941,13 @@ class Tree(TreeType):
 
             if self.is_mounted:
                 # t0 = time.time()
-                self.disable_mouse = True
+                # self.disable_mouse = True
                 self.on_state_change_effect_cleanups()
                 # t1 = time.time()
                 # self.meta_state.prepare_node_transition()
                 self.meta_state.clear_nodes()
                 # t2 = time.time()
                 self.init_tree_constructor()
-                self.disable_mouse = False
                 # t3 = time.time()
 
                 # print(f"on_mount_reset: {t0-t1:.3f} {t1-t2:.3f} {t2-t3:.3f}")
@@ -1044,6 +1047,8 @@ class Tree(TreeType):
             self.processing_states.clear()
             self.render_cause.clear()
             self.drag_end_phase = False
+        print('disable_mouse is', self.disable_mouse)
+        self.disable_mouse = False
 
     def on_hover(self, gpos):
         try:
@@ -1177,6 +1182,7 @@ class Tree(TreeType):
             print(f"Error during node click: {e}")
             log_trace()
 
+        print('clicked and is_state_change_queued is', state_manager.is_state_change_queued())
         if not state_manager.is_state_change_queued():
             # Check if a state change is queued from the click
             # If it is, then mouse will automatically restore after its finished
@@ -1223,7 +1229,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"talon_ui_elements on_mouseup error: {e}")
             log_trace()
-            self.render_manager.finish_current_render()
+            self.finish_current_render()
 
     def reconcile_mouse_highlight(self):
         last_clicked_pos = state_manager.get_last_clicked_pos()
@@ -1391,7 +1397,8 @@ class Tree(TreeType):
             if overrides := self.meta_state.get_ref_property_overrides(node.id):
                 node.properties.update_overrides(overrides)
 
-            if node.element_type == ELEMENT_ENUM_TYPE["button"]:
+            if node.element_type == ELEMENT_ENUM_TYPE["button"] or \
+                    node.element_type == ELEMENT_ENUM_TYPE["link"]:
                 self.meta_state.add_button(node.id)
             elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 if node.properties.for_id:
@@ -1472,6 +1479,15 @@ class Tree(TreeType):
                 child_node.z_subindex = node.z_subindex
                 self._cascade_children_z_subindex(child_node)
 
+    def _link_interactive_nodes_with_children(self):
+        def assign_interactive_id(node, interactive_id):
+            for child in node.get_children_nodes():
+                child.interactive_id = interactive_id
+                assign_interactive_id(child, interactive_id)
+
+        for node in self.interactive_node_list:
+            assign_interactive_id(node, node.id)
+
     def _check_modals(self, node: NodeType):
         if node.element_type == ELEMENT_ENUM_TYPE["modal"] and node.properties.open:
             self.active_modal_count += 1
@@ -1516,6 +1532,7 @@ class Tree(TreeType):
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
         self._use_decorator(current_node)
+        # self._link_interactive_nodes_with_children()
         self._check_modals(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
         clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)
@@ -1587,8 +1604,9 @@ class Tree(TreeType):
 
     def calculate_blockable_rects(self):
         """
-        If we have at least one button or input, then we will consider the whole content area as blockable.
-        If we have an inputs, then we need to carve holes for those inputs because they are managed separately.
+        If we have at least one interactive element, then we will consider
+        the whole content area as blockable. If we have an inputs, then we
+        need to carve holes for those inputs because they are managed separately.
         """
         blockable_rects = []
 

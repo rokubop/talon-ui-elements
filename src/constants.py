@@ -61,6 +61,7 @@ class ElementEnumType(TypedDict):
     div: str
     icon: str
     input_text: str
+    link: str
     modal: str
     screen: str
     svg_circle: str
@@ -84,6 +85,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "div": "div",
     "icon": "icon",
     "input_text": "input_text",
+    "link": "link",
     "modal": "modal",
     "screen": "screen",
     "svg_circle": "svg_circle",
@@ -120,6 +122,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["checkbox"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["link"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["modal"]: NODE_ENUM_TYPE["node"],
