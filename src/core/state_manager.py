@@ -177,6 +177,12 @@ class StateManager:
     def get_mousedown_start_offset(self):
         return store.mouse_state['mousedown_start_offset']
 
+    def set_last_clicked_pos(self, pos):
+        store.mouse_state['last_clicked_pos'] = pos
+
+    def get_last_clicked_pos(self):
+        return store.mouse_state['last_clicked_pos']
+
     def is_drag_active(self):
         return store.mouse_state['is_drag_active']
 

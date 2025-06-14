@@ -4,17 +4,19 @@ from ..constants import ELEMENT_ENUM_TYPE
 from ..properties import Properties, NodeWindowProperties
 from ..utils import generate_hash
 
-last_pos = None
-last_docked_pos = None
+last_pos_map = {}
 
 class NodeWindow(NodeContainer):
     def __init__(self, properties: Properties = None):
-        global last_pos, last_docked_pos
-        print('hash', generate_hash(properties.__dict__))
+        global last_pos_map
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
         # TODO: Allow multiple windows - is_minimized state
         is_minimized, set_is_minimized = state.use("is_minimized", properties.minimized)
         window_properties = properties
+
+        self.init_position(properties)
+        last_pos = self.last_pos
+        last_docked_pos = self.last_docked_pos
 
         self.is_minimized = is_minimized
         self.has_dock_behavior = properties.minimized_style is not None and any(
@@ -60,20 +62,24 @@ class NodeWindow(NodeContainer):
                     # on_close=properties.on_close,
             )
         else:
-            window_properties.position = "static"
-            window_properties.top = None
-            window_properties.left = None
+            window_properties.position = "absolute" if last_pos is not None else "static"
+            window_properties.top = last_pos.top if last_pos is not None else None
+            window_properties.left = last_pos.left if last_pos is not None else None
             window_properties.drop_shadow = properties.drop_shadow
 
         super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
 
         def on_minimize():
-            global last_pos, last_docked_pos
-            new_is_minimized = not is_minimized
-            if self.has_dock_behavior and is_minimized:
-                last_docked_pos = actions.user.ui_elements_get_node(self.id).box_model.border_rect
+            global last_pos_map
+            new_is_minimized = not self.is_minimized
+            if self.has_dock_behavior and self.is_minimized:
+                self.set_last_docked_pos(
+                    actions.user.ui_elements_get_node(self.id).box_model.border_rect
+                )
             else:
-                last_pos = actions.user.ui_elements_get_node(self.id).box_model.border_rect
+                self.set_last_pos(
+                    actions.user.ui_elements_get_node(self.id).box_model.border_rect
+                )
             set_is_minimized(new_is_minimized)
             if new_is_minimized and window_properties.on_minimize:
                 window_properties.on_minimize()
@@ -132,6 +138,44 @@ class NodeWindow(NodeContainer):
             self.add_child(properties.minimized_ui())
         else:
             self.add_child(self.body)
+
+    def init_position(self, properties: Properties):
+        global last_pos_map
+        self.hash = properties.hash()
+
+        if not last_pos_map.get(self.hash):
+            last_pos_map[self.hash] = {
+                "last_pos": None,
+                "last_docked_pos": None,
+            }
+
+    @property
+    def last_pos(self):
+        global last_pos_map
+        return last_pos_map.get(self.hash, {}).get("last_pos", None)
+
+    @property
+    def last_docked_pos(self):
+        global last_pos_map
+        return last_pos_map.get(self.hash, {}).get("last_docked_pos", None)
+
+    def set_last_pos(self, pos):
+        global last_pos_map
+        if self.hash not in last_pos_map:
+            last_pos_map[self.hash] = {
+                "last_pos": None,
+                "last_docked_pos": None,
+            }
+        last_pos_map[self.hash]["last_pos"] = pos
+
+    def set_last_docked_pos(self, pos):
+        global last_pos_map
+        if self.hash not in last_pos_map:
+            last_pos_map[self.hash] = {
+                "last_pos": None,
+                "last_docked_pos": None,
+            }
+        last_pos_map[self.hash]["last_docked_pos"] = pos
 
     def __getitem__(self, children_nodes=None):
         if self.is_minimized:

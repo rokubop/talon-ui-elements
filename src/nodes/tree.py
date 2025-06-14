@@ -581,7 +581,8 @@ class Tree(TreeType):
                     if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
                     else Point2d(0, 0)
                 state_manager.set_processing_tree(self)
-
+                if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
+                    self.reconcile_mouse_highlight()
                 self.draw_decoration_renders(draw_canvas, offset)
                 self.draw_highlight_overlays(draw_canvas, offset)
                 canvas.paint.color = "FFFFFF"
@@ -1175,6 +1176,7 @@ class Tree(TreeType):
                 if node:
                     self.meta_state.set_highlighted(mousedown_start_id, node.properties.highlight_color)
                     if not state_manager.is_drag_active():
+                        state_manager.set_last_clicked_pos(gpos)
                         self.click_node(node)
 
             state_manager.set_mousedown_start_pos(None)
@@ -1200,6 +1202,16 @@ class Tree(TreeType):
             print(f"talon_ui_elements on_mouseup error: {e}")
             log_trace()
             self.render_manager.finish_current_render()
+
+    def reconcile_mouse_highlight(self):
+        last_clicked_pos = state_manager.get_last_clicked_pos()
+        hovered_id = state_manager.get_hovered_id()
+        if hovered_id:
+            node = self.meta_state.id_to_node.get(hovered_id)
+            if node and node.box_model and node.box_model.padding_rect.contains(last_clicked_pos):
+                self.meta_state.set_highlighted(hovered_id, node.properties.highlight_color)
+            else:
+                self.meta_state.set_unhighlighted(hovered_id)
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)
