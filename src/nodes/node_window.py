@@ -2,23 +2,23 @@ from talon import actions
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..properties import Properties, NodeWindowProperties
-from ..utils import generate_hash
 
 last_pos_map = {}
 
 class NodeWindow(NodeContainer):
-    def __init__(self, properties: Properties = None):
+    def __init__(self, properties: Properties):
         global last_pos_map
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
-        # TODO: Allow multiple windows - is_minimized state
-        is_minimized, set_is_minimized = state.use("is_minimized", properties.minimized)
-        window_properties = properties
-
-        self.init_position(properties)
+        self.hash = properties.hash()
+        self.init_position()
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
+        is_minimized, set_is_minimized = state.use(f"is_minimized_{self.hash}", properties.minimized)
         self.is_minimized = is_minimized
+
+        window_properties = properties
+
         self.has_dock_behavior = properties.minimized_style is not None and any(
             properties.minimized_style.get(dir) is not None
             for dir in ["top", "left", "right", "bottom"]
@@ -58,13 +58,11 @@ class NodeWindow(NodeContainer):
             else:
                 window_properties = NodeWindowProperties(
                     **default_minimized_properties,
-                    # TODO: fix close when minimized
-                    # on_close=properties.on_close,
             )
         else:
-            window_properties.position = "absolute" if last_pos is not None else "static"
-            window_properties.top = last_pos.top if last_pos is not None else None
-            window_properties.left = last_pos.left if last_pos is not None else None
+            window_properties.position = "static"
+            window_properties.top = None
+            window_properties.left = None
             window_properties.drop_shadow = properties.drop_shadow
 
         super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
@@ -81,14 +79,18 @@ class NodeWindow(NodeContainer):
                     actions.user.ui_elements_get_node(self.id).box_model.border_rect
                 )
             set_is_minimized(new_is_minimized)
-            if new_is_minimized and window_properties.on_minimize:
-                window_properties.on_minimize()
-            elif not new_is_minimized and window_properties.on_restore:
-                window_properties.on_restore()
+            if new_is_minimized:
+                self.prepare_minimized_ui()
+                if properties.on_minimize:
+                    properties.on_minimize()
+            elif not new_is_minimized:
+                self.prepare_non_minimized_ui()
+                if properties.on_restore:
+                    properties.on_restore()
 
         def on_close():
-            if window_properties.on_close:
-                window_properties.on_close()
+            if properties.on_close:
+                properties.on_close()
             actions.user.ui_elements_hide_all()
 
         title_bar_style = {
@@ -139,42 +141,59 @@ class NodeWindow(NodeContainer):
         else:
             self.add_child(self.body)
 
-    def init_position(self, properties: Properties):
-        global last_pos_map
-        self.hash = properties.hash()
-
+    def init_position(self):
         if not last_pos_map.get(self.hash):
             last_pos_map[self.hash] = {
                 "last_pos": None,
                 "last_docked_pos": None,
+                "last_pos_drag_offset": None,
+                "last_docked_pos_drag_offset": None,
             }
 
     @property
     def last_pos(self):
-        global last_pos_map
         return last_pos_map.get(self.hash, {}).get("last_pos", None)
 
     @property
     def last_docked_pos(self):
-        global last_pos_map
         return last_pos_map.get(self.hash, {}).get("last_docked_pos", None)
 
+    def prepare_minimized_ui(self):
+        # Our tree meta state only keeps track of one drag offset
+        # But window has two - minimized vs non-minimized
+        # so we update the tree meta state to reflect our internal state
+        if self.has_dock_behavior and last_pos_map[self.hash].get("last_docked_pos_drag_offset", None):
+            try:
+                self.tree.meta_state._draggable_offset[self.id] = \
+                    last_pos_map[self.hash].get("last_docked_pos_drag_offset", None)
+            except Exception as e:
+                print(f"Error setting draggable offset: {e}")
+
+    def prepare_non_minimized_ui(self):
+        # Our tree meta state only keeps track of one drag offset
+        # But window has two - minimized vs non-minimized
+        # so we update the tree meta state to reflect our internal state
+        if self.has_dock_behavior and last_pos_map[self.hash].get("last_pos_drag_offset", None):
+            try:
+                self.tree.meta_state._draggable_offset[self.id] = \
+                    last_pos_map[self.hash].get("last_pos_drag_offset", None)
+            except Exception as e:
+                print(f"Error setting draggable offset: {e}")
+
     def set_last_pos(self, pos):
-        global last_pos_map
-        if self.hash not in last_pos_map:
-            last_pos_map[self.hash] = {
-                "last_pos": None,
-                "last_docked_pos": None,
-            }
+        try:
+            offset = self.tree.meta_state.get_accumulated_drag_offset(self.id)
+            last_pos_map[self.hash]["last_pos_drag_offset"] = offset
+        except Exception as e:
+            print(f"Error setting last pos drag offset: {e}")
         last_pos_map[self.hash]["last_pos"] = pos
 
     def set_last_docked_pos(self, pos):
-        global last_pos_map
-        if self.hash not in last_pos_map:
-            last_pos_map[self.hash] = {
-                "last_pos": None,
-                "last_docked_pos": None,
-            }
+        try:
+            offset = self.tree.meta_state.get_accumulated_drag_offset(self.id)
+            last_pos_map[self.hash]["last_docked_pos_drag_offset"] = offset
+        except Exception as e:
+            print(f"Error setting last docked pos drag offset: {e}")
         last_pos_map[self.hash]["last_docked_pos"] = pos
 
     def __getitem__(self, children_nodes=None):

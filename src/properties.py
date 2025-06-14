@@ -341,12 +341,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         import json
         import hashlib
 
-        # Gather all public properties (excluding callables and private attributes)
         props = {
             k: v for k, v in self.__dict__.items()
             if not k.startswith('_') and not callable(v)
         }
-        # Convert non-serializable objects to their repr
         def safe_serialize(obj):
             try:
                 json.dumps(obj)
@@ -354,7 +352,6 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             except (TypeError, OverflowError):
                 return repr(obj)
         props = {k: safe_serialize(v) for k, v in props.items()}
-        # Serialize with sorted keys for consistency
         props_json = json.dumps(props, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(props_json.encode('utf-8')).hexdigest()
 

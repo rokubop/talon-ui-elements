@@ -1206,12 +1206,14 @@ class Tree(TreeType):
     def reconcile_mouse_highlight(self):
         last_clicked_pos = state_manager.get_last_clicked_pos()
         hovered_id = state_manager.get_hovered_id()
-        if hovered_id:
+        if hovered_id and last_clicked_pos:
             node = self.meta_state.id_to_node.get(hovered_id)
             if node and node.box_model and node.box_model.padding_rect.contains(last_clicked_pos):
                 self.meta_state.set_highlighted(hovered_id, node.properties.highlight_color)
             else:
                 self.meta_state.set_unhighlighted(hovered_id)
+                state_manager.set_hovered_id(None)
+        state_manager.set_last_clicked_pos(None)
 
     def on_mouse(self, e: MouseEvent):
         # print("on_mouse", e)
