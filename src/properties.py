@@ -67,6 +67,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     min_width: int = None
     on_change: callable = None
     on_click: callable = None
+    on_drag_end: callable = None
     opacity: Union[int, float] = None
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)

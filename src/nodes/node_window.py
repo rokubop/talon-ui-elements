@@ -65,19 +65,14 @@ class NodeWindow(NodeContainer):
             window_properties.left = None
             window_properties.drop_shadow = properties.drop_shadow
 
+        window_properties.on_drag_end = self.update_saved_positions
+
         super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
 
         def on_minimize():
             global last_pos_map
             new_is_minimized = not self.is_minimized
-            if self.has_dock_behavior and self.is_minimized:
-                self.set_last_docked_pos(
-                    actions.user.ui_elements_get_node(self.id).box_model.border_rect
-                )
-            else:
-                self.set_last_pos(
-                    actions.user.ui_elements_get_node(self.id).box_model.border_rect
-                )
+            self.update_saved_positions()
             set_is_minimized(new_is_minimized)
             if new_is_minimized:
                 self.prepare_minimized_ui()
@@ -157,6 +152,16 @@ class NodeWindow(NodeContainer):
     @property
     def last_docked_pos(self):
         return last_pos_map.get(self.hash, {}).get("last_docked_pos", None)
+
+    def update_saved_positions(self):
+        if self.has_dock_behavior and self.is_minimized:
+            self.set_last_docked_pos(
+                actions.user.ui_elements_get_node(self.id).box_model.border_rect
+            )
+        else:
+            self.set_last_pos(
+                actions.user.ui_elements_get_node(self.id).box_model.border_rect
+            )
 
     def prepare_minimized_ui(self):
         # Our tree meta state only keeps track of one drag offset

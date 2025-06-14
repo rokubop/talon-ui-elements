@@ -93,6 +93,10 @@ class DraggableOffset:
 class StateEvent:
     not_implemented: Any = field(default=None)
 
+@dataclass
+class DragEndEvent:
+    not_implemented: Any = field(default=None)
+
 class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = set()
@@ -1013,6 +1017,12 @@ class Tree(TreeType):
             if self.is_mounted:
                 if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
                     self.on_state_change_effect_callbacks()
+                elif self.render_manager.render_cause == RenderCause.DRAG_END:
+                    if self.draggable_node and self.draggable_node.properties and self.draggable_node.properties.on_drag_end:
+                        if len(inspect.signature(self.draggable_node.properties.on_drag_end).parameters) == 1:
+                            self.draggable_node.properties.on_drag_end(StateEvent())
+                        else:
+                            self.draggable_node.properties.on_drag_end()
             else:
                 self.is_mounted = True
 
