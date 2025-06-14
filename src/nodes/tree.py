@@ -1165,11 +1165,23 @@ class Tree(TreeType):
                 state_manager.blur_all()
 
     def click_node(self, node: NodeType):
-        sig = inspect.signature(node.on_click)
-        if len(sig.parameters) == 0:
-            node.on_click()
-        else:
-            node.on_click(ClickEvent(id=node.id))
+        self.disable_mouse = True
+
+        try:
+            sig = inspect.signature(node.on_click)
+            if len(sig.parameters) == 0:
+                node.on_click()
+            else:
+                node.on_click(ClickEvent(id=node.id))
+        except Exception as e:
+            print(f"Error during node click: {e}")
+            log_trace()
+
+        if not state_manager.is_state_change_queued():
+            # Check if a state change is queued from the click
+            # If it is, then mouse will automatically restore after its finished
+            # Otherwise, let's manually restore it
+            self.disable_mouse = False
 
     def on_drag_mouseup_begin(self, e):
         self.drag_end_phase = True

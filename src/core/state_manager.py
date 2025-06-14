@@ -244,6 +244,9 @@ class StateManager:
         except Exception as e:
             return []
 
+    def is_state_change_queued(self):
+        return state_coordinator.current_state_keys or state_coordinator.next_state_keys
+
     def init_states(self, states):
         if states is not None:
             for key, value in states.items():
