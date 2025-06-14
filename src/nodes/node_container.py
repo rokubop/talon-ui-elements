@@ -225,6 +225,7 @@ class NodeContainer(Node, NodeContainerType):
 
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
         if scrollable:
+            scrollable.reevaluate(self)
             self.box_model.adjust_scroll_y(scrollable.offset_y)
 
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)

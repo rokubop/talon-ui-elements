@@ -72,6 +72,17 @@ class Scrollable(ScrollableType):
         self.id = id
         self.offset_x = 0
         self.offset_y = 0
+        self.view_height = 0
+        self.max_height = 0
+
+    def reevaluate(self, node: NodeType):
+        max_height = node.box_model.content_children_with_padding_size.height
+        view_height = node.box_model.padding_size.height
+        if view_height != self.view_height or max_height != self.max_height:
+            self.view_height = view_height
+            self.max_height = max_height
+            self.offset_x = 0
+            self.offset_y = 0
 
 @dataclass
 class DraggableOffset:
@@ -186,7 +197,7 @@ class MetaState(MetaStateType):
         self._scroll_regions[id] = ScrollRegion(0, 0)
 
     def add_scrollable(self, id):
-        if id not in self._scrollable:
+        if not id in self._scrollable:
             self._scrollable[id] = Scrollable(id)
 
     def add_text_with_for_id(self, id, for_id):
@@ -1236,6 +1247,8 @@ class Tree(TreeType):
                     new_offset_y = max_negative_offset
 
                 self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
+                self.meta_state.scrollable[smallest_node.id].view_height = view_height
+                self.meta_state.scrollable[smallest_node.id].max_height = max_height
                 self.render_manager.render_scroll()
 
     def on_scroll(self, e):

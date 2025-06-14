@@ -164,6 +164,12 @@ class ScrollableType(ABC):
     id: str
     offset_x: Union[int, float]
     offset_y: Union[int, float]
+    view_height: Union[int, float]
+    max_height: Union[int, float]
+
+    @abstractmethod
+    def reevaluate(self, node: "NodeType"):
+        pass
 
 @dataclass
 class MetaStateInput:

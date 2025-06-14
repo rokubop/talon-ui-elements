@@ -412,6 +412,11 @@ class NodeTextValidationProperties(ValidationProperties):
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
 
+class NodeLinkValidationProperties(NodeTextValidationProperties):
+    to: str
+    close_on_click: bool = False
+    minimize_on_click: bool = False
+
 @dataclass
 class NodeTextProperties(Properties):
     id: str = None
@@ -745,7 +750,10 @@ class NodeWindowProperties(Properties):
     title: str = None
     on_close: callable = None
     on_minimize: callable = None
-    on_maximize: callable = None
+    on_restore: callable = None
+    show_close: bool = True
+    show_minimize: bool = True
+    titlebar_style: dict = None
     drop_shadow: tuple[int, int, int, int, str] = None
 
     def __init__(self, **kwargs):
@@ -756,14 +764,17 @@ class NodeWindowProperties(Properties):
             self.on_close = None
         if self.on_minimize:
             self.on_minimize = None
-        if self.on_maximize:
-            self.on_maximize = None
+        if self.on_restore:
+            self.on_restore = None
 
 class NodeWindowValidationProperties(ValidationProperties):
     title: str
     on_close: callable
     on_minimize: callable
-    on_maximize: callable
+    on_restore: callable
+    show_close: bool
+    show_minimize: bool
+    titlebar_style: dict
     drop_shadow: tuple[int, int, int, int, str]
 
 @dataclass

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Dict, Any, Union
-from .constants import ELEMENT_ENUM_TYPE
+from .constants import ELEMENT_ENUM_TYPE, DEFAULT_LINK_COLOR, DEFAULT_LINK_HOVER_COLOR
 from .core.state_manager import state_manager
 from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
@@ -234,6 +234,30 @@ def button(*args, text=None, **additional_props):
     button_properties = NodeTextProperties(**properties)
     return NodeButton(button_properties)
 
+def link(*args, text=None, **additional_props):
+    if args and isinstance(args[0], str):
+        text = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
+    all_props = combine_props(props, additional_props)
+
+    properties = validate_props(
+        all_props,
+        ELEMENT_ENUM_TYPE["button"]
+    )
+
+    properties["type"] = "button"
+    text_properties = NodeTextProperties(**{
+        "color": DEFAULT_LINK_COLOR,
+        "highlight_style": {
+            "color": DEFAULT_LINK_HOVER_COLOR,
+        },
+        **properties
+    })
+    return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
+
 def input_text(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["input_text"])
     input_properties = NodeInputTextProperties(**properties)
@@ -396,6 +420,7 @@ element_collection: Dict[str, callable] = {
     'effect': effect,
     'icon': icon,
     'input_text': input_text,
+    'link': link,
     'modal': modal,
     'ref': ref,
     'screen': screen,

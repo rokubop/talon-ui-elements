@@ -37,20 +37,11 @@ user_lists = [
 ]
 
 def dashboard_ui():
-    elements = ["div", "text", "screen", "button", "state", "ref", "icon"]
-    div, text, screen, button, state, ref, icon = actions.user.ui_elements(elements)
+    elements = ["div", "text", "screen", "button", "state", "icon"]
+    div, text, screen, button, state, icon = actions.user.ui_elements(elements)
 
     user_list, set_user_list = state.use("user_list", user_lists[0])
-    body_ref = ref("body")
-
     keys, values = format_user_list(user_list)
-
-    def on_click_wrapper(list_name):
-        # wraps the click handler to avoid closure issues in the loop
-        def on_click(e):
-            set_user_list(list_name)
-            body_ref.scroll_to(0, 0)
-        return on_click
 
     def header():
         return div(flex_direction='row', justify_content='space_between', border_bottom=1, border_color="555555")[
@@ -64,7 +55,7 @@ def dashboard_ui():
         return div(border_right=1, overflow_y="scroll", padding=8)[
             *[button(
                 name,
-                on_click=on_click_wrapper(name),
+                on_click=lambda name=name: set_user_list(name),
                 padding=16,
                 padding_top=8,
                 padding_bottom=8,

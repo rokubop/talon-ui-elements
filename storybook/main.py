@@ -1,5 +1,6 @@
 from talon import actions
 from .elements.button import button_stories
+from .elements.link import link_stories
 from .elements.table import table_stories
 from .placeholder_stories import placeholder_stories
 
@@ -12,6 +13,7 @@ elements = [
     "effect",
     "icon",
     "input_text",
+    "link",
     "ref",
     "screen",
     "state",
@@ -33,6 +35,7 @@ storybook_pages = {
     "effect": lambda: placeholder_stories("effect"),
     "icon": lambda: placeholder_stories("icon"),
     "input_text": lambda: placeholder_stories("input_text"),
+    "link": link_stories,
     "ref": lambda: placeholder_stories("ref"),
     "screen": lambda: placeholder_stories("screen"),
     "state": lambda: placeholder_stories("state"),
