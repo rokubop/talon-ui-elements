@@ -37,6 +37,7 @@ class StateCoordinator:
             if self.current_state_keys:
                 for key in self.current_state_keys:
                     self.request_state_change(key)
+        store.mouse_state['disable_events'] = False
 
     def flush_state(self):
         for key in self.current_state_keys:
@@ -87,6 +88,7 @@ class StateCoordinator:
                 self.finish_cycle(None)
 
     def request_state_change(self, state_key: str):
+        store.mouse_state['disable_events'] = True
         if self.locked:
             self.next_state_keys.add(state_key)
             return
@@ -102,6 +104,7 @@ class StateCoordinator:
             self.batch_job = cron.after("1ms", self.request_tree_renders)
 
     def reset(self):
+        store.mouse_state['disable_events'] = False
         self.locked = False
         self.phase = self.PHASE_FREE
         self.current_state_keys.clear()
@@ -244,8 +247,14 @@ class StateManager:
         except Exception as e:
             return []
 
-    def is_state_change_queued(self):
-        return state_coordinator.current_state_keys or state_coordinator.next_state_keys
+    def disable_mouse_events(self):
+        store.mouse_state['disable_events'] = True
+
+    def enable_mouse_events(self):
+        store.mouse_state['disable_events'] = False
+
+    def are_mouse_events_disabled(self):
+        return store.mouse_state['disable_events']
 
     def init_states(self, states):
         if states is not None:

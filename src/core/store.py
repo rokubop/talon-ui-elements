@@ -31,6 +31,7 @@ class Store():
         self.ref_count_nodes = 0
         self.ref_count_trees = 0
         self.mouse_state: MouseState = {
+            "disable_events": False,
             "hovered_id": None,
             "last_clicked_pos": None,
             "mousedown_start_id": None,
@@ -42,6 +43,7 @@ class Store():
 
     def reset_mouse_state(self):
         self.mouse_state = {
+            "disable_events": False,
             "hovered_id": None,
             "last_clicked_pos": None,
             "mousedown_start_id": None,

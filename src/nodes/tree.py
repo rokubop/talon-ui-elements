@@ -421,7 +421,6 @@ class Tree(TreeType):
         self.cursor = None
         self.cursor_v2 = None
         self.effects = []
-        self.disable_mouse = False
         self.drag_end_phase = False
         self.draggable_node = False
         self.draggable_node_delta_pos = None
@@ -730,7 +729,6 @@ class Tree(TreeType):
                 self.draw_text_mutation(canvas, node, id, offset)
 
     def finish_current_render(self):
-        self.disable_mouse = False
         self.render_manager.finish_current_render()
 
     def create_surface(self):
@@ -941,7 +939,6 @@ class Tree(TreeType):
 
             if self.is_mounted:
                 # t0 = time.time()
-                # self.disable_mouse = True
                 self.on_state_change_effect_cleanups()
                 # t1 = time.time()
                 # self.meta_state.prepare_node_transition()
@@ -1047,8 +1044,6 @@ class Tree(TreeType):
             self.processing_states.clear()
             self.render_cause.clear()
             self.drag_end_phase = False
-        print('disable_mouse is', self.disable_mouse)
-        self.disable_mouse = False
 
     def on_hover(self, gpos):
         try:
@@ -1170,8 +1165,6 @@ class Tree(TreeType):
                 state_manager.blur_all()
 
     def click_node(self, node: NodeType):
-        self.disable_mouse = True
-
         try:
             sig = inspect.signature(node.on_click)
             if len(sig.parameters) == 0:
@@ -1181,13 +1174,6 @@ class Tree(TreeType):
         except Exception as e:
             print(f"Error during node click: {e}")
             log_trace()
-
-        print('clicked and is_state_change_queued is', state_manager.is_state_change_queued())
-        if not state_manager.is_state_change_queued():
-            # Check if a state change is queued from the click
-            # If it is, then mouse will automatically restore after its finished
-            # Otherwise, let's manually restore it
-            self.disable_mouse = False
 
     def on_drag_mouseup_begin(self, e):
         self.drag_end_phase = True
@@ -1244,8 +1230,8 @@ class Tree(TreeType):
         state_manager.set_last_clicked_pos(None)
 
     def on_mouse(self, e: MouseEvent):
-        # print("on_mouse", e)
-        if not self.disable_mouse and not self.render_manager.is_destroying:
+        if not state_manager.are_mouse_events_disabled() and \
+                not self.render_manager.is_destroying:
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
                 self.on_hover(e.gpos)
