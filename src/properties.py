@@ -749,6 +749,7 @@ class NodeInputTextValidationProperties(ValidationProperties):
 class NodeWindowProperties(Properties):
     drop_shadow: tuple[int, int, int, int, str] = None
     minimized: bool = False
+    minimized_style: dict = None
     minimized_ui: callable = None
     on_close: callable = None
     on_minimize: callable = None
@@ -775,6 +776,7 @@ class NodeWindowProperties(Properties):
 class NodeWindowValidationProperties(ValidationProperties):
     drop_shadow: tuple[int, int, int, int, str]
     minimized: bool
+    minimized_style: dict
     minimized_ui: callable
     on_close: callable
     on_minimize: callable

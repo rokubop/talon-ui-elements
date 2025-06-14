@@ -9,33 +9,73 @@ from ..interfaces import NodeSvgType, NodeType, Size2d
 from ..properties import NodeSvgProperties
 
 def scale_d(path, scale_factor):
-    def scale_coordinates(coords):
-        return [float(c) * scale_factor if c.replace('.', '', 1).isdigit() else c for c in coords]
+    """
+    Scale SVG path data correctly handling all SVG path commands
+    """
+    # Command handlers based on SVG spec
+    # Format: command: (param_count, param_indices_to_scale)
+    # For commands where param count varies (like polyline), -1 indicates all params
+    command_params = {
+        'M': (-1, range(0, 1000, 2)),  # Move to (absolute)
+        'm': (-1, range(0, 1000, 2)),  # Move to (relative)
+        'L': (-1, range(0, 1000, 2)),  # Line to (absolute)
+        'l': (-1, range(0, 1000, 2)),  # Line to (relative)
+        'H': (1, [0]),                  # Horizontal line to (absolute)
+        'h': (1, [0]),                  # Horizontal line to (relative)
+        'V': (1, [0]),                  # Vertical line to (absolute)
+        'v': (1, [0]),                  # Vertical line to (relative)
+        'C': (6, range(6)),            # Cubic Bezier (absolute)
+        'c': (6, range(6)),            # Cubic Bezier (relative)
+        'S': (4, range(4)),            # Smooth cubic Bezier (absolute)
+        's': (4, range(4)),            # Smooth cubic Bezier (relative)
+        'Q': (4, range(4)),            # Quadratic Bezier (absolute)
+        'q': (4, range(4)),            # Quadratic Bezier (relative)
+        'T': (2, range(2)),            # Smooth quadratic Bezier (absolute)
+        't': (2, range(2)),            # Smooth quadratic Bezier (relative)
+        'A': (7, [0, 1, 5, 6]),        # Elliptical arc (absolute) - radii and end point only
+        'a': (7, [0, 1, 5, 6]),        # Elliptical arc (relative) - radii and end point only
+        'Z': (0, []),                  # Close path
+        'z': (0, []),                  # Close path
+    }
 
-    def process_subpath(subpath):
-        scaled_segments = []
-        pattern = re.compile(r"([a-zA-Z])([^a-zA-Z]*)")
-        matches = pattern.findall(subpath)
+    result = []
+    # Use a more precise regex to extract commands and parameters
+    pattern = re.compile(r"([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)")
+    matches = pattern.findall(path)
 
-        for command, parameters in matches:
-            params = re.findall(r"[-+]?\d*\.?\d+", parameters)
-            if params:
-                scaled_params = scale_coordinates(params)
-                scaled_segments.append(f"{command}{' '.join(map(str, scaled_params))}")
+    for command, params_str in matches:
+        # Extract all numbers from parameter string
+        params = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", params_str)
+
+        # No parameters or no scaling needed
+        if not params or command.upper() == 'Z':
+            result.append(command)
+            continue
+
+        # Apply scaling to appropriate parameters
+        param_count, indices = command_params.get(command, (0, []))
+
+        # For variable param count commands, allow any number divisible by pairs/triplets
+        if param_count == -1:
+            if command.upper() in 'ML':  # Move and Line take x,y pairs
+                param_count = len(params)
+                # All parameters should be scaled for these commands
+                indices = range(param_count)
+
+        # Scale the parameters that should be scaled
+        scaled_params = []
+        for i, param in enumerate(params):
+            if i in indices:
+                scaled_value = float(param) * scale_factor
+                # Format to avoid excessive decimal places but keep precision
+                scaled_params.append(f"{scaled_value:.5f}".rstrip('0').rstrip('.') if '.' in f"{scaled_value}" else f"{int(scaled_value)}")
             else:
-                scaled_segments.append(command)
+                scaled_params.append(param)
 
-        return " ".join(scaled_segments)
+        # Join command with its parameters
+        result.append(f"{command}{' '.join(scaled_params)}")
 
-    commands = path.strip().split("M")[1:]
-    scaled_path_segments = []
-
-    for command in commands:
-        subpath = f"M{command.strip()}"
-        scaled_subpath = process_subpath(subpath)
-        scaled_path_segments.append(scaled_subpath)
-
-    return " ".join(scaled_path_segments)
+    return ' '.join(result)
 
 linecap = {
     "butt": 0,

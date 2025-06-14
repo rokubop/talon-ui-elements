@@ -70,7 +70,11 @@ def examples_ui():
     window, div, text, screen, button = actions.user.ui_elements(["window", "div", "text", "screen", "button"])
 
     return screen(justify_content="center", align_items="center")[
-        window(min_width=200, minimized_ui=minimized_ui)[
+        window(min_width=200, minimized_ui=minimized_ui, minimized_style={
+            "position": "absolute",
+            "bottom": 100,
+            "right": 100
+        })[
             div(padding=16)[
                 text("Examples", font_size=24),
                 text("talon-ui-elements", font_size=14, color="FFCC00"),

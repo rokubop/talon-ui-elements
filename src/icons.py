@@ -72,6 +72,36 @@ def parse_icon_properties(props, **additional_props):
 
     return div_props, svg_props
 
+def icon_testing(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, path = actions.user.ui_elements_svg(["svg", "path"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    return div(**div_props)[
+        svg(stroke_linejoin="round", stroke_linecap="round", **svg_props)[
+            path(d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"),
+            path(d="M9 19.8V15m0 0H4.2M9 15l-6 6"),
+            path(d="M15 4.2V9m0 0h4.8M15 9l6-6"),
+            path(d="M9 4.2V9m0 0H4.2M9 9 3 3"),
+        ]
+    ]
+
+def icon_testing2(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, path = actions.user.ui_elements_svg(["svg", "path"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    return div(**div_props)[
+        svg(stroke_linejoin="round", stroke_linecap="round", **svg_props)[
+            path(d="M21 21l-6-6m6 6v-4.8m0 4.8h-4.8"),
+            path(d="M3 16.2V21m0 0h4.8M3 21l6-6"),
+            path(d="M21 7.8V3m0 0h-4.8M21 3l-6 6"),
+            path(d="M3 7.8V3m0 0h4.8M3 3l6 6"),
+        ]
+    ]
+
 def icon_home(props=None, **additional_props):
     div = actions.user.ui_elements("div")
     svg, path = actions.user.ui_elements_svg(["svg", "path"])
@@ -267,7 +297,9 @@ ICON_CUSTOM_SVG = {
     "plus": icon_plus,
     "trash": icon_trash,
     "settings": icon_settings,
-    "star": icon_star
+    "star": icon_star,
+    "testing": icon_testing,
+    "testing2": icon_testing2,
 }
 
 VALID_ICON_NAMES = list(ICON_SVG_PATH_ONLY.keys() | ICON_CUSTOM_SVG.keys())
