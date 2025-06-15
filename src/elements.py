@@ -253,7 +253,8 @@ def link(*args, text=None, **additional_props):
         text_properties = NodeTextProperties(**{
             "color": DEFAULT_LINK_COLOR,
             "highlight_style": {
-                "color": DEFAULT_LINK_HOVER_COLOR,
+                "color": "#FF0000"
+                # "color": DEFAULT_LINK_HOVER_COLOR,
             },
             **properties,
             "on_click": lambda: print("Link clicked!")
@@ -264,7 +265,13 @@ def link(*args, text=None, **additional_props):
         properties["element_type"] = all_props["element_type"]
     properties["on_click"] = lambda: print("Link clicked!")
 
-    button_properties = NodeTextProperties(**properties)
+    button_properties = NodeTextProperties(**{
+        "highlight_style": {
+            "color": "#FF0000"
+            # "color": DEFAULT_LINK_HOVER_COLOR,
+        },
+        **properties
+    })
     button_properties.element_type = ELEMENT_ENUM_TYPE["link"]
     return NodeButton(button_properties)
 

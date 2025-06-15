@@ -1399,7 +1399,7 @@ class Tree(TreeType):
                 self.meta_state.add_draggable(node.id)
 
     def _use_decorator(self, node: NodeType):
-        if node.properties.highlight_style:
+        if node.properties.highlight_style and node.uses_decoration_render == False:
             target_node = node if node.id else find_closest_parent_with_id(node.parent_node)
             if target_node and target_node.id:
                 self.meta_state.add_decoration_render(target_node.id)
@@ -1465,14 +1465,13 @@ class Tree(TreeType):
                 child_node.z_subindex = node.z_subindex
                 self._cascade_children_z_subindex(child_node)
 
-    def _link_interactive_nodes_with_children(self):
-        def assign_interactive_id(node, interactive_id):
-            for child in node.get_children_nodes():
-                child.interactive_id = interactive_id
-                assign_interactive_id(child, interactive_id)
+    def _set_interactive_ids(self, node: NodeType):
+        if node.interactive and node.id:
+            node.interactive_id = node.id
 
-        for node in self.interactive_node_list:
-            assign_interactive_id(node, node.id)
+        if node.interactive_id:
+            for child in node.get_children_nodes():
+                child.interactive_id = node.interactive_id
 
     def _check_modals(self, node: NodeType):
         if node.element_type == ELEMENT_ENUM_TYPE["modal"] and node.properties.open:
@@ -1506,19 +1505,22 @@ class Tree(TreeType):
             constraint_nodes: list[NodeType] = None,
             clip_nodes: list[NodeType] = None
         ):
+        """Runs once for each node in the tree to initialize meta_state and relationships"""
         current_node = self._resolve_component(current_node, node_index_path)
         current_node.tree = self
         current_node.depth = len(node_index_path)
         current_node.node_index_path = node_index_path
-        if getattr(self, 'parent_node', None):
-            current_node.inherit_cascaded_properties(self.parent_node)
+
+        if getattr(current_node, 'parent_node', None):
+            current_node.inherit_cascaded_properties(current_node.parent_node)
         self._assign_dragging_node_and_handle(current_node)
         self._assign_missing_ids(current_node, node_index_path)
+        self._set_interactive_ids(current_node)
         if not self.is_mounted:
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
+        # use decorator has some redundant looping. refactor this later
         self._use_decorator(current_node)
-        # self._link_interactive_nodes_with_children()
         self._check_modals(current_node)
         constraint_nodes = self._apply_constraint_nodes(current_node, constraint_nodes)
         clip_nodes = self._cascade_clip_nodes(current_node, clip_nodes)

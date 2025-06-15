@@ -1,6 +1,6 @@
 import re
 from talon.skia import Path
-from talon.skia.canvas import Canvas as SkiaCanvas, Paint
+from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
 from .node import Node
 from ..box_model import BoxModelV2
@@ -9,21 +9,15 @@ from ..interfaces import NodeSvgType, NodeType, Size2d
 from ..properties import NodeSvgProperties
 
 def scale_d(path, scale_factor):
-    """
-    Scale SVG path data correctly handling all SVG path commands
-    """
-    # Command handlers based on SVG spec
-    # Format: command: (param_count, param_indices_to_scale)
-    # For commands where param count varies (like polyline), -1 indicates all params
     command_params = {
         'M': (-1, range(0, 1000, 2)),  # Move to (absolute)
         'm': (-1, range(0, 1000, 2)),  # Move to (relative)
         'L': (-1, range(0, 1000, 2)),  # Line to (absolute)
         'l': (-1, range(0, 1000, 2)),  # Line to (relative)
-        'H': (1, [0]),                  # Horizontal line to (absolute)
-        'h': (1, [0]),                  # Horizontal line to (relative)
-        'V': (1, [0]),                  # Vertical line to (absolute)
-        'v': (1, [0]),                  # Vertical line to (relative)
+        'H': (1, [0]),                 # Horizontal line to (absolute)
+        'h': (1, [0]),                 # Horizontal line to (relative)
+        'V': (1, [0]),                 # Vertical line to (absolute)
+        'v': (1, [0]),                 # Vertical line to (relative)
         'C': (6, range(6)),            # Cubic Bezier (absolute)
         'c': (6, range(6)),            # Cubic Bezier (relative)
         'S': (4, range(4)),            # Smooth cubic Bezier (absolute)
@@ -39,40 +33,31 @@ def scale_d(path, scale_factor):
     }
 
     result = []
-    # Use a more precise regex to extract commands and parameters
     pattern = re.compile(r"([MLHVCSQTAZmlhvcsqtaz])([^MLHVCSQTAZmlhvcsqtaz]*)")
     matches = pattern.findall(path)
 
     for command, params_str in matches:
-        # Extract all numbers from parameter string
         params = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", params_str)
 
-        # No parameters or no scaling needed
         if not params or command.upper() == 'Z':
             result.append(command)
             continue
 
-        # Apply scaling to appropriate parameters
         param_count, indices = command_params.get(command, (0, []))
 
-        # For variable param count commands, allow any number divisible by pairs/triplets
         if param_count == -1:
-            if command.upper() in 'ML':  # Move and Line take x,y pairs
+            if command.upper() in 'ML':
                 param_count = len(params)
-                # All parameters should be scaled for these commands
                 indices = range(param_count)
 
-        # Scale the parameters that should be scaled
         scaled_params = []
         for i, param in enumerate(params):
             if i in indices:
                 scaled_value = float(param) * scale_factor
-                # Format to avoid excessive decimal places but keep precision
                 scaled_params.append(f"{scaled_value:.5f}".rstrip('0').rstrip('.') if '.' in f"{scaled_value}" else f"{int(scaled_value)}")
             else:
                 scaled_params.append(param)
 
-        # Join command with its parameters
         result.append(f"{command}{' '.join(scaled_params)}")
 
     return ' '.join(result)
