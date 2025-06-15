@@ -1,10 +1,10 @@
-from dataclasses import dataclass
 from typing import List, Dict, Any, Union
-from .constants import ELEMENT_ENUM_TYPE, DEFAULT_LINK_COLOR, DEFAULT_LINK_HOVER_COLOR
+from .constants import ELEMENT_ENUM_TYPE
 from .core.state_manager import state_manager
 from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
 from .nodes.checkbox import checkbox
+from .nodes.link import link
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
@@ -25,7 +25,6 @@ from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
-    NodeCheckboxProperties,
     NodeDivProperties,
     NodeTableProperties,
     NodeTableDataProperties,
@@ -232,47 +231,6 @@ def button(*args, text=None, **additional_props):
         properties["element_type"] = all_props["element_type"]
 
     button_properties = NodeTextProperties(**properties)
-    return NodeButton(button_properties)
-
-def link(*args, text=None, **additional_props):
-    if args and isinstance(args[0], str):
-        text = args[0]
-        args = args[1:]
-
-    props = args[0] if args and isinstance(args[0], dict) else {}
-
-    all_props = combine_props(props, additional_props)
-
-    properties = validate_props(
-        all_props,
-        ELEMENT_ENUM_TYPE["link"]
-    )
-
-    if text:
-        properties["type"] = "link"
-        text_properties = NodeTextProperties(**{
-            "color": DEFAULT_LINK_COLOR,
-            "highlight_style": {
-                "color": "#FF0000"
-                # "color": DEFAULT_LINK_HOVER_COLOR,
-            },
-            **properties,
-            "on_click": lambda: print("Link clicked!")
-        })
-        return NodeText(ELEMENT_ENUM_TYPE["link"], text, text_properties)
-
-    if all_props.get("element_type", None):
-        properties["element_type"] = all_props["element_type"]
-    properties["on_click"] = lambda: print("Link clicked!")
-
-    button_properties = NodeTextProperties(**{
-        "highlight_style": {
-            "color": "#FF0000"
-            # "color": DEFAULT_LINK_HOVER_COLOR,
-        },
-        **properties
-    })
-    button_properties.element_type = ELEMENT_ENUM_TYPE["link"]
     return NodeButton(button_properties)
 
 def input_text(props=None, **additional_props):

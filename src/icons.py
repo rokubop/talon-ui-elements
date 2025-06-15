@@ -329,6 +329,8 @@ def icon(name: str, props=None, **additional_props):
 
     validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["icon"])
 
+    print(f"me icon, me see props: {props}, additional_props: {additional_props}")
+
     if name in ICON_SVG_PATH_ONLY:
         return icon_svg_single_path_stroke(name, props, **additional_props)
     if name in ICON_CUSTOM_SVG:

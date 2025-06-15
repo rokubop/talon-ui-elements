@@ -52,6 +52,7 @@ class Node(NodeType):
         self.is_dirty: bool = False
         self.interactive = False
         self.interactive_id: str = None
+        self.is_svg: bool = False
         self.uses_decoration_render: bool = False
         self.root_node = None
         self.depth: int = None
@@ -213,8 +214,6 @@ class Node(NodeType):
     def add_properties_to_cascade(self, properties: Properties):
         for prop in CASCADED_PROPERTIES:
             if hasattr(properties, prop) and getattr(properties, prop):
-                # if prop == "highlight_style":
-                #     print(f"hello im a {self.element_type} and i, add_properties_to_cascade")
                 self.cascaded_properties.add(prop)
 
     def inherit_cascaded_properties(self, parent_node: NodeType):
@@ -223,18 +222,18 @@ class Node(NodeType):
 
             for prop in parent_node.cascaded_properties:
                 if prop == "opacity" and not self.element_type == ELEMENT_ENUM_TYPE['input_text']:
-                    # Talon's TextArea doesn't support opacity
                     set_opacity = True
-                # if prop == "highlight_style":
-                #         print(f'oh what i should totally cascade this awesome highlight style')
                 if not self.properties.is_user_set(prop):
-                    # only cascade color from highlight_style
                     if prop == "highlight_style":
-                        # print(f'hello im a {self.element_type} and i see a highlight style')
-                        self.properties.update_property(prop, {
-                            "color": parent_node.properties.highlight_style.get("color", None),
-                        })
-                        # print(f'oh wow look at that i now have a highlight style: {self.properties.highlight_style}')
+                        if self.is_svg:
+                            self.properties.update_property(prop, {
+                                "stroke": parent_node.properties.highlight_style.get("stroke", None) \
+                                    or parent_node.properties.highlight_style.get("color", None),
+                            })
+                        else:
+                            self.properties.update_property(prop, {
+                                "color": parent_node.properties.highlight_style.get("color", None),
+                            })
                     else:
                         self.properties.update_property(prop, getattr(parent_node.properties, prop))
                     self.cascaded_properties.add(prop)

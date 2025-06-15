@@ -19,18 +19,20 @@ DEFAULT_SCROLL_BAR_WIDTH = 10
 DEFAULT_SCROLL_BAR_TRACK_COLOR = "FFFFFF22"
 DEFAULT_SCROLL_BAR_THUMB_COLOR = "FFFFFF44"
 DEFAULT_LINK_COLOR = "#589ADB"
-DEFAULT_LINK_HOVER_COLOR = "#76ADE4"
+DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
 DRAG_INIT_THRESHOLD = 4
 
 CASCADED_PROPERTIES = {
     "color",
-    "font_size",
-    "font_family",
-    "opacity",
-    "highlight_color",
-    "highlight_style",
     "focus_outline_color",
     "focus_outline_width",
+    "font_family",
+    "font_size",
+    "highlight_color",
+    "highlight_style",
+    "opacity",
+    "stroke_width",
+    "stroke",
     "z_index",
 }
 

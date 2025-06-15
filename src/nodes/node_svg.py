@@ -84,6 +84,7 @@ class NodeRenderOnly():
 class NodeSvg(Node, NodeSvgType):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg", properties=properties)
+        self.is_svg = True
         self.size = self.properties.size
         self.stroke_cap = linecap[self.properties.stroke_linecap]
         self.stroke_join = linejoin[self.properties.stroke_linejoin]
@@ -102,6 +103,7 @@ class NodeSvg(Node, NodeSvgType):
 class NodeSvgPath(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_path", properties=properties)
+        self.is_svg = True
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:
@@ -124,11 +126,13 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         prev_paint = c.paint.clone()
 
         c.paint.style = c.paint.Style.STROKE
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        # c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        c.paint.color = self.resolve_render_property("stroke") or self.parent_node.resolve_render_property("stroke")
 
         if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.properties.fill
+            # c.paint.color = self.properties.fill
+            c.paint.color = self.resolve_render_property("fill")
 
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
@@ -141,6 +145,7 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
 class NodeSvgRect(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_rect", properties=properties)
+        self.is_svg = True
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:
@@ -183,6 +188,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
 class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_circle", properties=properties)
+        self.is_svg = True
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:
@@ -222,6 +228,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
 class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
     def __init__(self, element_type: str, properties: NodeSvgProperties = None):
         super().__init__(element_type=element_type, properties=properties)
+        self.is_svg = True
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:
@@ -267,6 +274,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
 class NodeSvgLine(Node, NodeType, NodeRenderOnly):
     def __init__(self, properties: NodeSvgProperties = None):
         super().__init__(element_type="svg_line", properties=properties)
+        self.is_svg = True
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:

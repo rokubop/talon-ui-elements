@@ -472,6 +472,7 @@ class NodeType(ABC):
     interactive: bool
     interactive_id: str
     is_dirty: bool
+    is_svg: bool
     tree: 'TreeType'
     root_node: 'NodeRootType'
     uses_decoration_render: bool
