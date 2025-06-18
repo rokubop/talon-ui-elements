@@ -62,9 +62,9 @@ class Actions:
         """
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
-    def ui_elements_hide(renderer: Union[str, Callable]):
-        """Destroy and hide a specific ui based on its renderer function or an id on the root node (screen)"""
-        entity_manager.hide_tree(renderer)
+    def ui_elements_hide(renderer_or_tree_id: Union[str, Callable]):
+        """Destroy and hide a specific ui based on its renderer_or_tree_id function or an id on the root node (screen)"""
+        entity_manager.hide_tree(renderer_or_tree_id)
 
     def ui_elements_hide_all():
         """Destroy and hide all UIs"""

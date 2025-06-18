@@ -4,7 +4,7 @@ import threading
 import traceback
 import weakref
 import time
-from talon import cron, settings
+from talon import cron, settings, actions
 from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect, Surface as RealSurface
 from talon.skia.canvas import Canvas as SkiaCanvas
@@ -12,6 +12,7 @@ from talon.types import Rect, Point2d
 from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass, field
+
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
 from ..core.entity_manager import entity_manager
@@ -19,6 +20,7 @@ from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
 from ..core.store import store
 from ..cursor import Cursor, CursorV2
+from ..events import StateEvent, DragEndEvent, WindowCloseEvent
 from ..interfaces import (
     TreeType,
     NodeType,
@@ -89,13 +91,6 @@ class DraggableOffset:
     x: int
     y: int
 
-@dataclass
-class StateEvent:
-    not_implemented: Any = field(default=None)
-
-@dataclass
-class DragEndEvent:
-    not_implemented: Any = field(default=None)
 
 class MetaState(MetaStateType):
     def __init__(self):
@@ -115,6 +110,7 @@ class MetaState(MetaStateType):
         self._last_drag_offset = {}
         self._style_mutations = {}
         self._text_mutations = {}
+        self.windows = set()
         self.ref_property_overrides = {}
         self.unhighlight_jobs = {}
         self.new_component_ids = set()
@@ -242,6 +238,10 @@ class MetaState(MetaStateType):
             return self._draggable_offset[id] + self._last_drag_offset[id]
         return None
 
+    def add_window(self, window_id):
+        if window_id not in self.windows:
+            self.windows.add(window_id)
+
     def get_current_drag_offset(self, id):
         if id in self._last_drag_offset:
             return self._last_drag_offset[id]
@@ -344,6 +344,7 @@ class MetaState(MetaStateType):
         self._states.clear()
         self._style_mutations.clear()
         self._text_mutations.clear()
+        self.windows.clear()
         self.unhighlight_jobs.clear()
         self.ref_property_overrides.clear()
         self.new_component_ids.clear()
@@ -624,6 +625,7 @@ class Tree(TreeType):
             print(f"Error during decorator canvas rendering: {e}")
             log_trace()
             self.finish_current_render()
+            self.destroy()
 
     def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
         try:
@@ -633,6 +635,7 @@ class Tree(TreeType):
             print(f"Error during dragging rendering: {e}")
             log_trace()
             self.finish_current_render()
+            self.destroy()
 
     def on_draw_base_canvas_drag_end(self, canvas: SkiaCanvas):
         try:
@@ -643,6 +646,7 @@ class Tree(TreeType):
             print(f"Error during drag end rendering: {e}")
             log_trace()
             self.finish_current_render()
+            self.destroy()
 
     def on_draw_base_canvas_scroll(self, canvas: SkiaCanvas):
         try:
@@ -655,6 +659,7 @@ class Tree(TreeType):
             print(f"Error during scroll rendering: {e}")
             log_trace()
             self.finish_current_render()
+            self.destroy()
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
@@ -673,6 +678,7 @@ class Tree(TreeType):
             print(f"Error during base canvas draw: {e}")
             log_trace()
             self.finish_current_render()
+            self.destroy()
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
@@ -1078,6 +1084,7 @@ class Tree(TreeType):
 
         except Exception as e:
             print(f"talon_ui_elements on_hover error: {e}")
+            self.destroy()
 
     def get_mouse_hovered_input_id(self, gpos):
         for id, input_data in list(self.meta_state.inputs.items()):
@@ -1088,7 +1095,7 @@ class Tree(TreeType):
     def on_mousemove(self, gpos):
         if self.is_drag_end():
             return
-        # drag_relative_offset = state_manager.get_drag_relative_offset()
+
         start_pos = state_manager.get_mousedown_start_pos()
         if start_pos:
             state_manager.set_mousedown_start_offset(gpos - start_pos)
@@ -1118,7 +1125,6 @@ class Tree(TreeType):
                 return
 
         if state_manager.get_mousedown_start_pos() and state_manager.is_drag_active():
-        # if state_manager.is_drag_active():
             offset = state_manager.get_mousedown_start_offset()
             self.render_manager.render_dragging(
                 mouse_pos=gpos,
@@ -1174,6 +1180,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"Error during node click: {e}")
             log_trace()
+            self.destroy()
 
     def on_drag_mouseup_begin(self, e):
         self.drag_end_phase = True
@@ -1216,6 +1223,7 @@ class Tree(TreeType):
             print(f"talon_ui_elements on_mouseup error: {e}")
             log_trace()
             self.finish_current_render()
+            self.destroy()
 
     def reconcile_mouse_highlight(self):
         last_clicked_pos = state_manager.get_last_clicked_pos()
@@ -1285,6 +1293,20 @@ class Tree(TreeType):
     def is_drag_end(self):
         return self.drag_end_phase or self.render_manager.is_drag_end()
 
+    def window_cleanup(self):
+        if self.meta_state.windows:
+            for id in list(self.meta_state.windows):
+                node = self.meta_state.id_to_node.get(id)
+                if node and node.on_close and not node.destroying:
+                    try:
+                        if len(inspect.signature(node.on_close).parameters) == 1:
+                            node.on_close(WindowCloseEvent())
+                        else:
+                            node.on_close()
+                    except Exception as e:
+                        print(f"Error during window on_close: {e}")
+                        log_trace()
+
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
             for canvas in self.canvas_blockable:
@@ -1304,6 +1326,7 @@ class Tree(TreeType):
                     effect.cleanup(StateEvent())
                 else:
                     effect.cleanup()
+        self.window_cleanup()
 
         if self.render_debounce_job:
             cron.cancel(self.render_debounce_job)
@@ -1391,6 +1414,8 @@ class Tree(TreeType):
                     self.meta_state.add_text_with_for_id(node.id, node.properties.for_id)
                 else:
                     self.meta_state.use_text_mutation(node.id, initial_text=node.text)
+            elif node.element_type == ELEMENT_ENUM_TYPE["window"]:
+                self.meta_state.add_window(node.id)
 
             if node.properties.is_scrollable():
                 self.meta_state.add_scrollable(node.id)
@@ -1505,7 +1530,10 @@ class Tree(TreeType):
             constraint_nodes: list[NodeType] = None,
             clip_nodes: list[NodeType] = None
         ):
-        """Runs once for each node in the tree to initialize meta_state and relationships"""
+        """
+        First step in the rendering process. Runs before layout.
+        Runs once for each node in the tree to establish meta_state and relationships
+        """
         current_node = self._resolve_component(current_node, node_index_path)
         current_node.tree = self
         current_node.depth = len(node_index_path)
@@ -1669,3 +1697,4 @@ class Tree(TreeType):
                     canvas.freeze()
         except Exception as e:
             print(f"talon_ui_elements draw_blockable_canvases error: {e}")
+            self.destroy()

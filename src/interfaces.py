@@ -193,6 +193,7 @@ class MetaStateType(ABC):
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _id_to_node: dict[str, 'NodeType']
     _staged_id_to_node: dict[str, 'NodeType']
+    windows: set[str]
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     unhighlight_jobs: dict[str, callable]
     new_component_ids: set[str]

@@ -1,7 +1,9 @@
 from talon import actions
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
+from ..events import WindowCloseEvent
 from ..properties import Properties, NodeWindowProperties
+import inspect
 
 last_pos_map = {}
 
@@ -11,6 +13,7 @@ class NodeWindow(NodeContainer):
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
         self.hash = properties.hash()
         self.init_position()
+        self.destroying = False
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
@@ -83,10 +86,27 @@ class NodeWindow(NodeContainer):
                 if properties.on_restore:
                     properties.on_restore()
 
-        def on_close():
-            if properties.on_close:
-                properties.on_close()
-            actions.user.ui_elements_hide_all()
+        def on_close(e: WindowCloseEvent):
+            if not self.destroying:
+                self.destroying = True
+
+                if properties.on_close:
+                    if len(inspect.signature(properties.on_close).parameters) == 1:
+                        properties.on_close(e)
+                    else:
+                        properties.on_close()
+
+                if e.hide:
+                    if self.tree:
+                        actions.user.ui_elements_hide(self.tree.id)
+                    else:
+                        actions.user.ui_elements_hide_all()
+
+        def on_button_click_close():
+            on_close(WindowCloseEvent(hide=True))
+
+        self.on_minimize = on_minimize
+        self.on_close = on_close
 
         title_bar_style = {
             "background_color": "272727"
@@ -122,7 +142,7 @@ class NodeWindow(NodeContainer):
                     button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, **button_style)[
                         icon("minimize" if not self.is_minimized else "testing2", size=18, **icon_style),
                     ] if self.properties.show_minimize else None,
-                    button(on_click=on_close, padding=8, padding_left=12, padding_right=12, **button_style)[
+                    button(on_click=on_button_click_close, padding=8, padding_left=12, padding_right=12, **button_style)[
                         icon("close", size=20, **icon_style),
                     ] if self.properties.show_close else None,
                 ],
@@ -215,3 +235,8 @@ class NodeWindow(NodeContainer):
             self.body.add_child(node)
 
         return self
+
+    def destroy(self):
+        self.on_minimize = None
+        self.on_close = None
+        super().destroy()

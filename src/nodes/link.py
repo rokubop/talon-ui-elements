@@ -1,3 +1,4 @@
+import webbrowser
 from ..properties import (
     NodeTextProperties,
     combine_props,
@@ -21,6 +22,17 @@ def link(*args, text=None, **additional_props):
         ELEMENT_ENUM_TYPE["link"]
     )
 
+    url = properties.get("url", "")
+
+    def handle_click():
+        if url:
+            try:
+                webbrowser.open(url)
+            except Exception as e:
+                print(f"Failed to open URL '{url}': {e}")
+        else:
+            print("No 'url' property provided for link")
+
     if text:
         properties["type"] = "link"
         text_properties = NodeTextProperties(**{
@@ -31,13 +43,13 @@ def link(*args, text=None, **additional_props):
                 "color": DEFAULT_LINK_HOVER_COLOR,
             },
             **properties,
-            "on_click": lambda: print("Link clicked!")
+            "on_click": handle_click
         })
         return NodeText(ELEMENT_ENUM_TYPE["link"], text, text_properties)
 
     if all_props.get("element_type", None):
         properties["element_type"] = all_props["element_type"]
-    properties["on_click"] = lambda: print("Link clicked!")
+    properties["on_click"] = handle_click
 
     button_properties = NodeTextProperties(**{
         "highlight_style": {

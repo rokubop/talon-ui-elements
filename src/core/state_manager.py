@@ -508,6 +508,7 @@ class StateManager:
         store.processing_states.clear()
         store.reset_mouse_state()
         state_coordinator.reset()
+        store.mouse_state['disable_events'] = False
 
     def clear_state_for_tree(self, tree: TreeType):
         for state_key in tree.meta_state.states:
@@ -524,6 +525,7 @@ class StateManager:
             store.trees.remove(tree)
             self.clear_state_for_tree(tree)
             store.synchronize_ids()
+        store.mouse_state['disable_events'] = False
 
     def clear_all(self):
         store.clear()
