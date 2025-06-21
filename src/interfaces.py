@@ -62,6 +62,14 @@ class PropertiesDimensionalType(ABC):
     position: str
     width: Union[int, str]
 
+class RenderTransforms():
+    offset: Point2d
+    scale: float
+
+    def __init__(self, offset: Point2d = None, scale: float = None):
+        self.offset = offset if offset else Point2d(0, 0)
+        self.scale = scale
+
 class PropertiesType(ABC):
     @abstractmethod
     def inherit_kwarg_properties(self, kwargs: dict[str, Any]):
@@ -535,11 +543,11 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         pass
 
     @abstractmethod
-    def v2_render_decorator(self, c: SkiaCanvas, offset: Point2d = None):
+    def v2_render_decorator(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         pass
 
     @abstractmethod

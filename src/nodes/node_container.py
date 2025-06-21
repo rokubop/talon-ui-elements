@@ -6,7 +6,7 @@ from .node import Node
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
 from ..cursor import Cursor
-from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem
+from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
 
 class NodeContainer(Node, NodeContainerType):
@@ -274,25 +274,25 @@ class NodeContainer(Node, NodeContainerType):
                 draw=self.draw_end
             )
 
-    def v2_render_decorator(self, c, offset: Point2d = None):
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
         if self.tree:
-            self.v2_render_borders(c)
+            self.v2_render_borders(c, transforms)
             # self.v2_crop_start(c)
-            self.v2_render_background(c)
+            self.v2_render_background(c, transforms)
             for child in self.get_children_nodes():
-                child.v2_render_decorator(c, offset)
+                child.v2_render_decorator(c, transforms)
             # self.v2_crop_end(c)
             # self.render_scroll_bar(c)
 
-    def v2_render(self, c):
+    def v2_render(self, c, transforms: RenderTransforms = None):
         if self.tree:
-            self.v2_render_borders(c)
+            self.v2_render_borders(c, transforms)
             self.v2_crop_start(c)
-            self.v2_render_background(c)
+            self.v2_render_background(c, transforms)
             for child in self.get_children_nodes():
-                child.v2_render(c)
+                child.v2_render(c, transforms)
             self.v2_crop_end(c)
-            self.render_scroll_bar(c)
+            self.render_scroll_bar(c, transforms)
 
     def normalize_to_flex(self, percentage):
         if percentage and isinstance(percentage, str) and "%" in percentage:

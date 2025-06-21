@@ -5,7 +5,7 @@ from talon.types import Rect
 from .node import Node
 from ..box_model import BoxModelV2
 from ..cursor import Cursor
-from ..interfaces import NodeSvgType, NodeType, Size2d
+from ..interfaces import NodeSvgType, NodeType, Size2d, RenderTransforms
 from ..properties import NodeSvgProperties
 
 def scale_d(path, scale_factor):
@@ -112,12 +112,18 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c, offset):
-        return self.v2_render(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
         top_left_pos = self.parent_node.box_model.content_children_pos
+
+        if transforms and transforms.offset:
+            top_left_pos = top_left_pos.copy()
+            top_left_pos.x += transforms.offset.x
+            top_left_pos.y += transforms.offset.y
+
         new_d = scale_d(self.properties.d, scale)
         path = Path.from_svg(new_d)
         translated_path = Path()
@@ -169,10 +175,10 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c, offset):
-        return self.v2_render(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
 
         x = self.properties.x * scale
@@ -185,6 +191,11 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
         prev_paint = c.paint.clone()
 
         top_left_pos = self.parent_node.box_model.content_children_pos
+
+        if transforms and transforms.offset:
+            top_left_pos = top_left_pos.copy()
+            top_left_pos.x += transforms.offset.x
+            top_left_pos.y += transforms.offset.y
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
@@ -212,10 +223,10 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c, offset):
-        return self.v2_render(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
 
         cx = self.properties.cx * scale
@@ -225,6 +236,11 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
         prev_paint = c.paint.clone()
 
         top_left_pos = self.parent_node.box_model.content_children_pos
+
+        if transforms and transforms.offset:
+            top_left_pos = top_left_pos.copy()
+            top_left_pos.x += transforms.offset.x
+            top_left_pos.y += transforms.offset.y
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
@@ -252,14 +268,20 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c, offset):
-        return self.v2_render(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
 
         raw_points = self.properties.points.split(" ")
         top_left_pos = self.parent_node.box_model.content_children_pos
+
+        if transforms and transforms.offset:
+            top_left_pos = top_left_pos.copy()
+            top_left_pos.x += transforms.offset.x
+            top_left_pos.y += transforms.offset.y
+
         points = [
             (
                 float(raw_points[i]) * scale + top_left_pos.x,
@@ -298,10 +320,10 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c, offset):
-        return self.v2_render(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
 
         x1 = self.properties.x1 * scale
@@ -312,6 +334,11 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
         prev_paint = c.paint.clone()
 
         top_left_pos = self.parent_node.box_model.content_children_pos
+
+        if transforms and transforms.offset:
+            top_left_pos = top_left_pos.copy()
+            top_left_pos.x += transforms.offset.x
+            top_left_pos.y += transforms.offset.y
 
         c.paint.style = c.paint.Style.STROKE
         c.paint.color = self.properties.stroke or self.parent_node.properties.stroke

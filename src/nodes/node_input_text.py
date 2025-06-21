@@ -5,6 +5,7 @@ from .node import Node
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
 from ..core.entity_manager import entity_manager
+from ..interfaces import RenderTransforms
 from ..properties import NodeInputTextProperties
 
 class NodeInputText(Node):
@@ -43,12 +44,12 @@ class NodeInputText(Node):
             draw=self.v2_render
         )
 
-    def v2_render_decorator(self, c, offset):
-        return self.v2_render(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
-        self.v2_render_background(c)
-        self.v2_render_borders(c)
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_background(c, transforms)
+        self.v2_render_borders(c, transforms)
 
         top_left_pos = self.box_model.content_children_pos.copy()
 

@@ -21,6 +21,7 @@ from ..interfaces import (
     NodeEnumType,
     ElementEnumType,
     TreeType,
+    RenderTransforms,
     Size2d,
 )
 from ..properties import Properties
@@ -308,7 +309,7 @@ class Node(NodeType):
         for child in self.get_children_nodes():
             child.v2_scroll_layout(node_offset)
 
-    def v2_render_borders(self, c: SkiaCanvas):
+    def v2_render_borders(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.is_uniform_border = True
         border_spacing = self.box_model.border_spacing
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
@@ -316,6 +317,15 @@ class Node(NodeType):
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
             # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             inner_rect = self.box_model.padding_rect
+
+            if transforms and transforms.offset:
+                inner_rect = Rect(
+                    inner_rect.x + transforms.offset.x,
+                    inner_rect.y + transforms.offset.y,
+                    inner_rect.width,
+                    inner_rect.height
+                )
+
             border_color = self.resolve_render_property("border_color")
             if self.is_uniform_border:
                 border_width = border_spacing.left
@@ -375,7 +385,7 @@ class Node(NodeType):
                 c.draw_rect(inner_rect)
             c.paint.imagefilter = None
 
-    def v2_render_background(self, c: SkiaCanvas):
+    def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         background_color = self.resolve_render_property("background_color")
         if background_color:
             c.paint.style = c.paint.Style.FILL
@@ -383,6 +393,14 @@ class Node(NodeType):
 
             # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             inner_rect = self.box_model.padding_rect
+
+            if transforms and transforms.offset:
+                inner_rect = Rect(
+                    inner_rect.x + transforms.offset.x,
+                    inner_rect.y + transforms.offset.y,
+                    inner_rect.width,
+                    inner_rect.height
+                )
 
             if self.properties.border_radius and self.is_uniform_border:
                 c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
@@ -399,19 +417,19 @@ class Node(NodeType):
             for child in self.get_children_nodes():
                 child.v2_build_render_list()
 
-    def v2_render_decorator(self, c: SkiaCanvas, offset):
-        self.v2_render_background(c)
-        self.v2_render_borders(c)
+    def v2_render_decorator(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_background(c, transforms)
+        self.v2_render_borders(c, transforms)
 
         for child in self.get_children_nodes():
-            child.v2_render_decorator(c, offset)
+            child.v2_render_decorator(c, transforms)
 
-    def v2_render(self, c: SkiaCanvas):
-        self.v2_render_background(c)
-        self.v2_render_borders(c)
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_background(c, transforms)
+        self.v2_render_borders(c, transforms)
 
         for child in self.get_children_nodes():
-            child.v2_render(c)
+            child.v2_render(c, transforms)
 
     def destroy(self):
         for node in self.children_nodes:

@@ -32,6 +32,7 @@ from ..interfaces import (
     RenderCauseStateType,
     RenderItem,
     RenderLayer,
+    RenderTransforms,
     ScrollRegionType,
     ScrollableType,
 )
@@ -575,11 +576,11 @@ class Tree(TreeType):
             # self.root_node.boundary_rect.y
         )
 
-    def draw_decoration_renders(self, canvas: SkiaCanvas, offset: Point2d):
+    def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
-                node.v2_render_decorator(canvas, offset)
+                node.v2_render_decorator(canvas, transforms)
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
@@ -589,13 +590,16 @@ class Tree(TreeType):
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
                     if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
                     else Point2d(0, 0)
+                transforms = None
+                if offset:
+                    transforms = RenderTransforms(offset=offset)
                 state_manager.set_processing_tree(self)
                 if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
                     self.reconcile_mouse_highlight()
-                self.draw_decoration_renders(draw_canvas, offset)
-                self.draw_highlight_overlays(draw_canvas, offset)
+                self.draw_decoration_renders(draw_canvas, transforms)
+                self.draw_highlight_overlays(draw_canvas, transforms.offset)
                 canvas.paint.color = "FFFFFF"
-                self.draw_text_mutations(draw_canvas, offset)
+                self.draw_text_mutations(draw_canvas, transforms.offset)
                 if self.interactive_node_list or self.draggable_node:
                     if state_manager.is_focus_visible():
                         self.draw_focus_outline(draw_canvas, offset)

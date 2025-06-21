@@ -7,9 +7,10 @@ def title(renderer):
 
 def message(current_version, min_version):
     return (
-        f"Your current version of talon-ui-elements is ({current_version}) ",
-        f"but the minimum required version is ({min_version}). ",
-        "Please update to the latest version to use this feature.",
+        f"Your current version of talon-ui-elements is ({current_version}) "
+        f"but the minimum required version is ({min_version}). "
+        "Please update to the latest version to use this feature. "
+        "https://github.com/rokubop/talon-ui-elements"
     )
 
 def show_error_if_not_compatible(renderer, min_version) -> None:

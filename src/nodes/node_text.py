@@ -4,7 +4,7 @@ from typing import Literal
 from .node import Node
 from ..box_model import BoxModelV2
 from ..core.state_manager import state_manager
-from ..interfaces import Size2d
+from ..interfaces import Size2d, RenderTransforms
 from ..properties import NodeTextProperties
 from ..fonts import get_typeface
 from ..utils import draw_text_simple
@@ -160,17 +160,22 @@ class NodeText(Node):
                 draw=self.v2_render
             )
 
-    def v2_render_decorator(self, c: SkiaCanvas, offset):
-        self.v2_render_borders(c)
-        self.v2_render_background(c)
+    def v2_render_decorator(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_borders(c, transforms)
+        self.v2_render_background(c, transforms)
 
         # This should be in layout phase
         text_top_left = self.box_model.content_children_pos.copy()
         available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
+
         if self.properties.text_align == "center":
             text_top_left.x += available_width // 2
         elif self.properties.text_align == "right":
             text_top_left.x += available_width
+
+        if transforms and transforms.offset:
+            text_top_left.x += transforms.offset.x
+            text_top_left.y += transforms.offset.y
 
         self.cursor_pre_draw_text = (text_top_left.x, text_top_left.y + self.text_line_height)
         color = self.resolve_render_property("color")
@@ -182,13 +187,13 @@ class NodeText(Node):
         else:
             draw_text_simple(c, self.text, color, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)
 
-    def v2_render(self, c):
+    def v2_render(self, c, transforms: RenderTransforms = None):
         render_now = not self.uses_decoration_render
         if self.own_id and self.element_type == "text":
             render_now = False
 
-        self.v2_render_borders(c)
-        self.v2_render_background(c)
+        self.v2_render_borders(c, transforms)
+        self.v2_render_background(c, transforms)
 
         # This should be in layout phase
         text_top_left = self.box_model.content_children_pos.copy()
