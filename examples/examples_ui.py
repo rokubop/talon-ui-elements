@@ -88,6 +88,6 @@ def examples_ui():
 
 def toggle_elements_examples():
     if not actions.user.ui_elements_get_trees():
-        actions.user.ui_elements_show(examples_ui)
+        actions.user.ui_elements_show(examples_ui, min_version="0.10.0")
     else:
         actions.user.ui_elements_hide_all()

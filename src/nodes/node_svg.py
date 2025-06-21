@@ -127,16 +127,31 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
 
         c.paint.style = c.paint.Style.STROKE
         # c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
-        c.paint.color = self.resolve_render_property("stroke") or self.parent_node.resolve_render_property("stroke")
+        stroke = self.resolve_render_property("stroke") or self.parent_node.resolve_render_property("stroke")
 
-        if self.properties.fill and self.properties.fill != "none":
-            c.paint.style = c.paint.Style.FILL
-            # c.paint.color = self.properties.fill
-            c.paint.color = self.resolve_render_property("fill")
+        fill = None
+        if self.properties.is_user_set('fill'):
+            fill = self.resolve_render_property("fill")
+        elif self.parent_node.properties.is_user_set('fill'):
+            fill = self.parent_node.resolve_render_property("fill")
 
+        c.paint.color = stroke
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
+
+        if fill and fill != "none":
+            if stroke:
+                # We have both stroke and fill, but this is a stroke only path,
+                # So just have a big stroke and a regular stroke
+                fill_stroke_width = c.paint.stroke_width
+                c.paint.stroke_width = c.paint.stroke_width * 2
+                c.paint.style = c.paint.Style.STROKE
+                c.draw_path(translated_path, c.paint)
+                c.paint.stroke_width = fill_stroke_width
+            else:
+                c.paint.style = c.paint.Style.FILL
+            c.paint.color = fill
 
         c.draw_path(translated_path, c.paint)
 

@@ -426,8 +426,10 @@ class NodeTextValidationProperties(ValidationProperties):
     font_size: int
     font_family: str
     font_weight: str
-    text_align: str
     for_id: str
+    stroke_color: str = None
+    stroke_width: int = None
+    text_align: str
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
@@ -445,6 +447,8 @@ class NodeTextProperties(Properties):
     font_weight: str = "normal"
     for_id: str = None
     on_click: any = None
+    stroke_width: int = None
+    stroke_color: str = None
     text_align: str = "left"
 
     def __init__(self, **kwargs):
@@ -734,6 +738,8 @@ class NodeInputTextProperties(Properties):
     id: str = None
     font_family: str = ""
     font_size: int = DEFAULT_FONT_SIZE
+    stroke_width: int = None
+    stroke_color: str = None
     value = ""
     on_change: callable = None
 

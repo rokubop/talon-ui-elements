@@ -422,6 +422,7 @@ class Tree(TreeType):
         self.cursor = None
         self.cursor_v2 = None
         self.effects = []
+        self.destroying = False
         self.drag_end_phase = False
         self.draggable_node = False
         self.draggable_node_delta_pos = None
@@ -459,6 +460,10 @@ class Tree(TreeType):
 
     def __del__(self):
         state_manager.decrement_ref_count_trees()
+
+    @property
+    def id(self):
+        return self.root_node.id if self.root_node else None
 
     def reset_cursor(self):
         if self.cursor is None:
@@ -749,7 +754,6 @@ class Tree(TreeType):
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
                 if node.element_type in ["button", "input_text", "link"]:
-                    # print("draw hint from ", self.render_manager.render_cause)
                     draw_hint(canvas, node, hint_generator(node))
 
     # def render_text_mutation(self):
@@ -944,16 +948,9 @@ class Tree(TreeType):
             self.props = self.props or props
 
             if self.is_mounted:
-                # t0 = time.time()
                 self.on_state_change_effect_cleanups()
-                # t1 = time.time()
-                # self.meta_state.prepare_node_transition()
                 self.meta_state.clear_nodes()
-                # t2 = time.time()
                 self.init_tree_constructor()
-                # t3 = time.time()
-
-                # print(f"on_mount_reset: {t0-t1:.3f} {t1-t2:.3f} {t2-t3:.3f}")
 
             if on_mount or on_unmount:
                 state_manager.register_effect(Effect(
@@ -1293,14 +1290,14 @@ class Tree(TreeType):
     def is_drag_end(self):
         return self.drag_end_phase or self.render_manager.is_drag_end()
 
-    def window_cleanup(self):
+    def window_cleanup(self, hide: bool = False):
         if self.meta_state.windows:
             for id in list(self.meta_state.windows):
                 node = self.meta_state.id_to_node.get(id)
                 if node and node.on_close and not node.destroying:
                     try:
                         if len(inspect.signature(node.on_close).parameters) == 1:
-                            node.on_close(WindowCloseEvent())
+                            node.on_close(WindowCloseEvent(hide=hide))
                         else:
                             node.on_close()
                     except Exception as e:
@@ -1319,59 +1316,62 @@ class Tree(TreeType):
 
     def destroy(self):
         global scroll_throttle_job
-        self.render_manager.prepare_destroy()
-        for effect in reversed(self.effects):
-            if effect.cleanup:
-                if len(inspect.signature(effect.cleanup).parameters) == 1:
-                    effect.cleanup(StateEvent())
-                else:
-                    effect.cleanup()
-        self.window_cleanup()
+        if not self.destroying:
+            self.destroying = True
+            self.render_manager.prepare_destroy()
+            for effect in reversed(self.effects):
+                if effect.cleanup:
+                    if len(inspect.signature(effect.cleanup).parameters) == 1:
+                        effect.cleanup(StateEvent())
+                    else:
+                        effect.cleanup()
+            self.window_cleanup(hide=False)
 
-        if self.render_debounce_job:
-            cron.cancel(self.render_debounce_job)
-            self.render_debounce_job = None
+            if self.render_debounce_job:
+                cron.cancel(self.render_debounce_job)
+                self.render_debounce_job = None
 
-        if self.canvas_base:
-            self.canvas_base.unregister("draw", self.on_draw_base_canvas)
-            self.canvas_base.close()
-            self.canvas_base = None
+            if self.canvas_base:
+                self.canvas_base.unregister("draw", self.on_draw_base_canvas)
+                self.canvas_base.close()
+                self.canvas_base = None
 
-        if self.canvas_decorator:
-            if self.is_key_controls_init:
-                self.canvas_decorator.unregister("key", self.on_key)
-                self.is_key_controls_init = False
-            self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
-            self.canvas_decorator.close()
-            self.canvas_decorator = None
+            if self.canvas_decorator:
+                if self.is_key_controls_init:
+                    self.canvas_decorator.unregister("key", self.on_key)
+                    self.is_key_controls_init = False
+                self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
+                self.canvas_decorator.close()
+                self.canvas_decorator = None
 
-        self.destroy_blockable_canvas()
+            self.destroy_blockable_canvas()
 
-        self._tree_constructor = None
-        self.current_base_canvas = None
-        self.render_manager.destroy()
-        state_manager.clear_state_for_tree(self)
-        self.meta_state.clear()
-        self.effects.clear()
-        self.processing_states.clear()
-        self.is_mounted = False
-        self.interactive_node_list.clear()
-        if self.root_node:
-            self.root_node.destroy()
-        self.root_node = None
-        self.draggable_node = None
-        self.drag_handle_node = None
-        self.draggable_node_delta_pos = None
-        self.absolute_nodes.clear()
-        self.fixed_nodes.clear()
-        scroll_throttle_job = None
-        self.render_list.clear()
-        self.render_layers.clear()
-        hint_clear_state()
-        self.render_cause.clear()
-        self.last_base_snapshot = None
-        self.last_hints_snapshot = None
-        state_manager.clear_tree(self)
+            self._tree_constructor = None
+            self.current_base_canvas = None
+            self.render_manager.destroy()
+            state_manager.clear_state_for_tree(self)
+            self.meta_state.clear()
+            self.effects.clear()
+            self.processing_states.clear()
+            self.is_mounted = False
+            self.interactive_node_list.clear()
+            if self.root_node:
+                self.root_node.destroy()
+            self.root_node = None
+            self.draggable_node = None
+            self.drag_handle_node = None
+            self.draggable_node_delta_pos = None
+            self.absolute_nodes.clear()
+            self.fixed_nodes.clear()
+            scroll_throttle_job = None
+            self.render_list.clear()
+            self.render_layers.clear()
+            hint_clear_state()
+            self.render_cause.clear()
+            self.last_base_snapshot = None
+            self.last_hints_snapshot = None
+            state_manager.clear_tree(self)
+            self.destroying = False
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:

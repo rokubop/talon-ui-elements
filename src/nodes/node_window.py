@@ -3,6 +3,7 @@ from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..events import WindowCloseEvent
 from ..properties import Properties, NodeWindowProperties
+from ..core.entity_manager import entity_manager
 import inspect
 
 last_pos_map = {}
@@ -97,10 +98,10 @@ class NodeWindow(NodeContainer):
                         properties.on_close()
 
                 if e.hide:
-                    if self.tree:
-                        actions.user.ui_elements_hide(self.tree.id)
+                    if self.tree and self.tree.id:
+                        entity_manager.hide_tree(self.tree.id)
                     else:
-                        actions.user.ui_elements_hide_all()
+                        entity_manager.hide_all_trees()
 
         def on_button_click_close():
             on_close(WindowCloseEvent(hide=True))

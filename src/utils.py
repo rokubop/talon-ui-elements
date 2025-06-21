@@ -14,7 +14,6 @@ from .fonts import get_typeface
 
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
-    paint.color = color
     paint.textsize = properties.font_size
     if properties.font_family:
         typeface = get_typeface(properties.font_family, properties.font_weight)
@@ -22,6 +21,15 @@ def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
             paint.typeface = typeface
     if properties.font_weight == "bold":
         paint.font.embolden = True
+
+    if properties.stroke_color:
+        paint.style = paint.Style.STROKE
+        paint.color = properties.stroke_color
+        paint.stroke_width = properties.stroke_width or 1
+        c.draw_text(str(text), x, y, paint)
+
+    paint.style = paint.Style.FILL
+    paint.color = color
     c.draw_text(str(text), x, y, paint)
 
 def get_screen(index: int = None) -> Screen:

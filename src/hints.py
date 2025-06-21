@@ -6,6 +6,7 @@ from .core.state_manager import state_manager
 from .core.store import store
 from .interfaces import NodeType, ClickEvent
 from .utils import safe_callback
+from .core.entity_manager import entity_manager
 
 mod = Module()
 ctx, ctx_hints_active_browser = Context(), Context()
@@ -252,4 +253,4 @@ class Actions:
         elif action == "focus_previous":
             focus_previous.execute(key_down)
         elif action == "close":
-            actions.user.ui_elements_hide_all()
+            entity_manager.hide_all_trees()

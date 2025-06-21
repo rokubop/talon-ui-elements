@@ -5,6 +5,7 @@ from .src.core.state_manager import state_manager, debug_gc
 from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
+from .src.errors import show_error_if_not_compatible
 from .src.utils import get_version
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
@@ -37,6 +38,7 @@ class Actions:
             on_unmount: callable = None,
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
+            min_version: str = None,
         ):
         """
         Render and show the UI
@@ -60,6 +62,9 @@ class Actions:
         actions.user.ui_elements_show(ui, on_mount=lambda: print("mounted"), on_unmount=lambda: print("unmounted"))
         ```
         """
+        if min_version and show_error_if_not_compatible(renderer, min_version):
+            return
+
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
     def ui_elements_hide(renderer_or_tree_id: Union[str, Callable]):

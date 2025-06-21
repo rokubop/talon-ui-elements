@@ -386,34 +386,6 @@ th = UIElementsContainerProxy(th)
 tr = UIElementsContainerProxy(tr)
 window = UIElementsWindowProxy(window)
 
-element_collection: Dict[str, callable] = {
-    'active_window': active_window,
-    'button': button,
-    'checkbox': checkbox,
-    'component': Component,
-    'div': div,
-    'effect': effect,
-    'icon': icon,
-    'input_text': input_text,
-    'link': link,
-    'modal': modal,
-    'ref': ref,
-    'screen': screen,
-    'state': state,
-    'style': style,
-    'table': table,
-    'td': td,
-    'text': text,
-    'th': th,
-    'tr': tr,
-    'switch': switch,
-    'window': window,
-}
-
-element_collection_full = {
-    **element_collection
-}
-
 def svg(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
     svg_properties = NodeSvgProperties(**properties)
@@ -466,6 +438,36 @@ element_svg_collection_full = {
     "polygon": svg_polygon,
 }
 
+
+element_collection: Dict[str, callable] = {
+    'active_window': active_window,
+    'button': button,
+    'checkbox': checkbox,
+    'component': Component,
+    'div': div,
+    'effect': effect,
+    'icon': icon,
+    'input_text': input_text,
+    'link': link,
+    'modal': modal,
+    'ref': ref,
+    'screen': screen,
+    'state': state,
+    'style': style,
+    'table': table,
+    'td': td,
+    'text': text,
+    'th': th,
+    'tr': tr,
+    'switch': switch,
+    'window': window,
+    **element_svg_collection_full,
+}
+
+element_collection_full = {
+    **element_collection
+}
+
 def ui_elements(*elements: Union[str, List[str]]) -> tuple[callable]:
     if len(elements) == 1 and isinstance(elements[0], (list, tuple)):
         elements = elements[0]
@@ -475,12 +477,6 @@ def ui_elements(*elements: Union[str, List[str]]) -> tuple[callable]:
 
     if type(elements) == str:
         elements = [elements]
-
-    if any(element in element_svg_collection_full for element in elements):
-        raise ValueError(
-            f"\nInvalid elements `{elements}` provided to ui_elements"
-            f"\nSVG elements must use `ui_elements_svg` instead of `ui_elements`"
-        )
 
     if not all(element in element_collection_full for element in elements):
         raise ValueError(
