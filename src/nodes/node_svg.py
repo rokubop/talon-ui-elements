@@ -132,7 +132,6 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         prev_paint = c.paint.clone()
 
         c.paint.style = c.paint.Style.STROKE
-        # c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
         stroke = self.resolve_render_property("stroke") or self.parent_node.resolve_render_property("stroke")
 
         fill = None
@@ -147,7 +146,7 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
 
         if fill and fill != "none":
-            if stroke:
+            if stroke and (self.properties.is_user_set('stroke') or self.parent_node.properties.is_user_set('stroke')):
                 # We have both stroke and fill, but this is a stroke only path,
                 # So just have a big stroke and a regular stroke
                 fill_stroke_width = c.paint.stroke_width
@@ -197,12 +196,14 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
             top_left_pos.x += transforms.offset.x
             top_left_pos.y += transforms.offset.y
 
-        c.paint.style = c.paint.Style.STROKE
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
 
         if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
+        else:
+            c.paint.style = c.paint.Style.STROKE
+            c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
@@ -242,12 +243,14 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
             top_left_pos.x += transforms.offset.x
             top_left_pos.y += transforms.offset.y
 
-        c.paint.style = c.paint.Style.STROKE
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+
 
         if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
+        else:
+            c.paint.style = c.paint.Style.STROKE
+            c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
@@ -294,12 +297,12 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
 
         top_left_pos = self.parent_node.box_model.content_children_pos
 
-        c.paint.style = c.paint.Style.STROKE
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
-
         if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
+        else:
+            c.paint.style = c.paint.Style.STROKE
+            c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
@@ -340,12 +343,12 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
             top_left_pos.x += transforms.offset.x
             top_left_pos.y += transforms.offset.y
 
-        c.paint.style = c.paint.Style.STROKE
-        c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
-
         if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
+        else:
+            c.paint.style = c.paint.Style.STROKE
+            c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
         c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
         c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join

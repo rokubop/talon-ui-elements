@@ -1,7 +1,40 @@
 {
   "name": "ui_elements",
-  "description": "Create stateful UIs using HTML/CSS/React-inspired syntax for python. For use with Talon.",
+  "title": "UI Elements",
+  "description": "Create stateful canvas UIs using HTML/CSS/React-inspired syntax for python. For use with Talon.",
   "version": "0.9.0",
+  "github": "https://github.com/rokubop/talon-ui-elements",
+  "preview": "https://raw.githubusercontent.com/rokubop/talon-ui-elements/main/examples/ui_elements_preview.png",
+  "author": "Rokubop",
+  "tags": [],
+  "vars": {
+    "repo": "https://github.com/rokubop/talon-ui-elements"
+  },
+  "platforms": [
+    "mac",
+    "linux",
+    "windows_powershell",
+    "windows_cmd",
+    "windows_bash"
+  ],
+  "commands": {
+    "cd_user": {
+      "mac": "cd ~/.talon/user",
+      "linux": "cd ~/.talon/user",
+      "windows_powershell": "cd \"$env:APPDATA\\talon\\user\"",
+      "windows_cmd": "cd %APPDATA%\\talon\\user",
+      "windows_bash": "cd \"$(cygpath \"$APPDATA\")/talon/user\""
+    }
+  },
+  "install": [
+    "${commands.cd_user}",
+    "git clone ${vars.repo}"
+  ],
+  "post_install_message": [
+    "✅ talon-ui-elements installed.",
+    "▶️ Try 'elements test' to see examples."
+  ],
+  "dependencies": {},
   "contributes": {
     "settings": [
       "user.ui_elements_hints_button_first_char",
@@ -11,10 +44,13 @@
       "user.ui_elements_hints_size",
       "user.ui_elements_scroll_speed"
     ],
-    "tags": ["user.ui_elements_hints_active"],
+    "tags": [
+      "user.ui_elements_hints_active"
+    ],
     "actions": [
       "user.ui_elements",
       "user.ui_elements_debug_gc",
+      "user.ui_elements_dev_tools",
       "user.ui_elements_examples",
       "user.ui_elements_get_input_value",
       "user.ui_elements_get_node",
@@ -25,21 +61,25 @@
       "user.ui_elements_highlight",
       "user.ui_elements_highlight_briefly",
       "user.ui_elements_hint_action",
+      "user.ui_elements_is_active",
       "user.ui_elements_key_action",
       "user.ui_elements_register_effect",
-      "user.ui_elements_register_on_lifecycle",
       "user.ui_elements_set_property",
       "user.ui_elements_set_state",
       "user.ui_elements_set_text",
       "user.ui_elements_show",
+      "user.ui_elements_storybook_toggle",
       "user.ui_elements_svg",
+      "user.ui_elements_test_runner",
       "user.ui_elements_toggle",
+      "user.ui_elements_toggle_hints",
       "user.ui_elements_unhighlight",
-      "user.ui_elements_unregister_on_lifecycle",
       "user.ui_elements_version"
     ]
   },
   "depends": {
-    "tags": ["browser"]
+    "tags": [
+      "browser"
+    ]
   }
 }

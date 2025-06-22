@@ -236,7 +236,11 @@ class Node(NodeType):
                                 "color": parent_node.properties.highlight_style.get("color", None),
                             })
                     else:
-                        self.properties.update_property(prop, getattr(parent_node.properties, prop))
+                        self.properties.update_property(
+                            prop,
+                            getattr(parent_node.properties, prop),
+                            explicitly_set=False
+                        )
                     self.cascaded_properties.add(prop)
 
             if set_opacity:

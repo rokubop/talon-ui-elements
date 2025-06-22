@@ -5,6 +5,7 @@ from enum import Enum
 from talon import cron
 from typing import Any
 from ..interfaces import TreeType, RenderTaskType, RenderManagerType, Point2d
+from .store import store
 
 class RenderCause(Enum):
     SCROLLING = "SCROLLING"
@@ -123,8 +124,20 @@ class RenderManager(RenderManagerType):
     def is_destroying(self):
         return self._destroying
 
+    def pause(self):
+        store.pause_renders = True
+
+    def resume(self):
+        store.pause_renders = False
+        if not self._destroying and not self.current_render_task:
+            self.process_next_render()
+
     def queue_render(self, render_task: RenderTask):
         if not self._destroying:
+            if store.pause_renders and not (render_task.cause == RenderCause.DRAGGING or \
+                    render_task.cause == RenderCause.DRAG_START or \
+                    render_task.cause == RenderCause.DRAG_END):
+                return
             if not self.current_render_task:
                 self.current_render_task = render_task
                 render_task.on_start(self.tree, *render_task.args)
@@ -175,6 +188,10 @@ class RenderManager(RenderManagerType):
 
     def process_next_render(self):
         if not self._destroying and self.queue:
+            if store.pause_renders and not (self.queue[0].cause == RenderCause.DRAGGING or \
+                        self.queue[0].cause == RenderCause.DRAG_START or \
+                        self.queue[0].cause == RenderCause.DRAG_END):
+                    return
             self.current_render_task = self.queue.popleft()
             if self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
                 self.current_render_task.on_start()
@@ -225,7 +242,10 @@ class RenderManager(RenderManagerType):
     ):
         render_task = RenderTask(
             cause=RenderCause.DRAG_START,
-            on_start=on_base_canvas_change,
+            on_start=lambda tree: (
+                self.pause(),
+                on_base_canvas_change(tree),
+            ),
             metadata = {
                 "mouse_pos": mouse_pos,
                 "mousedown_start_pos": mousedown_start_pos,
@@ -258,7 +278,8 @@ class RenderManager(RenderManagerType):
                     tree=tree,
                     cause=RenderCause.DRAG_END,
                 )),
-                on_base_canvas_change(tree)
+                on_base_canvas_change(tree),
+                self.resume()
             ),
             on_end=on_end,
             metadata = {
@@ -304,10 +325,11 @@ class RenderManager(RenderManagerType):
         ))
 
     def request_animation_frame(self, callback: callable):
-        cron.after("500ms", self.queue_render(RenderTask(
-            RenderCause.REQUEST_ANIMATION_FRAME,
-            callback,
-        )))
+        if not store.pause_renders:
+            cron.after("500ms", self.queue_render(RenderTask(
+                RenderCause.REQUEST_ANIMATION_FRAME,
+                callback,
+            )))
 
     def prepare_destroy(self):
         self._destroying = True

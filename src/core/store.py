@@ -26,6 +26,7 @@ class Store():
         self.root_nodes: list[NodeType] = []
         self.id_to_node: dict[str, NodeType] = {}
         self.id_to_hint: dict[str, str] = {}
+        self.pause_renders = False
         self.reactive_state: dict[str, ReactiveStateType] = {}
         self.staged_effects: list[Effect] = []
         self.ref_count_nodes = 0
@@ -64,6 +65,7 @@ class Store():
         self.focused_id = None
         self.focused_tree = None
         self.focused_visible = None
+        self.pause_renders = False
         self.processing_tree = None
         self.processing_components = []
         self.processing_states.clear()

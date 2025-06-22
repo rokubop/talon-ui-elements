@@ -297,14 +297,15 @@ class StateManager:
         return {key: store.reactive_state[key].value for key in store.reactive_state.keys()}
 
     def set_state_value(self, key, new_value):
-        if key in store.reactive_state:
-            if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
-                return
+        if not store.pause_renders:
+            if key in store.reactive_state:
+                if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
+                    return
 
-        self.init_state(key, new_value)
-        store.reactive_state[key].set_value(new_value)
-        store.processing_states.add(key)
-        state_coordinator.request_state_change(key)
+            self.init_state(key, new_value)
+            store.reactive_state[key].set_value(new_value)
+            store.processing_states.add(key)
+            state_coordinator.request_state_change(key)
 
     def get_text_mutation(self, id):
         node = store.id_to_node.get(id)

@@ -299,12 +299,13 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     self.stroke = self.stroke[:6]
                 self.stroke = self.stroke + opacity_hex
 
-    def update_property(self, key, value):
+    def update_property(self, key, value, explicitly_set=True):
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value)
             setattr(self, key, value)
-            self._explicitly_set.add(key)
+            if explicitly_set:
+                self._explicitly_set.add(key)
 
     def update_overrides(self, overrides):
         for key, value in overrides.items():
@@ -497,8 +498,8 @@ class NodeSvgValidationProperties(TypedDict):
 
 @dataclass
 class NodeSvgProperties(Properties):
-    fill: Union[str, bool] = DEFAULT_COLOR
-    stroke: Union[str, bool] = DEFAULT_COLOR
+    fill: Union[str, bool] = None
+    stroke: Union[str, bool] = None
     stroke_width: int = 2
     stroke_linejoin: str = "round"
     stroke_linecap: str = "round"
@@ -506,6 +507,10 @@ class NodeSvgProperties(Properties):
     size: int = 24
 
     def __init__(self, **kwargs):
+        if not kwargs.get('fill') and not kwargs.get('stroke'):
+            self.fill = DEFAULT_COLOR
+            self.stroke = DEFAULT_COLOR
+
         if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
             kwargs['fill'] = DEFAULT_COLOR
         super().__init__(**kwargs)
