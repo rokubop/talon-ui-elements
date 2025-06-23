@@ -19,9 +19,9 @@ def link_stories():
             text("Stories", font_size=18, font_weight="bold", color="#F1F1F1", border_bottom=1, padding_bottom=12,border_color="#333333"),
             component(example_with_code, props={
                 "title": "Default Link",
-                "example": link("Default"),
+                "example": link("Default", url="https://github.com/rokubop/talon-ui-elements"),
                 "code": textwrap.dedent("""\
-                    link('Default')"""
+                    link('Default', url='https://github.com/rokubop/talon-ui-elements')"""
                 )
             }),
             component(example_with_code, props={
@@ -29,48 +29,48 @@ def link_stories():
                 "example": link(
                     "Default",
                     padding=12,
-                    border_radius=6,
-                    background_color="#3689E8",
-                    color="#F1F1F1",
+                    color="#F081FC",
+                    font_weight="bold",
+                    url="https://github.com/rokubop/talon-ui-elements",
+                    highlight_style={
+                        "color": "#CF34BA",
+                    }
                 ),
                 "code": textwrap.dedent("""\
                     link(
                         'Default',
                         padding=12,
-                        border_radius=6,
-                        background_color='#3689E8',
-                        color='#F1F1F1'
+                        color='#F081FC',
+                        font_weight="bold",
+                        url='https://github.com/rokubop/talon-ui-elements',
+                        highlight_style={
+                            "color": "#CF34BA",
+                        }
                     )"""
                 )
             }),
             component(example_with_code, props={
                 "title": "With children (icon + text)",
                 "example": link(
+                    url='https://github.com/rokubop/talon-ui-elements',
                     flex_direction="row",
                     align_items="center",
-                    gap=6,
+                    gap=4,
                     padding=12,
-                    border_radius=6,
-                    border_width=1,
-                    border_color="#333333",
-                    background_color="#23242A",
                 )[
-                    icon("plus", size=16, color="#F1F1F1"),
-                    text("Icon Button", color="#F1F1F1")
+                    text("Link with children"),
+                    icon("external_link", size=16)
                 ],
                 "code": textwrap.dedent("""\
                     link(
-                        flex_direction='row',
-                        align_items='center',
+                        url='https://github.com/rokubop/talon-ui-elements',
+                        flex_direction="row",
+                        align_items="center",
                         gap=6,
                         padding=12,
-                        border_radius=6,
-                        border_width=1,
-                        border_color='#333333',
-                        background_color='#23242A',
                     )[
-                        icon('plus', size=16, color='#F1F1F1'),
-                        text('Icon Button', color='#F1F1F1')
+                        text("Link with children")
+                        icon("external_link", size=16),
                     ]"""
                 )
             }),

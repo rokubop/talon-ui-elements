@@ -242,15 +242,49 @@ def input_text(props=None, **additional_props):
 
 def window(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["window"])
-    window_properties = NodeWindowProperties(**{
-        "draggable": True,
-        "background_color": "222222",
-        "drop_shadow": (0, 20, 25, 25, "000000CC"),
-        "border_radius": 4,
-        "border_width": 1,
-        **properties
-    })
-    return NodeWindow(window_properties)
+
+    window_properties = {}
+    body_properties = {}
+
+    for key, value in properties.items():
+        if key in [
+            "position",
+            "top",
+            "left",
+            "right",
+            "bottom",
+            "width",
+            "min_width",
+            "min_height",
+            "max_width",
+            "max_height",
+            "minimized",
+            "minimized_ui",
+            "minimized_style",
+            "height",
+            "z_index",
+            "background_color",
+            "border_radius",
+            "border_width",
+            "border_color",
+            "drop_shadow",
+            "on_minimize",
+            "on_restore",
+            "on_close",
+            "title",
+            "show_title_bar",
+            "show_close",
+            "show_minimize",
+            "title_bar_style",
+        ]:
+            window_properties[key] = value
+        else:
+            body_properties[key] = value
+
+    return NodeWindow(
+        window_properties=window_properties,
+        body_properties=body_properties,
+    )
 
 modal_only_props = {
     "open",
@@ -449,7 +483,7 @@ element_collection: Dict[str, callable] = {
     'icon': icon,
     'input_text': input_text,
     'link': link,
-    'modal': modal,
+    # 'modal': modal, # experimental
     'ref': ref,
     'screen': screen,
     'state': state,
@@ -459,7 +493,7 @@ element_collection: Dict[str, callable] = {
     'text': text,
     'th': th,
     'tr': tr,
-    'switch': switch,
+    # 'switch': switch, # experimental
     'window': window,
     **element_svg_collection_full,
 }

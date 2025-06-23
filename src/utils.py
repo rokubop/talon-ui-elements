@@ -43,6 +43,17 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
         hasher.update(func_name.encode())
     elif isinstance(obj, str):
         return obj
+    elif isinstance(obj, dict):
+        for key, value in obj.items():
+            if isinstance(value, str):
+                hasher.update(f"{key}:{value}".encode())
+            elif callable(value):
+                # Handle function objects
+                func_name = f"{value.__module__}.{value.__qualname__}"
+                hasher.update(f"{key}:{func_name}".encode())
+            else:
+                # For other types, use string representation
+                hasher.update(f"{key}:{str(value)}".encode())
     else:
         raise TypeError("Object must be a callable or a dictionary.")
 
@@ -122,6 +133,33 @@ def get_active_color_from_highlight_color(highlight_color: str) -> str:
     new_alpha_hex = f"{new_alpha:02X}"
 
     return base_color + new_alpha_hex
+
+def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
+    """Adjust the brightness of a hex color by a specified amount.
+
+    Args:
+        color: Hex color string (e.g., "222222" or "#222222")
+        adjustment: Amount to add/subtract from each RGB component (-255 to 255)
+                   Positive values brighten, negative values darken
+
+    Returns:
+        Adjusted hex color string
+    """
+    color = color.lstrip('#')
+
+    if len(color) == 3:
+        color = ''.join([c*2 for c in color])
+
+    r = int(color[0:2], 16)
+    g = int(color[2:4], 16)
+    b = int(color[4:6], 16)
+
+    r = max(0, min(255, r + adjustment))
+    g = max(0, min(255, g + adjustment))
+    b = max(0, min(255, b + adjustment))
+
+    # Convert back to hex
+    return f"{r:02X}{g:02X}{b:02X}"
 
 def hex_color(color: str) -> str:
     """Resolve color to hex if it's a named color or validate hex format."""

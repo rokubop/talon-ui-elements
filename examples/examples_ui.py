@@ -58,23 +58,11 @@ button_action = {
     "Todo List": lambda: show_example(todo_list_ui),
 }
 
-def minimized_ui():
-    div, text = actions.user.ui_elements(["div", "text"])
-
-    return div(padding=16)[
-        text("Examples", font_size=24),
-        text("talon-ui-elements", font_size=14, color="FFCC00"),
-    ],
-
 def examples_ui():
     window, div, text, screen, button = actions.user.ui_elements(["window", "div", "text", "screen", "button"])
 
     return screen(justify_content="center", align_items="center")[
-        window(min_width=200, minimized_ui=minimized_ui, minimized_style={
-            "position": "absolute",
-            "bottom": 100,
-            "right": 100
-        })[
+        window(min_width=200, show_minimize=False)[
             div(padding=16)[
                 text("Examples", font_size=24),
                 text("talon-ui-elements", font_size=14, color="FFCC00"),
@@ -88,6 +76,6 @@ def examples_ui():
 
 def toggle_elements_examples():
     if not actions.user.ui_elements_get_trees():
-        actions.user.ui_elements_show(examples_ui, min_version="0.10.0")
+        actions.user.ui_elements_show(examples_ui)
     else:
         actions.user.ui_elements_hide_all()

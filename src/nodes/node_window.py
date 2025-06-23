@@ -3,75 +3,91 @@ from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..events import WindowCloseEvent
 from ..properties import Properties, NodeWindowProperties
+from ..utils import generate_hash, adjust_color_brightness
 from ..core.entity_manager import entity_manager
 import inspect
 
 last_pos_map = {}
 
 class NodeWindow(NodeContainer):
-    def __init__(self, properties: Properties):
+    def __init__(self, window_properties: dict, body_properties: dict = None):
         global last_pos_map
         div, icon, button, text, state = actions.user.ui_elements(["div", "icon", "button", "text", "state"])
-        self.hash = properties.hash()
+        self.hash = generate_hash({
+            **window_properties,
+            **body_properties,
+        })
         self.init_position()
         self.destroying = False
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
-        is_minimized, set_is_minimized = state.use(f"is_minimized_{self.hash}", properties.minimized)
+        is_minimized, set_is_minimized = state.use(
+            f"is_minimized_{self.hash}",
+            window_properties.get("minimized", False)
+        )
         self.is_minimized = is_minimized
+        minimized_style = window_properties.get("minimized_style", None)
 
-        window_properties = properties
-
-        self.has_dock_behavior = properties.minimized_style is not None and any(
-            properties.minimized_style.get(dir) is not None
+        self.has_dock_behavior = minimized_style is not None and any(
+            minimized_style.get(dir) is not None
             for dir in ["top", "left", "right", "bottom"]
         )
 
+        resolved_props = {
+            "draggable": True,
+            "background_color": "222222",
+            "drop_shadow": (0, 20, 25, 25, "000000CC"),
+            "border_radius": 4,
+            "border_width": 1,
+            **window_properties,
+            "on_drag_end": self.update_saved_positions
+        }
+        title_bar_style = {
+            "background_color": adjust_color_brightness(
+                window_properties.get("background_color", None), 10
+            ) if window_properties.get("background_color", None) else "272727",
+        }
+        title_style = {
+            "padding": 8,
+            "padding_left": 10,
+        }
+        icon_style = {
+            "stroke_width": 1,
+        }
+        button_style = {}
+
         if self.is_minimized:
-            default_minimized_properties = {
+            resolved_props.update({
                 "position": "absolute" if last_pos is not None else "static",
                 "top": last_pos.top if last_pos is not None else None,
                 "left": last_pos.left if last_pos is not None else None,
                 "min_width": 200,
-                "draggable": True,
-                "background_color": properties.background_color,
-                "border_radius": properties.border_radius,
-                "border_width": properties.border_width,
-                "border_color": properties.border_color,
-                "drop_shadow": properties.drop_shadow,
-            }
-            if properties.minimized_style:
-                if self.has_dock_behavior:
-                    if last_docked_pos is not None:
-                        default_minimized_properties.update({
-                            "top": last_docked_pos.top,
-                            "left": last_docked_pos.left,
-                        })
-                    else:
-                        default_minimized_properties.update({
-                            "top": properties.minimized_style.get("top", None),
-                            "left": properties.minimized_style.get("left", None),
-                            "right": properties.minimized_style.get("right", None),
-                            "bottom": properties.minimized_style.get("bottom", None),
-                        })
-
-                window_properties = NodeWindowProperties(
-                    **default_minimized_properties
-                )
-            else:
-                window_properties = NodeWindowProperties(
-                    **default_minimized_properties,
-            )
+            })
+            if minimized_style and self.has_dock_behavior:
+                if last_docked_pos is not None:
+                    resolved_props.update({
+                        "top": last_docked_pos.top,
+                        "left": last_docked_pos.left,
+                    })
+                else:
+                    resolved_props.update({
+                        "top": minimized_style.get("top", None),
+                        "left": minimized_style.get("left", None),
+                        "right": minimized_style.get("right", None),
+                        "bottom": minimized_style.get("bottom", None),
+                    })
         else:
-            window_properties.position = "static"
-            window_properties.top = None
-            window_properties.left = None
-            window_properties.drop_shadow = properties.drop_shadow
+            resolved_props.update({
+                "position": "static",
+                "top": None,
+                "left": None
+            })
 
-        window_properties.on_drag_end = self.update_saved_positions
-
-        super().__init__(element_type=ELEMENT_ENUM_TYPE["window"], properties=window_properties)
+        super().__init__(
+            element_type=ELEMENT_ENUM_TYPE["window"],
+            properties=NodeWindowProperties(**resolved_props)
+        )
 
         def on_minimize():
             global last_pos_map
@@ -80,22 +96,22 @@ class NodeWindow(NodeContainer):
             set_is_minimized(new_is_minimized)
             if new_is_minimized:
                 self.prepare_minimized_ui()
-                if properties.on_minimize:
-                    properties.on_minimize()
+                if window_properties.get("on_minimize", None):
+                    window_properties.get("on_minimize")()
             elif not new_is_minimized:
                 self.prepare_non_minimized_ui()
-                if properties.on_restore:
-                    properties.on_restore()
+                if window_properties.get("on_restore", None):
+                    window_properties.get("on_restore")()
 
         def on_close(e: WindowCloseEvent):
             if not self.destroying:
                 self.destroying = True
 
-                if properties.on_close:
-                    if len(inspect.signature(properties.on_close).parameters) == 1:
-                        properties.on_close(e)
+                if window_properties.get("on_close", None):
+                    if len(inspect.signature(window_properties.get("on_close")).parameters) == 1:
+                        window_properties.get("on_close")(e)
                     else:
-                        properties.on_close()
+                        window_properties.get("on_close")()
 
                 if e.hide:
                     if self.tree and self.tree.id:
@@ -109,22 +125,9 @@ class NodeWindow(NodeContainer):
         self.on_minimize = on_minimize
         self.on_close = on_close
 
-        title_bar_style = {
-            "background_color": "272727"
-        }
-
-        title_style = {
-            "padding": 8,
-            "padding_left": 10,
-        }
-        icon_style = {
-            "stroke_width": 1,
-        }
-        button_style = {}
-
-        if properties.title_bar_style:
-            for key, value in properties.title_bar_style.items():
-                if key in ["color"]:
+        if window_properties.get("title_bar_style", None):
+            for key, value in window_properties.get("title_bar_style", {}).items():
+                if key in ["color", "background_color", "border_color", "border_radius", "border_width"]:
                     title_style[key] = value
                     icon_style[key] = value
                 elif key in ["size", "stroke_width"]:
@@ -138,22 +141,22 @@ class NodeWindow(NodeContainer):
 
         def title_bar():
             return div(title_bar_style, flex_direction="row", justify_content="space_between", align_items="center")[
-                text(properties.title or "", **title_style),
+                text(window_properties.get("title", ""), **title_style),
                 div(flex_direction="row")[
                     button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, **button_style)[
                         icon("minimize" if not self.is_minimized else "testing2", size=18, **icon_style),
-                    ] if self.properties.show_minimize else None,
+                    ] if window_properties.get("show_minimize", True) else None,
                     button(on_click=on_button_click_close, padding=8, padding_left=12, padding_right=12, **button_style)[
                         icon("close", size=20, **icon_style),
-                    ] if self.properties.show_close else None,
+                    ] if window_properties.get("show_close", True) else None,
                 ],
             ],
 
-        self.body = div()
-        if properties.show_title_bar:
+        self.body = div(**body_properties)
+        if window_properties.get("show_title_bar", True):
             self.add_child(title_bar())
-        if properties.minimized_ui is not None and self.is_minimized:
-            self.add_child(properties.minimized_ui())
+        if window_properties.get("minimized_ui", None) and self.is_minimized:
+            self.add_child(window_properties.get("minimized_ui")())
         else:
             self.add_child(self.body)
 

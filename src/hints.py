@@ -185,7 +185,6 @@ def hint_tag_enable():
 def hint_tag_disable():
     ctx.tags = []
 
-
 class KeyPressOrRepeatHold:
     def __init__(self, action: callable):
         self.action = action

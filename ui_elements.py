@@ -21,21 +21,24 @@ class Actions:
         Provides elements and utilities to build your UI.
 
         ```
-        # Example 1
         div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
-
-        # Example 2 - All elements
-        elements = ["screen", "active_window", "div", "text", "button", "input_text", "state", "ref", "effect", "icon"]
-        screen, active_window, div, text, button, input_text, state, ref, effect, icon = actions.user.ui_elements(elements)
+        screen, active_window, window = actions.user.ui_elements(["screen", "active_window", "window"])
+        button, input_text, state = actions.user.ui_elements(["button", "input_text", "state"])
+        ref, effect, icon = actions.user.ui_elements(["ref", "effect", "icon"])
+        component, style = actions.user.ui_elements(["component", "style"])
+        checkbox, link = actions.user.ui_elements(["checkbox", "link"])
+        table, th, tr, td = actions.user.ui_elements(["table", "th", "tr", "td"])
+        svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
+        circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
         ```
         """
         return ui_elements(elements)
 
     def ui_elements_show(
-            renderer: callable,
+            renderer: Callable,
             props: dict[str, Any] = None,
-            on_mount: callable = None,
-            on_unmount: callable = None,
+            on_mount: Callable = None,
+            on_unmount: Callable = None,
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
             min_version: str = None,

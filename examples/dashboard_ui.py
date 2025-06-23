@@ -37,25 +37,17 @@ user_lists = [
 ]
 
 def dashboard_ui():
-    elements = ["div", "text", "screen", "button", "state", "icon"]
-    div, text, screen, button, state, icon = actions.user.ui_elements(elements)
+    window, screen, div, text = actions.user.ui_elements(["window", "screen", "div", "text"])
+    button, state, icon = actions.user.ui_elements(["button", "state", "icon"])
 
     user_list, set_user_list = state.use("user_list", user_lists[0])
     keys, values = format_user_list(user_list)
-
-    def header():
-        return div(flex_direction='row', justify_content='space_between', border_bottom=1, border_color="555555")[
-            text("Dashboard", font_size=24, padding=16),
-            button(on_click=actions.user.ui_elements_hide_all)[
-                icon("close", size=20, padding=14),
-            ],
-        ]
 
     def sidebar():
         return div(border_right=1, overflow_y="scroll", padding=8)[
             *[button(
                 name,
-                on_click=lambda name=name: set_user_list(name),
+                on_click=lambda e, name=name: set_user_list(name),
                 padding=16,
                 padding_top=8,
                 padding_bottom=8,
@@ -72,13 +64,11 @@ def dashboard_ui():
                 *[text(value, font_size=14) for value in values]
             ]
         ]
+
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, background_color="272727", border_radius=8, width=900, height=600, border_width=1)[
-            header(),
-            div(flex_direction="row", height="100%")[
-                sidebar(),
-                body()
-            ],
+        window(title="Dashboard", min_width=1000, max_height=1000,flex_direction="row")[
+            sidebar(),
+            body()
         ]
     ]
 

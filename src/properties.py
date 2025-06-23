@@ -1,3 +1,4 @@
+import inspect
 from dataclasses import dataclass
 from talon import app
 from talon.types import Rect
@@ -303,6 +304,26 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value)
+
+            if key == "on_click" and value is not None and callable(value):
+                try:
+                    sig = inspect.signature(value)
+                    params = list(sig.parameters.values())
+                    if len(params) > 0:
+                        first_param = params[0]
+                        # Check for common mistake: lambda with default parameter as first arg
+                        if first_param.default != inspect.Parameter.empty and first_param.name != 'e' and first_param.name != 'event':
+                            raise ValueError(
+                                f"on_click function signature error: First parameter '{first_param.name}' "
+                                f"has a default value, suggesting it might be a captured variable. "
+                                f"The on_click callback receives a ClickEvent as its first parameter. "
+                                f"Correct usage: on_click=lambda e: your_function(captured_var) "
+                                f"or on_click=lambda e, var=captured_var: your_function(var)"
+                            )
+                except (ValueError, TypeError) as e:
+                    if "on_click function signature error" in str(e):
+                        raise
+
             setattr(self, key, value)
             if explicitly_set:
                 self._explicitly_set.add(key)
@@ -439,6 +460,7 @@ class NodeLinkValidationProperties(NodeButtonValidationProperties):
     url: str
     close_on_click: bool = False
     minimize_on_click: bool = False
+    disabled: bool = False
 
 @dataclass
 class NodeTextProperties(Properties):

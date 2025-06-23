@@ -6,35 +6,7 @@
   "github": "https://github.com/rokubop/talon-ui-elements",
   "preview": "https://raw.githubusercontent.com/rokubop/talon-ui-elements/main/examples/ui_elements_preview.png",
   "author": "Rokubop",
-  "tags": [],
-  "vars": {
-    "repo": "https://github.com/rokubop/talon-ui-elements"
-  },
-  "platforms": [
-    "mac",
-    "linux",
-    "windows_powershell",
-    "windows_cmd",
-    "windows_bash"
-  ],
-  "commands": {
-    "cd_user": {
-      "mac": "cd ~/.talon/user",
-      "linux": "cd ~/.talon/user",
-      "windows_powershell": "cd \"$env:APPDATA\\talon\\user\"",
-      "windows_cmd": "cd %APPDATA%\\talon\\user",
-      "windows_bash": "cd \"$(cygpath \"$APPDATA\")/talon/user\""
-    }
-  },
-  "install": [
-    "${commands.cd_user}",
-    "git clone ${vars.repo}"
-  ],
-  "post_install_message": [
-    "✅ talon-ui-elements installed.",
-    "▶️ Try 'elements test' to see examples."
-  ],
-  "dependencies": {},
+  "tags": ["ui"],
   "contributes": {
     "settings": [
       "user.ui_elements_hints_button_first_char",
