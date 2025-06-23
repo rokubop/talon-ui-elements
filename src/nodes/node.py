@@ -51,6 +51,7 @@ class Node(NodeType):
         self.flex_evaluated: Union[int, float] = None
         self.children_nodes = []
         self.is_dirty: bool = False
+        self.disabled: bool = self.properties.disabled or False
         self.interactive = False
         self.interactive_id: str = None
         self.is_svg: bool = False

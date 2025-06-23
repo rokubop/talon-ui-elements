@@ -1063,7 +1063,7 @@ class Tree(TreeType):
                     target_node = source_node
                     if source_id != target_id:
                         target_node = self.meta_state.id_to_node.get(target_id, None)
-                    if source_node:
+                    if source_node and not getattr(target_node, 'disabled', False):
                         if source_node.is_fully_clipped_by_scroll():
                             continue
                         if source_node and source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
@@ -1172,16 +1172,17 @@ class Tree(TreeType):
                 state_manager.blur_all()
 
     def click_node(self, node: NodeType):
-        try:
-            sig = inspect.signature(node.on_click)
-            if len(sig.parameters) == 0:
-                node.on_click()
-            else:
-                node.on_click(ClickEvent(id=node.id))
-        except Exception as e:
-            print(f"Error during node click: {e}")
-            log_trace()
-            self.destroy()
+        if node and getattr(node, 'on_click', None):
+            try:
+                sig = inspect.signature(node.on_click)
+                if len(sig.parameters) == 0:
+                    node.on_click()
+                else:
+                    node.on_click(ClickEvent(id=node.id))
+            except Exception as e:
+                print(f"Error during node click: {e}")
+                log_trace()
+                self.destroy()
 
     def on_drag_mouseup_begin(self, e):
         self.drag_end_phase = True

@@ -2,6 +2,7 @@ from talon import actions
 from .elements.button import button_stories
 from .elements.link import link_stories
 from .elements.table import table_stories
+from .elements.checkbox import checkbox_stories
 from .placeholder_stories import placeholder_stories
 
 elements = [
@@ -29,7 +30,7 @@ storybook_pages = {
     "button": button_stories,
     # Placeholders for other elements
     "active_window": lambda: placeholder_stories("active_window"),
-    "checkbox": lambda: placeholder_stories("checkbox"),
+    "checkbox": checkbox_stories,
     "component": lambda: placeholder_stories("component"),
     "div": lambda: placeholder_stories("div"),
     "effect": lambda: placeholder_stories("effect"),

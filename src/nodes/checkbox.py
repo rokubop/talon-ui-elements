@@ -16,7 +16,7 @@ def split_checkbox_props(props):
     button_props = {}
     checkbox_props = {}
     for key, value in props.items():
-        if key in ["checked", "on_change"]:
+        if key in ["checked", "on_change", "disabled"]:
             checkbox_props[key] = value
         elif key in ["size", "stroke_width", "view_box", "stroke_linejoin", "stroke_linecap"]:
             svg_props[key] = value
@@ -35,9 +35,6 @@ class CheckboxEvent:
     id: str = None
 
 default_button_props = {
-    # "border_width": DEFAULT_INTERACTIVE_BORDER_WIDTH,
-    # "border_color": DEFAULT_INTERACTIVE_BORDER_COLOR,
-    # "border_radius": 4,
     "background_color": DEFAULT_INPUT_BACKGROUND_COLOR,
     "highlight_color": DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
 }
@@ -61,13 +58,28 @@ def checkbox_impl(props):
                 CheckboxEvent(checked=new_checked, id=button_props.get("id", None))
             )
 
+    if checkbox_props.get("disabled"):
+        return div(
+            {
+                **default_button_props,
+                **button_props,
+                "disabled": True,
+                "opacity":0.5,
+            },
+        )[
+            div()[
+                svg({ **default_svg_props, **svg_props })[
+                    polyline(points="20 6 9 17 4 12")
+                ] if is_checked else div(width=20, height=20),
+            ]
+        ]
+
     return button(
         {
             **default_button_props,
             **button_props,
         },
         on_click=on_trigger,
-        # element_type="checkbox",
     )[
         svg({ **default_svg_props, **svg_props })[
             polyline(points="20 6 9 17 4 12")

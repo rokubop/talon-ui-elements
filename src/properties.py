@@ -44,6 +44,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     bottom: Union[int, str, float] = None
     class_name: str = None
     color: str = DEFAULT_COLOR
+    disabled: bool = False
     drag_handle: bool = False
     draggable: bool = False
     drop_shadow: tuple[int, int, int, int, str] = None
@@ -406,6 +407,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     bottom: Union[int, str, float]
     class_name: str
     color: str
+    disabled: bool
     drag_handle: bool
     draggable: bool
     drop_shadow: tuple[int, int, int, int, str]
@@ -460,7 +462,6 @@ class NodeLinkValidationProperties(NodeButtonValidationProperties):
     url: str
     close_on_click: bool = False
     minimize_on_click: bool = False
-    disabled: bool = False
 
 @dataclass
 class NodeTextProperties(Properties):
