@@ -34,7 +34,7 @@ class NodeWindow(NodeContainer):
             for dir in ["top", "left", "right", "bottom"]
         )
 
-        resolved_props = {
+        resolved_window_props = {
             "draggable": True,
             "background_color": "222222",
             "drop_shadow": (0, 20, 25, 25, "000000CC"),
@@ -58,27 +58,33 @@ class NodeWindow(NodeContainer):
         button_style = {}
 
         if self.is_minimized:
-            resolved_props.update({
+            resolved_window_props.update({
                 "position": "absolute" if last_pos is not None else "static",
                 "top": last_pos.top if last_pos is not None else None,
                 "left": last_pos.left if last_pos is not None else None,
+                "width": None,
+                "min_height": None,
+                "height": None,
                 "min_width": 200,
             })
             if minimized_style and self.has_dock_behavior:
                 if last_docked_pos is not None:
-                    resolved_props.update({
+                    resolved_window_props.update({
+                        **minimized_style,
                         "top": last_docked_pos.top,
                         "left": last_docked_pos.left,
+                        "bottom": None,
+                        "right": None,
                     })
                 else:
-                    resolved_props.update({
+                    resolved_window_props.update({
                         "top": minimized_style.get("top", None),
                         "left": minimized_style.get("left", None),
                         "right": minimized_style.get("right", None),
                         "bottom": minimized_style.get("bottom", None),
                     })
         else:
-            resolved_props.update({
+            resolved_window_props.update({
                 "position": "static",
                 "top": None,
                 "left": None
@@ -86,7 +92,7 @@ class NodeWindow(NodeContainer):
 
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["window"],
-            properties=NodeWindowProperties(**resolved_props)
+            properties=NodeWindowProperties(**resolved_window_props)
         )
 
         def on_minimize():
@@ -95,11 +101,11 @@ class NodeWindow(NodeContainer):
             self.update_saved_positions()
             set_is_minimized(new_is_minimized)
             if new_is_minimized:
-                self.prepare_minimized_ui()
+                self.prepare_minimized_body()
                 if window_properties.get("on_minimize", None):
                     window_properties.get("on_minimize")()
             elif not new_is_minimized:
-                self.prepare_non_minimized_ui()
+                self.prepare_non_minimized_body()
                 if window_properties.get("on_restore", None):
                     window_properties.get("on_restore")()
 
@@ -155,8 +161,8 @@ class NodeWindow(NodeContainer):
         self.body = div(**body_properties)
         if window_properties.get("show_title_bar", True):
             self.add_child(title_bar())
-        if window_properties.get("minimized_ui", None) and self.is_minimized:
-            self.add_child(window_properties.get("minimized_ui")())
+        if window_properties.get("minimized_body", None) and self.is_minimized:
+            self.add_child(window_properties.get("minimized_body")())
         else:
             self.add_child(self.body)
 
@@ -187,7 +193,7 @@ class NodeWindow(NodeContainer):
                 actions.user.ui_elements_get_node(self.id).box_model.border_rect
             )
 
-    def prepare_minimized_ui(self):
+    def prepare_minimized_body(self):
         # Our tree meta state only keeps track of one drag offset
         # But window has two - minimized vs non-minimized
         # so we update the tree meta state to reflect our internal state
@@ -198,7 +204,7 @@ class NodeWindow(NodeContainer):
             except Exception as e:
                 print(f"Error setting draggable offset: {e}")
 
-    def prepare_non_minimized_ui(self):
+    def prepare_non_minimized_body(self):
         # Our tree meta state only keeps track of one drag offset
         # But window has two - minimized vs non-minimized
         # so we update the tree meta state to reflect our internal state

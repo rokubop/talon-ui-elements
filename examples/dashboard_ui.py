@@ -1,13 +1,12 @@
 from talon import actions, registry
 
-def format_user_list(user_list):
+def get_user_list(current_user_list):
     try:
-        talon_list = registry.lists[f"user.{user_list}"][0]
+        return registry.lists[f"user.{current_user_list}"][0]
     except KeyError:
-        return (["No list found"], ["No list found"])
-    return (talon_list.keys(), talon_list.values())
+        return { "No list found": "No values available" }
 
-user_lists = [
+USER_LIST = [
     "arrow_key",
     "code_formatter",
     "cursorless_scope_type",
@@ -36,44 +35,76 @@ user_lists = [
     "word_formatter",
 ]
 
+
+def body():
+    div, text, style = actions.user.ui_elements(["div", "text", "style"])
+    table, tr, th, td = actions.user.ui_elements(["table", "tr", "th", "td"])
+    state = actions.user.ui_elements(["state"])
+    current_user_list = state.get("current_user_list", USER_LIST[0])
+    key_vals = get_user_list(current_user_list)
+
+    style({
+        "td": {
+            "padding": 8,
+        }
+    })
+
+    return div(padding=24, gap=8, overflow_y="scroll", width="100%", height="100%")[
+        text(current_user_list, font_size=20, margin_bottom=12),
+        table()[
+            *[tr()[
+                td(key),
+                td(value)
+            ] for key, value in key_vals.items()]
+        ],
+    ]
+
+
+
+def sidebar():
+    div, button, state = actions.user.ui_elements(["div", "button", "state"])
+
+    return div(border_right=1, overflow_y="scroll", height="100%", padding=12)[
+        *[button(
+            name,
+            on_click=lambda e, name=name: state.set("current_user_list", name),
+            padding=16,
+            padding_top=8,
+            padding_bottom=8,
+            border_radius=4,
+        ) for name in USER_LIST]
+    ]
+
+def minimized_body():
+    return body()
+
 def dashboard_ui():
-    window, screen, div, text = actions.user.ui_elements(["window", "screen", "div", "text"])
-    button, state, icon = actions.user.ui_elements(["button", "state", "icon"])
-
-    user_list, set_user_list = state.use("user_list", user_lists[0])
-    keys, values = format_user_list(user_list)
-
-    def sidebar():
-        return div(border_right=1, overflow_y="scroll", padding=8)[
-            *[button(
-                name,
-                on_click=lambda e, name=name: set_user_list(name),
-                padding=16,
-                padding_top=8,
-                padding_bottom=8,
-                border_radius=4,
-            ) for name in user_lists]
-        ]
-
-    def body():
-        return div(flex_direction="row", id="body", padding=16, gap=8, overflow_y="scroll", width="100%")[
-            div()[
-                *[text(key, font_size=14) for key in keys]
-            ],
-            div()[
-                *[text(value, font_size=14) for value in values]
-            ]
-        ]
+    window, screen, component = actions.user.ui_elements(["window", "screen", "component"])
 
     return screen(justify_content="center", align_items="center")[
-        window(title="Dashboard", min_width=1000, max_height=1000,flex_direction="row")[
+        window(
+            title="Dashboard",
+            width=1100,
+            height=700,
+            flex_direction="row",
+            minimized_body=minimized_body,
+            minimized_style={
+                "max_height": 400,
+                "min_width": 200,
+                "position": "absolute",
+                "top": 100,
+                "right": 100
+            }
+        )[
             sidebar(),
-            body()
+            component(body),
         ]
     ]
 
 def show_dashboard_ui():
-    actions.user.ui_elements_show(dashboard_ui)
+    actions.user.ui_elements_show(dashboard_ui, initial_state={
+        "current_user_list": USER_LIST[0]
+    })
 
 def hide_dashboard_ui():
     actions.user.ui_elements_hide(dashboard_ui)

@@ -184,15 +184,53 @@ def tr(props=None, **additional_props):
     table_row_properties = NodeTableRowProperties(**properties)
     return NodeTableRow(table_row_properties)
 
-def td(props=None, **additional_props):
+def td(*args, **additional_props):
+    text_content = None
+
+    # Check if 'text' was passed as a keyword argument and rename it to avoid conflict
+    if 'text' in additional_props:
+        text_content = additional_props.pop('text')
+
+    if args and isinstance(args[0], str):
+        text_content = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["td"])
     table_data_properties = NodeTableDataProperties(**properties)
-    return NodeTableData(table_data_properties)
+    td_node = NodeTableData(table_data_properties)
 
-def th(props=None, **additional_props):
+    if text_content:
+        # Create a text node and add it as a child
+        text_node = text(text_content)
+        td_node.add_child(text_node)
+
+    return td_node
+
+def th(*args, **additional_props):
+    text_content = None
+
+    # Check if 'text' was passed as a keyword argument and rename it to avoid conflict
+    if 'text' in additional_props:
+        text_content = additional_props.pop('text')
+
+    if args and isinstance(args[0], str):
+        text_content = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["th"])
     table_header_properties = NodeTableHeaderProperties(**properties)
-    return NodeTableHeader(table_header_properties)
+    th_node = NodeTableHeader(table_header_properties)
+
+    if text_content:
+        # Create a text node and add it as a child
+        text_node = text(text_content)
+        th_node.add_child(text_node)
+
+    return th_node
 
 def text(text_str: str = "", props=None, **additional_props):
     if isinstance(text_str, str):
@@ -259,7 +297,7 @@ def window(props=None, **additional_props):
             "max_width",
             "max_height",
             "minimized",
-            "minimized_ui",
+            "minimized_body",
             "minimized_style",
             "height",
             "z_index",
@@ -338,7 +376,7 @@ def modal(title=None, open=False, on_close=None, draggable=False, show_title_bar
         contents_props,
     )
 
-class UIElementsContainerProxy:
+class UIElementsContainerNoTextProxy:
     def __init__(self, func):
         self.func = func
 
@@ -402,22 +440,22 @@ class UIElementsLeafProxy:
 
 use_effect_without_tree = use_effect_no_tree
 
-active_window = UIElementsContainerProxy(active_window)
+active_window = UIElementsContainerNoTextProxy(active_window)
 button = UIElementsLeafProxy(button)
 checkbox = UIElementsLeafProxy(checkbox)
-div = UIElementsContainerProxy(div)
+div = UIElementsContainerNoTextProxy(div)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
-modal = UIElementsContainerProxy(modal)
+modal = UIElementsContainerNoTextProxy(modal)
 ref = Ref
-screen = UIElementsContainerProxy(screen)
+screen = UIElementsContainerNoTextProxy(screen)
 state = State()
-table = UIElementsContainerProxy(table)
-td = UIElementsContainerProxy(td)
+table = UIElementsContainerNoTextProxy(table)
+td = UIElementsProxy(td)
 text = UIElementsLeafProxy(text)
-th = UIElementsContainerProxy(th)
-tr = UIElementsContainerProxy(tr)
+th = UIElementsProxy(th)
+tr = UIElementsProxy(tr)
 window = UIElementsWindowProxy(window)
 
 def svg(props=None, **additional_props):

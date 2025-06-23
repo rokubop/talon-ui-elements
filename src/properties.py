@@ -803,7 +803,7 @@ class NodeWindowProperties(Properties):
     drop_shadow: tuple[int, int, int, int, str] = None
     minimized: bool = False
     minimized_style: dict = None
-    minimized_ui: callable = None
+    minimized_body: callable = None
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
@@ -823,14 +823,14 @@ class NodeWindowProperties(Properties):
             self.on_minimize = None
         if self.on_restore:
             self.on_restore = None
-        if self.minimized_ui:
-            self.minimized_ui = None
+        if self.minimized_body:
+            self.minimized_body = None
 
 class NodeWindowValidationProperties(ValidationProperties):
     drop_shadow: tuple[int, int, int, int, str]
     minimized: bool
     minimized_style: dict
-    minimized_ui: callable
+    minimized_body: callable
     on_close: callable
     on_minimize: callable
     on_restore: callable
