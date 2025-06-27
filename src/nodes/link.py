@@ -7,6 +7,8 @@ from ..properties import (
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_LINK_COLOR, DEFAULT_LINK_HOVER_COLOR
 from .node_text import NodeText
 from .node_button import NodeButton
+from ..core.store import store
+from ..core.state_manager import state_manager
 
 def link(*args, text=None, **additional_props):
     if args and isinstance(args[0], str):
@@ -32,6 +34,10 @@ def link(*args, text=None, **additional_props):
                 print(f"Failed to open URL '{url}': {e}")
         else:
             print("No 'url' property provided for link")
+
+        # if properties.get("close_on_click"):
+        #     if store.focused_tree:
+        #         state_manager.clear_tree(store.focused_tree)
 
     if text:
         properties["type"] = "link"

@@ -34,7 +34,7 @@ def link_stories():
                     url="https://github.com/rokubop/talon-ui-elements",
                     highlight_style={
                         "color": "#CF34BA",
-                    }
+                    },
                 ),
                 "code": textwrap.dedent("""\
                     link(
@@ -45,7 +45,7 @@ def link_stories():
                         url='https://github.com/rokubop/talon-ui-elements',
                         highlight_style={
                             "color": "#CF34BA",
-                        }
+                        },
                     )"""
                 )
             }),

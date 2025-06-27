@@ -460,8 +460,8 @@ class NodeButtonValidationProperties(NodeTextValidationProperties):
 
 class NodeLinkValidationProperties(NodeButtonValidationProperties):
     url: str
-    close_on_click: bool = False
-    minimize_on_click: bool = False
+    # close_on_click: bool = False
+    # minimize_on_click: bool = False
 
 @dataclass
 class NodeTextProperties(Properties):
