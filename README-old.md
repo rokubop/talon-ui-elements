@@ -414,7 +414,7 @@ The following properties cascade down to children elements:
 |---------------|-------------|
 | [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
 | [Components](./docs/components.md) | How to create components |
-| [Defaults](./docs/defaults.md) | Default values for all properties |
+| [Defaults](docs/concepts/defaults.md) | Default values for all properties |
 | [Properties](./docs/properties.md) | List of all properties you can use |
 | [Icons and SVGs](./docs/icons_and_svgs.md) | List of supported icons and how to use custom SVGs |
 | [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |

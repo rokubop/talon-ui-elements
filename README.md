@@ -43,7 +43,7 @@ Done! 🎉 Start learning below.
 
 ## 🚀 Your First UI in 3 Minutes
 
-📘 [Start the Hello World tutorial →](docs/tutorials/01_hello_world.md)
+📘 [Start the Hello World tutorial →](docs/tutorials/hello_world.md)
 
 You'll learn:
 - How to create a renderer

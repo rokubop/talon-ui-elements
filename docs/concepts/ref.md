@@ -1,6 +1,6 @@
 # Ref
 
-`ref` is a reference to an element "id", which provides a way to imperatively get and set properties.
+`ref` is a reference to an element "id", which provides a way to imperatively get and set properties. Values are not available on initial render, so they should only be used asynchronously via callbacks or after the initial render.
 
 ## With inputs
 
