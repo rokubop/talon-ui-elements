@@ -38,7 +38,7 @@ Done! 🎉 Start learning below.
 | 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/command_cheatsheet.md) |
 | 🪟 Confirmation option selector | [Start the tutorial →](docs/tutorials/option_selector.md)
 | 🔢 Counters | [Start the tutorial →](docs/tutorials/dual_counters.md) |
-| 🧭 Compact dashboard | [Start the tutorial →](docs/tutorials/draggable_hud.md) |
+| 🧭 Compact dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
 | 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
 
 ## 🚀 Your First UI in 3 Minutes

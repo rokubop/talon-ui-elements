@@ -11,7 +11,7 @@ def blank_key():
     div, text = actions.user.ui_elements(["div", "text"])
     return div(class_name="key", opacity=0.6)[text(" ")]
 
-def key_svg(id, icon_name):
+def key_icon(id, icon_name):
     div, icon = actions.user.ui_elements(["div", "icon"])
 
     return div(class_name="key", id=id)[
@@ -46,10 +46,10 @@ def game_keys_ui():
         div(flex_direction="row", margin_bottom=20, margin_left=20)[
             div()[
                 div(flex_direction="row")[
-                    blank_key(), key_svg("up", "arrow_up"), blank_key()
+                    blank_key(), key_icon("up", "arrow_up"), blank_key()
                 ],
                 div(flex_direction="row")[
-                    key_svg("left", "arrow_left"), key_svg("down", "arrow_down"), key_svg("right", "arrow_right")
+                    key_icon("left", "arrow_left"), key_icon("down", "arrow_down"), key_icon("right", "arrow_right")
                 ]
             ],
             div()[

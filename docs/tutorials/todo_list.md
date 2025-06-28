@@ -456,6 +456,6 @@ You've mastered the fundamentals! Try these specialized tutorials:
 
 - **[Option Selector](option_selector.md)** - Build confirmation dialogs and choice interfaces
 - **[Dual Counters](dual_counters.md)** - Create numeric controls and trackers
-- **[Draggable HUD](draggable_hud.md)** - Build compact dashboard interfaces
+- **[Draggable HUD](dashboard.md)** - Build compact dashboard interfaces
 
 Congratulations on completing the most comprehensive tutorial! You now have all the skills needed to build any UI you can imagine.
