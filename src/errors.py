@@ -13,11 +13,20 @@ def message(current_version, min_version):
         "https://github.com/rokubop/talon-ui-elements"
     )
 
-def show_error_if_not_compatible(renderer, min_version) -> None:
+def fake_ui():
+    screen, div = actions.user.ui_elements(["screen", "div"])
+    return screen(justify_content="center", align_items="center")[
+        div(),
+    ]
+
+def simulate_error():
+    show_error_if_not_compatible(fake_ui, get_version(), force=True)
+
+def show_error_if_not_compatible(renderer, min_version, force=False) -> None:
     is_incompatible = False
     current_version = get_version()
 
-    if current_version < min_version:
+    if current_version < min_version or force:
         is_incompatible = True
         renderer_name = renderer.__qualname__
         title_message = title(renderer)

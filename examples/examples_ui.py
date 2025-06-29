@@ -11,6 +11,7 @@ from .todo_list_ui import todo_list_ui
 from ..storybook.main import storybook_ui
 from ..src.dev_tools import DevTools
 from ..tests.test_runner_ui import runner_ui
+from ..src.errors import simulate_error
 
 def go_back():
     actions.user.ui_elements_hide_all()
@@ -66,6 +67,11 @@ tools = {
     "Storybook": lambda: show_example(storybook_ui),
     "Test Runner": lambda: show_example(runner_ui),
     "Dev Tools": lambda: actions.user.ui_elements_show(DevTools),
+    "Simulate Error": lambda: (
+        actions.user.ui_elements_hide_all(),
+        simulate_error(),
+        actions.user.ui_elements_show(go_back_ui)
+    )
 }
 
 def examples_ui():

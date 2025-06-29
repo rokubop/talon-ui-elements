@@ -1,8 +1,8 @@
 from talon import actions
 
 def inputs_ui(props):
-    elements = ["checkbox", "div", "text", "screen", "input_text", "button", "ref", "state"]
-    checkbox, div, text, screen, input_text, button, ref, state = actions.user.ui_elements(elements)
+    div, text, screen, input_text = actions.user.ui_elements(["div", "text", "screen", "input_text"])
+    button, ref, state = actions.user.ui_elements(["button", "ref", "state"])
 
     is_valid, set_is_valid = state.use("is_valid", False)
     first_input = ref("first")
@@ -17,9 +17,6 @@ def inputs_ui(props):
     def on_change(e):
         set_is_valid(bool(first_input.value and last_input.value))
 
-    def on_free_cookie(e):
-        print(e)
-
     return screen(justify_content="center", align_items="center")[
         div(draggable=True, background_color="333333", padding=24, border_radius=12, border_width=1, gap=16)[
             div(drag_handle=True, border_bottom=1, padding_bottom=16, margin_bottom=8)[
@@ -29,10 +26,6 @@ def inputs_ui(props):
             input_text(id="first", autofocus=True, background_color="444444", on_change=on_change),
             text("Last"),
             input_text(id="last", background_color="444444", on_change=on_change),
-            div(flex_direction="row", align_items="center", gap=8, margin_top=8)[
-                checkbox(id="free_cookie", on_change=on_free_cookie),
-                text("Free cookie?", for_id="free_cookie", padding=2, font_size=16),
-            ],
             div(flex_direction="row", justify_content="flex_end", margin_top=8)[
                 button("Submit", on_click=on_submit, background_color="305CDE" if is_valid else "444444", border_radius=8, padding=12, padding_left=24, padding_right=24)
             ]
