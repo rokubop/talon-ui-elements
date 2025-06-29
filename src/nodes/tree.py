@@ -1319,6 +1319,17 @@ class Tree(TreeType):
             self.last_blockable_rects.clear()
             self.canvas_blockable.clear()
 
+    def minimize(self):
+        if self.meta_state.windows:
+            for id in list(self.meta_state.windows):
+                node = self.meta_state.id_to_node.get(id)
+                if node and node.on_minimize and not node.destroying:
+                    try:
+                        node.on_minimize()
+                    except Exception as e:
+                        print(f"Error during window on_minimize: {e}")
+                        log_trace()
+
     def destroy(self):
         global scroll_throttle_job
         if not self.destroying:

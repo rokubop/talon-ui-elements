@@ -25,6 +25,7 @@ def link(*args, text=None, **additional_props):
     )
 
     url = properties.get("url", "")
+    print('close_on_click:', properties.get("close_on_click", None))
 
     def handle_click():
         if url:
@@ -35,9 +36,13 @@ def link(*args, text=None, **additional_props):
         else:
             print("No 'url' property provided for link")
 
-        # if properties.get("close_on_click"):
-        #     if store.focused_tree:
-        #         state_manager.clear_tree(store.focused_tree)
+        if properties.get("close_on_click"):
+            if store.focused_tree:
+                store.focused_tree.destroy()
+
+        if properties.get("minimize_on_click"):
+            if store.focused_tree:
+                store.focused_tree.minimize()
 
     if text:
         properties["type"] = "link"

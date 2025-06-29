@@ -25,7 +25,7 @@ def link_stories():
                 )
             }),
             component(example_with_code, props={
-                "title": "With common properties",
+                "title": "Colored - Close on click",
                 "example": link(
                     "Default",
                     padding=12,
@@ -35,6 +35,7 @@ def link_stories():
                     highlight_style={
                         "color": "#CF34BA",
                     },
+                    close_on_click=True
                 ),
                 "code": textwrap.dedent("""\
                     link(
@@ -50,13 +51,14 @@ def link_stories():
                 )
             }),
             component(example_with_code, props={
-                "title": "With children (icon + text)",
+                "title": "With children (icon + text) - Minimize on click",
                 "example": link(
                     url='https://github.com/rokubop/talon-ui-elements',
                     flex_direction="row",
                     align_items="center",
                     gap=4,
                     padding=12,
+                    minimize_on_click=True
                 )[
                     text("Link with children"),
                     icon("external_link", size=16)
