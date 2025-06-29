@@ -36,9 +36,7 @@ Done! 🎉 Start learning below.
 |----------|---|
 | 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_key_overlay.md) |
 | 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/command_cheatsheet.md) |
-| 🪟 Confirmation option selector | [Start the tutorial →](docs/tutorials/option_selector.md)
-| 🔢 Counters | [Start the tutorial →](docs/tutorials/dual_counters.md) |
-| 🧭 Compact dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
+|  Dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
 | 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
 
 ## 🚀 Your First UI in 3 Minutes
