@@ -17,8 +17,10 @@ Because the screen has `flex_direction="row"`, `justify_content` refers to the h
 
 The initial value of `justify_content` is `"flex_end"` which means the contents are justified to the right side of the screen. `align_items="center"` means it is vertically centered in this case. These are common concepts in CSS Flexbox, and you can read more about them in the [Flexbox alignment](https://www.joshwcomeau.com/css/interactive-guide-to-flexbox/#alignment-3).
 
+If you want to offset from the edge of the screen, you can use `padding` on the screen, or `margin` on the child element. For example, `div(margin_right=20)` would offset the content 20 pixels from the right edge of the screen.
+
 ### State
-`state` initial value is actually set by the consumer in this case, `user.ui_elements_show(cheatsheet_ui, initial_state={ "commands": ["Command 1", "Command 2", "Command 3"]})`, but it could have been defined directly in the ui with the second parameter `state.get("key", initial_value)`.
+`state` initial value is actually set by another file in this case, during show, `user.ui_elements_show(cheatsheet_ui, initial_state={ "commands": ["Command 1", "Command 2", "Command 3"]})`, but it could have been defined directly in the ui with the second parameter `state.get("key", initial_value)` instead.
 
 ### Visibility
 The `cheatsheet_ui` function is imported from another file, and visibility can be controlled with `actions.user.ui_elements_show(cheatsheet_ui)`, `actions.user.ui_elements_hide(cheatsheet_ui)`, `actions.user.ui_elements_hide_all()`, or `actions.user.ui_elements_toggle(cheatsheet_ui)`.

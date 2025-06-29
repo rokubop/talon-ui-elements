@@ -145,7 +145,7 @@ You've created your first UI! Here's what you accomplished:
 Now that you understand the basics, try these tutorials:
 
 - **[Game Key Overlay](game_key_overlay.md)** - Build a visual key overlay for gaming
-- **[Command Cheatsheet](command_cheatsheet.md)** - Create a dynamic command reference
+- **[Command Cheatsheet](cheatsheet.md)** - Create a dynamic command reference
 - **[TODO List](todo_list.md)** - Build an interactive task manager
 
 ## Resources

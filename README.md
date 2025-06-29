@@ -102,11 +102,13 @@ Congratulations! You've created your first UI. 🎉
 
 Say "elements test" to bring up the examples.
 
+![examples](./examples/examples_preview.png)
+
 ## ✨ What You Can Build - Tutorials
 
 | Use Case |  |
 |----------|---|
-| 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/command_cheatsheet.md) |
+| 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/cheatsheet.md) |
 | 🧭 Dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
 | 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_key_overlay.md) |
 | 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
