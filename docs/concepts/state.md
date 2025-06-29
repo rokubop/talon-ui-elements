@@ -115,8 +115,7 @@ actions.user.ui_elements_set_state("form", lambda form: {**form, "name": "new_na
 ## Other considerations for faster performance
 Because `state` causes a full re-render of the UI, you may want to consider these alternatives for better performance:
 - Use `actions.user.ui_elements_set_text` for changing text, which only rerenders the decoration layer.
--
-- or a `ref`, as those text updates render on a separate decoration layer and do not cause a relayout.
+- Use `actions.user.ui_elements_highlight`, `actions.user.ui_elements_highlight_briefly`, and `actions.user.ui_elements_unhighlight` to highlight elements which only affects the decoration layer and is faster than state updates.
 
 ## Lifecycle
 States are cleared when the UI is hidden/destroyed.

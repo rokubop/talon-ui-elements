@@ -1,44 +1,35 @@
 # 📜 Command Cheatsheet Tutorial
 
-Build a dynamic command reference that shows context-aware shortcuts. Perfect for learning new applications or remembering complex workflows!
-
 ![Cheatsheet Preview](../../examples/cheatsheet_preview.png)
 
 ## Step 1: See full code
-See [examples/cheatsheet_ui.py](../../examples/cheatsheet_ui.py) for the complete code.
+See [examples/cheatsheet_ui.py](/examples/cheatsheet_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 
 ## Code Breakdown
 
-**Context-Aware Content**: The cheatsheet uses reactive `state` to show different commands based on your current context - whether you're coding, browsing, or using specific applications.
+### Root element
+`screen` is the root element. It is basically a `div` that fills the screen, and is used to position the elements inside.
 
-**Organized Layout**: Commands are grouped into logical sections with clear headers, making it easy to find what you need quickly. Each command shows both the voice trigger and description.
+### Layout
+Because the screen has `flex_direction="row"`, `justify_content` refers to the horizontal axis, and `align_items` refers to the vertical axis.
 
-**Dynamic Updates**: Voice commands can update the cheatsheet content in real-time using `actions.user.ui_elements_set_state("current_commands", new_commands)` to show relevant shortcuts for your current task.
+The initial value of `justify_content` is `"flex_end"` which means the contents are justified to the right side of the screen. `align_items="center"` means it is vertically centered in this case. These are common concepts in CSS Flexbox, and you can read more about them in the [Flexbox alignment](https://www.joshwcomeau.com/css/interactive-guide-to-flexbox/#alignment-3).
 
-**Professional Styling**: The clean, card-based design with proper spacing and typography makes the cheatsheet easy to read at a glance without being distracting.
+### State
+`state` initial value is actually set by the consumer in this case, `user.ui_elements_show(cheatsheet_ui, initial_state={ "commands": ["Command 1", "Command 2", "Command 3"]})`, but it could have been defined directly in the ui with the second parameter `state.get("key", initial_value)`.
 
-**Compact Format**: Each command entry uses a two-column layout showing the voice command on the left and description on the right, maximizing information density.
+### Visibility
+The `cheatsheet_ui` function is imported from another file, and visibility can be controlled with `actions.user.ui_elements_show(cheatsheet_ui)`, `actions.user.ui_elements_hide(cheatsheet_ui)`, `actions.user.ui_elements_hide_all()`, or `actions.user.ui_elements_toggle(cheatsheet_ui)`.
 
-**Positioning**: The cheatsheet appears in a convenient location that doesn't interfere with your work while remaining easily accessible when needed.
+### IDs
+The reason `div` is given an `id`, is because we want to do something dynamic with it. In this example we use `actions.user.ui_elements_set_property("cheatsheet", "background_color", value)` to dynamically set the background color on it. This could have been done with `state` as well, and would have been the same performance.
 
-**Using the Function**: Import this function into your Talon voice commands and control visibility with `actions.user.ui_elements_show(cheatsheet_ui)`, `actions.user.ui_elements_hide(cheatsheet_ui)`, `actions.user.ui_elements_hide_all()`, or `actions.user.ui_elements_toggle(cheatsheet_ui)`.
+If instead you wanted to highlight the target id, you could use `actions.user.ui_elements_highlight("cheatsheet")` or `actions.user.ui_elements_highlight_briefly("cheatsheet")`, which is faster performance because highlight only affects the decoration layer and does not cause a full re-render.
 
-## Step 2: Setting Up Interaction
+### List comprehension
+Use `*[text(command) for command in commands]` python pattern to render a list of `text` components dynamically. This is the same as if we had listed out `text("Command 1")`, `text("Command 2")`, etc. but allows for dynamic updates to the list without needing to change the UI code.
 
-Use the following for visibility
-```python
-actions.user.ui_elements_show(cheatsheet_ui)
-actions.user.ui_elements_hide(cheatsheet_ui)
-actions.user.ui_elements_hide_all()
-actions.user.ui_elements_toggle(cheatsheet_ui)
-```
-
-Update cheatsheet content dynamically
-```python
-actions.user.ui_elements_set_state("current_commands", new_commands_list)
-actions.user.ui_elements_set_state("context_title", "VSCode Commands")
-```
-
+### Setting up actions
 For more information on setting up voice commands, see [hello_world.md](../tutorials/hello_world.md).

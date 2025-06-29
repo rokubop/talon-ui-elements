@@ -18,6 +18,7 @@ def cheatsheet_ui():
     """
     div, screen, text, state = actions.user.ui_elements(['div', 'screen', 'text', 'state'])
 
+    # `state` is not necessary unless you want it to be dynamic
     align = state.get("align", "right")
     commands = state.get("commands", [])
     justify_content = "flex_end" if align == "right" else "flex_start"
