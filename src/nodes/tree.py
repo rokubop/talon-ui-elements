@@ -550,15 +550,18 @@ class Tree(TreeType):
             )
 
     def commit_base_canvas(self):
-        surface = self.Surface(self.current_base_canvas.width, self.current_base_canvas.height)
+        # t1a = time.time()
+        surface = self.Surface(int(self.current_base_canvas.width), int(self.current_base_canvas.height))
         canvas = surface.canvas()
         canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
 
+        # t1b = time.time()
         for layer in self.render_layers:
             # Direct canvas approach:
             # layer.draw_to_canvas(self.current_base_canvas)
 
             # Snapshot approach:
+
             layer.draw_to_canvas(canvas)
             # snapshot = layer.render_to_surface(
             #     self.current_base_canvas.width,
@@ -566,7 +569,9 @@ class Tree(TreeType):
             #     self.current_base_canvas.x,
             #     self.current_base_canvas.y
             # )
+        # t2 = time.time()
         self.last_base_snapshot = surface.snapshot()
+        # t3 = time.time()
 
         self.current_base_canvas.draw_image(
             self.last_base_snapshot,
@@ -575,6 +580,11 @@ class Tree(TreeType):
             # self.root_node.boundary_rect.x,
             # self.root_node.boundary_rect.y
         )
+        # t4 = time.time()
+        # print(f"t1a-t1b: {t1b - t1a:.4f}s")
+        # print(f"t1b-t2: {t2 - t1b:.4f}s")
+        # print(f"t2-t3: {t3 - t2:.4f}s")
+        # print(f"t3-t4: {t4 - t3:.4f}s")
 
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
@@ -674,6 +684,7 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
+            # t0 = time.time()
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
             self.consume_components()
@@ -684,6 +695,8 @@ class Tree(TreeType):
             self.root_node.v2_layout(self.cursor_v2)
             self.nonlayout_flow()
             self.build_base_render_layers()
+            # t1 = time.time()
+            # print(f"t0-t1: {t1 - t0:.4f}s")
             self.commit_base_canvas()
         except Exception as e:
             print(f"Error during base canvas draw: {e}")
@@ -749,7 +762,7 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def create_surface(self):
-        surface = self.Surface(self.current_base_canvas.width, self.current_base_canvas.height)
+        surface = self.Surface(int(self.current_base_canvas.width), int(self.current_base_canvas.height))
         canvas = surface.canvas()
         canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
         return surface, canvas

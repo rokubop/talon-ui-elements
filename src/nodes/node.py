@@ -26,6 +26,7 @@ from ..interfaces import (
 )
 from ..properties import Properties
 from ..utils import sanitize_string
+import time
 
 STYLE_MAP = {
     "highlight": "highlight_style",
@@ -375,9 +376,9 @@ class Node(NodeType):
 
     def v2_render_drop_shadow(self, c: SkiaCanvas):
         if self.properties.drop_shadow:
-            # tuple[offset_x, offset_y, blur_x, blur_y, color]
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.drop_shadow[4]
+
             c.paint.imagefilter = ImageFilter.drop_shadow(
                 self.properties.drop_shadow[0],
                 self.properties.drop_shadow[1],
@@ -385,12 +386,15 @@ class Node(NodeType):
                 self.properties.drop_shadow[3],
                 self.properties.drop_shadow[4],
             )
-            inner_rect = self.box_model.padding_rect
 
+            inner_rect = self.box_model.padding_rect
+            # t0 = time.time()
             if self.properties.border_radius and self.is_uniform_border:
                 c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
             else:
                 c.draw_rect(inner_rect)
+            # t1 = time.time()
+            # print(f"Drop shadow render time for {self.element_type}: {t1 - t0:.4f}s")
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):

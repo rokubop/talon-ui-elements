@@ -8,6 +8,7 @@ from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAU
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
+import time
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
@@ -250,14 +251,20 @@ class NodeContainer(Node, NodeContainerType):
         return self.box_model.margin_size
 
     def draw_start(self, c: SkiaCanvas):
-        self.v2_render_drop_shadow(c),
+        # t0 = time.time()
+        # self.v2_render_drop_shadow(c),
         self.v2_render_borders(c),
         self.v2_crop_start(c),
         self.v2_render_background(c)
+        # t1 = time.time()
+        # print(f"draw_start {self.element_type}: {t1 - t0:.4f}s")
 
     def draw_end(self, c: SkiaCanvas):
+        # t0 = time.time()
         self.v2_crop_end(c),
         self.render_scroll_bar(c)
+        # t1 = time.time()
+        # print(f"draw_end {self.element_type}: {t1 - t0:.4f}s")
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:

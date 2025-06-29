@@ -5,7 +5,8 @@ import os
 import re
 from dataclasses import dataclass
 from talon import ui
-from talon.skia.canvas import Canvas as SkiaCanvas, Paint
+from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.paint import Paint
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
@@ -15,6 +16,7 @@ from .fonts import get_typeface
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
     paint.textsize = properties.font_size
+    c.paint.antialias = True
     if properties.font_family:
         typeface = get_typeface(properties.font_family, properties.font_weight)
         if typeface:

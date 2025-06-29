@@ -7,6 +7,7 @@ from talon.skia import Surface
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .constants import ElementEnumType, NodeEnumType
+import time
 
 @dataclass
 class Size2d:
@@ -657,7 +658,10 @@ class RenderLayer:
 
     def draw_to_canvas(self, canvas: SkiaCanvas):
         for item in self.items:
+            # t0 = time.time()
             item.draw(canvas)
+            # t1 = time.time()
+            # print(f"{item.node.element_type}: {t1 - t0:.4f}s")
 
 class RenderTaskType(ABC):
     cause: str

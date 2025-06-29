@@ -123,7 +123,7 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     font_path = find_installed_font(font_family, font_weight)
     log("Found font path:", font_path)
     if font_path:
-        typeface = Typeface.from_file(font_path)
+        typeface = Typeface.from_file(font_path, 0)
         font_cache[key] = typeface
         return typeface
 

@@ -1,6 +1,7 @@
 import re
 from talon.skia import Path
 from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.paint import Paint
 from talon.types import Rect
 from .node import Node
 from ..box_model import BoxModelV2
@@ -74,6 +75,27 @@ linejoin = {
     "bevel": 2
 }
 
+linecap_v2 = {
+    "butt": "BUTT",
+    "round": "ROUND",
+    "square": "SQUARE"
+}
+
+linejoin_v2 = {
+    "miter": "MITER",
+    "round": "ROUND",
+    "bevel": "BEVEL"
+}
+
+def assign_stroke_cap_and_join(c: SkiaCanvas, node: NodeType):
+    stroke_cap = linecap_v2[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
+    stroke_join = linejoin_v2[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
+    # print("try StrokeCap:", c.paint.StrokeCap)
+    StrokeCap = c.paint.stroke_cap.__class__
+    StrokeJoin = c.paint.stroke_join.__class__
+    c.paint.stroke_cap = getattr(StrokeCap, stroke_cap)
+    c.paint.stroke_join = getattr(StrokeJoin, stroke_join)
+
 class NodeRenderOnly():
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
         pass
@@ -86,8 +108,8 @@ class NodeSvg(Node, NodeSvgType):
         super().__init__(element_type="svg", properties=properties)
         self.is_svg = True
         self.size = self.properties.size
-        self.stroke_cap = linecap[self.properties.stroke_linecap]
-        self.stroke_join = linejoin[self.properties.stroke_linejoin]
+        self.stroke_cap = linecap_v2[self.properties.stroke_linecap]
+        self.stroke_join = linejoin_v2[self.properties.stroke_linejoin]
         self.properties.width = self.properties.width or self.properties.size
         self.properties.height = self.properties.height or self.properties.size
 
@@ -139,10 +161,10 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
             fill = self.resolve_render_property("fill")
         elif self.parent_node.properties.is_user_set('fill'):
             fill = self.parent_node.resolve_render_property("fill")
-
+        c.paint.antialias = True
         c.paint.color = stroke
-        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
-        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+
+        assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
 
         if fill and fill != "none":
@@ -188,6 +210,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
         ry = self.properties.ry * scale
 
         prev_paint = c.paint.clone()
+        c.paint.antialias = True
 
         top_left_pos = self.parent_node.box_model.content_children_pos
 
@@ -196,8 +219,6 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
             top_left_pos.x += transforms.offset.x
             top_left_pos.y += transforms.offset.y
 
-
-
         if self.properties.fill and self.properties.fill != "none":
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.fill
@@ -205,8 +226,7 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
             c.paint.style = c.paint.Style.STROKE
             c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
-        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
         c.draw_round_rect(Rect(x + top_left_pos.x, y + top_left_pos.y, width, height), rx, ry)
 
@@ -235,7 +255,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
         r = self.properties.r * scale
 
         prev_paint = c.paint.clone()
-
+        c.paint.antialias = True
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if transforms and transforms.offset:
@@ -252,8 +272,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
             c.paint.style = c.paint.Style.STROKE
             c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
-        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
         c.draw_circle(cx + top_left_pos.x, cy + top_left_pos.y, r)
 
@@ -294,7 +313,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         ]
 
         prev_paint = c.paint.clone()
-
+        c.paint.antialias = True
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if self.properties.fill and self.properties.fill != "none":
@@ -304,8 +323,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
             c.paint.style = c.paint.Style.STROKE
             c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
-        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
         c.draw_points(mode=c.PointMode.POLYGON, points=points)
 
@@ -335,7 +353,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
         y2 = self.properties.y2 * scale
 
         prev_paint = c.paint.clone()
-
+        c.paint.antialias = True
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if transforms and transforms.offset:
@@ -350,8 +368,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
             c.paint.style = c.paint.Style.STROKE
             c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
 
-        c.paint.stroke_cap = linecap[self.properties.stroke_linecap] if self.properties.stroke_linecap else self.parent_node.stroke_cap
-        c.paint.stroke_join = linejoin[self.properties.stroke_linejoin] if self.properties.stroke_linejoin else self.parent_node.stroke_join
+        assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
         c.draw_line(x1 + top_left_pos.x, y1 + top_left_pos.y, x2 + top_left_pos.x, y2 + top_left_pos.y)
 

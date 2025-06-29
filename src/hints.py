@@ -138,6 +138,8 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         background_color = node.resolve_render_property("background_color") or background_color
         color = node.resolve_render_property("color") or color
 
+    c.paint.antialias = True
+
     # border
     c.paint.color = border_color
     c.paint.style = c.paint.Style.STROKE

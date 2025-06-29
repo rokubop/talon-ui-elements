@@ -1,5 +1,6 @@
 import re
-from talon.skia.canvas import Canvas as SkiaCanvas, Paint
+from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia.paint import Paint
 from typing import Literal
 from .node import Node
 from ..box_model import BoxModelV2
