@@ -129,19 +129,28 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         c.save()
         c.clip_rect(clip_rect)
 
+    border_color = node.properties.border_color or "555555"
+    background_color = node.properties.background_color or "333333"
+    color = node.properties.color or "FFFFFF"
+
+    if node.uses_decoration_render:
+        border_color = node.resolve_render_property("border_color") or border_color
+        background_color = node.resolve_render_property("background_color") or background_color
+        color = node.resolve_render_property("color") or color
+
     # border
-    c.paint.color = node.properties.color or "555555"
+    c.paint.color = border_color
     c.paint.style = c.paint.Style.STROKE
     c.paint.stroke_width = 1
     c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
 
     # background
-    c.paint.color = node.properties.background_color or "333333"
+    c.paint.color = background_color
     c.paint.style = c.paint.Style.FILL
     c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
 
     # text
-    c.paint.color = node.properties.color or "FFFFFF"
+    c.paint.color = color
     c.paint.style = c.paint.Style.FILL
     c.draw_text(
         text,

@@ -133,7 +133,7 @@ class NodeWindow(NodeContainer):
 
         if window_properties.get("title_bar_style", None):
             for key, value in window_properties.get("title_bar_style", {}).items():
-                if key in ["color", "background_color", "border_color", "border_radius", "border_width"]:
+                if key in ["color"]:
                     title_style[key] = value
                     icon_style[key] = value
                 elif key in ["size", "stroke_width"]:

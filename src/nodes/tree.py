@@ -620,11 +620,13 @@ class Tree(TreeType):
                                 canvas.y,
                             )
                         else:
-                            canvas.draw_image(
-                                self.last_hints_snapshot,
-                                canvas.x,
-                                canvas.y
-                            )
+                            # Events like highlight/unhighlight/mouseover
+                            self.draw_hints(draw_canvas)
+                            # canvas.draw_image(
+                            #     self.last_hints_snapshot,
+                            #     canvas.x,
+                            #     canvas.y
+                            # )
                 self.init_key_controls()
                 self.draw_blockable_canvases()
                 self.on_fully_rendered()
@@ -757,7 +759,7 @@ class Tree(TreeType):
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
-                if node.element_type in ["button", "input_text", "link"]:
+                if node.element_type in ["button", "input_text", "link"] and not node.disabled:
                     draw_hint(canvas, node, hint_generator(node))
 
     # def render_text_mutation(self):
@@ -1440,7 +1442,8 @@ class Tree(TreeType):
                 self.meta_state.add_draggable(node.id)
 
     def _use_decorator(self, node: NodeType):
-        if node.properties.highlight_style and node.uses_decoration_render == False:
+        if ((node.disabled and node.properties.disabled_style) or node.properties.highlight_style) \
+                and node.uses_decoration_render == False:
             target_node = node if node.id else find_closest_parent_with_id(node.parent_node)
             if target_node and target_node.id:
                 self.meta_state.add_decoration_render(target_node.id)

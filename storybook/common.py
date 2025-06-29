@@ -1,8 +1,9 @@
-from talon import actions
+from talon import actions, clip, cron
 from typing import Any
 
 def code(code_str: str) -> str:
     div, text = actions.user.ui_elements(["div", "text"])
+    component = actions.user.ui_elements(["component"])
 
     return div(
             background_color="#0E0E10",
@@ -10,12 +11,40 @@ def code(code_str: str) -> str:
             padding=24,
             color="#A0A0A0",
             font_size=14,
+            position="relative",
         )[
-            text(code_str, font_family="monospace")
+            text(code_str, font_family="monospace"),
+            div(position="absolute", right=0, top=0)[
+                component(copy_button, props={
+                    "code": code_str
+                })
+            ]
         ]
 
+def copy_button(props):
+    button, icon, state = actions.user.ui_elements(["button", "icon", "state"])
+    copied, set_copied = state.use_local(False)
+
+    return button(
+        on_click=lambda: (
+            clip.set_text(props["code"]),
+            set_copied(True),
+            cron.after("2s", lambda: set_copied(False))
+        ),
+        padding=8,
+        border_radius=8,
+        color="#CCCCCC",
+    )[
+        icon(
+            "check" if copied else "copy",
+            color="#55E055" if copied else "#CCCCCC",
+            size=20,
+        ),
+    ]
+
 def example_with_code(props):
-    state, div, text, button = actions.user.ui_elements(["state", "div", "text", "button"])
+    state, div, text = actions.user.ui_elements(["state", "div", "text"])
+    button, component = actions.user.ui_elements(["button", "component"])
     show_code, set_show_code = state.use_local(False)
 
     return div(gap=8, flex_direction="column")[

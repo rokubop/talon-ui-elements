@@ -25,7 +25,6 @@ def link(*args, text=None, **additional_props):
     )
 
     url = properties.get("url", "")
-    print('close_on_click:', properties.get("close_on_click", None))
 
     def handle_click():
         if url:

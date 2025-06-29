@@ -17,6 +17,8 @@ def link_stories():
 
         div(gap=16)[
             text("Stories", font_size=18, font_weight="bold", color="#F1F1F1", border_bottom=1, padding_bottom=12,border_color="#333333"),
+
+            # Default Link
             component(example_with_code, props={
                 "title": "Default Link",
                 "example": link("Default", url="https://github.com/rokubop/talon-ui-elements"),
@@ -24,6 +26,8 @@ def link_stories():
                     link('Default', url='https://github.com/rokubop/talon-ui-elements')"""
                 )
             }),
+
+            # Colored Link
             component(example_with_code, props={
                 "title": "Colored - Close on click",
                 "example": link(
@@ -47,9 +51,12 @@ def link_stories():
                         highlight_style={
                             "color": "#CF34BA",
                         },
+                        close_on_click=True
                     )"""
                 )
             }),
+
+            # Link with text and icon
             component(example_with_code, props={
                 "title": "With children (icon + text) - Minimize on click",
                 "example": link(
@@ -70,6 +77,7 @@ def link_stories():
                         align_items="center",
                         gap=6,
                         padding=12,
+                        minimize_on_click=True
                     )[
                         text("Link with children")
                         icon("external_link", size=16),

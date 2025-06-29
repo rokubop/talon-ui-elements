@@ -29,6 +29,7 @@ from ..utils import sanitize_string
 
 STYLE_MAP = {
     "highlight": "highlight_style",
+    "disabled": "disabled_style",
     # "hover": "hover_style",
     # "focus": "focus_style",
     # "active": "active_style",
@@ -139,6 +140,8 @@ class Node(NodeType):
         return node
 
     def get_active_variant(self):
+        if self.properties.disabled:
+            return "disabled", 1.0
         id = self.id or self.interactive_id
         meta_state = self.tree.meta_state
 

@@ -89,19 +89,14 @@ def main_content():
     page = state.get("page")
 
     page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color="#888888")])
-    return div(height="100%", overflow_y="scroll")[
+    return div(height="100%", overflow_y="scroll", width="100%")[
         page_fn()
     ]
 
 def storybook_ui():
     screen, window, div, component = actions.user.ui_elements(["screen", "window", "div", "component"])
 
-    return screen(
-        # background_color="#15161A",
-        align_items="center",
-        justify_content="center",
-        # min_height="100vh"
-    )[
+    return screen(align_items="center", justify_content="center")[
         window(title="UI Elements Storybook", width=1200, height=800, background_color="#181A20")[
             div(flex_direction="row", height="100%")[
                 component(sidebar),
