@@ -5,12 +5,13 @@
 ![ui_elements](./examples/ui_elements_preview.png)
 
 ## Features
-- HTML-like elements such as `div`, `text`, `button`, `input_text`
-- 60+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
+- 20+ elements such as `div`, `text`, `button`, `table`, `icon`, `input_text`
+- 90+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
 - Dragging and scrolling
 - Talon actions for highlighting elements, changing state, setting text
 - Voice activated hints
+- Skia canvas based rendering
 
 ## Prerequisites
 - [Talon](https://talonvoice.com/)
@@ -97,10 +98,6 @@ Now when you say "show hello world", the UI should appear.
 
 Congratulations! You've created your first UI. 🎉
 
-See all supported [properties](./docs/properties.md) for styling.
-
-> Note: It's a good idea to say "talon open log" and watch the log while developing. This will help you with supported properties and incorrect usage. You also might want to create a "talon restart" command in case changes don't apply while developing. See [Development suggestions](#development-suggestions).
-
 ## Examples
 
 Say "elements test" to bring up the examples.
@@ -133,13 +130,15 @@ actions.user.ui_elements_hide(...)  # Hide your UI
 ```
 
 ### 5. Concepts and Reference
+- [Talon actions](docs/concepts/actions.md)
+- [Components](docs/concepts/components.md)
+- [Defaults](docs/concepts/defaults.md)
+- [Effect](docs/concepts/effect.md)
 - [Elements](docs/concepts/elements.md)
 - [Properties](docs/concepts/properties.md)
-- [Talon actions](docs/concepts/actions.md)
-- [State and Reactivity](docs/concepts/state.md)
-- [Components](docs/concepts/components.md)
-- [Effect Hooks](docs/concepts/effect.md)
-- [Ref Access](docs/concepts/ref.md)
+- [Ref](docs/concepts/ref.md)
+- [Rendering](docs/concepts/rendering.md)
+- [State](docs/concepts/state.md)
 
 ## 🔍 More Examples
 
