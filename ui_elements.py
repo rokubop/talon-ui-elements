@@ -6,7 +6,7 @@ from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
-from .src.utils import get_version
+from .src.versioning import get_version
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
 from .storybook.main import storybook_ui

@@ -1,10 +1,7 @@
 import hashlib
 import inspect
-import json
-import os
 import re
-from dataclasses import dataclass
-from talon import ui, app
+from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
 from talon.screen import Screen
@@ -12,11 +9,13 @@ from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
 from .fonts import get_typeface
+from .versioning import talon_breaking_ui_version
 
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
     paint.textsize = properties.font_size
-    c.paint.antialias = True
+    if talon_breaking_ui_version() >= 2:
+        c.paint.antialias = True
     if properties.font_family:
         typeface = get_typeface(properties.font_family, properties.font_weight)
         if typeface:
@@ -60,55 +59,6 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
         raise TypeError("Object must be a callable or a dictionary.")
 
     return hasher.hexdigest()
-
-@dataclass
-class Version:
-    major: int
-    minor: int
-    patch: int
-
-    def __str__(self) -> str:
-        return f"{self.major}.{self.minor}.{self.patch}"
-
-    def __lt__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
-
-    def __le__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) <= (other.major, other.minor, other.patch)
-
-    def __eq__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
-
-    def __gt__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
-
-    def __ge__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) >= (other.major, other.minor, other.patch)
-
-    @classmethod
-    def from_string(cls, version: str) -> "Version":
-        major, minor, patch = map(int, version.split("."))
-        return cls(major, minor, patch)
-
-    @classmethod
-    def from_dict(cls, version: dict) -> "Version":
-        return cls(version["major"], version["minor"], version["patch"])
-
-    def to_dict(self) -> dict:
-        return {"major": self.major, "minor": self.minor, "patch": self.patch}
-
-def get_version() -> str:
-    manifest = os.path.join(os.path.dirname(__file__), '..', 'manifest.json')
-
-    with open(manifest, 'r') as file:
-        data = json.load(file)
-
-    return Version.from_string(data['version'])
 
 def sanitize_string(text: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_]', '_', text)
@@ -210,36 +160,3 @@ def find_closest_parent_with_id(node):
             return current_node
         current_node = current_node.parent_node
     return None
-
-version = None
-
-def evaluate_breaking_version_number() -> str:
-    v = 2 # default version
-
-    # app.version example = "0.4.0-931-bd66"
-    # split into major, minor, patch, build
-    try:
-        match = re.match(r"(\d+)\.(\d+)\.(\d+)-(\d+)", app.version)
-        if match:
-            major, minor, patch, build = match.groups()
-
-            # how do i determine less than 0.4.0-931
-            if (int(major), int(minor), int(patch), int(build)) < (0, 4, 0, 931):
-                v = 1
-    except Exception as e:
-        print(f"ui_elements: Error evaluating versions: {e}")
-        v = 1
-
-    return v
-
-def is_beta_version():
-    try:
-        return app.branch.lower() == "beta"
-    except Exception as e:
-        return False
-
-def talon_ui_version():
-    global version
-    if version is None:
-        version = evaluate_breaking_version_number()
-    return version

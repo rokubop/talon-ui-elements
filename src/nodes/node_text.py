@@ -9,6 +9,7 @@ from ..interfaces import Size2d, RenderTransforms
 from ..properties import NodeTextProperties
 from ..fonts import get_typeface
 from ..utils import draw_text_simple
+from ..versioning import talon_breaking_ui_version
 
 def split_lines(text, max_width, measure_text):
     lines = []

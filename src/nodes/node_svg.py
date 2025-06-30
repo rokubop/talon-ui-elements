@@ -8,6 +8,7 @@ from ..box_model import BoxModelV2
 from ..cursor import Cursor
 from ..interfaces import NodeSvgType, NodeType, Size2d, RenderTransforms
 from ..properties import NodeSvgProperties
+from ..versioning import talon_breaking_ui_version
 
 def scale_d(path, scale_factor):
     command_params = {
@@ -88,13 +89,19 @@ linejoin_v2 = {
 }
 
 def assign_stroke_cap_and_join(c: SkiaCanvas, node: NodeType):
-    stroke_cap = linecap_v2[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
-    stroke_join = linejoin_v2[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
-    # print("try StrokeCap:", c.paint.StrokeCap)
-    StrokeCap = c.paint.stroke_cap.__class__
-    StrokeJoin = c.paint.stroke_join.__class__
-    c.paint.stroke_cap = getattr(StrokeCap, stroke_cap)
-    c.paint.stroke_join = getattr(StrokeJoin, stroke_join)
+    if talon_breaking_ui_version() >= 2:
+        # Version 2: Use Enums from StrokeCap and StrokeJoin
+        c.paint.antialias = True
+        stroke_cap = linecap_v2[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
+        stroke_join = linejoin_v2[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
+        StrokeCap = c.paint.stroke_cap.__class__
+        StrokeJoin = c.paint.stroke_join.__class__
+        c.paint.stroke_cap = getattr(StrokeCap, stroke_cap)
+        c.paint.stroke_join = getattr(StrokeJoin, stroke_join)
+    else:
+        # Version 1: Use int
+        c.paint.stroke_cap = linecap[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
+        c.paint.stroke_join = linejoin[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
 
 class NodeRenderOnly():
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
@@ -108,8 +115,12 @@ class NodeSvg(Node, NodeSvgType):
         super().__init__(element_type="svg", properties=properties)
         self.is_svg = True
         self.size = self.properties.size
-        self.stroke_cap = linecap_v2[self.properties.stroke_linecap]
-        self.stroke_join = linejoin_v2[self.properties.stroke_linejoin]
+        if talon_breaking_ui_version() >= 2:
+            self.stroke_cap = linecap_v2[self.properties.stroke_linecap]
+            self.stroke_join = linejoin_v2[self.properties.stroke_linejoin]
+        else:
+            self.stroke_cap = linecap[self.properties.stroke_linecap]
+            self.stroke_join = linejoin[self.properties.stroke_linejoin]
         self.properties.width = self.properties.width or self.properties.size
         self.properties.height = self.properties.height or self.properties.size
 
@@ -161,7 +172,6 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
             fill = self.resolve_render_property("fill")
         elif self.parent_node.properties.is_user_set('fill'):
             fill = self.parent_node.resolve_render_property("fill")
-        c.paint.antialias = True
         c.paint.color = stroke
 
         assign_stroke_cap_and_join(c, self)
@@ -210,7 +220,6 @@ class NodeSvgRect(Node, NodeType, NodeRenderOnly):
         ry = self.properties.ry * scale
 
         prev_paint = c.paint.clone()
-        c.paint.antialias = True
 
         top_left_pos = self.parent_node.box_model.content_children_pos
 
@@ -255,7 +264,7 @@ class NodeSvgCircle(Node, NodeType, NodeRenderOnly):
         r = self.properties.r * scale
 
         prev_paint = c.paint.clone()
-        c.paint.antialias = True
+
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if transforms and transforms.offset:
@@ -313,7 +322,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         ]
 
         prev_paint = c.paint.clone()
-        c.paint.antialias = True
+
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if self.properties.fill and self.properties.fill != "none":
@@ -353,7 +362,7 @@ class NodeSvgLine(Node, NodeType, NodeRenderOnly):
         y2 = self.properties.y2 * scale
 
         prev_paint = c.paint.clone()
-        c.paint.antialias = True
+
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if transforms and transforms.offset:

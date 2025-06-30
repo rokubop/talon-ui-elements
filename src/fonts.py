@@ -1,6 +1,7 @@
 import os
 import platform
 from talon.skia.typeface import Typeface
+from .versioning import talon_breaking_ui_version
 
 weight_keywords = {
     "regular": ["regular", ""],
@@ -123,7 +124,10 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     font_path = find_installed_font(font_family, font_weight)
     log("Found font path:", font_path)
     if font_path:
-        typeface = Typeface.from_file(font_path, 0)
+        if talon_breaking_ui_version() >= 2:
+            typeface = Typeface.from_file(font_path, 0)
+        else:
+            typeface = Typeface.from_file(font_path)
         font_cache[key] = typeface
         return typeface
 

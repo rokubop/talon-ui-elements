@@ -1,5 +1,5 @@
 from talon import actions
-from .utils import get_version
+from .versioning import get_version
 from .entry import render_ui
 
 def title(renderer):

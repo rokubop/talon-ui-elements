@@ -12,6 +12,7 @@ from talon.types import Rect, Point2d
 from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass, field
+from ..versioning import talon_breaking_ui_version
 
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef
@@ -551,7 +552,16 @@ class Tree(TreeType):
 
     def commit_base_canvas(self):
         # t1a = time.time()
-        surface = self.Surface(int(self.current_base_canvas.width), int(self.current_base_canvas.height))
+        if talon_breaking_ui_version() >= 2:
+            surface = self.Surface(
+                int(self.current_base_canvas.width),
+                int(self.current_base_canvas.height)
+            )
+        else:
+            surface = self.Surface(
+                self.current_base_canvas.width,
+                self.current_base_canvas.height
+            )
         canvas = surface.canvas()
         canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
 
@@ -762,7 +772,16 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def create_surface(self):
-        surface = self.Surface(int(self.current_base_canvas.width), int(self.current_base_canvas.height))
+        if talon_breaking_ui_version() >= 2:
+            surface = self.Surface(
+                int(self.current_base_canvas.width),
+                int(self.current_base_canvas.height)
+            )
+        else:
+            surface = self.Surface(
+                self.current_base_canvas.width,
+                self.current_base_canvas.height
+            )
         canvas = surface.canvas()
         canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
         return surface, canvas
