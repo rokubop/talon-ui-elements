@@ -4,7 +4,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from talon import ui
+from talon import ui, app
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
 from talon.screen import Screen
@@ -210,3 +210,36 @@ def find_closest_parent_with_id(node):
             return current_node
         current_node = current_node.parent_node
     return None
+
+version = None
+
+def evaluate_breaking_version_number() -> str:
+    v = 2 # default version
+
+    # app.version example = "0.4.0-931-bd66"
+    # split into major, minor, patch, build
+    try:
+        match = re.match(r"(\d+)\.(\d+)\.(\d+)-(\d+)", app.version)
+        if match:
+            major, minor, patch, build = match.groups()
+
+            # how do i determine less than 0.4.0-931
+            if (int(major), int(minor), int(patch), int(build)) < (0, 4, 0, 931):
+                v = 1
+    except Exception as e:
+        print(f"ui_elements: Error evaluating versions: {e}")
+        v = 1
+
+    return v
+
+def is_beta_version():
+    try:
+        return app.branch.lower() == "beta"
+    except Exception as e:
+        return False
+
+def talon_ui_version():
+    global version
+    if version is None:
+        version = evaluate_breaking_version_number()
+    return version
