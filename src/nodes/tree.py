@@ -10,8 +10,7 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from typing import Any, Callable
 from collections import defaultdict
-from dataclasses import dataclass, field
-from ..versioning import talon_breaking_ui_version
+from dataclasses import dataclass
 
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
 from ..canvas_wrapper import CanvasWeakRef

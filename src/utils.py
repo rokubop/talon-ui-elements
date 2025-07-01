@@ -9,13 +9,11 @@ from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
 from .fonts import get_typeface
-from .versioning import talon_breaking_ui_version
 
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
     paint.textsize = properties.font_size
-    if talon_breaking_ui_version() >= 2:
-        c.paint.antialias = True
+    c.paint.antialias = True
     if properties.font_family:
         typeface = get_typeface(properties.font_family, properties.font_weight)
         if typeface:

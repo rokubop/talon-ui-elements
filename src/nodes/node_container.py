@@ -8,7 +8,6 @@ from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAU
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
-from ..versioning import talon_breaking_ui_version
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
