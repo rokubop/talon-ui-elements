@@ -3,6 +3,7 @@ from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..properties import Properties
 
+# Experimental - WIP
 class NodeModal(NodeContainer):
     def __init__(self, modal_properties: Properties = None, contents_properties: dict = None):
         # self.children_nodes = []

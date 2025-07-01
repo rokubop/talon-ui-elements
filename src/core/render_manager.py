@@ -201,8 +201,6 @@ class RenderManager(RenderManagerType):
 
     def finish_current_render(self):
         if self.current_render_task and self.current_render_task.on_end:
-            # print("on_end is", self.current_render_task.on_end)
-            # print("type:", type(self.current_render_task.on_end))
             self.current_render_task.on_end(RenderCallbackEvent(
                 tree=self.tree,
                 cause=self.current_render_task.cause,
@@ -253,15 +251,6 @@ class RenderManager(RenderManagerType):
             }
         )
         self.queue_render(render_task)
-        # self.render_dragging(offset)
-        # task = RenderTask(
-        #     cause=RenderCause.DRAGGING,
-        #     on_start=on_base_canvas_change,
-        #     props = {
-        #         "offset": offset,
-        #     }
-        # )
-        # self.queue_render(task)
 
     def render_drag_end(
         self,

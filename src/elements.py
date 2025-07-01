@@ -202,7 +202,6 @@ def td(*args, **additional_props):
     td_node = NodeTableData(table_data_properties)
 
     if text_content:
-        # Create a text node and add it as a child
         text_node = text(text_content)
         td_node.add_child(text_node)
 
@@ -211,7 +210,6 @@ def td(*args, **additional_props):
 def th(*args, **additional_props):
     text_content = None
 
-    # Check if 'text' was passed as a keyword argument and rename it to avoid conflict
     if 'text' in additional_props:
         text_content = additional_props.pop('text')
 
@@ -226,7 +224,6 @@ def th(*args, **additional_props):
     th_node = NodeTableHeader(table_header_properties)
 
     if text_content:
-        # Create a text node and add it as a child
         text_node = text(text_content)
         th_node.add_child(text_node)
 

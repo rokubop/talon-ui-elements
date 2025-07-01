@@ -324,7 +324,6 @@ class Node(NodeType):
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
-            # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
 
             if transforms and transforms.offset:
                 inner_rect = self.box_model.padding_rect.copy()

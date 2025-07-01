@@ -270,24 +270,6 @@ class StateManager:
 
         store.reactive_state[key].set_initial_value(initial_value)
 
-    # def rerender_state(self):
-    #     for state in store.reactive_state.values():
-    #         state.activate_next_state_value()
-
-    #     for tree in store.trees:
-    #         tree.processing_states.update(store.processing_states)
-    #         # tree.queue_render(RenderTask(
-    #         #     cause=RenderCause.STATE_CHANGE,
-    #         #     before_render=lambda: tree.processing_states.clear()
-    #         #     after_render=lambda: tree.processing_states.clear()
-    #         # )),
-    #         tree.render_manager.render_state_change()
-
-    #     # TODO: queue into render manager
-    #     cron.after("30ms", store.processing_states.clear)
-    #     # store.processing_states.clear()
-    #     self.debounce_render_job = None
-
     def get_state_value(self, key):
         if key in store.reactive_state:
             return store.reactive_state[key].value

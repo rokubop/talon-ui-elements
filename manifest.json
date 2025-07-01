@@ -16,9 +16,7 @@
       "user.ui_elements_hints_size",
       "user.ui_elements_scroll_speed"
     ],
-    "tags": [
-      "user.ui_elements_hints_active"
-    ],
+    "tags": ["user.ui_elements_hints_active"],
     "actions": [
       "user.ui_elements",
       "user.ui_elements_debug_gc",
@@ -50,8 +48,6 @@
     ]
   },
   "depends": {
-    "tags": [
-      "browser"
-    ]
+    "tags": ["browser"]
   }
 }

@@ -2,7 +2,9 @@ from talon import actions
 from .constants import ELEMENT_ENUM_TYPE
 from .properties import validate_combined_props
 
-# https://iconsvg.xyz/ used for references
+# Use for references:
+# https://iconsvg.xyz/
+# https://lucide.dev/icons
 ICON_SVG_PATH_ONLY = {
     "arrow_down": "M12 5v13M5 12l7 7 7-7",
     "arrow_left": "M19 12H6M12 5l-7 7 7 7",
@@ -13,24 +15,19 @@ ICON_SVG_PATH_ONLY = {
     "chevron_right": "M 9 6 L 15 12 L 9 18",
     "chevron_up": "M 6 15 L 12 9 L 18 15",
     "close": "M 6 6 L 18 18 M 18 6 L 6 18",
-    # "delta": "M12 2l10 18H2z",
     "delta": "M3 20h18L12 4z",
     "diamond": "M12 2 L22 12 L12 22 L2 12 Z",
     "download": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5",
     "edit": "M 16 3 L 21 8 L 8 21 L 3 21 L 3 16 L 16 3",
     "external_link": "M18 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8c0-1.1.9-2 2-2h5M15 3h6v6M10 14L20.2 3.8",
     "file": ["M13 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V9l-7-7z", "M13 3v6h6"],
-    # file text:
-    # <path d="M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 3v5h5M16 13H8M16 17H8M10 9H8"/>
     "file_text": ["M14 2H6a2 2 0 0 0-2 2v16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V8l-6-6z", "M14 3v5h5M16 13H8M16 17H8M10 9H8"],
     "folder": "M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z",
     "menu": "M 3 6 H 18 M 3 12 H 18 M 3 18 H 18",
     "mic": ["M12 2c-1.7 0-3 1.2-3 2.6v6.8c0 1.4 1.3 2.6 3 2.6s3-1.2 3-2.6V4.6C15 3.2 13.7 2 12 2z", "M19 10v1a7 7 0 0 1-14 0v-1M12 18.4v3.3M8 22h8"],
     "maximize": "M 5 5 H 19 V 19 H 5 Z",
-    # "maximize": "M12 12l-4 -4M12 12l4 -4M12 12l-4 4M12 12l4 4",
     "minimize": "M 4 14 H 19",
     "multiply": "M 6 18 L 18 6 M 6 6 L 18 18",
-    # "play": "M 5 3 L 19 12 L 5 21 Z",
     "plus": "M 12 5 V 19 M 5 12 H 19",
     "rotate_left": "M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38",
     "upload": "M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 8l-5-5-5 5M12 4.2v10.3",
@@ -136,13 +133,8 @@ def icon_copy(props=None, **additional_props):
 
     return div(**div_props)[
         svg(**svg_props)[
-
             rect(x=2, y=7, width=12, height=12, rx=2, ry=2),
-        # Back copy (partial top-right outline using path)
-        path(d="M6 4.75V3.75a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5v9a2 2 0 0 1-2 2h-1"),
-
-            # rect(x=2, y=7, width=12, height=12, rx=2, ry=2),
-            # path(d="M9 5 H9 V4a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-1"),
+            path(d="M6 4.75V3.75a2.5 2.5 0 0 1 2.5-2.5h8a2.5 2.5 0 0 1 2.5 2.5v9a2 2 0 0 1-2 2h-1"),
         ]
     ]
 
@@ -151,14 +143,6 @@ def icon_trash(props=None, **additional_props):
     svg, path, polyline, line = actions.user.ui_elements_svg(["svg", "path", "polyline", "line"])
 
     div_props, svg_props = parse_icon_properties(props, **additional_props)
-
-    # trash html
-    # <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    #     <polyline points="3 6 5 6 21 6"></polyline>
-    #     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-    #     <line x1="10" y1="11" x2="10" y2="17"></line>
-    #     <line x1="14" y1="11" x2="14" y2="17"></line>
-    # </svg>
 
     return div(**div_props)[
         svg(**svg_props)[

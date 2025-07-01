@@ -3,7 +3,6 @@ import uuid
 import threading
 import traceback
 import weakref
-import time
 from talon import cron, settings, actions
 from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect
@@ -622,7 +621,6 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
-            # t0 = time.time()
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
             self.consume_components()
@@ -633,8 +631,6 @@ class Tree(TreeType):
             self.root_node.v2_layout(self.cursor_v2)
             self.nonlayout_flow()
             self.build_base_render_layers()
-            # t1 = time.time()
-            # print(f"t0-t1: {t1 - t0:.4f}s")
             self.commit_base_canvas()
         except Exception as e:
             print(f"Error during base canvas draw: {e}")
@@ -1008,7 +1004,6 @@ class Tree(TreeType):
                         if source_node.is_fully_clipped_by_scroll():
                             continue
                         if source_node and source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
-                            # print(f"on_hover: {source_id} -> {target_id}")
                             new_hovered_id = target_id
                             if new_hovered_id != prev_hovered_id:
                                 state_manager.set_hovered_id(target_id)
@@ -1629,7 +1624,6 @@ class Tree(TreeType):
             if self.render_manager.render_cause == RenderCause.DRAGGING \
                     or self.render_manager.render_cause == RenderCause.DRAG_START:
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-                # print(f"draw_blockable_canvases: offset={offset}")
                 self.move_blockable_canvas_rects(blockable_rects, offset)
                 return
             elif self.render_manager.render_cause == RenderCause.DRAG_END:

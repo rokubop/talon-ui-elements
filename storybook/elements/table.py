@@ -201,44 +201,5 @@ def table_stories():
                     component(bordered_table)"""
                 )
             }),
-            # component(example_with_code, props={
-            #     "title": "Colspan",
-            #     "example": component(colspan_table),
-            #     "code": textwrap.dedent("""\
-            #         def colspan_table():
-            #             table, th, tr, td, style = actions.user.ui_elements([
-            #                 'table', 'th', 'tr', 'td', 'style'
-            #             ])
-
-            #             style({
-            #                 "td": {
-            #                     "padding": 8,
-            #                 },
-            #                 "th": {
-            #                     "padding": 8,
-            #                 }
-            #             }),
-
-            #             return table()[
-            #                 tr()[
-            #                     th()[text("Header 1")],
-            #                     th()[text("Header 2")],
-            #                     th()[text("Header 3")],
-            #                 ],
-            #                 tr()[
-            #                     td()[text("Row 1, Cell 1")],
-            #                     td(colspan=2)[text("Row 1, Cell 2 & 3")],
-            #                 ],
-            #                 tr()[
-            #                     td()[text("Row 2, Cell 1")],
-            #                     td()[text("Row 2, Cell 2")],
-            #                     td()[text("Row 2, Cell 3")],
-            #                 ],
-            #             ]
-
-            #         # Use component to encapsulate the style
-            #         component(colspan_table)"""
-            #     )
-            # }),
         ],
     ]

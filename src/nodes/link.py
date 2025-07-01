@@ -48,8 +48,6 @@ def link(*args, text=None, **additional_props):
         text_properties = NodeTextProperties(**{
             "color": DEFAULT_LINK_COLOR,
             "highlight_style": {
-                # "color": "#FF0000",
-                # "stroke": "#FF0000",
                 "color": DEFAULT_LINK_HOVER_COLOR,
             },
             **properties,
@@ -63,8 +61,6 @@ def link(*args, text=None, **additional_props):
 
     button_properties = NodeTextProperties(**{
         "highlight_style": {
-            # "color": "#FF0000",
-            # "stroke": "#FF0000",
             "color": DEFAULT_LINK_HOVER_COLOR,
         },
         **properties
