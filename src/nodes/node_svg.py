@@ -97,23 +97,22 @@ def assign_stroke_cap_and_join(c: SkiaCanvas, node: NodeType):
 
     if _stroke_api_version == 'v2':
         # Use v2 implementation (enum-based)
-        stroke_cap = linecap_v2[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
-        stroke_join = linejoin_v2[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
+        stroke_cap = linecap_v2[node.properties.stroke_linecap if node.properties.stroke_linecap else node.parent_node.stroke_linecap]
+        stroke_join = linejoin_v2[node.properties.stroke_linejoin if node.properties.stroke_linejoin else node.parent_node.stroke_linejoin]
         StrokeCap = c.paint.stroke_cap.__class__
         StrokeJoin = c.paint.stroke_join.__class__
         c.paint.stroke_cap = getattr(StrokeCap, stroke_cap)
         c.paint.stroke_join = getattr(StrokeJoin, stroke_join)
     elif _stroke_api_version == 'v1':
         # Use v1 implementation (integer-based)
-        c.paint.stroke_cap = linecap[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
-        c.paint.stroke_join = linejoin[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
+        c.paint.stroke_cap = linecap[node.properties.stroke_linecap if node.properties.stroke_linecap else node.parent_node.stroke_linecap]
+        c.paint.stroke_join = linejoin[node.properties.stroke_linejoin if node.properties.stroke_linejoin else node.parent_node.stroke_linejoin]
     else:
         # First time - detect which version works
-        stroke_cap = linecap_v2[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
-        stroke_join = linejoin_v2[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
-
         try:
             # Try v2 implementation (enum-based)
+            stroke_cap = linecap_v2[node.properties.stroke_linecap if node.properties.stroke_linecap else node.parent_node.stroke_linecap]
+            stroke_join = linejoin_v2[node.properties.stroke_linejoin if node.properties.stroke_linejoin else node.parent_node.stroke_linejoin]
             StrokeCap = c.paint.stroke_cap.__class__
             StrokeJoin = c.paint.stroke_join.__class__
             c.paint.stroke_cap = getattr(StrokeCap, stroke_cap)
@@ -121,8 +120,8 @@ def assign_stroke_cap_and_join(c: SkiaCanvas, node: NodeType):
             _stroke_api_version = 'v2'
         except (AttributeError, TypeError):
             # Fall back to v1 implementation (integer-based)
-            c.paint.stroke_cap = linecap[node.properties.stroke_linecap] if node.properties.stroke_linecap else node.parent_node.stroke_cap
-            c.paint.stroke_join = linejoin[node.properties.stroke_linejoin] if node.properties.stroke_linejoin else node.parent_node.stroke_join
+            c.paint.stroke_cap = linecap[node.properties.stroke_linecap if node.properties.stroke_linecap else node.parent_node.stroke_linecap]
+            c.paint.stroke_join = linejoin[node.properties.stroke_linejoin if node.properties.stroke_linejoin else node.parent_node.stroke_linejoin]
             _stroke_api_version = 'v1'
 
 class NodeRenderOnly():
@@ -138,25 +137,8 @@ class NodeSvg(Node, NodeSvgType):
         self.is_svg = True
         self.size = self.properties.size
 
-        global _stroke_api_version
-        if _stroke_api_version == 'v2':
-            self.stroke_cap = linecap_v2[self.properties.stroke_linecap]
-            self.stroke_join = linejoin_v2[self.properties.stroke_linejoin]
-        elif _stroke_api_version == 'v1':
-            self.stroke_cap = linecap[self.properties.stroke_linecap]
-            self.stroke_join = linejoin[self.properties.stroke_linejoin]
-        else:
-            # First time - detect which version works
-            try:
-                # Try v2 implementation (enum-based)
-                self.stroke_cap = linecap_v2[self.properties.stroke_linecap]
-                self.stroke_join = linejoin_v2[self.properties.stroke_linejoin]
-                _stroke_api_version = 'v2'
-            except (KeyError, AttributeError):
-                # Fall back to v1 implementation (integer-based)
-                self.stroke_cap = linecap[self.properties.stroke_linecap]
-                self.stroke_join = linejoin[self.properties.stroke_linejoin]
-                _stroke_api_version = 'v1'
+        self.stroke_linecap = self.properties.stroke_linecap
+        self.stroke_linejoin = self.properties.stroke_linejoin
 
         self.properties.width = self.properties.width or self.properties.size
         self.properties.height = self.properties.height or self.properties.size

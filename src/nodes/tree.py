@@ -567,7 +567,7 @@ class Tree(TreeType):
                 self.draw_decoration_renders(draw_canvas, transforms)
                 self.draw_highlight_overlays(draw_canvas, transforms.offset)
                 canvas.paint.color = "FFFFFF"
-                self.draw_text_mutations(draw_canvas, transforms.offset)
+                self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
                 if self.interactive_node_list or self.draggable_node:
                     if state_manager.is_focus_visible():
                         self.draw_focus_outline(draw_canvas, offset)
@@ -683,7 +683,14 @@ class Tree(TreeType):
         x, y = node.cursor_pre_draw_text
         x += offset.x
         y += offset.y
-        draw_text_simple(canvas, self.meta_state.get_text_mutation(id), node.properties.color, node.properties, x, y)
+        draw_text_simple(
+            canvas,
+            self.meta_state.get_text_mutation(id),
+            node.properties.color,
+            node.properties,
+            x,
+            y
+        )
 
     def draw_text_mutations(self, canvas: SkiaCanvas, offset: Point2d):
         for id, text_value in list(self.meta_state.text_mutations.items()):
