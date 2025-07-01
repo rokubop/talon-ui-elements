@@ -6,7 +6,6 @@ from .core.state_manager import state_manager
 from .core.store import store
 from .interfaces import NodeType, ClickEvent
 from .utils import safe_callback
-from .versioning import talon_breaking_ui_version
 from .core.entity_manager import entity_manager
 from .interfaces import RenderTransforms
 
@@ -144,8 +143,7 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransf
         background_color = node.resolve_render_property("background_color") or background_color
         color = node.resolve_render_property("color") or color
 
-    if talon_breaking_ui_version() >= 2:
-        c.paint.antialias = True
+    c.paint.antialias = True
 
     # border
     c.paint.color = border_color

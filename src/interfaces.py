@@ -7,7 +7,6 @@ from talon.skia import Surface
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .constants import ElementEnumType, NodeEnumType
-import time
 
 @dataclass
 class Size2d:

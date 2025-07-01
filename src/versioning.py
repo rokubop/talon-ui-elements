@@ -95,14 +95,29 @@ def _evaluate_breaking_version_number() -> int:
     """Internal function to determine Talon UI API breaking version"""
     v = 2  # default to new version
 
-    # app.version example = "0.4.0-922-bd66"
+    # app.version examples:
+    # Beta: "0.4.0-922-bd66"
+    # Regular: "0.4.0"
     try:
-        match = re.match(r"(\d+)\.(\d+)\.(\d+)-(\d+)", app.version)
-        if match:
-            major, minor, patch, build = match.groups()
+        version_str = app.version
+
+        # Try beta format first (with build number)
+        beta_match = re.match(r"(\d+)\.(\d+)\.(\d+)-(\d+)", version_str)
+        if beta_match:
+            major, minor, patch, build = map(int, beta_match.groups())
             # Check if less than 0.4.0-931
-            if (int(major), int(minor), int(patch), int(build)) < (0, 4, 0, 931):
+            if (major, minor, patch, build) < (0, 4, 0, 931):
                 v = 1
+        else:
+            # Try regular format (without build number)
+            regular_match = re.match(r"(\d+)\.(\d+)\.(\d+)", version_str)
+            if regular_match:
+                major, minor, patch = map(int, regular_match.groups())
+                # For regular releases, we can't know the build number
+                # Assume v1 for 0.4.0 and below, v2 for 0.4.1+
+                if (major, minor, patch) <= (0, 4, 0):
+                    v = 1
+                # For 0.4.1+ regular releases, assume they have the new API (v=2)
     except Exception as e:
         print(f"ui_elements: Error evaluating Talon breaking version: {e}")
         v = 1  # fallback to legacy version on error

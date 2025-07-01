@@ -26,7 +26,6 @@ from ..interfaces import (
 )
 from ..properties import Properties
 from ..utils import sanitize_string
-import time
 
 STYLE_MAP = {
     "highlight": "highlight_style",
