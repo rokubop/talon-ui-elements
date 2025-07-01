@@ -6,7 +6,7 @@ import weakref
 import time
 from talon import cron, settings, actions
 from talon.canvas import Canvas as RealCanvas, MouseEvent
-from talon.skia import RoundRect, Surface as RealSurface
+from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from typing import Any, Callable
@@ -407,7 +407,6 @@ class RenderCauseState(RenderCauseStateType):
 
 class Tree(TreeType):
     Canvas = RealCanvas # override for testing
-    Surface = RealSurface # override for testing
     def __init__(
             self,
             tree_constructor: callable,
@@ -538,63 +537,15 @@ class Tree(TreeType):
         ]
         self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
-    def move_snapshot(self, snapshot: Any, canvas: SkiaCanvas):
-        if snapshot:
-            offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-            # offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
-            # offset = state_manager.get_mousedown_start_offset()
-            # offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
-            canvas.draw_image(
-                snapshot,
-                canvas.x + offset.x,
-                canvas.y + offset.y
-            )
+    def move_canvas(self, canvas: SkiaCanvas):
+        offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
+        transforms = RenderTransforms(offset=offset)
+        for layer in self.render_layers:
+            layer.draw_to_canvas(canvas, transforms)
 
     def commit_base_canvas(self):
-        # t1a = time.time()
-        if talon_breaking_ui_version() >= 2:
-            surface = self.Surface(
-                int(self.current_base_canvas.width),
-                int(self.current_base_canvas.height)
-            )
-        else:
-            surface = self.Surface(
-                self.current_base_canvas.width,
-                self.current_base_canvas.height
-            )
-        canvas = surface.canvas()
-        canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
-
-        # t1b = time.time()
         for layer in self.render_layers:
-            # Direct canvas approach:
-            # layer.draw_to_canvas(self.current_base_canvas)
-
-            # Snapshot approach:
-
-            layer.draw_to_canvas(canvas)
-            # snapshot = layer.render_to_surface(
-            #     self.current_base_canvas.width,
-            #     self.current_base_canvas.height,
-            #     self.current_base_canvas.x,
-            #     self.current_base_canvas.y
-            # )
-        # t2 = time.time()
-        self.last_base_snapshot = surface.snapshot()
-        # t3 = time.time()
-
-        self.current_base_canvas.draw_image(
-            self.last_base_snapshot,
-            self.current_base_canvas.x,
-            self.current_base_canvas.y
-            # self.root_node.boundary_rect.x,
-            # self.root_node.boundary_rect.y
-        )
-        # t4 = time.time()
-        # print(f"t1a-t1b: {t1b - t1a:.4f}s")
-        # print(f"t1b-t2: {t2 - t1b:.4f}s")
-        # print(f"t2-t3: {t3 - t2:.4f}s")
-        # print(f"t3-t4: {t4 - t3:.4f}s")
+            layer.draw_to_canvas(self.current_base_canvas)
 
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
@@ -606,7 +557,6 @@ class Tree(TreeType):
         try:
             if not self.render_manager.is_destroying:
                 draw_canvas = canvas
-                surface = None
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
                     if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
                     else Point2d(0, 0)
@@ -624,29 +574,7 @@ class Tree(TreeType):
                     if state_manager.is_focus_visible():
                         self.draw_focus_outline(draw_canvas, offset)
                     if self.show_hints:
-                        if self.render_manager.is_dragging() or self.render_manager.is_drag_start():
-                            self.move_snapshot(self.last_hints_snapshot, canvas)
-                        elif self.render_manager.render_cause == RenderCause.STATE_CHANGE or \
-                                self.render_manager.render_cause == RenderCause.DRAG_END or \
-                                self.render_manager.render_cause == RenderCause.SCROLLING or \
-                                self.drag_end_phase or \
-                                not self.last_hints_snapshot:
-                            surface, draw_canvas = self.create_surface()
-                            self.draw_hints(draw_canvas)
-                            self.last_hints_snapshot = surface.snapshot()
-                            canvas.draw_image(
-                                self.last_hints_snapshot,
-                                canvas.x,
-                                canvas.y,
-                            )
-                        else:
-                            # Events like highlight/unhighlight/mouseover
-                            self.draw_hints(draw_canvas)
-                            # canvas.draw_image(
-                            #     self.last_hints_snapshot,
-                            #     canvas.x,
-                            #     canvas.y
-                            # )
+                        self.draw_hints(draw_canvas, transforms)
                 self.init_key_controls()
                 self.draw_blockable_canvases()
                 self.on_fully_rendered()
@@ -660,7 +588,7 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
         try:
-            self.move_snapshot(self.last_base_snapshot, canvas)
+            self.move_canvas(canvas)
             self.move_inputs()
         except Exception as e:
             print(f"Error during dragging rendering: {e}")
@@ -771,33 +699,13 @@ class Tree(TreeType):
     def finish_current_render(self):
         self.render_manager.finish_current_render()
 
-    def create_surface(self):
-        if talon_breaking_ui_version() >= 2:
-            surface = self.Surface(
-                int(self.current_base_canvas.width),
-                int(self.current_base_canvas.height)
-            )
-        else:
-            surface = self.Surface(
-                self.current_base_canvas.width,
-                self.current_base_canvas.height
-            )
-        canvas = surface.canvas()
-        canvas.translate(-self.current_base_canvas.x, -self.current_base_canvas.y)
-        return surface, canvas
-
-    def draw_hints(self, canvas: SkiaCanvas):
+    def draw_hints(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         if self.meta_state.inputs or self.meta_state.buttons:
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
                 if node.element_type in ["button", "input_text", "link"] and not node.disabled:
-                    draw_hint(canvas, node, hint_generator(node))
-
-    # def render_text_mutation(self):
-    #     if self.canvas_decorator:
-    #         self.render_cause.set_text_change()
-    #         self.canvas_decorator.freeze()
+                    draw_hint(canvas, node, hint_generator(node), transforms=transforms)
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
@@ -1722,6 +1630,7 @@ class Tree(TreeType):
             if self.render_manager.render_cause == RenderCause.DRAGGING \
                     or self.render_manager.render_cause == RenderCause.DRAG_START:
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
+                # print(f"draw_blockable_canvases: offset={offset}")
                 self.move_blockable_canvas_rects(blockable_rects, offset)
                 return
             elif self.render_manager.render_cause == RenderCause.DRAG_END:

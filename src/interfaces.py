@@ -656,12 +656,9 @@ class RenderLayer:
             item.draw(canvas)
         return surface.snapshot()
 
-    def draw_to_canvas(self, canvas: SkiaCanvas):
+    def draw_to_canvas(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for item in self.items:
-            # t0 = time.time()
-            item.draw(canvas)
-            # t1 = time.time()
-            # print(f"{item.node.element_type}: {t1 - t0:.4f}s")
+            item.draw(canvas, transforms)
 
 class RenderTaskType(ABC):
     cause: str

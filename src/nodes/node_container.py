@@ -8,7 +8,7 @@ from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAU
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
-import time
+from ..versioning import talon_breaking_ui_version
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
@@ -18,14 +18,23 @@ class NodeContainer(Node, NodeContainerType):
         self.debug_color = "red"
         self.debug_colors = iter(cycle(["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]))
 
-    def render_scroll_bar(self, c: SkiaCanvas):
+    def render_scroll_bar(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
         if scrollable and self.box_model.scroll_bar_thumb_rect:
+            scroll_bar_track_rect = self.box_model.scroll_bar_track_rect.copy()
+            scroll_bar_thumb_rect = self.box_model.scroll_bar_thumb_rect.copy()
+
+            if transforms and transforms.offset:
+                scroll_bar_track_rect.x += transforms.offset.x
+                scroll_bar_track_rect.y += transforms.offset.y
+                scroll_bar_thumb_rect.x += transforms.offset.x
+                scroll_bar_thumb_rect.y += transforms.offset.y
+
             c.paint.style = c.paint.Style.FILL
             c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
-            c.draw_rect(self.box_model.scroll_bar_track_rect)
+            c.draw_rect(scroll_bar_track_rect)
             c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
-            c.draw_rect(self.box_model.scroll_bar_thumb_rect)
+            c.draw_rect(scroll_bar_thumb_rect)
 
     def v2_measure_children_intrinsic_size(self, c: SkiaCanvas) -> Size2d:
         children_accumulated_size = Size2d(0, 0)
@@ -250,21 +259,15 @@ class NodeContainer(Node, NodeContainerType):
         cursor.move_to(last_cursor.x, last_cursor.y)
         return self.box_model.margin_size
 
-    def draw_start(self, c: SkiaCanvas):
-        # t0 = time.time()
-        # self.v2_render_drop_shadow(c),
-        self.v2_render_borders(c),
-        self.v2_crop_start(c),
-        self.v2_render_background(c)
-        # t1 = time.time()
-        # print(f"draw_start {self.element_type}: {t1 - t0:.4f}s")
+    def draw_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_drop_shadow(c, transforms)
+        self.v2_render_borders(c, transforms)
+        self.v2_crop_start(c, transforms)
+        self.v2_render_background(c, transforms)
 
-    def draw_end(self, c: SkiaCanvas):
-        # t0 = time.time()
-        self.v2_crop_end(c),
-        self.render_scroll_bar(c)
-        # t1 = time.time()
-        # print(f"draw_end {self.element_type}: {t1 - t0:.4f}s")
+    def draw_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_crop_end(c, transforms)
+        self.render_scroll_bar(c, transforms)
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:
@@ -284,21 +287,18 @@ class NodeContainer(Node, NodeContainerType):
     def v2_render_decorator(self, c, transforms: RenderTransforms = None):
         if self.tree:
             self.v2_render_borders(c, transforms)
-            # self.v2_crop_start(c)
             self.v2_render_background(c, transforms)
             for child in self.get_children_nodes():
                 child.v2_render_decorator(c, transforms)
-            # self.v2_crop_end(c)
-            # self.render_scroll_bar(c)
 
     def v2_render(self, c, transforms: RenderTransforms = None):
         if self.tree:
             self.v2_render_borders(c, transforms)
-            self.v2_crop_start(c)
+            self.v2_crop_start(c, transforms)
             self.v2_render_background(c, transforms)
             for child in self.get_children_nodes():
                 child.v2_render(c, transforms)
-            self.v2_crop_end(c)
+            self.v2_crop_end(c, transforms)
             self.render_scroll_bar(c, transforms)
 
     def normalize_to_flex(self, percentage):
@@ -336,14 +336,21 @@ class NodeContainer(Node, NodeContainerType):
         if self.tree.meta_state.scrollable.get(self.id, None):
             self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
 
-    def v2_crop_start(self, c: SkiaCanvas):
+    def v2_crop_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         if self.properties.overflow.scrollable or (self.box_model.overflow.is_boundary and \
                 (self.box_model.overflow_size.width or \
                 self.box_model.overflow_size.height)):
             c.save()
-            c.clip_rect(self.box_model.padding_rect)
 
-    def v2_crop_end(self, c: SkiaCanvas):
+            if transforms and transforms.offset:
+                offset_rect = self.box_model.padding_rect.copy()
+                offset_rect.x += transforms.offset.x
+                offset_rect.y += transforms.offset.y
+                c.clip_rect(offset_rect)
+            else:
+                c.clip_rect(self.box_model.padding_rect)
+
+    def v2_crop_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         if self.properties.overflow.scrollable or (self.box_model.overflow.is_boundary and \
                 (self.box_model.overflow_size.width or \
                 self.box_model.overflow_size.height)):

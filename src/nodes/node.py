@@ -325,15 +325,17 @@ class Node(NodeType):
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
             # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
-            inner_rect = self.box_model.padding_rect
 
             if transforms and transforms.offset:
+                inner_rect = self.box_model.padding_rect.copy()
                 inner_rect = Rect(
                     inner_rect.x + transforms.offset.x,
                     inner_rect.y + transforms.offset.y,
                     inner_rect.width,
                     inner_rect.height
                 )
+            else:
+                inner_rect = self.box_model.padding_rect
 
             border_color = self.resolve_render_property("border_color")
             if self.is_uniform_border:
@@ -357,6 +359,15 @@ class Node(NodeType):
                 c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
                 b_rect, p_rect = self.box_model.border_rect, inner_rect
+
+                if transforms and transforms.offset:
+                    b_rect = Rect(
+                        b_rect.x + transforms.offset.x,
+                        b_rect.y + transforms.offset.y,
+                        b_rect.width,
+                        b_rect.height
+                    )
+
                 if border_spacing.left:
                     c.paint.stroke_width = border_spacing.left
                     half = border_spacing.left / 2
@@ -374,7 +385,7 @@ class Node(NodeType):
                     half = border_spacing.bottom / 2
                     c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
 
-    def v2_render_drop_shadow(self, c: SkiaCanvas):
+    def v2_render_drop_shadow(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         if self.properties.drop_shadow:
             c.paint.style = c.paint.Style.FILL
             c.paint.color = self.properties.drop_shadow[4]
@@ -388,13 +399,19 @@ class Node(NodeType):
             )
 
             inner_rect = self.box_model.padding_rect
-            # t0 = time.time()
+
+            if transforms and transforms.offset:
+                inner_rect = Rect(
+                    inner_rect.x + transforms.offset.x,
+                    inner_rect.y + transforms.offset.y,
+                    inner_rect.width,
+                    inner_rect.height
+                )
+
             if self.properties.border_radius and self.is_uniform_border:
                 c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
             else:
                 c.draw_rect(inner_rect)
-            # t1 = time.time()
-            # print(f"Drop shadow render time for {self.element_type}: {t1 - t0:.4f}s")
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):
@@ -403,7 +420,6 @@ class Node(NodeType):
             c.paint.style = c.paint.Style.FILL
             c.paint.color = background_color
 
-            # inner_rect = self.box_model.scroll_box_rect if self.box_model.scrollable else self.box_model.padding_rect
             inner_rect = self.box_model.padding_rect
 
             if transforms and transforms.offset:
@@ -419,9 +435,9 @@ class Node(NodeType):
             else:
                 c.draw_rect(inner_rect)
 
-    def draw_start(self, c: SkiaCanvas):
-        self.v2_render_background(c)
-        self.v2_render_borders(c)
+    def draw_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_background(c, transforms)
+        self.v2_render_borders(c, transforms)
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:

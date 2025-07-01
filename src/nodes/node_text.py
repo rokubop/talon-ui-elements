@@ -198,7 +198,14 @@ class NodeText(Node):
         self.v2_render_background(c, transforms)
 
         # This should be in layout phase
-        text_top_left = self.box_model.content_children_pos.copy()
+
+        if transforms and transforms.offset:
+            text_top_left = self.box_model.content_children_pos.copy()
+            text_top_left.x += transforms.offset.x
+            text_top_left.y += transforms.offset.y
+        else:
+            text_top_left = self.box_model.content_children_pos
+
         available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
         if self.properties.text_align == "center":
             text_top_left.x += available_width // 2

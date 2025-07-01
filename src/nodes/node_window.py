@@ -85,9 +85,9 @@ class NodeWindow(NodeContainer):
                     })
         else:
             resolved_window_props.update({
-                "position": "static",
-                "top": None,
-                "left": None
+                "position": resolved_window_props.get("position", "static"),
+                "top": resolved_window_props.get("top", None),
+                "left": resolved_window_props.get("left", None),
             })
 
         super().__init__(

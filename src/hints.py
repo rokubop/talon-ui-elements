@@ -8,6 +8,7 @@ from .interfaces import NodeType, ClickEvent
 from .utils import safe_callback
 from .versioning import talon_breaking_ui_version
 from .core.entity_manager import entity_manager
+from .interfaces import RenderTransforms
 
 mod = Module()
 ctx, ctx_hints_active_browser = Context(), Context()
@@ -95,7 +96,7 @@ def trigger_hint_focus(hint_trigger: str):
                 state_manager.focus_node(node)
             break
 
-def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
+def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransforms = None):
     c.paint.textsize = settings.get("user.ui_elements_hints_size", 12)
 
     hint_text_width = c.paint.measure_text(text)[1].width
@@ -125,6 +126,10 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
         hint_padding_width,
         hint_padding_height
     )
+
+    if transforms and transforms.offset:
+        hint_padding_rect.x += transforms.offset.x
+        hint_padding_rect.y += transforms.offset.y
 
     if apply_clip:
         c.save()
