@@ -88,7 +88,7 @@ def DevTools():
 
     return screen()[
         # top left not working
-        window(title="Dev Tools", min_width=300, min_height=400, position="absolute", top=100, left=100)[
+        window(title="Dev Tools", min_width=300, min_height=400, margin=100)[
             div(padding_bottom=8)[
                 component_accordion(),
                 state_accordion(),

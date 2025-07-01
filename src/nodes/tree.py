@@ -757,8 +757,7 @@ class Tree(TreeType):
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
 
     def move_inputs(self):
-        offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
-        # offset = self.render_manager.current_render_task.metadata.get("mousedown_start_offset", None)
+        offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
         for id, input_data in list(self.meta_state.inputs.items()):
             if input_data.input:
                 input_data.input.rect = Rect(

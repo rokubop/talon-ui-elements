@@ -66,7 +66,7 @@ button_col2_actions = {
 tools = {
     "Storybook": lambda: show_example(storybook_ui),
     "Test Runner": lambda: show_example(runner_ui),
-    "Dev Tools": lambda: actions.user.ui_elements_show(DevTools),
+    "Dev Tools": lambda: actions.user.ui_elements_toggle(DevTools),
     "Simulate Error": lambda: (
         actions.user.ui_elements_hide_all(),
         simulate_error(),
