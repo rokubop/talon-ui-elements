@@ -1,9 +1,120 @@
 from talon import Context, cron
-from typing import Callable
-from .interfaces import NodeType, ReactiveStateType, TreeType, Effect
+from typing import Callable, Optional
+from ..interfaces import (
+    Effect,
+    NodeType,
+    ReactiveStateType,
+    StyleType,
+    TreeType,
+)
 from .store import store
 import gc
-import traceback
+
+class StateCoordinator:
+    PHASE_FREE = "free"
+    PHASE_BATCH = "batch"
+    PHASE_REQUEST_RENDER = "request_render"
+    PHASE_RENDERING = "rendering"
+
+    def __init__(self):
+        self.locked = False
+        self.phase = self.PHASE_FREE
+        self.current_state_keys = set()
+        self.next_state_keys = set()
+        self.pending_tree_renders = set()
+        self.batch_job = None
+
+    def finish_cycle(self, tree: TreeType):
+        if self.locked:
+            self.current_state_keys.clear()
+            self.locked = False
+            self.phase = self.PHASE_FREE
+
+            if self.next_state_keys:
+                self.current_state_keys.update(self.next_state_keys)
+                self.next_state_keys.clear()
+
+            if self.current_state_keys:
+                for key in self.current_state_keys:
+                    self.request_state_change(key)
+        store.mouse_state['disable_events'] = False
+
+    def flush_state(self):
+        for key in self.current_state_keys:
+            store.reactive_state[key].activate_next_state_value()
+
+    def on_tree_render_start(self):
+        def on_start(tree: TreeType, *args):
+            if not self.locked:
+                self.locked = True
+                self.phase = self.PHASE_RENDERING
+                self.flush_state()
+
+            tree.render(*args)
+
+        return on_start
+
+    def on_tree_render_end(self):
+        def on_end(e):
+            self.pending_tree_renders.remove(e.tree.guid)
+
+            if not self.pending_tree_renders:
+                self.finish_cycle(e.tree)
+
+        return on_end
+
+    def request_tree_renders(self):
+        if self.locked:
+            return
+
+        if self.phase == self.PHASE_BATCH:
+            self.phase = self.PHASE_REQUEST_RENDER
+            if self.batch_job:
+                cron.cancel(self.batch_job)
+            self.batch_job = None
+
+        if self.phase == self.PHASE_REQUEST_RENDER:
+            trees = state_manager.get_trees_for_state_keys(self.current_state_keys)
+
+            for tree in trees:
+                if tree.guid not in self.pending_tree_renders:
+                    self.pending_tree_renders.add(tree.guid)
+                    tree.render_manager.schedule_state_change(
+                        on_start=self.on_tree_render_start(),
+                        on_end=self.on_tree_render_end()
+                    )
+
+            if not self.pending_tree_renders:
+                self.finish_cycle(None)
+
+    def request_state_change(self, state_key: str):
+        store.mouse_state['disable_events'] = True
+        if self.locked:
+            self.next_state_keys.add(state_key)
+            return
+
+        self.current_state_keys.add(state_key)
+
+        if self.phase == self.PHASE_FREE:
+            self.phase = self.PHASE_BATCH
+
+        if self.phase == self.PHASE_BATCH:
+            if self.batch_job:
+                cron.cancel(self.batch_job)
+            self.batch_job = cron.after("1ms", self.request_tree_renders)
+
+    def reset(self):
+        store.mouse_state['disable_events'] = False
+        self.locked = False
+        self.phase = self.PHASE_FREE
+        self.current_state_keys.clear()
+        self.next_state_keys.clear()
+        self.pending_tree_renders.clear()
+        if self.batch_job:
+            cron.cancel(self.batch_job)
+            self.batch_job = None
+
+state_coordinator = StateCoordinator()
 
 class ReactiveState(ReactiveStateType):
     def __init__(self):
@@ -33,14 +144,10 @@ class ReactiveState(ReactiveStateType):
         self.next_state_queue.append(value_or_callable)
 
     def activate_next_state_value(self):
-        next_state = self._value
-
         for new_state in self.next_state_queue:
-            next_state = self.resolve_value(new_state)
+            self._value = self.resolve_value(new_state)
 
         self.next_state_queue.clear()
-
-        self._value = next_state
 
 class DeprecatedLifecycleEvent:
     def __init__(self, event_type: str, tree: TreeType):
@@ -70,6 +177,15 @@ class StateManager:
     def get_mousedown_start_pos(self):
         return store.mouse_state['mousedown_start_pos']
 
+    def get_mousedown_start_offset(self):
+        return store.mouse_state['mousedown_start_offset']
+
+    def set_last_clicked_pos(self, pos):
+        store.mouse_state['last_clicked_pos'] = pos
+
+    def get_last_clicked_pos(self):
+        return store.mouse_state['last_clicked_pos']
+
     def is_drag_active(self):
         return store.mouse_state['is_drag_active']
 
@@ -78,6 +194,9 @@ class StateManager:
 
     def set_mousedown_start_pos(self, gpos):
         store.mouse_state['mousedown_start_pos'] = gpos
+
+    def set_mousedown_start_offset(self, offset):
+        store.mouse_state['mousedown_start_offset'] = offset
 
     def set_drag_relative_offset(self, offset):
         store.mouse_state['drag_relative_offset'] = offset
@@ -88,8 +207,54 @@ class StateManager:
     def set_processing_tree(self, tree: TreeType):
         store.processing_tree = tree
 
+    def get_processing_style(self) -> StyleType:
+        context = state_manager.get_processing_component() \
+            or state_manager.get_processing_tree()
+        if context and getattr(context, 'style', None):
+            return context.style
+
     def get_processing_tree(self) -> TreeType:
         return store.processing_tree
+
+    def set_processing_component(self, component):
+        store.processing_components.append(component)
+
+    def get_processing_components(self):
+        return store.processing_components
+
+    def get_processing_component(self):
+        if store.processing_components:
+            return store.processing_components[-1]
+        return None
+
+    def get_processing_states(self):
+        return state_coordinator.current_state_keys
+
+    def remove_processing_component(self, component):
+        store.processing_components.remove(component)
+
+    def get_trees_for_state(self, state_key):
+        try:
+            return [tree for tree in store.trees if state_key in tree.meta_state.state_keys]
+        except Exception as e:
+            return []
+
+    def get_trees_for_state_keys(self, state_keys):
+        try:
+            return [tree for tree in store.trees if \
+                any(key in state_keys for key in tree.meta_state.states)
+            ]
+        except Exception as e:
+            return []
+
+    def disable_mouse_events(self):
+        store.mouse_state['disable_events'] = True
+
+    def enable_mouse_events(self):
+        store.mouse_state['disable_events'] = False
+
+    def are_mouse_events_disabled(self):
+        return store.mouse_state['disable_events']
 
     def init_states(self, states):
         if states is not None:
@@ -105,24 +270,6 @@ class StateManager:
 
         store.reactive_state[key].set_initial_value(initial_value)
 
-    def rerender_state(self):
-        for state in store.reactive_state.values():
-            state.activate_next_state_value()
-
-        for tree in store.trees:
-            tree.processing_states.extend(store.processing_states)
-            # tree.queue_render(RenderTask(
-            #     cause=RenderCause.STATE_CHANGE,
-            #     before_render=lambda: tree.processing_states.clear()
-            #     after_render=lambda: tree.processing_states.clear()
-            # )),
-            tree.render_manager.render_state_change()
-
-        # TODO: queue into render manager
-        cron.after("30ms", store.processing_states.clear)
-        # store.processing_states.clear()
-        self.debounce_render_job = None
-
     def get_state_value(self, key):
         if key in store.reactive_state:
             return store.reactive_state[key].value
@@ -132,17 +279,15 @@ class StateManager:
         return {key: store.reactive_state[key].value for key in store.reactive_state.keys()}
 
     def set_state_value(self, key, new_value):
-        if key in store.reactive_state:
-            if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
-                return
+        if not store.pause_renders:
+            if key in store.reactive_state:
+                if store.reactive_state[key].value == store.reactive_state[key].resolve_value(new_value):
+                    return
 
-        self.init_state(key, new_value)
-        store.reactive_state[key].set_value(new_value)
-        store.processing_states.append(key)
-
-        if not self.debounce_render_job:
-            # Let the current event loop finish before rendering
-            self.debounce_render_job = cron.after("1ms", self.rerender_state)
+            self.init_state(key, new_value)
+            store.reactive_state[key].set_value(new_value)
+            store.processing_states.add(key)
+            state_coordinator.request_state_change(key)
 
     def get_text_mutation(self, id):
         node = store.id_to_node.get(id)
@@ -178,6 +323,9 @@ class StateManager:
     def is_focused(self, id):
         return store.focused_id == id
 
+    def is_focus_visible(self):
+        return store.focused_visible
+
     def get_focused_node(self):
         if store.focused_id:
             return store.id_to_node.get(store.focused_id)
@@ -198,13 +346,6 @@ class StateManager:
             node.tree.render_manager.render_ref_change()
 
     def use_state(self, key, initial_value):
-        # TODO: introspect caller to attach relationship
-        # try:
-        #     for frame in traceback.extract_stack()[-10:]:
-        #         print(f"{key} called by {frame.name}")
-        #         # print(f"{frame.filename}:{frame.lineno} — {frame.name}")
-        # except Exception as e:
-        #     print(f"traceback failed: {e}")
         self.init_state(key, initial_value)
         return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
 
@@ -248,13 +389,14 @@ class StateManager:
             node.input.hide()
             node.input.show()
 
-    def focus_node(self, node: NodeType):
+    def focus_node(self, node: NodeType, visible=True):
         blur_tree = None
         if node.tree != store.focused_tree:
             blur_tree = store.focused_tree
 
         store.focused_id = node.id
         store.focused_tree = node.tree
+        store.focused_visible = visible
 
         if node.element_type == "input_text":
             self.focus_input(node.id)
@@ -330,13 +472,47 @@ class StateManager:
     def get_ref_count_trees(self):
         return store.ref_count_trees
 
+    def get_components(self):
+        components = {}
+        for tree in store.trees:
+            components[tree.guid] = tree.meta_state.components
+        return components
+
+    def toggle_hints(self, enabled: bool):
+        if isinstance(enabled, bool):
+            for tree in store.trees:
+                tree.show_hints = enabled
+        else:
+            for tree in store.trees:
+                tree.show_hints = not tree.show_hints
+
     def clear_state(self):
         store.reactive_state.clear()
         store.processing_states.clear()
         store.reset_mouse_state()
+        state_coordinator.reset()
+        store.mouse_state['disable_events'] = False
+
+    def clear_state_for_tree(self, tree: TreeType):
+        for state_key in tree.meta_state.states:
+            if state_key in store.reactive_state:
+                del store.reactive_state[state_key]
+            if state_key in store.processing_states:
+                store.processing_states.remove(state_key)
+        if not store.processing_states or not store.trees:
+            state_coordinator.reset()
+
+    def clear_tree(self, tree: TreeType):
+        if tree in store.trees:
+            store.root_nodes = [node for node in store.root_nodes if node.tree != tree]
+            store.trees.remove(tree)
+            self.clear_state_for_tree(tree)
+            store.synchronize_ids()
+        store.mouse_state['disable_events'] = False
 
     def clear_all(self):
         store.clear()
+        state_coordinator.reset()
 
     def deprecated_event_register_on_lifecycle(self, callback):
         if callback not in _deprecated_event_subscribers:

@@ -1,25 +1,37 @@
+import hashlib
+import inspect
+import re
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
-from talon.skia.typeface import Typeface
+from talon.skia.paint import Paint
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
-from dataclasses import dataclass
-import hashlib
-import inspect
-import json
-import os
-import re
+from .fonts import get_typeface
+from .versioning import talon_breaking_ui_version
 
-def draw_text_simple(c: SkiaCanvas, text, properties, x, y):
-    c.paint.style = c.paint.Style.FILL
-    c.paint.stroke_width = 0
-    c.paint.color = properties.color
-    c.paint.textsize = properties.font_size
-    c.paint.typeface = Typeface.from_name(properties.font_family)
-    c.paint.font.embolden = True if properties.font_weight == "bold" else False
-    c.draw_text(str(text), x, y)
+def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
+    paint = Paint()
+    paint.textsize = properties.font_size
+    if talon_breaking_ui_version() >= 2:
+        c.paint.antialias = True
+    if properties.font_family:
+        typeface = get_typeface(properties.font_family, properties.font_weight)
+        if typeface:
+            paint.typeface = typeface
+    if properties.font_weight == "bold":
+        paint.font.embolden = True
+
+    if properties.stroke_color:
+        paint.style = paint.Style.STROKE
+        paint.color = properties.stroke_color
+        paint.stroke_width = properties.stroke_width or 1
+        c.draw_text(str(text), x, y, paint)
+
+    paint.style = paint.Style.FILL
+    paint.color = color
+    c.draw_text(str(text), x, y, paint)
 
 def get_screen(index: int = None) -> Screen:
     return ui.main_screen() if index is None else ui.screens()[index]
@@ -32,59 +44,21 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
         hasher.update(func_name.encode())
     elif isinstance(obj, str):
         return obj
+    elif isinstance(obj, dict):
+        for key, value in obj.items():
+            if isinstance(value, str):
+                hasher.update(f"{key}:{value}".encode())
+            elif callable(value):
+                # Handle function objects
+                func_name = f"{value.__module__}.{value.__qualname__}"
+                hasher.update(f"{key}:{func_name}".encode())
+            else:
+                # For other types, use string representation
+                hasher.update(f"{key}:{str(value)}".encode())
     else:
         raise TypeError("Object must be a callable or a dictionary.")
 
     return hasher.hexdigest()
-
-@dataclass
-class Version:
-    major: int
-    minor: int
-    patch: int
-
-    def __str__(self) -> str:
-        return f"{self.major}.{self.minor}.{self.patch}"
-
-    def __lt__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) < (other.major, other.minor, other.patch)
-
-    def __le__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) <= (other.major, other.minor, other.patch)
-
-    def __eq__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
-
-    def __gt__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)
-
-    def __ge__(self, version: str) -> bool:
-        other = Version.from_string(version) if isinstance(version, str) else version
-        return (self.major, self.minor, self.patch) >= (other.major, other.minor, other.patch)
-
-    @classmethod
-    def from_string(cls, version: str) -> "Version":
-        major, minor, patch = map(int, version.split("."))
-        return cls(major, minor, patch)
-
-    @classmethod
-    def from_dict(cls, version: dict) -> "Version":
-        return cls(version["major"], version["minor"], version["patch"])
-
-    def to_dict(self) -> dict:
-        return {"major": self.major, "minor": self.minor, "patch": self.patch}
-
-def get_version() -> str:
-    manifest = os.path.join(os.path.dirname(__file__), '..', 'manifest.json')
-
-    with open(manifest, 'r') as file:
-        data = json.load(file)
-
-    return Version.from_string(data['version'])
 
 def sanitize_string(text: str) -> str:
     return re.sub(r'[^a-zA-Z0-9_]', '_', text)
@@ -112,8 +86,38 @@ def get_active_color_from_highlight_color(highlight_color: str) -> str:
 
     return base_color + new_alpha_hex
 
+def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
+    """Adjust the brightness of a hex color by a specified amount.
+
+    Args:
+        color: Hex color string (e.g., "222222" or "#222222")
+        adjustment: Amount to add/subtract from each RGB component (-255 to 255)
+                   Positive values brighten, negative values darken
+
+    Returns:
+        Adjusted hex color string
+    """
+    color = color.lstrip('#')
+
+    if len(color) == 3:
+        color = ''.join([c*2 for c in color])
+
+    r = int(color[0:2], 16)
+    g = int(color[2:4], 16)
+    b = int(color[4:6], 16)
+
+    r = max(0, min(255, r + adjustment))
+    g = max(0, min(255, g + adjustment))
+    b = max(0, min(255, b + adjustment))
+
+    # Convert back to hex
+    return f"{r:02X}{g:02X}{b:02X}"
+
 def hex_color(color: str) -> str:
     """Resolve color to hex if it's a named color or validate hex format."""
+
+    if not color:
+        return color
 
     if all(c in "0123456789ABCDEFabcdef" for c in color):
         # already hex
@@ -147,3 +151,12 @@ def subtract_rect(outer: Rect, inner: Rect) -> list[Rect]:
         rects.append(Rect(inner.right, inner.top, outer.right - inner.right, inner.height))
 
     return rects
+
+def find_closest_parent_with_id(node):
+    """Find the closest parent node that has an ID."""
+    current_node = node
+    while current_node:
+        if current_node.id:
+            return current_node
+        current_node = current_node.parent_node
+    return None

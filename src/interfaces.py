@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Union, Deque, Any
-from talon.experimental.textarea import TextArea
 from talon.canvas import Canvas
+from talon.experimental.textarea import TextArea
 from talon.skia import Surface
 from talon.skia.canvas import Canvas as SkiaCanvas
-from dataclasses import dataclass
-from .constants import ElementEnumType, NodeEnumType
 from talon.types import Rect, Point2d
+from .constants import ElementEnumType, NodeEnumType
+import time
 
 @dataclass
 class Size2d:
@@ -62,6 +63,51 @@ class PropertiesDimensionalType(ABC):
     position: str
     width: Union[int, str]
 
+class RenderTransforms():
+    offset: Point2d
+    scale: float
+
+    def __init__(self, offset: Point2d = None, scale: float = None):
+        self.offset = offset if offset else Point2d(0, 0)
+        self.scale = scale
+
+class PropertiesType(ABC):
+    @abstractmethod
+    def inherit_kwarg_properties(self, kwargs: dict[str, Any]):
+        pass
+
+    @abstractmethod
+    def inherit_explicit_properties(self, properties: 'PropertiesType'):
+        pass
+
+    @abstractmethod
+    def update_colors_with_opacity(self):
+        pass
+
+    @abstractmethod
+    def update_property(self, key: str, value: Any):
+        pass
+
+    @abstractmethod
+    def update_overrides(self, overrides: dict[str, Any]):
+        pass
+
+    @abstractmethod
+    def is_user_set(self, key: str) -> bool:
+        pass
+
+    @abstractmethod
+    def is_scrollable(self) -> bool:
+        pass
+
+    @abstractmethod
+    def get_variant(self, variant: str) -> 'PropertiesType':
+        pass
+
+    @abstractmethod
+    def gc(self):
+        pass
+
 class CursorType:
     x: int
     y: int
@@ -84,6 +130,7 @@ class Effect:
     tree: 'TreeType'
     cleanup: Optional[Callable[[], None]] = None
     name: Optional[str] = None
+    component: Optional['NodeComponentType'] = None
 
 StateValueType = Union[int, float, str, bool, dict, list, None]
 StateValueOrCallableType = Union[StateValueType, Callable[[StateValueType], StateValueType]]
@@ -126,6 +173,12 @@ class ScrollableType(ABC):
     id: str
     offset_x: Union[int, float]
     offset_y: Union[int, float]
+    view_height: Union[int, float]
+    max_height: Union[int, float]
+
+    @abstractmethod
+    def reevaluate(self, node: "NodeType"):
+        pass
 
 @dataclass
 class MetaStateInput:
@@ -133,20 +186,34 @@ class MetaStateInput:
     previous_value: str
     input: TextArea
     on_change: Callable[[str], None]
+    rect: Rect = None
 
 class MetaStateType(ABC):
     _inputs: dict[str, MetaStateInput]
+    decoration_renders: dict
     _highlighted: dict[str, str]
     _buttons: set[str]
+    _draggable_offset: dict[str, Point2d]
+    _last_drag_offset: dict[str, Point2d]
     _scrollable = dict[str, ScrollableType]
+    _states: dict[str, Any]
     _text_mutations: dict[str, str]
+    _text_with_for_ids: dict[str, str]
     _style_mutations: dict[str, dict[str, Union[str, int]]]
     _id_to_node: dict[str, 'NodeType']
+    _staged_id_to_node: dict[str, 'NodeType']
+    windows: set[str]
     ref_property_overrides: dict[str, dict[str, Union[str, int]]]
     unhighlight_jobs: dict[str, callable]
+    new_component_ids: set[str]
+    removed_component_ids: set[str]
 
     @property
     def inputs(self) -> dict[str, MetaStateInput]:
+        pass
+
+    @property
+    def components(self) -> dict[str, 'ComponentType']:
         pass
 
     @property
@@ -162,11 +229,19 @@ class MetaStateType(ABC):
         pass
 
     @property
+    def states(self) -> dict[str, Any]:
+        pass
+
+    @property
     def add_scrollable(self, id) -> None:
         pass
 
     @property
     def text_mutations(self) -> dict[str, str]:
+        pass
+
+    @property
+    def text_with_for_ids(self) -> dict[str, str]:
         pass
 
     @property
@@ -182,11 +257,35 @@ class MetaStateType(ABC):
         pass
 
     @abstractmethod
+    def prepare_node_transition(self):
+        pass
+
+    @abstractmethod
     def clear_nodes(self):
         pass
 
     @abstractmethod
     def add_input(self, id: str, input: TextArea, initial_value: str, on_change: callable):
+        pass
+
+    @abstractmethod
+    def add_decoration_render(self, id: str):
+        pass
+
+    @abstractmethod
+    def set_drag_offset(self, id: str, offset: Point2d):
+        pass
+
+    @abstractmethod
+    def get_accumulated_drag_offset(self, id: str) -> Point2d:
+        pass
+
+    @abstractmethod
+    def get_current_drag_offset(self, id: str) -> Point2d:
+        pass
+
+    @abstractmethod
+    def commit_drag_offset(self, id: str):
         pass
 
     @abstractmethod
@@ -199,6 +298,14 @@ class MetaStateType(ABC):
 
     @abstractmethod
     def add_button(self, id: str):
+        pass
+
+    @abstractmethod
+    def add_component(self, component: 'ComponentType'):
+        pass
+
+    @abstractmethod
+    def add_text_with_for_id(self, id: str, for_id: str):
         pass
 
     @abstractmethod
@@ -232,6 +339,31 @@ class MetaStateType(ABC):
     @abstractmethod
     def map_id_to_node(self, id: str, node: object):
         pass
+
+    @abstractmethod
+    def associate_state(self, key: str, components: List['NodeComponentType']):
+        pass
+
+    @abstractmethod
+    def associate_local_state(self, key: str, component: 'NodeComponentType'):
+        pass
+
+    @abstractmethod
+    def get_interaction_links(self) -> list[tuple[str, str]]:
+        pass
+
+    @abstractmethod
+    def get_hover_links(self) -> list[tuple[str, str]]:
+        pass
+
+class ComponentType(ABC):
+    id: tuple[str, tuple[int]]
+    name: str
+    renderer: Callable
+    props: Optional[dict[str, Any]]
+    parent_node: Optional['NodeType']
+    children_nodes: List['NodeType']
+    states: set[str]
 
 class NodeRootStateStoreType(ABC):
     effects: List[Effect]
@@ -335,22 +467,25 @@ class BoxModelV2Type(ABC):
         pass
 
 class NodeType(ABC):
-    properties: object
-    cascaded_properties: object
+    properties: PropertiesType
+    cascaded_properties: set[str]
     guid: str
     id: str
     key: str
     node_type: NodeEnumType
     element_type: ElementEnumType
-    box_model_v2: BoxModelV2Type
+    box_model: BoxModelV2Type
     constraint_nodes: List['NodeType']
     children_nodes: List['NodeType']
     parent_node: Optional['NodeType']
     participates_in_layout: bool
     interactive: bool
+    interactive_id: str
     is_dirty: bool
+    is_svg: bool
     tree: 'TreeType'
     root_node: 'NodeRootType'
+    uses_decoration_render: bool
     depth: int
     node_index_path: List[int]
     component_node: object
@@ -409,7 +544,11 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
-    def v2_render(self, c: SkiaCanvas):
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        pass
+
+    @abstractmethod
+    def v2_render_decorator(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         pass
 
     @abstractmethod
@@ -429,7 +568,20 @@ class NodeType(ABC):
         pass
 
     @abstractmethod
-    def __init__(self, element_type: ElementEnumType, properties: object):
+    def __init__(self, element_type: ElementEnumType, properties: PropertiesType):
+        pass
+
+    def get_children_nodes(self) -> List['NodeType']:
+        pass
+
+    @abstractmethod
+    def get_active_variant(self) -> tuple[str, float]:
+        """Get the active variant of the node, if any."""
+        pass
+
+    @abstractmethod
+    def resolve_render_property(self, property_name: str) -> Any:
+        """Resolve a render property for the node."""
         pass
 
 class RenderCauseStateType(ABC):
@@ -493,24 +645,30 @@ class RenderItem:
 @dataclass
 class RenderLayer:
     z_index: int
-    position_priority: int  # 0 = static, 1 = positioned
+    z_subindex: int
     items: List[RenderItem]
 
-    def render_to_surface(self, width, height):
+    def render_to_surface(self, width, height, offset_x=0, offset_y=0):
         surface = Surface(width, height)
         canvas = surface.canvas()
+        canvas.translate(-offset_x, -offset_y)
         for item in self.items:
             item.draw(canvas)
         return surface.snapshot()
 
-    def draw_to_canvas(self, canvas: SkiaCanvas):
+    def draw_to_canvas(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for item in self.items:
-            item.draw(canvas)
+            item.draw(canvas, transforms)
 
 class RenderTaskType(ABC):
     cause: str
-    on_render: Callable
+    start: Callable
     args: List[object]
+    on_start: Callable
+    on_end: Callable
+    group: str
+    policy: str
+    metadata: dict[str, Any]
 
 class RenderManagerType(ABC):
     queue: Deque[RenderTaskType]
@@ -535,7 +693,15 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
+    def is_drag_start(self):
+        pass
+
+    @abstractmethod
     def is_dragging(self):
+        pass
+
+    @abstractmethod
+    def is_drag_end(self):
         pass
 
     @abstractmethod
@@ -585,7 +751,19 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
+    def render_drag_start(self):
+        pass
+
+    @abstractmethod
     def render_drag_end(self):
+        pass
+
+    @abstractmethod
+    def render_mouse_highlight(self):
+        pass
+
+    @abstractmethod
+    def schedule_state_change(self, on_start: callable, on_end: callable = None):
         pass
 
     @abstractmethod
@@ -597,14 +775,6 @@ class NodeContainerType(NodeType):
     highlight_color: str
     is_uniform_border: bool
     justify_between_gaps: Optional[int]
-
-    @abstractmethod
-    def debugger_should_continue(self, c: object, cursor: object):
-        pass
-
-    @abstractmethod
-    def debugger(self, c: object, cursor: object, incrememnt_step: bool, new_color: bool, is_breakpoint: bool):
-        pass
 
     @abstractmethod
     def show(self):
@@ -628,28 +798,21 @@ class TreeType(ABC):
     drag_handle_node: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
-    processing_states: List[str]
+    name: str
+    processing_states: set[str]
     render_manager: RenderManagerType
-    _renderer: callable
+    _tree_constructor: callable
     requires_measure_redistribution: bool
     surfaces: List[object]
-    update_renderer: str
+    last_surface_snapshot: object
+    hashed_tree_constructor: str
     unused_screens: List[int]
     root_node: 'NodeRootType'
     show_hints: bool
     screen_index: int
-    _renderer: callable
     render_cause: RenderCauseStateType
     render_version: int
     is_mounted: bool
-
-    @abstractmethod
-    def __init__(self, renderer: callable, update_renderer: str):
-        pass
-
-    # @abstractmethod
-    # def render(self):
-    #     pass
 
     @abstractmethod
     def render_debounced(self):
@@ -668,7 +831,7 @@ class TreeManagerType(ABC):
     processing_tree: Optional[TreeType]
 
     @abstractmethod
-    def render(self, renderer: callable):
+    def render(self, tree_constructor: callable):
         pass
 
     @abstractmethod
@@ -676,7 +839,7 @@ class TreeManagerType(ABC):
         pass
 
     @abstractmethod
-    def generate_hash_for_updater(self, renderer: callable):
+    def generate_hash_for_updater(self, tree_constructor: callable):
         pass
 
 class NodeRootType(NodeContainerType):
@@ -689,7 +852,7 @@ class NodeComponentType(ABC):
     element_type: ElementEnumType
     guid: str
     func: Callable
-    properties: object
+    properties: PropertiesType
     inner_node: NodeType
     is_initialized: bool
     children_nodes: List[NodeType]
@@ -713,3 +876,16 @@ class NodeComponentType(ABC):
 class ClickEvent:
     id: str
     cause: str = "click"
+
+class StyleType(ABC):
+    tags: dict[str, dict]
+    ids: dict[str, dict]
+    classes: dict[str, dict]
+
+    @abstractmethod
+    def apply(self, style_dict: dict):
+        pass
+
+    @abstractmethod
+    def get(self, node: NodeType) -> dict:
+        pass

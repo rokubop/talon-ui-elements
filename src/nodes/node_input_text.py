@@ -1,13 +1,12 @@
 from talon import app
-from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect
-from ..constants import ELEMENT_ENUM_TYPE
-from ..box_model import BoxModelV2
-from ..cursor import Cursor
-from ..entity_manager import entity_manager
-from ..properties import NodeInputTextProperties
 from .node import Node
+from ..box_model import BoxModelV2
+from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
+from ..core.entity_manager import entity_manager
+from ..interfaces import RenderTransforms
+from ..properties import NodeInputTextProperties
 
 class NodeInputText(Node):
     def __init__(self, properties: NodeInputTextProperties = None):
@@ -18,9 +17,9 @@ class NodeInputText(Node):
         self.interactive = True
         self.properties.width = self.properties.width or round(self.properties.font_size * 15)
         self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
-        self.properties.background_color = self.properties.background_color or "333333"
+        self.properties.background_color = self.properties.background_color or DEFAULT_INPUT_BACKGROUND_COLOR
         self.properties.color = self.properties.color or "FFFFFF"
-        self.properties.value = self.properties.value or ""
+        self.properties.value = str(self.properties.value) if self.properties.value else ""
         if self.properties.gap is None:
             self.properties.gap = 16
 
@@ -32,25 +31,12 @@ class NodeInputText(Node):
         return None
 
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        self.box_model_v2 = BoxModelV2(
+        self.box_model = BoxModelV2(
             self.properties,
             clip_nodes=self.clip_nodes,
             relative_positional_node=self.relative_positional_node
         )
-        return self.box_model_v2.intrinsic_margin_size
-
-    def render_background(self, c: SkiaCanvas, cursor: Cursor):
-        """DEPRECATED"""
-        cursor.move_to(self.box_model.padding_rect.x, self.box_model.padding_rect.y)
-        if self.properties.background_color:
-            c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.properties.background_color
-
-            if self.properties.border_radius:
-                properties = RoundRect.from_rect(self.box_model.padding_rect, x=self.properties.border_radius, y=self.properties.border_radius)
-                c.draw_rrect(properties)
-            else:
-                c.draw_rect(self.box_model.padding_rect)
+        return self.box_model.intrinsic_margin_size
 
     def v2_build_render_list(self):
         self.tree.append_to_render_list(
@@ -58,11 +44,14 @@ class NodeInputText(Node):
             draw=self.v2_render
         )
 
-    def v2_render(self, c: SkiaCanvas):
-        self.v2_render_background(c)
-        self.v2_render_borders(c)
+    def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        return self.v2_render(c, transforms)
 
-        top_left_pos = self.box_model_v2.content_children_pos.copy()
+    def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        self.v2_render_background(c, transforms)
+        self.v2_render_borders(c, transforms)
+
+        top_left_pos = self.box_model.content_children_pos.copy()
 
         # Reason why node doesn't "own" the input:
         # - because nodes get recreated on every render
@@ -80,11 +69,11 @@ class NodeInputText(Node):
         input_rect = Rect(
             top_left_pos.x,
             top_left_pos.y + platform_adjustment_x,
-            self.box_model_v2.content_size.width,
-            self.box_model_v2.content_size.height + platform_adjustment_height
+            self.box_model.content_size.width,
+            self.box_model.content_size.height + platform_adjustment_height
         )
         top_offset = 0
-        clip_rect = self.box_model_v2.clip_rect
+        clip_rect = self.box_model.clip_rect
         if clip_rect:
             new_input_rect = input_rect.intersect(clip_rect)
             top_offset = new_input_rect.top - input_rect.top

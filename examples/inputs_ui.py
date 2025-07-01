@@ -1,14 +1,15 @@
 from talon import actions
 
 def inputs_ui(props):
-    elements = ["div", "text", "screen", "input_text", "button", "ref", "state"]
-    div, text, screen, input_text, button, ref, state = actions.user.ui_elements(elements)
+    div, text, screen, input_text = actions.user.ui_elements(["div", "text", "screen", "input_text"])
+    button, ref, state = actions.user.ui_elements(["button", "ref", "state"])
 
     is_valid, set_is_valid = state.use("is_valid", False)
     first_input = ref("first")
     last_input = ref("last")
 
     def on_submit(e):
+        print(e)
         if is_valid:
             print(f"Submitted - First: {first_input.value}, Last: {last_input.value}")
             props["on_submitted"]()

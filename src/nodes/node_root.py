@@ -1,9 +1,10 @@
 from talon import actions, ui
 from talon.screen import Screen
+from .node_container import NodeContainer
+from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
+from ..core.entity_manager import entity_manager
 from ..interfaces import NodeRootType
 from ..properties import NodeRootProperties
-from ..constants import LOG_MESSAGE_UI_ELEMENTS_HIDE_SUGGESTION, LOG_MESSAGE_UI_ELEMENTS_SHOW_SUGGESTION
-from .node_container import NodeContainer
 from ..utils import get_screen
 
 def print_deprecated_show():
@@ -71,7 +72,7 @@ class NodeRoot(NodeContainer, NodeRootType):
         print_deprecated_hide()
         if not self.deprecated_ui:
             self.deprecated_ui = DeprecatedRenderer(self)
-        actions.user.ui_elements_hide(self.deprecated_ui)
+        entity_manager.hide_tree(self.deprecated_ui)
 
     def highlight(self, key):
         """DEPRECATED: Use `actions.user.ui_elements_highlight(...)` instead"""

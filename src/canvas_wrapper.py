@@ -1,5 +1,4 @@
 from weakref import WeakMethod
-from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.canvas import Canvas
 
 class CanvasWeakRef:

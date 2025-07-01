@@ -1,5 +1,11 @@
 from typing import Optional, TypedDict, Tuple
-from .interfaces import TreeType, NodeType, Effect, ReactiveStateType
+from ..interfaces import (
+    Effect,
+    TreeType,
+    NodeType,
+    ReactiveStateType,
+    Point2d
+)
 
 class MouseState(TypedDict):
     hovered_id: Optional[str]
@@ -13,28 +19,37 @@ class Store():
         self.trees: list[TreeType] = []
         self.focused_id: Optional[str] = None
         self.focused_tree: Optional[TreeType] = None
+        self.focused_visible: Optional[bool] = None
         self.processing_tree: Optional[TreeType] = None
-        self.processing_states: list[str] = []
+        self.processing_components: list[NodeType] = []
+        self.processing_states: set[str] = set()
         self.root_nodes: list[NodeType] = []
         self.id_to_node: dict[str, NodeType] = {}
         self.id_to_hint: dict[str, str] = {}
+        self.pause_renders = False
         self.reactive_state: dict[str, ReactiveStateType] = {}
         self.staged_effects: list[Effect] = []
         self.ref_count_nodes = 0
         self.ref_count_trees = 0
         self.mouse_state: MouseState = {
+            "disable_events": False,
             "hovered_id": None,
+            "last_clicked_pos": None,
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
+            "mousedown_start_offset": Point2d(0, 0),
             "is_drag_active": False,
             "drag_relative_offset": None,
         }
 
     def reset_mouse_state(self):
         self.mouse_state = {
+            "disable_events": False,
             "hovered_id": None,
+            "last_clicked_pos": None,
             "mousedown_start_id": None,
             "mousedown_start_pos": None,
+            "mousedown_start_offset": Point2d(0, 0),
             "is_drag_active": False,
             "drag_relative_offset": None,
         }
@@ -49,8 +64,11 @@ class Store():
         self.trees = []
         self.focused_id = None
         self.focused_tree = None
+        self.focused_visible = None
+        self.pause_renders = False
         self.processing_tree = None
-        self.processing_states = []
+        self.processing_components = []
+        self.processing_states.clear()
         self.root_nodes = []
         self.id_to_node = {}
         self.id_to_hint = {}

@@ -1,16 +1,17 @@
-# ui_elements
+# UI Elements
 
-[ui_elements](.) is an experimental library for building stateful voice activated overlays and UIs using a HTML/CSS/React-inspired syntax for python, for use with [Talon](https://talonvoice.com/).
+[ui_elements](.) is an experimental library for building stateful voice activated canvas UIs using a HTML/CSS/React-inspired syntax for python, for use with [Talon](https://talonvoice.com/).
 
 ![ui_elements](./examples/ui_elements_preview.png)
 
-- 9 Example UIs
-- HTML-like elements such as `div`, `text`, `button`, `input_text`
-- 60+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
+## Features
+- 20+ elements such as `div`, `text`, `button`, `table`, `icon`, `input_text`
+- 90+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
 - Dragging and scrolling
 - Talon actions for highlighting elements, changing state, setting text
 - Voice activated hints
+- Skia canvas based rendering
 
 ## Prerequisites
 - [Talon](https://talonvoice.com/)
@@ -28,7 +29,7 @@ cd ~/AppData/Roaming/talon/user
 git clone https://github.com/rokubop/talon-ui-elements.git
 ```
 
-Done! 🎉 Say "elements test" to try out examples. Start learning below.
+Done! 🎉 Start learning below.
 
 ## Usage
 Choose [elements](#elements) from `actions.user.ui_elements` and create a **renderer function** in any `.py` file in your Talon user directory.
@@ -97,322 +98,55 @@ Now when you say "show hello world", the UI should appear.
 
 Congratulations! You've created your first UI. 🎉
 
-See all supported [properties](./docs/properties.md) for styling.
-
-> Note: It's a good idea to say "talon open log" and watch the log while developing. This will help you with supported properties and incorrect usage. You also might want to create a "talon restart" command in case changes don't apply while developing. See [Development suggestions](#development-suggestions).
-
 ## Examples
 
 Say "elements test" to bring up the examples.
 
-<p align="center">
-  <img src="./examples/examples_preview.png" alt="examples" width="150"/>
-</p>
+![examples](./examples/examples_preview.png)
 
-You can find these in the [examples](./examples) folder for code and previews.
+## ✨ What You Can Build - Tutorials
 
-## Elements
-Returned from `actions.user.ui_elements`:
+| Use Case |  |
+|----------|---|
+| 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/cheatsheet.md) |
+| 🧭 Dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
+| 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_key_overlay.md) |
+| 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
 
-Example:
-```py
-screen, div, button = actions.user.ui_elements(["screen", "div", "button"])
-```
+## 🚀 Your First UI in 3 Minutes
 
-| Element | Description |
-|---------|-------------|
-| `screen` | Root element. A div the size of your screen. |
-| `active_window` | Root element. A div the size of the currently active window. |
-| `div` | Standard container element. |
-| `text` | Basic strings supported. Combine multiple together if you want to style differently. |
-| `button` | Accepts `on_click` |
-| `icon` | See supported [icons](docs/icons_and_svgs.md) |
-| `input_text` | Uses Talon's experimental `TextArea` for input. |
-| `state` | Global reactive state that rerenders respective UIs when changed. |
-| `effect` | Run side effects on mount, unmount, or state change. |
-| `ref` | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates. Useful for `input_text` value. |
+📘 [Start the Hello World tutorial →](docs/tutorials/hello_world.md)
 
-Also see [SVG Elements](#svg-elements).
+You'll learn:
+- How to create a renderer
+- Show and hide it
+- Style elements
+- Use Talon commands
 
-## Box Model
-ui_elements have the same box model as normal HTML, with `margin`, `border`, `padding`, and `width` and `height` and operate under `box-sizing: border-box` assumption, meaning border and padding are included in the width and height.
+## 🛠️ Core Actions
 
-## Flex by default
-ui_elements are all `display: flex`, and default to `flex_direction="column"`with `align_items="stretch"`. This means when you don't provide anything, it will act similarly to `display: block`.
-
-### Alignment examples
-If you aren't familiar with flexbox, you can read any standard HTML guide such as [CSS Tricks Guide to Flexbox](https://css-tricks.com/snippets/css/a-guide-to-flexbox/).
-
-<div align="center">
-  <img src="./examples/alignment_preview.png" alt="alignment" width="800"/>
-</div>
-
-## State
-
-```py
-..., state = actions.user.ui_elements([... "state"])
-
-tab, set_tab = state.use("tab", 1)
-
-# do conditional rendering with tab
-```
-
-`state.use` behaves like React’s `useState`. It returns a tuple (value, set_value). You must define a state key (e.g. `"tab"` in this case), so that `actions.user.ui_elements*` can also target it, and optionally a default value.
-
-To change state, we can use `set_tab` from above, or we can use Talon actions:
-```py
-actions.user.ui_elements_set_state("tab", 2)
-actions.user.ui_elements_set_state("tab", lambda tab: tab + 1)
-```
-
-State changes cause a full rerender (for now).
-
-
-If the UI doesn't need a setter, than we can use `state.get`, which is just the value.
-
-```py
-tab = state.get("tab", 1)
-```
-
-Read more about [state](./docs/state.md).
-
-### Disclaimer
-
-If you just need to update text or highlight, use the below methods instead, as those render on a separate decoration layer which are faster, and do not cause a full rerender.
-
-## Updating text
-We must give a unique id to the thing we want to update.
-```py
-text("Hello world", id="test"),
-```
-
-Then we can use this action to update the text:
-```py
-actions.user.ui_elements_set_text("test", "New text")
-```
-
-Simple text updates like this render on a separate decoration layer, and are faster than a full rerender.
-
-## Updating properties
-We must give a unique id to the thing we want to update.
-
-```py
-div(id="box", background_color="FF0000")[
-    text("Hello world"),
-]
-```
-
-Then we can use `ui_elements_set_property` to update the properties.  Changes will cause a full rerender. (for now)
-```py
-actions.user.ui_elements_set_property("box", "background_color", "red")
-actions.user.ui_elements_set_property("box", "width", "400")
-actions.user.ui_elements_set_property("box", {
-    "background_color": "red",
-    "width": "400"
-})
-```
-
-## Highlighting elements
-```py
-div(id="box")[
-    text("Hello world"),
-]
-```
-
-We can use these actions to trigger a highlight or unhighlight, targeting an element with the id `"box"`. Highlights happen on a separate decoration layer, and are faster than a full rerender.
-```py
-actions.user.ui_elements_highlight("box")
-actions.user.ui_elements_highlight_briefly("box")
-actions.user.ui_elements_unhighlight("box")
-```
-
-To use a custom highlight color, we can use the following property:
-```py
-div(id="box", highlight_color="FF0000")[
-    text("Hello world"),
-]
-```
-
-or we can specify the highlight color in the action:
-```py
-actions.user.ui_elements_highlight_briefly("box", "FF0000aa")
-```
-
-## Buttons
-If you use a button, the UI will block the mouse instead of being pass through, and voice activated hints will automatially appear on the button.
-```py
-# button
-button("Click me", on_click=lambda e: print("clicked")),
-button("Click me", on_click=actions.user.ui_elements_hide_all),
-```
-
-## Text inputs
-See [inputs_ui](./examples/inputs_ui.py) for example.
-
-## Unpacking a list
-```py
-commands = [
-    "left",
-    "right",
-    "up",
-    "down"
-]
-div(gap=8)[
-    text("Commands", font_weight="bold"),
-    *[text(command) for command in commands]
-],
-```
-
-## Opacity
-```py
-# 50% opacity
-div(background_color="FF0000", opacity=0.5)[
-    text("Hello world")
-]
-
-# or we can use the last 2 digits of the color
-div(background_color="FF000088")[
-    text("Hello world")
-]
-```
-
-## SVG Elements
-The following elements are supported for SVGs. For the most part it matches the HTML SVG spec.
-Based on a standard `view_box="0 0 24 24"`. You can use `size` to resize, and `stroke_width` to change the stroke width.
-
-returned from `actions.user.ui_elements_svg`
-| Element | Description |
-|---------|-------------|
-| `svg` | Wrapper for SVG elements. |
-| `path` | Accepts `d` attribute. |
-| `circle` | Accepts `cx`, `cy`, and `r` attributes. |
-| `rect` | Accepts `x`, `y`, `width`, `height`, `rx`, and `ry` attributes. |
-| `line` | Accepts `x1`, `y1`, `x2`, and `y2` attributes. |
-| `polyline` | Accepts `points` attribute. |
-| `polygon` | Accepts `points` attribute. |
-
-## Alternate screen
-```py
-# screen 1
-screen(1, align_items="flex_end", justify_content="center")[
-    div()[
-        text("Hello world")
-    ]
-]
-# or
-screen(screen=2, align_items="flex_end", justify_content="center")[
-    div()[
-        text("Hello world")
-    ]
-]
-```
-
-## Dragging
-
-To enable dragging, we can use the `draggable` property on the top most div.
-
-```py
-screen()[
-    div(draggable=True)[
-        text("Drag me")
-    ]
-]
-```
-
-By default the entire area is draggable. To limit the dragging handle to a specific element, we can use the `drag_handle=True` property on the element we want to use as the handle.
-
-```py
-screen()[
-    div(draggable=True)[
-        div(drag_handle=True)[
-            text("Header")
-        ]
-        div()[
-            # body content
-        ]
-    ]
-]
-```
-
-## Scrolling
-
-You can enable a vertical scroll bar by adding `overflow_y: "scroll"` property to a div. Then set a `height` or `max_height` on the element or a parent.
-
-Example:
 ```python
-div(overflow_y="scroll")[
-    ...
-]
+actions.user.ui_elements(...)       # Provides elements to compose your UI
+actions.user.ui_elements_show(...)  # Show your UI
+actions.user.ui_elements_hide(...)  # Hide your UI
 ```
 
-## Positioning and z-index
-```py
-# Will stay fixed to top left of screen inset by 100, 100, and on top of all other elements. Not affected by drag.
-screen()[
-    div(position="fixed", top=100, left=100, z_index=1)[
-        text("Hello world")
-    ]
-]
-```
+### 5. Concepts and Reference
+- [Talon actions](docs/concepts/actions.md)
+- [Components](docs/concepts/components.md)
+- [Defaults](docs/concepts/defaults.md)
+- [Effect](docs/concepts/effect.md)
+- [Elements](docs/concepts/elements.md)
+- [Properties](docs/concepts/properties.md)
+- [Ref](docs/concepts/ref.md)
+- [Rendering](docs/concepts/rendering.md)
+- [State](docs/concepts/state.md)
 
-```py
-# Use absolute with relative
-screen()[
-    div(position="relative", width=50, height=50)[
-        # same size and position as parent
-        div(position="absolute", width="100%", height="100%")
-        # occupies left side of parent
-        div(position="absolute", left=0, right="50%" height="100%")
-        # directly above parent (inset from bottom of parent by 50)
-        div(position="absolute", width="100%", bottom="100%")
-        # horizontal bar overlaying the bottom of parent
-        div(position="absolute", width="100%", height=10, bottom=0)
-    ]
-]
+## 🔍 More Examples
 
-## Focus outline
-When the UI is interactive (either draggable, or has buttons or inputs), then focus outlines appear when you tab through the elements. To change the color and width of the focus outline, you can use the following properties:
+You can say `"elements test"` to open the built-in examples UI.
 
-```py
-div(focus_outline_color="FF0000", focus_outline_width=4)[
-    text("Hello world")
-]
-```
-
-## Keyboard shortcuts
-Keyboard shortcuts become available if the UI is interactive.
-
-| Key | Description |
-|-----|-------------|
-| `Tab` | Move focus to the next element |
-| `Shift + Tab` | Move focus to the previous element |
-| `Down` | Move focus to the next element |
-| `Up` | Move focus to the previous element |
-| `Enter` | Trigger the focused element |
-| `Space` | Trigger the focused element |
-| `Esc` | Hide all UIs |
-
-
-## Cascading properties
-The following properties cascade down to children elements:
-- `color`
-- `font_size`
-- `font_family`
-- `opacity`
-- `highlight_color`
-- `focus_outline_color`
-- `focus_outline_width`
-
-## Additional Documentation
-| Documentation | Description |
-|---------------|-------------|
-| [Actions](./ui_elements.py) | Talon actions you can use (`actions.user.ui_elements*`) |
-| [Defaults](./docs/defaults.md) | Default values for all properties |
-| [Properties](./docs/properties.md) | List of all properties you can use |
-| [Icons and SVGs](./docs/icons_and_svgs.md) | List of supported icons and how to use custom SVGs |
-| [Effect](./docs/effect.md) | Side effects on mount, unmount, or state change |
-| [State](./docs/state.md) | Global reactive state that rerenders respective UIs when changed |
-| [Ref](./docs/ref.md) | Reference to an element "id", which provides a way to imperatively get and set properties, with reactive updates |
+📂 See the [examples folder](./examples) for code and screenshots.
 
 ## Development suggestions
 While developing, you might get into a state where the UI gets stuck on your screen and you need to restart Talon. For this reason, it's recommended to have a "talon restart" command.
@@ -445,6 +179,3 @@ class Actions:
 
 ## Under the hood
 Uses Talon's `Canvas` and Skia canvas integration under the hood, along with Talon's experimental `TextArea` for input.
-
-## Dependencies
-none, other than Talon

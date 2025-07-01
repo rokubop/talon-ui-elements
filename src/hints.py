@@ -2,10 +2,13 @@ from talon import Module, Context, cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
-from .state_manager import state_manager
+from .core.state_manager import state_manager
+from .core.store import store
 from .interfaces import NodeType, ClickEvent
-from .store import store
 from .utils import safe_callback
+from .versioning import talon_breaking_ui_version
+from .core.entity_manager import entity_manager
+from .interfaces import RenderTransforms
 
 mod = Module()
 ctx, ctx_hints_active_browser = Context(), Context()
@@ -20,25 +23,29 @@ first_time_setup = False
 
 class HintGenerator:
     def __init__(self):
-        c_char = 99
-        d_char = 100
-        z_char = 123
+        a_ord = 97
+        c_ord = 99
+        d_ord = 100
+        z_ord = 123
 
         # Arbitrary decisions:
-        # - Start buttons with 'b' and input_text with 'i'
+        # - Start buttons with 'b', link with 'l', and input_text with 'i'
         # - Second character start is based on personal
         #   preference for better recognition
         b_char = settings.get("user.ui_elements_hints_button_first_char")
         i_char = settings.get("user.ui_elements_hints_input_text_first_char")
+        l_char = settings.get("user.ui_elements_hints_link_first_char")
         self.char_map = {
-            "button": (b_char, [chr(i) for i in range(c_char, z_char)]),
-            "input_text": (i_char, [chr(i) for i in range(d_char, z_char)])
+            "button": (b_char, [chr(i) for i in range(c_ord, z_ord)]),
+            "input_text": (i_char, [chr(i) for i in range(d_ord, z_ord)]),
+            "link": (l_char, [chr(i) for i in range(a_ord, z_ord)])
         }
 
         # rather than using a generator, we increment char index
         self.state = {
             "button": (ord(b_char), 0),
-            "input_text": (ord(i_char), 0)
+            "input_text": (ord(i_char), 0),
+            "link": (ord(l_char), 0)
         }
 
     def generate_hint(self, node: NodeType):
@@ -74,7 +81,7 @@ def trigger_hint_click(hint_trigger: str):
         if hint == hint_trigger:
             node = store.id_to_node.get(id)
             if node:
-                if node.element_type == "button":
+                if node.element_type == "button" or node.element_type == "link":
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
@@ -89,7 +96,7 @@ def trigger_hint_focus(hint_trigger: str):
                 state_manager.focus_node(node)
             break
 
-def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
+def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransforms = None):
     c.paint.textsize = settings.get("user.ui_elements_hints_size", 12)
 
     hint_text_width = c.paint.measure_text(text)[1].width
@@ -100,43 +107,59 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str):
 
     apply_clip = False
     clip_rect = None
-    if node.box_model_v2.is_visible() != True:
+    if node.box_model.is_visible() != True:
         apply_clip = True
-        clip_rect = node.box_model_v2.clip_rect
+        clip_rect = node.box_model.clip_rect
 
-    if node.element_type == "button":
-        box_model_v2 = node.box_model_v2.content_rect
+    if node.element_type == "button" or node.element_type == "link":
+        box_model = node.box_model.content_rect
         offset_x = -hint_padding_width
         offset_y = -hint_padding_height
     else:
-        box_model_v2 = node.box_model_v2.padding_rect
+        box_model = node.box_model.padding_rect
         offset_x = -10
         offset_y = -4
 
     hint_padding_rect = Rect(
-        box_model_v2.x + offset_x,
-        box_model_v2.y + offset_y,
+        box_model.x + offset_x,
+        box_model.y + offset_y,
         hint_padding_width,
         hint_padding_height
     )
+
+    if transforms and transforms.offset:
+        hint_padding_rect.x += transforms.offset.x
+        hint_padding_rect.y += transforms.offset.y
 
     if apply_clip:
         c.save()
         c.clip_rect(clip_rect)
 
+    border_color = node.properties.border_color or "555555"
+    background_color = node.properties.background_color or "333333"
+    color = node.properties.color or "FFFFFF"
+
+    if node.uses_decoration_render:
+        border_color = node.resolve_render_property("border_color") or border_color
+        background_color = node.resolve_render_property("background_color") or background_color
+        color = node.resolve_render_property("color") or color
+
+    if talon_breaking_ui_version() >= 2:
+        c.paint.antialias = True
+
     # border
-    c.paint.color = node.properties.color or "555555"
+    c.paint.color = border_color
     c.paint.style = c.paint.Style.STROKE
     c.paint.stroke_width = 1
     c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
 
     # background
-    c.paint.color = node.properties.background_color or "333333"
+    c.paint.color = background_color
     c.paint.style = c.paint.Style.FILL
     c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
 
     # text
-    c.paint.color = node.properties.color or "FFFFFF"
+    c.paint.color = color
     c.paint.style = c.paint.Style.FILL
     c.draw_text(
         text,
@@ -179,7 +202,6 @@ def hint_tag_enable():
 
 def hint_tag_disable():
     ctx.tags = []
-
 
 class KeyPressOrRepeatHold:
     def __init__(self, action: callable):
@@ -248,4 +270,4 @@ class Actions:
         elif action == "focus_previous":
             focus_previous.execute(key_down)
         elif action == "close":
-            actions.user.ui_elements_hide_all()
+            entity_manager.hide_all_trees()

@@ -1,7 +1,7 @@
 from typing import Any
 from talon.experimental.textarea import Span
-from .entity_manager import entity_manager
-from .state_manager import state_manager
+from .core.entity_manager import entity_manager
+from .core.state_manager import state_manager
 
 class Ref:
     """
@@ -104,6 +104,16 @@ class Ref:
                 return input_data.input.value
             else:
                 raise ValueError(f"Element type '{element_type}' does not support 'value' property")
+        # TODO: think how to handle this - checkbox isn't actually a node, and its state is local
+        # elif name == "checked":
+        #     if element_type == "button":
+        #         node = self.get_node()
+        #         if node:
+        #             return node.properties.checked
+        #         else:
+        #             raise ValueError(f"Element type '{element_type}' does not support 'checked' property")
+        #     else:
+        #         raise ValueError(f"Element type '{element_type}' does not support 'checked' property")
         else:
             if node := self.get_node():
                 if overrides := node.tree.meta_state.get_ref_property_overrides(self._get("id")):

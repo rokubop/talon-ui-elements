@@ -18,16 +18,28 @@ return screen()[
 ]
 ```
 
-`effect` takes a function and a list of dependencies. If there are no dependencies, the `effect`  above will only be called only on mount, after the UI is rendered.
+`effect` takes a function and a list of dependencies.
+If you pass an empty list as dependencies, the `effect` will only be called only on mount, after the UI is rendered.
 
 ## On state change
 ```py
+screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
+button, effect, state = actions.user.ui_elements(["button", "effect", "state"])
+
 mode, set_mode = state.use("mode", "default")
 
 def on_mode_change():
     print("Mode changed to", mode)
 
 effect(on_mode_change, ["mode"])
+
+return screen()[
+    div()[
+        text("Current mode: " + mode),
+        button("Default", on_click=lambda: set_mode("default")),
+        button("Alternate", on_click=lambda: set_mode("alternate"))
+    ],
+]
 ```
 
 Dependencies are strings, not values, and refer to any global state key. The above will be called on mount, and whenever the `mode` state changes.

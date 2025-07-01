@@ -1,14 +1,17 @@
 from talon import Module, actions
 from typing import List, Any, Union, Callable
+from .src.core.entity_manager import entity_manager
+from .src.core.state_manager import state_manager, debug_gc
+from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
-from .src.entity_manager import entity_manager
-from .src.state_manager import state_manager, debug_gc
-from .src.nodes.tree import render_ui
-from .src.utils import get_version
+from .src.entry import render_ui
+from .src.errors import show_error_if_not_compatible
+from .src.versioning import get_version
+from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
+from .storybook.main import storybook_ui
 
 mod = Module()
-
 UNSET = object()
 
 @mod.action_class
@@ -18,23 +21,27 @@ class Actions:
         Provides elements and utilities to build your UI.
 
         ```
-        # Example 1
         div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
-
-        # Example 2 - All elements
-        elements = ["screen", "active_window", "div", "text", "button", "input_text", "state", "ref", "effect", "icon"]
-        screen, active_window, div, text, button, input_text, state, ref, effect, icon = actions.user.ui_elements(elements)
+        screen, active_window, window = actions.user.ui_elements(["screen", "active_window", "window"])
+        button, input_text, state = actions.user.ui_elements(["button", "input_text", "state"])
+        ref, effect, icon = actions.user.ui_elements(["ref", "effect", "icon"])
+        component, style = actions.user.ui_elements(["component", "style"])
+        checkbox, link = actions.user.ui_elements(["checkbox", "link"])
+        table, th, tr, td = actions.user.ui_elements(["table", "th", "tr", "td"])
+        svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
+        circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
         ```
         """
         return ui_elements(elements)
 
     def ui_elements_show(
-            renderer: callable,
+            renderer: Callable,
             props: dict[str, Any] = None,
-            on_mount: callable = None,
-            on_unmount: callable = None,
+            on_mount: Callable = None,
+            on_unmount: Callable = None,
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
+            min_version: str = None,
         ):
         """
         Render and show the UI
@@ -58,11 +65,14 @@ class Actions:
         actions.user.ui_elements_show(ui, on_mount=lambda: print("mounted"), on_unmount=lambda: print("unmounted"))
         ```
         """
+        if min_version and show_error_if_not_compatible(renderer, min_version):
+            return
+
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
 
-    def ui_elements_hide(renderer: Union[str, Callable]):
-        """Destroy and hide a specific ui based on its renderer function or an id on the root node (screen)"""
-        entity_manager.hide_tree(renderer)
+    def ui_elements_hide(renderer_or_tree_id: Union[str, Callable]):
+        """Destroy and hide a specific ui based on its renderer_or_tree_id function or an id on the root node (screen)"""
+        entity_manager.hide_tree(renderer_or_tree_id)
 
     def ui_elements_hide_all():
         """Destroy and hide all UIs"""
@@ -85,6 +95,10 @@ class Actions:
             entity_manager.hide_tree(renderer)
 
         return new_state_visible
+
+    def ui_elements_is_active(renderer: Union[str, Callable]):
+        """Check if a specific ui is active based on its renderer function or an id on the root node"""
+        return entity_manager.does_tree_exist(renderer)
 
     def ui_elements_set_state(name: Union[str, dict], value: Union[Any, callable] = UNSET):
         """
@@ -156,10 +170,9 @@ class Actions:
         else:
             state_manager.set_ref_property_override(id, property_name, value)
 
-    # TODO: Implement
-    # def ui_elements_toggle_hints(enabled: bool = None):
-    #     """Toggle hints visibility"""
-    #     state_manager.toggle_hints(enabled)
+    def ui_elements_toggle_hints(enabled: bool = None):
+        """Toggle hints visibility"""
+        state_manager.toggle_hints(enabled)
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""
@@ -185,6 +198,10 @@ class Actions:
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
 
+    def ui_elements_storybook_toggle():
+        """Toggle the storybook UI"""
+        actions.user.ui_elements_toggle(storybook_ui)
+
     def ui_elements_version():
         """
         Get the current version of `talon-ui-elements`.
@@ -207,6 +224,10 @@ class Actions:
     def ui_elements_examples():
         """Test example UIs"""
         toggle_elements_examples()
+
+    def ui_elements_dev_tools():
+        """Opens dev tools"""
+        actions.user.ui_elements_toggle(DevTools)
 
     def ui_elements_debug_gc():
         """Debug garbage collection - print to log"""
@@ -247,20 +268,6 @@ class Actions:
         """
         use_effect_without_tree(callback, arg2, arg3)
 
-    def ui_elements_register_on_lifecycle(callback: callable):
-        """
-        DEPRECATED: Register a callback to be called on mount or unmount.
-
-        Deprecated note: Use `ui_elements_register_effect` instead.
-        """
-        print("actions.user.ui_elements_register_on_lifecycle is deprecated. Use `actions.user.ui_elements_register_effect` or `effect` from `actions.user.ui_elements` instead.")
-        state_manager.deprecated_event_register_on_lifecycle(callback)
-
-    def ui_elements_unregister_on_lifecycle(callback: callable):
-        """
-        DEPRECATED: Unregister a lifecycle callback.
-
-        Deprecated note: Use `effect` instead inside your renderer, or use `on_mount` and `on_unmount` kwargs in `ui_elements_show`.
-        """
-        print("actions.user.ui_elements_unregister_on_lifecycle is deprecated. Use `actions.user.ui_elements_register_effect` or `effect` from `actions.user.ui_elements` instead.")
-        state_manager.deprecated_event_unregister_on_lifecycle(callback)
+    def ui_elements_test_runner():
+        """Run the test runner for regression tests"""
+        actions.user.ui_elements_toggle(runner_ui)

@@ -1,5 +1,10 @@
 from typing import List, Dict, Any, Union
 from .constants import ELEMENT_ENUM_TYPE
+from .core.state_manager import state_manager
+from .effect import use_effect, use_effect_no_tree
+from .nodes.component import Component
+from .nodes.checkbox import checkbox
+from .nodes.link import link
 from .nodes.node_container import NodeContainer
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
@@ -11,12 +16,20 @@ from .nodes.node_svg import (
     NodeSvgPolyline,
     NodeSvgLine,
 )
+from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
+from .nodes.switch import switch
+from .nodes.node_window import NodeWindow
+from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
     NodeDivProperties,
+    NodeTableProperties,
+    NodeTableDataProperties,
+    NodeTableHeaderProperties,
+    NodeTableRowProperties,
     NodeTextProperties,
     NodeSvgProperties,
     NodeSvgPathProperties,
@@ -25,12 +38,15 @@ from .properties import (
     NodeSvgPolylineProperties,
     NodeSvgPolygonProperties,
     NodeSvgLineProperties,
+    NodeWindowProperties,
+    NodeModalProperties,
+    combine_props,
+    validate_props,
     validate_combined_props
 )
 from .icons import icon
-from .interfaces import Effect
 from .ref import Ref
-from .state_manager import state_manager
+from .style import Style
 
 def screen(*args, **additional_props):
     """
@@ -79,31 +95,62 @@ def active_window(props=None, **additional_props):
 
 class State:
     def get(self, key: str, initial_state: Any = None):
+        tree = state_manager.get_processing_tree()
+        components = state_manager.get_processing_components()
+        if not tree:
+            raise ValueError("""
+                state.get() must be called during render, such as during ui_elements_show(ui).
+                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+            """)
+
+        tree.meta_state.associate_state(key, components)
         return get_state(key, initial_state)
 
     def use(self, key: str, initial_state: Any = None):
+        tree = state_manager.get_processing_tree()
+        components = state_manager.get_processing_components()
+        if not tree:
+            raise ValueError("""
+                state.use() must be called during render, such as during ui_elements_show(ui).
+                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+            """)
+
+        tree.meta_state.associate_state(key, components)
         return use_state(key, initial_state)
 
     def set(self, key: str, value: Any):
-        return set_state(key, value)
+        set_state(key, value)
+
+    def use_local(self, key: str, initial_state: Any = None):
+        tree = state_manager.get_processing_tree()
+        components = state_manager.get_processing_components()
+        if not components:
+            raise ValueError("""
+                state.use_local() must be used inside a component.
+            """)
+        if not tree:
+            raise ValueError("""
+                state.use_local() must be called during render, such as during ui_elements_show(ui).
+                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
+                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+            """)
+        last_component = components[-1]
+        unique_key = f"{tree.name}_{key}_{last_component.name}_{last_component.id}"
+        tree.meta_state.associate_local_state(unique_key, last_component)
+        return use_state(unique_key, initial_state)
 
     def __call__(self, *args, **kwargs):
         raise ValueError("""
-            Cannot call state() directly. Instead use:
-            value = state.get("value", optional_initial_value)
-            value, set_value = state.use("value", optional_initial_value)
-            state.set("value", new_value)
+            Cannot call state() directly. Instead use one of the following:
+            value = state.get("key", optional_initial_value)
+            value, set_value = state.use("key", optional_initial_value)
+            value, set_value = state.use_local("key", optional_initial_value)
+            state.set("key", new_value)
         """)
 
 def use_state(key: str, initial_state: Any = None):
-    tree = state_manager.get_processing_tree()
-    if not tree:
-        raise ValueError("""
-            use_state() must be called during render of a tree, such as during ui_elements_show(ui).
-            If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
-            actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
-        """)
-
     return state_manager.use_state(key, initial_state)
 
 def get_state(key: str, initial_state: Any = None):
@@ -111,71 +158,84 @@ def get_state(key: str, initial_state: Any = None):
     return value
 
 def set_state(key: str, value: Any):
-    _, set_value = state_manager.set_state_value(key, value)
-    return set_value
+   state_manager.set_state_value(key, value)
 
-def use_effect_without_tree(callback, arg2, arg3=None):
-    dependencies: list[str] = []
-    cleanup = None
-
-    if arg3 is not None:
-        cleanup = arg2
-        dependencies = arg3
-    else:
-        dependencies = arg2
-
-    effect = Effect(
-        name=callback.__name__,
-        callback=callback,
-        cleanup=cleanup,
-        dependencies=dependencies,
-        tree=None
-    )
-    state_manager.register_effect(effect)
-
-def use_effect(callback, arg2, arg3=None):
-    """
-    Register callbacks on state change or on mount/unmount.
-
-    Usage #1: `effect(callback, dependencies)`
-
-    Usage #2: `effect(callback, cleanup, dependencies)`
-
-    Dependencies are `str` state keys, or empty `[]` for mount/unmount effects.
-    """
-    dependencies: list[str] = []
-    cleanup = None
-
-    if arg3 is not None:
-        cleanup = arg2
-        dependencies = arg3
-    else:
-        dependencies = arg2
-
-    tree = state_manager.get_processing_tree()
-
-    if not tree:
-        raise ValueError("""
-            effect(callback, [cleanup], dependencies) must be called during render of a tree, such as during ui_elements_show(ui).
-            You can also optionally use register on_mount and on_unmount effects directly with ui_elements_show(ui, on_mount=callback, on_unmount=callback)
-        """)
-
-    if not tree.is_mounted:
-        effect = Effect(
-            name=callback.__name__,
-            callback=callback,
-            cleanup=cleanup,
-            dependencies=dependencies,
-            tree=tree
-        )
-        state_manager.register_effect(effect)
+def style(style_dict: dict[str, Any]):
+    context = state_manager.get_processing_component() \
+        or state_manager.get_processing_tree()
+    if context:
+        context.style = Style(style_dict)
 
 def div(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["div"])
     div_properties = NodeDivProperties(**properties)
     return NodeContainer(ELEMENT_ENUM_TYPE["div"], div_properties)
 
+def table(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["table"])
+    table_properties = NodeTableProperties(**{
+        **properties,
+        "flex_direction": "row",
+    })
+    return NodeTable(table_properties)
+
+def tr(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["tr"])
+    table_row_properties = NodeTableRowProperties(**properties)
+    return NodeTableRow(table_row_properties)
+
+def td(*args, **additional_props):
+    text_content = None
+
+    # Check if 'text' was passed as a keyword argument and rename it to avoid conflict
+    if 'text' in additional_props:
+        text_content = additional_props.pop('text')
+
+    if args and isinstance(args[0], str):
+        text_content = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["td"])
+    table_data_properties = NodeTableDataProperties(**properties)
+    td_node = NodeTableData(table_data_properties)
+
+    if text_content:
+        text_node = text(text_content)
+        td_node.add_child(text_node)
+
+    return td_node
+
+def th(*args, **additional_props):
+    text_content = None
+
+    if 'text' in additional_props:
+        text_content = additional_props.pop('text')
+
+    if args and isinstance(args[0], str):
+        text_content = args[0]
+        args = args[1:]
+
+    props = args[0] if args and isinstance(args[0], dict) else {}
+
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["th"])
+    table_header_properties = NodeTableHeaderProperties(**properties)
+    th_node = NodeTableHeader(table_header_properties)
+
+    if text_content:
+        text_node = text(text_content)
+        th_node.add_child(text_node)
+
+    return th_node
+
 def text(text_str: str = "", props=None, **additional_props):
+    if isinstance(text_str, str):
+        lines = text_str.replace("\r\n", "\n").split("\n")
+        if len(lines) > 1:
+            return div()[
+                *[text(line, props=props, **additional_props) for line in lines]
+            ]
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
@@ -187,7 +247,12 @@ def button(*args, text=None, **additional_props):
 
     props = args[0] if args and isinstance(args[0], dict) else {}
 
-    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["button"])
+    all_props = combine_props(props, additional_props)
+
+    properties = validate_props(
+        all_props,
+        ELEMENT_ENUM_TYPE["button"]
+    )
 
     if text:
         properties["type"] = "button"
@@ -196,6 +261,9 @@ def button(*args, text=None, **additional_props):
             **properties
         })
         return NodeText(ELEMENT_ENUM_TYPE["button"], text, text_properties)
+
+    if all_props.get("element_type", None):
+        properties["element_type"] = all_props["element_type"]
 
     button_properties = NodeTextProperties(**properties)
     return NodeButton(button_properties)
@@ -207,16 +275,110 @@ def input_text(props=None, **additional_props):
         raise ValueError("input_text must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
     return NodeInputText(input_properties)
 
-def css_deprecated(props=None, **additional_props):
-    return validate_combined_props(props, additional_props, "div")
+def window(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["window"])
 
-deprecated_elements = {
-    # Just use a dictionary instead
-    # Wrapping with a class doesn't help with intellisense
-    "css": css_deprecated,
+    window_properties = {}
+    body_properties = {}
+
+    for key, value in properties.items():
+        if key in [
+            "position",
+            "top",
+            "left",
+            "right",
+            "bottom",
+            "width",
+            "min_width",
+            "min_height",
+            "margin",
+            "margin_top",
+            "margin_bottom",
+            "margin_left",
+            "margin_right",
+            "max_width",
+            "max_height",
+            "minimized",
+            "minimized_body",
+            "minimized_style",
+            "height",
+            "z_index",
+            "background_color",
+            "border_radius",
+            "border_width",
+            "border_color",
+            "drop_shadow",
+            "on_minimize",
+            "on_restore",
+            "on_close",
+            "title",
+            "show_title_bar",
+            "show_close",
+            "show_minimize",
+            "title_bar_style",
+        ]:
+            window_properties[key] = value
+        else:
+            body_properties[key] = value
+
+    return NodeWindow(
+        window_properties=window_properties,
+        body_properties=body_properties,
+    )
+
+modal_only_props = {
+    "open",
+    "on_close",
+    "show_title_bar",
+    "backdrop",
+    "backdrop_color",
+    "backdrop_click_close",
+    "title",
 }
 
-class UIElementsContainerProxy:
+def split_modal_props(props: dict[str, Any]):
+    modal_props = {}
+    contents_props = {}
+
+    for prop in props:
+        # print(f"prop: {prop}")
+        if prop in modal_only_props:
+            modal_props[prop] = props[prop]
+        else:
+            contents_props[prop] = props[prop]
+
+    return modal_props, contents_props
+
+def modal(title=None, open=False, on_close=None, draggable=False, show_title_bar=True,
+         backdrop=True, backdrop_color="00000080", backdrop_click_close=True, props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["modal"])
+    modal_props, contents_props = split_modal_props({
+        **properties,
+        "title": title,
+        "open": open,
+        "on_close": on_close,
+        "draggable": draggable,
+        "show_title_bar": show_title_bar,
+        "background_color": "222222",
+        "border_width": 1,
+        "drop_shadow": (0, 20, 25, 25, "000000CC"),
+        "backdrop": backdrop,
+        "backdrop_color": backdrop_color,
+        "backdrop_click_close": backdrop_click_close
+    })
+    return NodeModal(
+        NodeModalProperties(
+            **modal_props,
+            width="100%",
+            height="100%",
+            position="absolute",
+            justify_content="center",
+            align_items="center"
+        ),
+        contents_props,
+    )
+
+class UIElementsContainerNoTextProxy:
     def __init__(self, func):
         self.func = func
 
@@ -227,6 +389,20 @@ class UIElementsContainerProxy:
         for arg in args:
             if isinstance(arg, str):
                 raise ValueError(f"Tried to provide a string argument to a ui_element that doesn't accept it. Use text() if you want to display a string.")
+
+        return self.func(*args, **kwargs)
+
+class UIElementsWindowProxy:
+    def __init__(self, func):
+        self.func = func
+
+    def __getitem__(self, item):
+        raise TypeError(f"You must call {self.func.__name__}() before declaring children. Use {self.func.__name__}()[..] instead of {self.func.__name__}[..].")
+
+    def __call__(self, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str):
+                raise ValueError(f"Use property 'title' to set the window title instead of passing a string argument.")
 
         return self.func(*args, **kwargs)
 
@@ -264,34 +440,25 @@ class UIElementsLeafProxy:
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-div = UIElementsContainerProxy(div)
-text = UIElementsLeafProxy(text)
-screen = UIElementsContainerProxy(screen)
-active_window = UIElementsContainerProxy(active_window)
+use_effect_without_tree = use_effect_no_tree
+
+active_window = UIElementsContainerNoTextProxy(active_window)
 button = UIElementsLeafProxy(button)
+checkbox = UIElementsLeafProxy(checkbox)
+div = UIElementsContainerNoTextProxy(div)
+effect = use_effect
 icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
-state = State()
-effect = use_effect
+modal = UIElementsContainerNoTextProxy(modal)
 ref = Ref
-
-element_collection: Dict[str, callable] = {
-    'button': button,
-    'active_window': active_window,
-    'div': div,
-    'icon': icon,
-    'input_text': input_text,
-    'screen': screen,
-    'text': text,
-    'state': state,
-    'ref': ref,
-    'effect': effect,
-}
-
-element_collection_full = {
-    **element_collection,
-    **deprecated_elements
-}
+screen = UIElementsContainerNoTextProxy(screen)
+state = State()
+table = UIElementsContainerNoTextProxy(table)
+td = UIElementsProxy(td)
+text = UIElementsLeafProxy(text)
+th = UIElementsProxy(th)
+tr = UIElementsProxy(tr)
+window = UIElementsWindowProxy(window)
 
 def svg(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["svg"])
@@ -345,6 +512,36 @@ element_svg_collection_full = {
     "polygon": svg_polygon,
 }
 
+
+element_collection: Dict[str, callable] = {
+    'active_window': active_window,
+    'button': button,
+    'checkbox': checkbox,
+    'component': Component,
+    'div': div,
+    'effect': effect,
+    'icon': icon,
+    'input_text': input_text,
+    'link': link,
+    # 'modal': modal, # experimental
+    'ref': ref,
+    'screen': screen,
+    'state': state,
+    'style': style,
+    'table': table,
+    'td': td,
+    'text': text,
+    'th': th,
+    'tr': tr,
+    # 'switch': switch, # experimental
+    'window': window,
+    **element_svg_collection_full,
+}
+
+element_collection_full = {
+    **element_collection
+}
+
 def ui_elements(*elements: Union[str, List[str]]) -> tuple[callable]:
     if len(elements) == 1 and isinstance(elements[0], (list, tuple)):
         elements = elements[0]
@@ -354,12 +551,6 @@ def ui_elements(*elements: Union[str, List[str]]) -> tuple[callable]:
 
     if type(elements) == str:
         elements = [elements]
-
-    if any(element in element_svg_collection_full for element in elements):
-        raise ValueError(
-            f"\nInvalid elements `{elements}` provided to ui_elements"
-            f"\nSVG elements must use `ui_elements_svg` instead of `ui_elements`"
-        )
 
     if not all(element in element_collection_full for element in elements):
         raise ValueError(

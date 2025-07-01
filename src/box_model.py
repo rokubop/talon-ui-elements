@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Union
-from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .interfaces import (
     BoxModelSpacing,
@@ -219,10 +218,12 @@ class BoxModelV2(BoxModelV2Type):
     def intrinsic_margin_size_with_bounding_constraints(self):
         width = self.intrinsic_margin_size.width
         max_width = self.width or self.max_width
+        max_width = max_width + self.margin_spacing.left + self.margin_spacing.right if max_width is not None else None
         if max_width and max_width < width:
             width = max_width
         height = self.intrinsic_margin_size.height
         max_height = self.height or self.max_height
+        max_height = max_height + self.margin_spacing.top + self.margin_spacing.bottom if max_height is not None else None
         if max_height and max_height < height:
             height = max_height
         return Size2d(width, height)
@@ -233,9 +234,9 @@ class BoxModelV2(BoxModelV2Type):
         for node_ref in self.clip_nodes:
             node = node_ref()
             if clip_rect:
-                clip_rect = clip_rect.intersect(node.box_model_v2.padding_rect)
+                clip_rect = clip_rect.intersect(node.box_model.padding_rect)
             else:
-                clip_rect = node.box_model_v2.padding_rect
+                clip_rect = node.box_model.padding_rect
         return clip_rect
 
     @property
@@ -260,7 +261,7 @@ class BoxModelV2(BoxModelV2Type):
 
         if self.relative_positional_node:
             relative_node = self.relative_positional_node()
-            box_model = relative_node.box_model_v2
+            box_model = relative_node.box_model
             if box_model:
                 container_width = box_model.border_size.width
                 container_height = box_model.border_size.height
@@ -493,7 +494,7 @@ class BoxModelV2(BoxModelV2Type):
 
     def position_from_relative_parent(self, cursor: Point2d):
         relative_positional_node = self.relative_positional_node()
-        relative_border = relative_positional_node.box_model_v2.border_rect
+        relative_border = relative_positional_node.box_model.border_rect
 
         x = relative_border.x
         y = relative_border.y
@@ -577,7 +578,7 @@ class BoxModelV2(BoxModelV2Type):
         view_height = self.padding_size.height
         total_scrollable_height = self.content_children_with_padding_size.height
 
-        if total_scrollable_height > view_height:
+        if view_height and total_scrollable_height and total_scrollable_height > view_height:
             self.scroll_bar_track_rect = Rect(
                 self.padding_pos.x + self.padding_size.width,
                 self.padding_pos.y,
