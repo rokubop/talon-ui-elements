@@ -415,6 +415,14 @@ class StateManager:
 
         if store.focused_id:
             current_node = store.id_to_node.get(store.focused_id)
+
+            if current_node is None:
+                # The focused node was deleted, clear the focus and start from beginning
+                store.focused_id = None
+                if interactive_nodes:
+                    self.focus_node(interactive_nodes[0])
+                return
+
             current_index = interactive_nodes.index(current_node)
             next_index = current_index + 1 if current_index < len(interactive_nodes) - 1 else 0
             next_node = interactive_nodes[next_index]
@@ -423,7 +431,8 @@ class StateManager:
         else:
             next_node = interactive_nodes[0]
 
-        self.focus_node(next_node)
+        if next_node:
+            self.focus_node(next_node)
 
     def focus_previous(self):
         interactive_nodes = []
@@ -433,8 +442,14 @@ class StateManager:
 
         if store.focused_id:
             current_node = store.id_to_node.get(store.focused_id)
+
             if current_node is None:
+                # The focused node was deleted, clear the focus and start from beginning
+                store.focused_id = None
+                if interactive_nodes:
+                    self.focus_node(interactive_nodes[0])
                 return
+
             current_index = interactive_nodes.index(current_node)
             previous_index = current_index - 1 if current_index > 0 else len(interactive_nodes) - 1
             previous_node = interactive_nodes[previous_index]
@@ -443,7 +458,8 @@ class StateManager:
         else:
             previous_node = interactive_nodes[-1]
 
-        self.focus_node(previous_node)
+        if previous_node:
+            self.focus_node(previous_node)
 
     def scroll_to(self, id: str, x: int, y: int):
         node = store.id_to_node.get(id)
