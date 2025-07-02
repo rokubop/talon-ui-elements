@@ -857,7 +857,7 @@ class Tree(TreeType):
             rect.x,
             rect.y,
             rect.width - 0.001,
-            rect.height - 0.001
+            rect.height - 1.0
         )
         return CanvasWeakRef(self.Canvas.from_rect(safe_rect))
 
