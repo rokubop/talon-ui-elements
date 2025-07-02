@@ -1,37 +1,168 @@
 # 📜 Command Cheatsheet Tutorial
 
+In this tutorial we will build a draggable transparent cheatsheet with 2 lists and 1 table, each with their own title.
+
 ![Cheatsheet Preview](../../examples/cheatsheet_preview.png)
 
 ## Step 1: See full code
-See [examples/cheatsheet_ui.py](/examples/cheatsheet_ui.py) for the complete code.
+See [examples/cheatsheet_ui.py](../../examples/cheatsheet_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 
-## Code Breakdown
+## The Big Picture
 
-### Root element
-`screen` is the root element. It is basically a `div` that fills the screen, and is used to position the elements inside.
+This example is organized into 3 functions:
+- `table_commands()` - Creates a table showing commands and descriptions
+- `list_commands()` - Creates two side-by-side lists of commands
+- `cheatsheet_ui()` - The main UI function that combines everything
 
-### Layout
-Because the screen has `flex_direction="row"`, `justify_content` refers to the horizontal axis, and `align_items` refers to the vertical axis.
+**Focus here first:** `cheatsheet_ui()` is the main UI function that gets called with `actions.user.ui_elements_show(cheatsheet_ui)`.
 
-The initial value of `justify_content` is `"flex_end"` which means the contents are justified to the right side of the screen. `align_items="center"` means it is vertically centered in this case. These are common concepts in CSS Flexbox, and you can read more about them in the [Flexbox alignment](https://www.joshwcomeau.com/css/interactive-guide-to-flexbox/#alignment-3).
+## Understanding the Structure
 
-If you want to offset from the edge of the screen, you can use `padding` on the screen, or `margin` on the child element. For example, `div(margin_right=20)` would offset the content 20 pixels from the right edge of the screen.
+### Getting Elements
+All UI elements come from `actions.user.ui_elements()`:
 
-### State
-`state` initial value is actually set by another file in this case, during show, `user.ui_elements_show(cheatsheet_ui, initial_state={ "commands": ["Command 1", "Command 2", "Command 3"]})`, but it could have been defined directly in the ui with the second parameter `state.get("key", initial_value)` instead.
+```python
+div, screen, text, style = actions.user.ui_elements(['div', 'screen', 'text', 'style'])
+```
 
-### Visibility
-The `cheatsheet_ui` function is imported from another file, and visibility can be controlled with `actions.user.ui_elements_show(cheatsheet_ui)`, `actions.user.ui_elements_hide(cheatsheet_ui)`, `actions.user.ui_elements_hide_all()`, or `actions.user.ui_elements_toggle(cheatsheet_ui)`.
+The order of returned elements will match the order you specify in the list. See [elements.md](../concepts/elements.md) for a full list of available elements.
 
-### IDs
-The reason `div` is given an `id`, is because we want to do something dynamic with it. In this example we use `actions.user.ui_elements_set_property("cheatsheet", "background_color", value)` to dynamically set the background color on it. This could have been done with `state` as well, and would have been the same performance.
+**Important:** `screen` must always be the first element - it's the root container that fills the entire screen.
 
-If instead you wanted to highlight the target id, you could use `actions.user.ui_elements_highlight("cheatsheet")` or `actions.user.ui_elements_highlight_briefly("cheatsheet")`, which is faster performance because highlight only affects the decoration layer and does not cause a full re-render.
+### Basic Element Syntax
+Every element follows this pattern:
+- **Properties** go in parentheses: `div(background_color="#333333", padding=16)`
+- **Children** go in square brackets: `div()[...]`
 
-### List comprehension
-Use `*[text(command) for command in commands]` python pattern to render a list of `text` components dynamically. This is the same as if we had listed out `text("Command 1")`, `text("Command 2")`, etc. but allows for dynamic updates to the list without needing to change the UI code.
+```python
+# Properties define how the element looks and behaves
+div(background_color="#333333", padding=16)
 
-### Setting up actions
-For more information on setting up voice commands, see [hello_world.md](../tutorials/hello_world.md).
+# Children define what goes inside the element
+div()[
+    text("List commands"),
+    list_commands(),
+    text("Table commands"),
+    table_commands()
+]
+
+# Combined: properties + children
+div(background_color="#333333", padding=16)[
+    text("Hello World")
+]
+```
+
+## Breaking Down cheatsheet_ui()
+
+Let's look at the main function step by step:
+
+### 1. The Screen Layout
+```python
+return screen(flex_direction="row", align_items="center", justify_content="flex_end")
+```
+- `screen` fills the entire display
+- `flex_direction="row"` means children lay out horizontally
+- `justify_content="flex_end"` justify_content is the same axis as flex_direction, so this pushes content to the right side
+- `align_items="center"` align_items is the perpendicular axis, so this centers content vertically
+
+### 2. The Main Container
+```python
+div(
+    draggable=True,
+    flex_direction="column",
+    opacity=0.7,
+    margin=16,
+    background_color="#333333",
+    padding=16,
+    gap=16,
+    border_radius=8,
+)
+```
+- `draggable=True` lets users move the cheatsheet around
+- `flex_direction="column"` stacks children vertically
+- `opacity=0.7` makes it slightly transparent
+- `background_color="#333333"` gives it a dark gray background
+- `padding=16` adds space inside the container
+- `gap=16` adds space between children
+- `border_radius=8` rounds the corners
+
+### 3. The Content
+```python
+[
+    text("List commands", class_name="title"),
+    list_commands(),
+    text("Table commands", class_name="title"),
+    table_commands()
+]
+```
+This creates the structure:
+1. Title: "List commands"
+2. The two side-by-side lists
+3. Title: "Table commands"
+4. The command table
+
+## Styling with Classes
+
+The tutorial uses a `style()` element to define reusable styles:
+
+```python
+style({
+    ".title": {
+        "font_weight": "bold",
+        "font_size": 16,
+        "color": "#FFFFFF",
+        "padding_bottom": 8,
+        "border_bottom": 1,
+        "border_color": "#FFCC00"
+    }
+})
+```
+
+Then apply it with `class_name="title"`. This makes titles bold, white, with a yellow underline. Using style is optional, you can also apply styles directly to elements.
+
+## Functions
+
+### list_commands()
+Creates two bordered boxes side by side:
+```python
+div(flex_direction="row", gap=16)[
+    div(flex=1, padding=12, border_radius=4, border_color="#444444", border_width=1)[...],
+    div(flex=1, padding=12, border_radius=4, border_color="#444444", border_width=1)[...]
+]
+```
+- `flex_direction="row"` puts boxes side by side
+- `flex=1` makes each try to be full width, so both boxes will share equal width. You can also do `justify_content="space_between"` to get the same effect.
+- `gap=16` adds space between the boxes
+
+### table_commands()
+Creates a proper HTML table:
+```python
+table()[
+    tr()[th()[text("Command")], th()[text("Description")]],
+    *[tr()[td()[text(command)], td()[text(description)]] for command, description in commands_table.items()]
+]
+```
+- `table` is the container
+- `tr` is a table row
+- `th` is a header cell
+- `td` is a data cell
+- `*[...]` is a common python pattern to unpack a list
+
+## Using Your Cheatsheet
+
+Show/hide the cheatsheet with:
+```python
+actions.user.ui_elements_show(cheatsheet_ui)
+actions.user.ui_elements_hide(cheatsheet_ui)
+actions.user.ui_elements_toggle(cheatsheet_ui)
+```
+
+## Next Steps
+
+- See [hello_world.md](../tutorials/hello_world.md) for setting up voice commands
+- Learn about [Properties](../concepts/properties.md) for styling elements
+- Understand [State and Reactivity](../concepts/state.md) for dynamic UIs
+- Explore [Components](../concepts/components.md) for reusable patterns
+- Check [Talon Actions](../concepts/actions.md) for voice integration

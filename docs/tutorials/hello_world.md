@@ -53,8 +53,8 @@ def hello_world_ui():
     div, text, screen = actions.user.ui_elements(["div", "text", "screen"])
 
     return screen(justify_content="center", align_items="center")[
-        div(background_color="333333", padding=16, border_radius=8)[
-            text("Hello world", font_size=24, color="FFFFFF")
+        div(background_color="#333333", padding=16, border_radius=8)[
+            text("Hello world", font_size=24, color="#FFFFFF")
         ]
     ]
 ```
@@ -62,11 +62,11 @@ def hello_world_ui():
 **What's new?**
 
 - `justify_content="center"` and `align_items="center"` center the div on screen
-- `background_color="333333"` gives the div a dark gray background
+- `background_color="#333333"` gives the div a dark gray background
 - `padding=16` adds space inside the div around the text
 - `border_radius=8` rounds the corners
 - `font_size=24` makes the text bigger
-- `color="FFFFFF"` makes the text white
+- `color="#FFFFFF"` makes the text white
 
 ## Step 3: Add Show/Hide Functions
 
