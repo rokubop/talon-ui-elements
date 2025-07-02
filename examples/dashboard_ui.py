@@ -38,8 +38,9 @@ USER_LIST = [
 
 def body():
     div, text, style = actions.user.ui_elements(["div", "text", "style"])
-    table, tr, th, td = actions.user.ui_elements(["table", "tr", "th", "td"])
+    table, tr, td = actions.user.ui_elements(["table", "tr", "td"])
     state = actions.user.ui_elements(["state"])
+
     current_user_list = state.get("current_user_list", USER_LIST[0])
     key_vals = get_user_list(current_user_list)
 
@@ -79,7 +80,8 @@ def minimized_body():
     return body()
 
 def dashboard_ui():
-    window, screen, component = actions.user.ui_elements(["window", "screen", "component"])
+    """Main UI for dashboard"""
+    window, screen = actions.user.ui_elements(["window", "screen"])
 
     return screen(justify_content="center", align_items="center")[
         window(
@@ -97,14 +99,12 @@ def dashboard_ui():
             }
         )[
             sidebar(),
-            component(body),
+            body(),
         ]
     ]
 
 def show_dashboard_ui():
-    actions.user.ui_elements_show(dashboard_ui, initial_state={
-        "current_user_list": USER_LIST[0]
-    })
+    actions.user.ui_elements_show(dashboard_ui)
 
 def hide_dashboard_ui():
     actions.user.ui_elements_hide(dashboard_ui)

@@ -31,97 +31,21 @@ git clone https://github.com/rokubop/talon-ui-elements.git
 
 Done! 🎉 Start learning below.
 
-## Usage
-Choose [elements](#elements) from `actions.user.ui_elements` and create a **renderer function** in any `.py` file in your Talon user directory.
-
-```py
-def hello_world_ui():
-    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
-
-    return screen()[
-        div()[
-            text("Hello world")
-        ]
-    ]
-```
-
-To define styles, we put it inside of the **parentheses**. To define children, we put it inside the **square brackets**.
-```py
-def hello_world_ui():
-    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
-
-    return screen(justify_content="center", align_items="center")[
-        div(background_color="333333", padding=16, border_radius=8, border_width=1)[
-            text("Hello world", font_size=24)
-        ]
-    ]
-```
-
-Now we just need to show and hide it, so let's create two Talon actions. Here's the full `.py` code:
-```py
-from talon import Module, actions
-
-mod = Module()
-
-def hello_world_ui():
-    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
-
-    return screen(justify_content="center", align_items="center")[
-        div(background_color="333333", padding=16, border_radius=8, border_width=1)[
-            text("Hello world", font_size=24)
-        ]
-    ]
-
-@mod.action_class
-class Actions:
-    def show_hello_world():
-        """Show hello world UI"""
-        actions.user.ui_elements_show(hello_world_ui)
-
-    def hide_hello_world():
-        """Hide hello world UI"""
-        actions.user.ui_elements_hide_all()
-        # or actions.user.ui_elements_hide(hello_world_ui)
-```
-
-And in any `.talon` file:
-```talon
-show hello world: user.show_hello_world()
-hide hello world: user.hide_hello_world()
-```
-
-Now when you say "show hello world", the UI should appear.
-
-<p align="center">
-  <img src="./examples/hello_world_preview.png" alt="hello_world" width="200"/>
-</p>
-
-Congratulations! You've created your first UI. 🎉
-
 ## Examples
 
 Say "elements test" to bring up the examples.
 
 ![examples](./examples/examples_preview.png)
 
-## ✨ What You Can Build - Tutorials
+## ✨ Tutorials
 
 | Use Case |  |
 |----------|---|
+| 👋 Hello World | [Start the tutorial →](docs/tutorials/hello_world.md) |
 | 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/cheatsheet.md) |
 | 🧭 Dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
 | 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_key_overlay.md) |
 | 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
-
-## 🚀 Your First UI in 3 Minutes
-
-📘 [Start the Hello World tutorial →](docs/tutorials/hello_world.md)
-
-You'll learn:
-- How to create a renderer
-- Show and hide it
-- Style elements
-- Use Talon commands
 
 ## 🛠️ Core Actions
 
@@ -143,8 +67,6 @@ actions.user.ui_elements_hide(...)  # Hide your UI
 - [State](docs/concepts/state.md)
 
 ## 🔍 More Examples
-
-You can say `"elements test"` to open the built-in examples UI.
 
 📂 See the [examples folder](./examples) for code and screenshots.
 

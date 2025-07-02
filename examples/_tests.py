@@ -4,7 +4,7 @@ from .hello_world_ui import hello_world_ui
 from .todo_list_ui import todo_list_ui
 from .alignment_ui import alignment_ui
 from .state_vs_refs_ui import state_vs_refs_ui
-from .cheatsheet_actions import cheatsheet_show
+from .cheatsheet_ui import cheatsheet_ui
 from .inputs_ui import inputs_ui
 from .dashboard_ui import show_dashboard_ui
 from .examples_ui import examples_ui
@@ -32,7 +32,7 @@ def test_dashboard_ui():
 
 # @test_module
 def test_cheatsheet_ui():
-    cheatsheet_show()
+    actions.user.ui_elements_show(cheatsheet_ui)
 
 # @test_module
 def test_inputs_ui():

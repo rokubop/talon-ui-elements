@@ -1,6 +1,6 @@
 # 🎮 Game Key Overlay Tutorial
 
-Build a visual overlay showing game controls that you can toggle on and off during gameplay. Perfect for learning new games or streaming!
+In this tutorial we will build a visual overlay showing game controls with arrow keys and action buttons that you can toggle on and off during gameplay.
 
 ![Game Keys Preview](../../examples/game_keys_preview.png)
 
@@ -9,43 +9,211 @@ See [examples/game_keys_ui.py](../../examples/game_keys_ui.py) for the complete 
 
 Say "elements test" to see examples in action.
 
-## Code Breakdown
+## The Big Picture
 
-**Reusable Functions**: Abstracting helper functions like `key()` and `key_icon()` lets you create reusable code.
+This example is organized into 4 functions:
+- `key()` - Creates a labeled key button (like "jump", "dash")
+- `key_icon()` - Creates a key with an icon (like arrow keys)
+- `blank_key()` - Creates an invisible placeholder key for spacing
+- `game_keys_ui()` - The main UI function that arranges all the keys
 
-**Class-Based Styling**: We use `class_name="key"`, which can then be controlled by the `style()` element, defining the properties for `.key`, This is the same as if you defined the properties directly on the element, but allows for easier reuse and consistency across multiple elements.
+**Focus here first:** `game_keys_ui()` is the main UI function that gets called with `actions.user.ui_elements_show(game_keys_ui)`.
 
-**Screen Positioning**: All elements are `flex_direction="column"` by default, so `screen(justify_content="flex_end")` means that it in the vertical axis, it pushes the content to the bottom. Since `align_items` is not defined, it defaults to `flex_start`, which means the content is aligned to the left side of the screen.
-- bottom right: `flex_direction="row", justify_content="flex_end", align_items="flex_end"`
-- top right: `flex_direction="row", justify_content="flex_end", align_items="flex_start"`
-- top left: (default) or `flex_direction="row", justify_content="flex_start", align_items="flex_start"`
-- bottom left: `flex_direction="column", justify_content="flex_end", align_items="flex_end"`
+## Understanding the Structure
 
-If you use `"column"` instead of `"row"`, justify_content and align_items will refer to the opposite axis.
+### Getting Elements
+All UI elements come from `actions.user.ui_elements()`:
 
-Use `margin` to offset the contents from the edges of the screen.
+```python
+screen, div, style = actions.user.ui_elements(["screen", "div", "style"])
+```
 
-**IDs for Highlighting**: Each key gets a unique `id` (like `"up"`, `"space"`, `"q"`) - this is necessary to target it with talon actions such as `actions.user.ui_elements_highlight("up")` to light up specific keys.
+The order of returned elements will match the order you specify in the list. See [elements.md](../concepts/elements.md) for a full list of available elements.
 
-**Text style**: The `text` uses `"stroke_color": "000000", "stroke_width": 4` to create an outline effect, you can remove this if you want. `"color"` controls the text color, `font_size` controls the size, and you can change `font_family` to use different fonts.
+**Important:** `screen` is *usually* the first element - it's the root container that fills the entire screen. But you can also use `active_window` instead if you are playing in windowed mode.
 
-**Highlight Style**: The `highlight_style` property in the `.key` class controls what happens when a key is highlighted. Only colors can be set here. `background_color`or `color` can bet set to customize the highlight effect when you do `actions.user.ui_elements_highlight("id_of_key")`.
+### Reusable Functions
+This example demonstrates creating reusable UI functions:
 
-**Using the Function**: Import this function into your Talon voice commands and control visibility with
+```python
+def key(id, display: str):
+    # Returns a key with text label
+
+def key_icon(id, icon_name):
+    # Returns a key with an icon
+```
+
+## Breaking Down game_keys_ui()
+
+Let's look at the main function step by step:
+
+### 1. The Screen Layout
+```python
+return screen(justify_content="flex_end")
+```
+- `screen` fills the entire display
+- `flex_direction="column"` is the default, so content stacks vertically unless manually changed to `"row"`
+- `justify_content="flex_end"` pushes content to the bottom since `flex_direction` is column
+- `align_items` defaults to `"flex_start"`, so content aligns to the left
+
+### 2. The Key Layout Structure
+```python
+div(flex_direction="row", margin_bottom=20, margin_left=20)[
+    div()[  # Arrow keys section
+        # Arrow key layout
+    ],
+    div()[  # Action keys section
+        # Action key layout
+    ],
+]
+```
+
+This creates two main sections horizontally:
+- Left section: Arrow keys
+- Right section: Action keys
+- `margin_bottom` and `margin_left` add spacing from the screen edges
+
+### 3. Arrow Keys Section
+```python
+div()[
+    div(flex_direction="row")[
+        blank_key(), key_icon("up", "arrow_up"), blank_key()
+    ],
+    div(flex_direction="row")[
+        key_icon("left", "arrow_left"), key_icon("down", "arrow_down"), key_icon("right", "arrow_right")
+    ]
+]
+```
+
+- `div()` arranges children vertically (`flex_direction="column"` is default)
+- `div(flex_direction="row")` arranges children horizontally
+- Uses `blank_key()` and `key_icon()` are custom functions which return ui_elements
+- Each key is given a label and an id.
+- Anything with an `id` can then be targeted by `actions.user.ui_elements_highlight`, `actions.user.ui_elements_unhighlight`, and `actions.user.ui_elements_highlight_briefly` for real-time feedback during gameplay
+
+### 4. Action Keys Section
+```python
+div()[ # vertical children
+    div(flex_direction="row")[ # horizontal children
+        key("space", "jump"),
+        key("lmb", "LMB"),
+        key("rmb", "RMB"),
+    ],
+    div(flex_direction="row")[ # horizontal children
+        key("q", "dash"),
+        key("e", "heal"),
+        key("shift", "sprint"),
+    ]
+]
+```
+
+- Arranges action keys in a 3x2 grid
+- Each key shows a text label (like "jump", "dash")
+- Uses `key()` for text-based keys
+
+## Functions Explained
+
+### key() Function
+```python
+def key(id, display: str):
+    div, text = actions.user.ui_elements(["div", "text"])
+    return div(class_name="key", id=id)[
+        text(display)
+    ]
+```
+
+- Takes an `id` for highlighting and `display` text
+- Uses `class_name="key"` for consistent styling
+- Returns a div containing text
+
+### key_icon() Function
+```python
+def key_icon(id, icon_name):
+    div, icon = actions.user.ui_elements(["div", "icon"])
+    return div(class_name="key", id=id)[
+        icon(icon_name, fill="FFFFFF", stroke="000000", stroke_width=3, size=30)
+    ]
+```
+
+- Similar to `key()` but shows an icon instead of text
+- Icons have white fill with black stroke for visibility
+- Uses the same `.key` styling for consistency
+
+### blank_key() Function
+```python
+def blank_key():
+    div, text = actions.user.ui_elements(["div", "text"])
+    return div(class_name="key", opacity=0.6)[text(" ")]
+```
+
+- Creates an invisible placeholder for layout spacing
+- Uses lower opacity to make it barely visible
+- Contains a space character to maintain proper sizing
+
+## Styling with Classes
+
+All keys use the `.key` class for consistent appearance:
+
+```python
+style({
+    ".key": {
+        "padding": 8,
+        "background_color": "#33333366",
+        "width": 60,
+        "height": 60,
+        "opacity": 0.8,
+        "highlight_style": {
+            "background_color": "#44BCE799",
+        },
+    }
+})
+```
+
+- **Fixed dimensions**: `width: 60, height: 60` makes all keys the same size
+- **Semi-transparent**: `background_color: "#33333366"` (the `66` at the end is alpha/transparency)
+- **Centering**: `justify_content="center", align_items="center"` centers content in each key
+- **Highlight effect**: `highlight_style` defines the color when highlighted
+
+## Screen Positioning Options
+
+The overlay is positioned at the bottom-left by default. Here are other positioning options:
+
+- **Bottom right**: `flex_direction="row", justify_content="flex_end", align_items="flex_end"`
+- **Top right**: `flex_direction="row", justify_content="flex_end", align_items="flex_start"`
+- **Top left**: `flex_direction="row", justify_content="flex_start", align_items="flex_start"`
+- **Bottom left**: `flex_direction="column", justify_content="flex_end", align_items="flex_start"` (current)
+
+Use `margin` to offset from screen edges.
+
+## Interactive Highlighting
+
+Each key has a unique `id` for highlighting during gameplay:
+
+```python
+# Highlight a specific key
+actions.user.ui_elements_highlight("up")
+
+# Brief highlight (flashes then fades)
+actions.user.ui_elements_highlight_briefly("space")
+
+# Remove highlight
+actions.user.ui_elements_unhighlight("up")
+```
+
+**Performance note**: Highlighting uses the decoration layer, which is faster than state updates for real-time feedback.
+
+## Using Your Game Overlay
+
+Show/hide the overlay with:
 ```python
 actions.user.ui_elements_show(game_keys_ui)
 actions.user.ui_elements_hide(game_keys_ui)
-actions.user.ui_elements_hide_all()
-actions.user.ui_elements_toggle(game_keys_ui)`
+actions.user.ui_elements_toggle(game_keys_ui)
 ```
 
-Use the following for highlighting and unhighlighting keys
-```python
-actions.user.ui_elements_highlight("id_of_key")
-actions.user.ui_elements_highlight_briefly("id_of_key")
-actions.user.ui_elements_unhighlight("id_of_key")
-```
+## Next Steps
 
-For more information on setting up voice commands, see [hello_world.md](../tutorials/hello_world.md).
-
-Highlight actions render on the decoration layer, which is faster than state changes. See [Rendering](../concepts/rendering.md) for more details.
+- See [hello_world.md](../tutorials/hello_world.md) for setting up voice commands
+- Learn about [Properties](../concepts/properties.md) for styling elements
+- Understand [Components](../concepts/components.md) for reusable patterns
+- Check [Rendering](../concepts/rendering.md) for highlight performance details
