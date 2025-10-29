@@ -122,7 +122,7 @@ class NodeText(Node):
         self.text_body_height = self.text_line_height
 
         if (self.properties.width or self.properties.max_width) and self.text_width > self.properties.width:
-            self.text_multiline = split_lines(text_cleansed, self.box_model.content_size.width, paint.measure_text)
+            self.text_multiline = split_lines(text_cleansed, self.text_width, paint.measure_text)
             gap = self.properties.gap or 16
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
 

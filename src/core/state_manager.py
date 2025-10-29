@@ -301,7 +301,7 @@ class StateManager:
             if isinstance(text_or_callable, Callable):
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
             else:
-                node.tree.meta_state.text_mutations[id] = text_or_callable
+                node.tree.meta_state.text_mutations[id] = str(text_or_callable)
             node.tree.render_manager.render_text_mutation()
         else:
             print(f"Node with ID '{id}' not found.")

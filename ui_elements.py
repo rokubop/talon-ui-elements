@@ -85,12 +85,13 @@ class Actions:
             on_unmount: callable = None,
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
+            min_version: str = None,
         ):
         """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
         new_state_visible = not entity_manager.does_tree_exist(renderer)
 
         if new_state_visible:
-            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state, min_version)
         else:
             entity_manager.hide_tree(renderer)
 
@@ -135,7 +136,7 @@ class Actions:
         """
         return state_manager.get_state_value(name) if name else state_manager.get_all_states()
 
-    def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
+    def ui_elements_set_text(id: str, text_or_callable: Any):
         """
         Set text based on its `id`. Renders on a decoration layer, and faster than using `ui_elements_set_state`.
 

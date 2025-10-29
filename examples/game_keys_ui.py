@@ -46,10 +46,14 @@ def game_keys_ui():
         div(flex_direction="row", margin_bottom=20, margin_left=20)[
             div()[
                 div(flex_direction="row")[
-                    blank_key(), key_icon("up", "arrow_up"), blank_key()
+                    blank_key(),
+                    key_icon("up", "arrow_up"),
+                    blank_key()
                 ],
                 div(flex_direction="row")[
-                    key_icon("left", "arrow_left"), key_icon("down", "arrow_down"), key_icon("right", "arrow_right")
+                    key_icon("left", "arrow_left"),
+                    key_icon("down", "arrow_down"),
+                    key_icon("right", "arrow_right")
                 ]
             ],
             div()[

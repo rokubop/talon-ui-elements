@@ -22,10 +22,16 @@ class NodeWindow(NodeContainer):
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
-        is_minimized, set_is_minimized = state.use(
-            f"is_minimized_{self.hash}",
-            window_properties.get("minimized", False)
-        )
+        try:
+            is_minimized, set_is_minimized = state.use(
+                f"is_minimized_{self.hash}",
+                window_properties.get("minimized", False)
+            )
+        except Exception as e:
+            is_minimized, set_is_minimized = window_properties.get("minimized", False), lambda x: actions.user.ui_elements_set_state(
+                f"is_minimized_{self.hash}", x
+            )
+
         self.is_minimized = is_minimized
         minimized_style = window_properties.get("minimized_style", None)
 
