@@ -513,7 +513,7 @@ class NodeDivProperties(Properties):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class NodeSvgValidationProperties(TypedDict):
+class NodeSvgValidationProperties(ValidationProperties):
     color: str
     background_color: str
     fill: Union[str, bool]

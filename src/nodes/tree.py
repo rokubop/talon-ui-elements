@@ -659,6 +659,7 @@ class Tree(TreeType):
             self.destroy()
 
     def on_draw_base_canvas_cursor_update(self, canvas: SkiaCanvas):
+        print("on_draw_base_canvas_cursor_update")
         try:
             self.nonlayout_flow()
             self.build_base_render_layers()
@@ -671,6 +672,7 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
+            print("on_draw_base_canvas_default")
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
             self.consume_components()
@@ -702,7 +704,7 @@ class Tree(TreeType):
                 self.on_draw_base_canvas_drag_end(canvas)
             elif self.render_manager.is_scrolling():
                 self.on_draw_base_canvas_scroll(canvas)
-            elif self.render_manager.is_cursor_update():
+            elif self.render_manager.is_cursor_update() and not (self.render_manager.render_cause == RenderCause.STATE_CHANGE or self.render_manager.render_cause == RenderCause.REF_CHANGE):
                 self.on_draw_base_canvas_cursor_update(canvas)
             else:
                 self.on_draw_base_canvas_default(canvas)
@@ -946,6 +948,7 @@ class Tree(TreeType):
             self.canvas_base.freeze()
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
+        print("render")
         if not self.render_manager.is_destroying:
             self.props = self.props or props
 
@@ -1345,6 +1348,9 @@ class Tree(TreeType):
                 self.render_debounce_job = None
 
             self.stop_cursor_refresh_cycle()
+            self.cursor_position = None
+            self.cursor_refresh_rate = DEFAULT_CURSOR_REFRESH_RATE
+            self.has_cursor_node = False
 
             if self.canvas_base:
                 self.canvas_base.unregister("draw", self.on_draw_base_canvas)

@@ -1,5 +1,3 @@
-from talon import ctrl
-from talon.types import Point2d
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_CURSOR_REFRESH_RATE
 from ..properties import Properties
@@ -27,3 +25,8 @@ class NodeCursor(NodeContainer):
             self.inner_wrapper.add_child(node)
 
         return self
+
+    def destroy(self):
+        super().destroy()
+        self.inner_wrapper = None
+        self.refresh_rate = None

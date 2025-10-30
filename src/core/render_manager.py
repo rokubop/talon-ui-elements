@@ -316,7 +316,7 @@ class RenderManager(RenderManagerType):
         self.queue_render(RenderMouseHighlight)
 
     def render_cursor_update(self):
-        self.queue_render(RenderTaskCursorUpdate)
+        self._render_throttle("10ms", RenderTaskCursorUpdate)
 
     def schedule_state_change(self, on_start: callable, on_end: callable = None):
         self.queue_render(RenderTask(
