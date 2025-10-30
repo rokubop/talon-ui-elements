@@ -5,7 +5,7 @@
 ![ui_elements](./examples/ui_elements_preview.png)
 
 ## Features
-- 20+ elements such as `div`, `text`, `button`, `table`, `icon`, `input_text`
+- 20+ elements such as `div`, `text`, `button`, `table`, `icon`, `input_text`, `cursor`
 - 90+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
 - Dragging and scrolling
