@@ -3,7 +3,7 @@ import uuid
 import threading
 import traceback
 import weakref
-from talon import cron, settings, actions
+from talon import cron, settings, ctrl
 from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
@@ -12,7 +12,7 @@ from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE
 from ..canvas_wrapper import CanvasWeakRef
 from ..core.entity_manager import entity_manager
 from ..core.render_manager import RenderManager, RenderCause
@@ -420,6 +420,9 @@ class Tree(TreeType):
         self.current_base_canvas = None
         self.cursor = None
         self.cursor_v2 = None
+        self.cursor_refresh_job = None
+        self.cursor_refresh_rate = DEFAULT_CURSOR_REFRESH_RATE
+        self.cursor_position = self.get_cursor_position()
         self.effects = []
         self.destroying = False
         self.drag_end_phase = False
@@ -430,6 +433,7 @@ class Tree(TreeType):
         self.fixed_nodes = []
         self.guid = uuid.uuid4().hex
         self.hashed_tree_constructor = hashed_tree_constructor
+        self.has_cursor_node = False
         self.interactive_node_list = []
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
@@ -478,6 +482,38 @@ class Tree(TreeType):
     def validate_root_node(self):
         if self.root_node.element_type not in ["screen", "active_window"]:
             raise Exception("Root node must be a screen or active_window element")
+
+    def get_cursor_position(self) -> Point2d:
+        try:
+            x, y = ctrl.mouse_pos()
+            return Point2d(x, y)
+        except:
+            return Point2d(0, 0)
+
+    def start_cursor_refresh_cycle(self, refresh_rate: int = DEFAULT_CURSOR_REFRESH_RATE):
+        if self.cursor_refresh_job is None:
+            self.cursor_refresh_rate = refresh_rate
+
+            def cursor_refresh_callback():
+                if not self.destroying and self.has_cursor_node:
+                    self.update_cursor_positions()
+                    self.render_manager.render_cursor_update()
+
+            self.cursor_refresh_job = cron.interval(f"{refresh_rate}ms", cursor_refresh_callback)
+
+    def stop_cursor_refresh_cycle(self):
+        if self.cursor_refresh_job:
+            cron.cancel(self.cursor_refresh_job)
+            self.cursor_refresh_job = None
+
+    def update_cursor_positions(self):
+        self.cursor_position = self.get_cursor_position()
+
+    def setup_cursor_refresh_cycle(self):
+        if self.has_cursor_node:
+            self.start_cursor_refresh_cycle(self.cursor_refresh_rate)
+        else:
+            self.stop_cursor_refresh_cycle()
 
     def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
@@ -542,8 +578,12 @@ class Tree(TreeType):
             layer.draw_to_canvas(canvas, transforms)
 
     def commit_base_canvas(self):
+        cursor_transforms = RenderTransforms(offset=self.cursor_position) \
+            if self.has_cursor_node \
+            else None
+
         for layer in self.render_layers:
-            layer.draw_to_canvas(self.current_base_canvas)
+            layer.draw_to_canvas(self.current_base_canvas, cursor_transforms)
 
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
@@ -618,6 +658,17 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def on_draw_base_canvas_cursor_update(self, canvas: SkiaCanvas):
+        try:
+            self.nonlayout_flow()
+            self.build_base_render_layers()
+            self.commit_base_canvas()
+        except Exception as e:
+            print(f"Error during cursor update rendering: {e}")
+            log_trace()
+            self.finish_current_render()
+            self.destroy()
+
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
             self.reset_cursor()
@@ -631,6 +682,8 @@ class Tree(TreeType):
             self.nonlayout_flow()
             self.build_base_render_layers()
             self.commit_base_canvas()
+            # Set up cursor refresh cycle after tree is fully processed
+            self.setup_cursor_refresh_cycle()
         except Exception as e:
             print(f"Error during base canvas draw: {e}")
             log_trace()
@@ -649,6 +702,8 @@ class Tree(TreeType):
                 self.on_draw_base_canvas_drag_end(canvas)
             elif self.render_manager.is_scrolling():
                 self.on_draw_base_canvas_scroll(canvas)
+            elif self.render_manager.is_cursor_update():
+                self.on_draw_base_canvas_cursor_update(canvas)
             else:
                 self.on_draw_base_canvas_default(canvas)
 
@@ -1289,6 +1344,8 @@ class Tree(TreeType):
                 cron.cancel(self.render_debounce_job)
                 self.render_debounce_job = None
 
+            self.stop_cursor_refresh_cycle()
+
             if self.canvas_base:
                 self.canvas_base.unregister("draw", self.on_draw_base_canvas)
                 self.canvas_base.close()
@@ -1463,13 +1520,20 @@ class Tree(TreeType):
 
     def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":
-            if node.properties.position == "fixed":
+            if node.element_type == "cursor":
+                self.has_cursor_node = True
+                self.cursor_refresh_rate = getattr(node, 'refresh_rate', DEFAULT_CURSOR_REFRESH_RATE)
+                self.absolute_nodes.append(weakref.ref(node))
+                node.relative_positional_node = weakref.ref(self.root_node)
+            elif node.properties.position == "fixed":
                 self.fixed_nodes.append(weakref.ref(node))
                 node.relative_positional_node = weakref.ref(self.root_node)
                 node.z_subindex += 1
             elif node.properties.position == "absolute":
                 self.absolute_nodes.append(weakref.ref(node))
                 node.relative_positional_node = self._find_parent_relative_positional_node(node.parent_node)
+
+            if node.properties.position != "relative":
                 node.z_subindex += 1
             self._cascade_children_z_subindex(node)
 

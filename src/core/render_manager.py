@@ -19,6 +19,7 @@ class RenderCause(Enum):
     MOUSE_HIGHLIGHT = "MOUSE_HIGHLIGHT"
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
+    CURSOR_UPDATE = "CURSOR_UPDATE"
 
 class Policy(Enum):
     TAKE_LATEST = "take_latest"
@@ -96,6 +97,11 @@ RenderMouseHighlight = RenderTask(
     on_decorator_canvas_change,
 )
 
+RenderTaskCursorUpdate = RenderTask(
+    RenderCause.CURSOR_UPDATE,
+    on_base_canvas_change,
+)
+
 @dataclass
 class RenderCallbackEvent:
     tree: TreeType = None
@@ -159,6 +165,10 @@ class RenderManager(RenderManagerType):
     def is_scrolling(self):
         return self.current_render_task and \
             self.current_render_task.cause == RenderCause.SCROLLING
+
+    def is_cursor_update(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.CURSOR_UPDATE
 
     def _queue_render_after_debounce(self, interval: str, render_task: RenderTask):
         if self._render_debounce_job:
@@ -304,6 +314,9 @@ class RenderManager(RenderManagerType):
 
     def render_mouse_highlight(self):
         self.queue_render(RenderMouseHighlight)
+
+    def render_cursor_update(self):
+        self.queue_render(RenderTaskCursorUpdate)
 
     def schedule_state_change(self, on_start: callable, on_end: callable = None):
         self.queue_render(RenderTask(

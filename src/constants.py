@@ -15,6 +15,7 @@ DEFAULT_INPUT_BACKGROUND_COLOR = "333333"
 DEFAULT_INTERACTIVE_BORDER_COLOR = "888888"
 DEFAULT_INTERACTIVE_BORDER_WIDTH = 1
 DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR = "88888833"
+DEFAULT_CURSOR_REFRESH_RATE = 16
 DEFAULT_SCROLL_BAR_WIDTH = 10
 DEFAULT_SCROLL_BAR_TRACK_COLOR = "FFFFFF22"
 DEFAULT_SCROLL_BAR_THUMB_COLOR = "FFFFFF44"
@@ -61,6 +62,7 @@ class ElementEnumType(TypedDict):
     active_window: str
     button: str
     checkbox: str
+    cursor: str
     div: str
     icon: str
     input_text: str
@@ -85,6 +87,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "active_window": "active_window",
     "button": "button",
     "checkbox": "checkbox",
+    "cursor": "cursor",
     "div": "div",
     "icon": "icon",
     "input_text": "input_text",
@@ -124,6 +127,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["active_window"]: NODE_ENUM_TYPE["root"],
     ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["checkbox"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["cursor"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["link"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],

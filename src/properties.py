@@ -447,6 +447,9 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
 class NodeDivValidationProperties(ValidationProperties):
     drop_shadow: tuple
 
+class NodeCursorValidationProperties(ValidationProperties):
+    refresh_rate: int
+
 class NodeTextValidationProperties(ValidationProperties):
     text: str
     font_size: int
@@ -901,10 +904,18 @@ class NodeModalValidationProperties(ValidationProperties):
     backdrop_click_close: bool
     show_title_bar: bool
 
+@dataclass
+class NodeCursorProperties(Properties):
+    refresh_rate: int
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,
