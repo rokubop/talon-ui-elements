@@ -125,6 +125,10 @@ class NodeWindow(NodeContainer):
                     else:
                         window_properties.get("on_close")()
 
+                if e.default_prevented:
+                    self.destroying = False
+                    return
+
                 if e.hide:
                     if self.tree and self.tree.id:
                         entity_manager.hide_tree(self.tree.id)
