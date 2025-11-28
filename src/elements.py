@@ -6,6 +6,7 @@ from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
 from .nodes.checkbox import checkbox
 from .nodes.link import link
+from .nodes.node import Node
 from .nodes.node_container import NodeContainer
 from .nodes.node_cursor import NodeCursor
 from .nodes.node_input_text import NodeInputText
@@ -278,6 +279,8 @@ def button(*args, text=None, **additional_props):
     if args and isinstance(args[0], str):
         text = args[0]
         args = args[1:]
+    elif args and isinstance(args[0], Node):
+        raise TypeError(f"Cannot pass an element/node directly to button(). To add children, use the [] syntax: button()[your_element]")
 
     props = args[0] if args and isinstance(args[0], dict) else {}
 

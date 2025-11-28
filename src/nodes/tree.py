@@ -671,7 +671,6 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
-            print("on_draw_base_canvas_default")
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
             self.consume_components()
