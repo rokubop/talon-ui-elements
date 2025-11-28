@@ -659,7 +659,6 @@ class Tree(TreeType):
             self.destroy()
 
     def on_draw_base_canvas_cursor_update(self, canvas: SkiaCanvas):
-        print("on_draw_base_canvas_cursor_update")
         try:
             self.nonlayout_flow()
             self.build_base_render_layers()
@@ -948,7 +947,6 @@ class Tree(TreeType):
             self.canvas_base.freeze()
 
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
-        print("render")
         if not self.render_manager.is_destroying:
             self.props = self.props or props
 
@@ -1387,7 +1385,13 @@ class Tree(TreeType):
             scroll_throttle_job = None
             self.render_list.clear()
             self.render_layers.clear()
-            hint_clear_state()
+            # Only clear hint state if no other trees have hints
+            has_other_trees_with_hints = any(
+                tree != self and (tree.meta_state.inputs or tree.meta_state.buttons)
+                for tree in store.trees
+            )
+            if not has_other_trees_with_hints:
+                hint_clear_state()
             self.render_cause.clear()
             self.last_base_snapshot = None
             self.last_hints_snapshot = None
