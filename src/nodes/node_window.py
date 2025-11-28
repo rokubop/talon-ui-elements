@@ -1,4 +1,4 @@
-from talon import actions
+from talon import actions, cron
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..events import WindowCloseEvent
@@ -117,23 +117,27 @@ class NodeWindow(NodeContainer):
 
         def on_close(e: WindowCloseEvent):
             if not self.destroying:
-                self.destroying = True
+                def deferred_close():
+                    if not self.destroying:
+                        if window_properties.get("on_close", None):
+                            if len(inspect.signature(window_properties.get("on_close")).parameters) == 1:
+                                window_properties.get("on_close")(e)
+                            else:
+                                window_properties.get("on_close")()
 
-                if window_properties.get("on_close", None):
-                    if len(inspect.signature(window_properties.get("on_close")).parameters) == 1:
-                        window_properties.get("on_close")(e)
-                    else:
-                        window_properties.get("on_close")()
+                        if e.default_prevented:
+                            return
 
-                if e.default_prevented:
-                    self.destroying = False
-                    return
+                        if e.hide and not (self.tree and self.tree.render_manager.is_destroying):
+                            self.destroying = True
+                            if self.tree and self.tree.id:
+                                entity_manager.hide_tree(self.tree.id)
+                            else:
+                                entity_manager.hide_all_trees()
 
-                if e.hide:
-                    if self.tree and self.tree.id:
-                        entity_manager.hide_tree(self.tree.id)
-                    else:
-                        entity_manager.hide_all_trees()
+                # This helps break call stack and avoid recursive action errors
+                # in case user called actions.user.ui_elements_hide in the on_close handler
+                cron.after("1ms", deferred_close)
 
         def on_button_click_close():
             on_close(WindowCloseEvent(hide=True))

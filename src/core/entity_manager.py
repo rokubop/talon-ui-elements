@@ -123,12 +123,13 @@ class EntityManager:
         if isinstance(tree_constructor, str):
             for tree in store.trees:
                 if tree.root_node.id == tree_constructor:
-                    tree.destroy()
+                    if not tree.destroying:
+                        tree.destroy()
                     break
         else:
             t = self.get_tree_with_hash(tree_constructor)
             tree = t["tree"]
-            if tree:
+            if tree and not tree.destroying:
                 tree.destroy()
 
         if not store.trees:
