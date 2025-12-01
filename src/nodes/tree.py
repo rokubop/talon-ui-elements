@@ -115,6 +115,10 @@ class MetaState(MetaStateType):
         self.unhighlight_jobs = {}
         self.new_component_ids = set()
         self.removed_component_ids = set()
+        self.scrollbar_hovered_id = None
+        self.scrollbar_dragging_id = None
+        self.scrollbar_drag_start_y = None
+        self.scrollbar_drag_start_offset_y = None
 
     @property
     def buttons(self):
@@ -312,6 +316,31 @@ class MetaState(MetaStateType):
         ) + list(
             self._text_with_for_ids.items()
         )
+
+    # Scrollbar interaction state management
+    def set_scrollbar_hover(self, node_id):
+        self.scrollbar_hovered_id = node_id
+
+    def clear_scrollbar_hover(self):
+        self.scrollbar_hovered_id = None
+
+    def is_scrollbar_hovered(self, node_id):
+        return self.scrollbar_hovered_id == node_id
+
+    def start_scrollbar_drag(self, node_id, mouse_y, scroll_offset_y):
+        self.scrollbar_dragging_id = node_id
+        self.scrollbar_drag_start_y = mouse_y
+        self.scrollbar_drag_start_offset_y = scroll_offset_y
+
+    def clear_scrollbar_drag(self):
+        self.scrollbar_dragging_id = None
+        self.scrollbar_drag_start_y = None
+        self.scrollbar_drag_start_offset_y = None
+
+    def is_scrollbar_dragging(self, node_id=None):
+        if node_id:
+            return self.scrollbar_dragging_id == node_id
+        return self.scrollbar_dragging_id is not None
 
     def get_interaction_links(self):
         return list(
@@ -700,7 +729,7 @@ class Tree(TreeType):
                 self.on_draw_base_canvas_dragging(canvas)
             elif self.is_drag_end():
                 self.on_draw_base_canvas_drag_end(canvas)
-            elif self.render_manager.is_scrolling():
+            elif self.render_manager.is_scrolling() or self.render_manager.is_scrollbar_dragging():
                 self.on_draw_base_canvas_scroll(canvas)
             elif self.render_manager.is_cursor_update() and not (self.render_manager.render_cause == RenderCause.STATE_CHANGE or self.render_manager.render_cause == RenderCause.REF_CHANGE):
                 self.on_draw_base_canvas_cursor_update(canvas)
@@ -1050,6 +1079,73 @@ class Tree(TreeType):
             self.render_cause.clear()
             self.drag_end_phase = False
 
+    def handle_scrollbar_drag_move(self, gpos):
+        """Handle scrollbar dragging movement and scroll calculation."""
+        node_id = self.meta_state.scrollbar_dragging_id
+        node = self.meta_state.id_to_node.get(node_id)
+        scrollable_data = self.meta_state.scrollable.get(node_id)
+
+        if not (node and scrollable_data and node.box_model):
+            return
+
+        mouse_delta_y = gpos.y - self.meta_state.scrollbar_drag_start_y
+        view_height = scrollable_data.view_height
+        max_height = scrollable_data.max_height
+        thumb_height = node.box_model.scroll_bar_thumb_rect.height
+        track_height = node.box_model.padding_size.height
+
+        thumb_travel_distance = track_height - thumb_height
+        content_travel_distance = max_height - view_height
+
+        if thumb_travel_distance > 0 and content_travel_distance > 0:
+            # Convert thumb movement to content scroll (inverse ratio)
+            scroll_delta = -(mouse_delta_y / thumb_travel_distance) * content_travel_distance
+            new_offset_y = self.meta_state.scrollbar_drag_start_offset_y + scroll_delta
+            new_offset_y = max(view_height - max_height, min(0, new_offset_y))
+            scrollable_data.offset_y = new_offset_y
+            self.render_manager.render_scrollbar_dragging()
+
+    def handle_scrollbar_mousedown(self, gpos):
+        """Check for scrollbar click and initiate drag if found."""
+        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            node = self.meta_state.id_to_node.get(node_id)
+            if node and node.box_model and node.box_model.scroll_bar_thumb_rect:
+                if node.box_model.scroll_bar_thumb_rect.contains(gpos):
+                    self.meta_state.start_scrollbar_drag(node_id, gpos.y, scrollable_data.offset_y)
+                    self.render_manager.pause()
+                    self.render_base_canvas()
+                    return True
+        return False
+
+    def handle_scrollbar_mouseup(self, gpos):
+        """Handle scrollbar drag end and restore hover state."""
+        self.render_manager.resume()
+        self.meta_state.clear_scrollbar_drag()
+        self.render_base_canvas()
+        self.check_scrollbar_hover(gpos)
+
+    def check_scrollbar_hover(self, gpos):
+        """Check if mouse is hovering over any scrollbar thumb and update visual state."""
+        if self.meta_state.is_scrollbar_dragging():
+            return
+
+        prev_hovered_id = self.meta_state.scrollbar_hovered_id
+        new_hovered_id = None
+
+        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            node = self.meta_state.id_to_node.get(node_id)
+            if node and node.box_model and node.box_model.scroll_bar_thumb_rect:
+                if node.box_model.scroll_bar_thumb_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    break
+
+        if new_hovered_id != prev_hovered_id:
+            if new_hovered_id:
+                self.meta_state.set_scrollbar_hover(new_hovered_id)
+            else:
+                self.meta_state.clear_scrollbar_hover()
+            self.render_base_canvas()
+
     def on_hover(self, gpos):
         try:
             if not state_manager.is_drag_active():
@@ -1091,6 +1187,10 @@ class Tree(TreeType):
         return None
 
     def on_mousemove(self, gpos):
+        if self.meta_state.is_scrollbar_dragging():
+            self.handle_scrollbar_drag_move(gpos)
+            return
+
         if self.is_drag_end():
             return
 
@@ -1135,6 +1235,9 @@ class Tree(TreeType):
             )
 
     def on_mousedown(self, gpos):
+        if self.handle_scrollbar_mousedown(gpos):
+            return
+
         hovered_id = state_manager.get_hovered_id()
         state_manager.set_mousedown_start_pos(gpos)
 
@@ -1188,6 +1291,10 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
+            if self.meta_state.is_scrollbar_dragging():
+                self.handle_scrollbar_mouseup(gpos)
+                return
+
             hovered_id = state_manager.get_hovered_id()
             mousedown_start_id = state_manager.get_mousedown_start_id()
 
@@ -1241,6 +1348,7 @@ class Tree(TreeType):
                 not self.render_manager.is_destroying:
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
+                self.check_scrollbar_hover(e.gpos)
                 self.on_hover(e.gpos)
             elif e.event == "mousedown":
                 self.on_mousedown(e.gpos)

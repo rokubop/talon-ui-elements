@@ -84,6 +84,21 @@ def get_active_color_from_highlight_color(highlight_color: str) -> str:
 
     return base_color + new_alpha_hex
 
+def adjust_color_alpha(color: str, adjustment: int) -> str:
+    """Adjust the alpha channel of a hex color with alpha.
+
+    Args:
+        color: Hex color string with alpha (e.g., "FFFFFF44")
+        adjustment: Amount to add to alpha (0-255)
+
+    Returns:
+        Color with adjusted alpha (e.g., "FFFFFF44" + 15 -> "FFFFFF53")
+    """
+    base_color = color[:-2]
+    alpha = int(color[-2:], 16)
+    new_alpha = max(0, min(255, alpha + adjustment))
+    return f"{base_color}{new_alpha:02X}"
+
 def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
     """Adjust the brightness of a hex color by a specified amount.
 
