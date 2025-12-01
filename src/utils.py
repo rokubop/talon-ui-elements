@@ -111,17 +111,52 @@ def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
     # Convert back to hex
     return f"{r:02X}{g:02X}{b:02X}"
 
-def hex_color(color: str) -> str:
+def hex_color(color: str, property_name: str = None) -> str:
     """Resolve color to hex if it's a named color or validate hex format."""
 
     if not color:
         return color
 
+    # Strip leading # if present
+    if color.startswith('#'):
+        color = color[1:]
+
     if all(c in "0123456789ABCDEFabcdef" for c in color):
-        # already hex
+        # already hex - validate length
+        if len(color) not in [3, 4, 6, 8]:
+            prop_msg = f" for property '{property_name}'" if property_name else ""
+            raise ValueError(
+                f"\nInvalid color{prop_msg}: '{color}'\n"
+                f"Hex colors must be 3, 4, 6, or 8 characters (got {len(color)}).\n"
+                f"Valid formats: 'FFF', 'FFFF', 'FFFFFF', 'FFFFFF66' (last 2 digits = opacity)\n"
+            )
         return color
 
-    return NAMED_COLORS_TO_HEX.get(color.lower(), color)
+    # Check for common CSS values that aren't supported
+    common_css_values = ['transparent', 'inherit', 'currentcolor', 'initial', 'unset']
+    if color.lower() in common_css_values:
+        prop_msg = f" for property '{property_name}'" if property_name else ""
+        raise ValueError(
+            f"\nInvalid color{prop_msg}: '{color}'\n"
+            f"CSS value '{color}' is not supported.\n"
+            f"For transparency, use:\n"
+            f"  - 8-character hex with alpha: 'FFFFFF66' (last 2 digits control opacity)\n"
+            f"  - opacity property: opacity=0.5\n"
+            f"  - Don't set background_color (buttons default to transparent background)\n"
+        )
+
+    # Try to resolve as named color
+    resolved = NAMED_COLORS_TO_HEX.get(color.lower())
+    if resolved:
+        return resolved.lstrip('#')
+
+    # Unknown color value
+    prop_msg = f" for property '{property_name}'" if property_name else ""
+    raise ValueError(
+        f"\nInvalid color{prop_msg}: '{color}'\n"
+        f"Use hex colors (e.g., 'FF0000', 'FFFFFF66') or named colors:\n"
+        f"  {', '.join(list(NAMED_COLORS_TO_HEX.keys())[:10])}...\n"
+    )
 
 def get_combined_screens_rect() -> Rect:
     screens = ui.screens()

@@ -129,12 +129,17 @@ class Actions:
                 raise TypeError("actions.user.ui_elements_set_state requires a string key and a value.")
             state_manager.set_state_value(name, value)
 
-    def ui_elements_get_state(name: str = None):
+    def ui_elements_get_state(name: str = None, initial_state: Any = None):
         """
         Get global state value by its name or None for all states.
         ```
+        actions.user.ui_elements_get_state("my_key")
+        actions.user.ui_elements_get_state("my_key", "default_value")
+        ```
         """
-        return state_manager.get_state_value(name) if name else state_manager.get_all_states()
+        if name:
+            return state_manager.get_state_value(name, initial_state)
+        return state_manager.get_all_states()
 
     def ui_elements_set_text(id: str, text_or_callable: Any):
         """

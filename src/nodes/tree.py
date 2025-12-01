@@ -35,7 +35,7 @@ from ..interfaces import (
     ScrollRegionType,
     ScrollableType,
 )
-from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
+from ..hints import draw_hint, get_hint_generator, hint_clear_state, hint_tag_enable
 from ..style import Style
 from ..utils import (
     draw_text_simple,

@@ -274,9 +274,13 @@ class StateManager:
 
         store.reactive_state[key].set_initial_value(initial_value)
 
-    def get_state_value(self, key):
+    def get_state_value(self, key, initial_value=None):
         if key in store.reactive_state:
             return store.reactive_state[key].value
+        elif initial_value is not None:
+            # State doesn't exist yet, initialize it with the default
+            self.init_state(key, initial_value)
+            return initial_value
         return None
 
     def get_all_states(self):

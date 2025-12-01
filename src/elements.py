@@ -104,8 +104,15 @@ class State:
         if not tree:
             raise ValueError("""
                 state.get() must be called during render, such as during ui_elements_show(ui).
-                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
-                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+
+                If you're calling this from a click handler or other async callback:
+                  - Use state.use(key, initial_value) to get both value and setter
+                  - Then use the setter function in your callback: on_click=lambda: set_value(new_value)
+
+                If you want to use state outside of a render, use:
+                  - actions.user.ui_elements_get_state(key)
+                  - actions.user.ui_elements_set_state(key, value)
+                  - actions.user.ui_elements_set_initial_state(key, value)
             """)
 
         tree.meta_state.associate_state(key, components)
@@ -117,8 +124,15 @@ class State:
         if not tree:
             raise ValueError("""
                 state.use() must be called during render, such as during ui_elements_show(ui).
-                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
-                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+
+                If you're calling this from a click handler or other async callback:
+                  - Use state.use(key, initial_value) during render to get both value and setter
+                  - Then use the setter function in your callback: on_click=lambda: set_value(new_value)
+
+                If you want to use state outside of a render, use:
+                  - actions.user.ui_elements_get_state(key)
+                  - actions.user.ui_elements_set_state(key, value)
+                  - actions.user.ui_elements_set_initial_state(key, value)
             """)
 
         tree.meta_state.associate_state(key, components)

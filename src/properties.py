@@ -234,7 +234,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if key in self._explicitly_set:
                 continue
             if key in ["background_color", "border_color", "color", "stroke", "fill"]:
-                value = hex_color(value)
+                value = hex_color(value, property_name=key)
 
             update_padding = 'padding' in key or update_padding
             update_margin = 'margin' in key or update_margin
@@ -256,7 +256,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key in properties._explicitly_set:
             value = getattr(properties, key)
             if key in ["background_color", "border_color", "color", "stroke", "fill"]:
-                value = hex_color(value)
+                value = hex_color(value, property_name=key)
             if key in ["padding", "margin", "border"]:
                 value = parse_box_model(type(getattr(self, key)), **value)
             setattr(self, key, value)
@@ -305,7 +305,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     def update_property(self, key, value, explicitly_set=True):
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
-                value = hex_color(value)
+                value = hex_color(value, property_name=key)
 
             if key == "on_click" and value is not None and callable(value):
                 try:
@@ -343,7 +343,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             variant = Properties.__new__(Properties)
             variant.__dict__ = self.__dict__.copy()
             variant.__dict__.update({
-                k: hex_color(v) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
+                k: hex_color(v, property_name=k) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
                 for k, v in self.highlight_style.items()
             })
             self._highlighted_variant = variant
