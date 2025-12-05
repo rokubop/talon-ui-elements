@@ -1,4 +1,5 @@
 import inspect
+import time
 import uuid
 import threading
 import traceback
@@ -452,6 +453,8 @@ class Tree(TreeType):
         self.cursor_refresh_job = None
         self.cursor_refresh_rate = DEFAULT_CURSOR_REFRESH_RATE
         self.cursor_position = self.get_cursor_position()
+        self.hover_validation_job = None
+        self.last_mouse_event_time = 0
         self.effects = []
         self.destroying = False
         self.drag_end_phase = False
@@ -543,6 +546,22 @@ class Tree(TreeType):
             self.start_cursor_refresh_cycle(self.cursor_refresh_rate)
         else:
             self.stop_cursor_refresh_cycle()
+
+    def check_for_stale_hover(self):
+        if not self.destroying:
+            time_since_last_event = time.time() - self.last_mouse_event_time
+            if time_since_last_event >= 0.2:
+                if self.validate_hover_state():
+                    self.render_manager.render_mouse_highlight()
+                self.hover_validation_job = None
+            else:
+                self.schedule_hover_validation()
+
+    def schedule_hover_validation(self):
+        if self.hover_validation_job:
+            cron.cancel(self.hover_validation_job)
+
+        self.hover_validation_job = cron.after("100ms", self.check_for_stale_hover)
 
     def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
@@ -1167,6 +1186,8 @@ class Tree(TreeType):
                                 changed = True
                                 self.unhighlight_no_render(prev_hovered_id)
                                 self.highlight_no_render(target_id, color=target_node.properties.highlight_color)
+                                if not self.hover_validation_job:
+                                    self.schedule_hover_validation()
                             break
 
                 if not new_hovered_id and prev_hovered_id:
@@ -1256,6 +1277,9 @@ class Tree(TreeType):
                 state_manager.focus_node(node, visible=False)
                 self.meta_state.set_highlighted(hovered_id, active_color)
                 self.render_manager.render_mouse_highlight()
+                # Schedule validation in case mouse teleports away after click
+                if not self.hover_validation_job:
+                    self.schedule_hover_validation()
                 return
 
         input_id = self.get_mouse_hovered_input_id(gpos)
@@ -1331,6 +1355,40 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def validate_hover_state(self):
+        """Validate hover state and clean up if mouse left the UI."""
+        changed = False
+        current_pos = self.get_cursor_position()
+
+        hovered_id = state_manager.get_hovered_id()
+        if hovered_id and not state_manager.is_drag_active():
+            node = self.meta_state.id_to_node.get(hovered_id)
+
+            if node and node.box_model:
+                if not node.box_model.padding_rect.contains(current_pos):
+                    self.unhighlight_no_render(hovered_id)
+                    state_manager.set_hovered_id(None)
+                    changed = True
+            else:
+                state_manager.set_hovered_id(None)
+                changed = True
+
+        # Also validate click state
+        mousedown_start_id = state_manager.get_mousedown_start_id()
+        if mousedown_start_id:
+            node = self.meta_state.id_to_node.get(mousedown_start_id)
+
+            if node and node.box_model:
+                if not node.box_model.padding_rect.contains(current_pos):
+                    self.meta_state.set_unhighlighted(mousedown_start_id)
+                    state_manager.set_mousedown_start_id(None)
+                    changed = True
+            else:
+                state_manager.set_mousedown_start_id(None)
+                changed = True
+
+        return changed
+
     def reconcile_mouse_highlight(self):
         last_clicked_pos = state_manager.get_last_clicked_pos()
         hovered_id = state_manager.get_hovered_id()
@@ -1346,6 +1404,9 @@ class Tree(TreeType):
     def on_mouse(self, e: MouseEvent):
         if not state_manager.are_mouse_events_disabled() and \
                 not self.render_manager.is_destroying:
+            self.last_mouse_event_time = time.time()
+            print(f"Mouse event: {e.event} at {e.gpos}")
+
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
                 self.check_scrollbar_hover(e.gpos)
@@ -1453,9 +1514,13 @@ class Tree(TreeType):
                 self.render_debounce_job = None
 
             self.stop_cursor_refresh_cycle()
+            if self.hover_validation_job:
+                cron.cancel(self.hover_validation_job)
+                self.hover_validation_job = None
             self.cursor_position = None
             self.cursor_refresh_rate = DEFAULT_CURSOR_REFRESH_RATE
             self.has_cursor_node = False
+            self.last_mouse_event_time = 0
 
             if self.canvas_base:
                 self.canvas_base.unregister("draw", self.on_draw_base_canvas)
