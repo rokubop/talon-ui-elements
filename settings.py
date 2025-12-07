@@ -2,6 +2,7 @@ from talon import Module
 
 mod = Module()
 
+mod.setting("ui_elements_scale", type=float, default=1.5, desc="Global UI scale multiplier (0.5 to 2.0)")
 mod.setting("ui_elements_hints_show", type=bool, default=True)
 mod.setting("ui_elements_hints_size", type=int, default=12)
 mod.setting("ui_elements_hints_button_first_char", type=str, default="b")

@@ -24,9 +24,25 @@ from .constants import (
     DEFAULT_JUSTIFY_CONTENT,
     DEFAULT_FOCUS_OUTLINE_COLOR,
     DEFAULT_FOCUS_OUTLINE_WIDTH,
-    ELEMENT_ENUM_TYPE
+    ELEMENT_ENUM_TYPE,
+    scale_value
 )
 from .utils import hex_color
+
+# Properties that should be scaled by the global UI scale setting
+SCALABLE_PROPERTIES = {
+    'font_size', 'gap', 'width', 'height',
+    'min_width', 'max_width', 'min_height', 'max_height',
+    'padding', 'margin', 'border_width', 'border_radius',
+    'focus_outline_width', 'stroke_width',
+    'padding_top', 'padding_right', 'padding_bottom', 'padding_left',
+    'padding_x', 'padding_y',
+    'margin_top', 'margin_right', 'margin_bottom', 'margin_left',
+    'margin_x', 'margin_y',
+    'border_top', 'border_right', 'border_bottom', 'border_left',
+    'left', 'right', 'top', 'bottom',
+    'size'  # For SVG elements
+}
 
 class Properties(PropertiesDimensionalType, PropertiesType):
     """
@@ -54,7 +70,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     flex_wrap: bool = False
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
-    font_size: int = DEFAULT_FONT_SIZE
+    font_size: Union[int, float] = DEFAULT_FONT_SIZE
     gap: int = None
     height: Union[int, str, float] = 0
     highlight_style: dict = None
@@ -92,6 +108,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
         for key, value in kwargs.items():
             self.update_property(key, value)
+
+        # Scale defaults that weren't explicitly set
+        if 'font_size' not in kwargs:
+            self.font_size = scale_value(DEFAULT_FONT_SIZE)
 
         if not self.highlight_color:
             self.highlight_color = f"{self.color}33"
@@ -236,6 +256,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if key in ["background_color", "border_color", "color", "stroke", "fill"]:
                 value = hex_color(value, property_name=key)
 
+            # Apply scaling to dimensional properties from styles
+            if key in SCALABLE_PROPERTIES and value is not None:
+                if isinstance(value, (int, float)):
+                    value = scale_value(value)
+
             update_padding = 'padding' in key or update_padding
             update_margin = 'margin' in key or update_margin
             update_border = 'border' in key or update_border
@@ -306,6 +331,19 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value, property_name=key)
+
+            # Apply scaling to dimensional properties only when explicitly set by user
+            # Don't scale when inheriting from parent (already scaled values)
+            if explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
+                if isinstance(value, (int, float)):
+                    value = scale_value(value)
+                elif isinstance(value, str) and "%" not in str(value):
+                    # Don't scale percentage values
+                    try:
+                        numeric_value = float(value)
+                        value = scale_value(numeric_value)
+                    except (ValueError, TypeError):
+                        pass
 
             if key == "on_click" and value is not None and callable(value):
                 try:
@@ -452,12 +490,12 @@ class NodeCursorValidationProperties(ValidationProperties):
 
 class NodeTextValidationProperties(ValidationProperties):
     text: str
-    font_size: int
+    font_size: Union[int, float]
     font_family: str
     font_weight: str
     for_id: str
     stroke_color: str = None
-    stroke_width: int = None
+    stroke_width: Union[int, float] = None
     text_align: str
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
@@ -472,11 +510,11 @@ class NodeLinkValidationProperties(NodeButtonValidationProperties):
 class NodeTextProperties(Properties):
     id: str = None
     font_family: str = ""
-    font_size: int = DEFAULT_FONT_SIZE
+    font_size: Union[int, float] = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
     for_id: str = None
     on_click: any = None
-    stroke_width: int = None
+    stroke_width: Union[int, float] = None
     stroke_color: str = None
     text_align: str = "left"
 
@@ -518,21 +556,21 @@ class NodeSvgValidationProperties(ValidationProperties):
     background_color: str
     fill: Union[str, bool]
     stroke: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke_linejoin: str
     stroke_linecap: str
     view_box: str
-    size: int
+    size: Union[int, float]
 
 @dataclass
 class NodeSvgProperties(Properties):
     fill: Union[str, bool] = None
     stroke: Union[str, bool] = None
-    stroke_width: int = 2
+    stroke_width: Union[int, float] = 2
     stroke_linejoin: str = "round"
     stroke_linecap: str = "round"
     view_box: str = "0 0 24 24"
-    size: int = 24
+    size: Union[int, float] = 24
 
     def __init__(self, **kwargs):
         if not kwargs.get('fill') and not kwargs.get('stroke'):
@@ -547,7 +585,7 @@ class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
     d: str
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -560,7 +598,7 @@ class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
     ry: int
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -570,7 +608,7 @@ class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
     r: int
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -578,7 +616,7 @@ class NodeSvgPolylineValidationProperties(NodeSvgValidationProperties):
     points: str
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -592,17 +630,17 @@ class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
     y2: int
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
 class NodeIconValidationProperties(ValidationProperties):
     name: str
-    size: int
-    stroke_width: int
+    size: Union[int, float]
+    stroke_width: Union[int, float]
     stroke_linecap: str = None
     stroke_linejoin: str = None
-    stroke_width: int = None
+    stroke_width: Union[int, float] = None
     stroke: str = None
     fill: Union[str, bool] = None
 

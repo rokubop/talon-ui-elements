@@ -4,7 +4,8 @@ from ..constants import (
     ELEMENT_ENUM_TYPE,
     DEFAULT_INTERACTIVE_BORDER_COLOR,
     DEFAULT_INTERACTIVE_BORDER_WIDTH,
-    DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR
+    DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
+    scale_value
 )
 from ..properties import validate_combined_props
 from .component import Component
@@ -25,15 +26,15 @@ class SwitchEvent:
     id: str = None
 
 default_button_props = {
-    "border_width": DEFAULT_INTERACTIVE_BORDER_WIDTH,
+    "border_width": int(scale_value(DEFAULT_INTERACTIVE_BORDER_WIDTH)),
     "border_color": DEFAULT_INTERACTIVE_BORDER_COLOR,
-    "border_radius": 4,
+    "border_radius": int(scale_value(4.0)),
     "highlight_color": DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
 }
 
 default_svg_props = {
-    "size": 14,
-    "stroke_width": 2,
+    "size": int(scale_value(14.0)),
+    "stroke_width": int(scale_value(2.0)),
 }
 
 def switch_impl(props):

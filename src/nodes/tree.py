@@ -13,7 +13,7 @@ from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..core.entity_manager import entity_manager
 from ..core.render_manager import RenderManager, RenderCause
@@ -1222,7 +1222,8 @@ class Tree(TreeType):
         if start_pos and not self.active_modal_count:
             is_drag_start = False
             if not state_manager.is_drag_active():
-                if abs(gpos.x - start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - start_pos.y) > DRAG_INIT_THRESHOLD:
+                threshold = scale_value(DRAG_INIT_THRESHOLD)
+                if abs(gpos.x - start_pos.x) > threshold or abs(gpos.y - start_pos.y) > threshold:
                     state_manager.set_drag_active(True)
                     is_drag_start = True
 
@@ -1405,7 +1406,6 @@ class Tree(TreeType):
         if not state_manager.are_mouse_events_disabled() and \
                 not self.render_manager.is_destroying:
             self.last_mouse_event_time = time.time()
-            print(f"Mouse event: {e.event} at {e.gpos}")
 
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
@@ -1740,6 +1740,11 @@ class Tree(TreeType):
         Runs once for each node in the tree to establish meta_state and relationships
         """
         current_node = self._resolve_component(current_node, node_index_path)
+
+        # Safety check - ensure current_node is valid
+        if current_node is None:
+            return
+
         current_node.tree = self
         current_node.depth = len(node_index_path)
         current_node.node_index_path = node_index_path

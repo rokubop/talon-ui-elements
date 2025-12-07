@@ -112,11 +112,13 @@ def trigger_hint_focus(hint_trigger: str):
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransforms = None):
-    c.paint.textsize = settings.get("user.ui_elements_hints_size", 12)
+    from .constants import scale_value
+    hint_size = settings.get("user.ui_elements_hints_size", 12)
+    c.paint.textsize = scale_value(hint_size)
 
     hint_text_width = c.paint.measure_text(text)[1].width
     hint_text_height = c.paint.measure_text("X")[1].height
-    hint_padding = 6
+    hint_padding = scale_value(6.0)
     hint_padding_width = hint_text_width + hint_padding
     hint_padding_height = hint_text_height + hint_padding
 
