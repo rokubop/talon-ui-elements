@@ -71,7 +71,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     font_size: Union[int, float] = DEFAULT_FONT_SIZE
-    gap: int = None
+    gap: Union[int, float] = None
     height: Union[int, str, float] = 0
     highlight_style: dict = None
     highlight_color: str = None
@@ -458,8 +458,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     focus_outline_color: str
     focus_outline_width: int
     font_family: str
-    font_size: int
-    gap: int
+    font_size: Union[int, float]
+    gap: Union[int, float]
     height: Union[int, str, float]
     highlight_style: dict
     highlight_color: str
@@ -579,6 +579,13 @@ class NodeSvgProperties(Properties):
 
         if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
             kwargs['fill'] = DEFAULT_COLOR
+
+        # Scale default size and stroke_width if not explicitly provided
+        if 'size' not in kwargs:
+            self.size = scale_value(24)
+        if 'stroke_width' not in kwargs:
+            self.stroke_width = scale_value(2)
+
         super().__init__(**kwargs)
 
 class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
