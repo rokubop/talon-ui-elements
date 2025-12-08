@@ -2,9 +2,10 @@ from typing import TypedDict, Union
 from talon import settings
 
 def get_scale() -> float:
-    """Get the global UI scale factor"""
+    """Get the global UI scale factor from store"""
     try:
-        return settings.get("user.ui_elements_scale", 1.0)
+        from .core.store import store
+        return store.scale
     except:
         return 1.0
 

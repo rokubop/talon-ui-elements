@@ -1,4 +1,4 @@
-from talon import Module, Context, registry
+from talon import Module, Context, actions
 
 mod = Module()
 ctx = Context()
@@ -49,3 +49,62 @@ class Actions:
             focus_previous.execute(key_down)
         elif action == "close":
             entity_manager.hide_all_trees()
+
+    def ui_elements_scale_increase():
+        """Increase UI scale by browser-like increments"""
+        from .src.core.store import store
+        from .src.core.entity_manager import entity_manager
+        # Browser-like zoom increments: 10% steps
+        new_scale = round(store.scale + 0.1, 1)
+        # Clamp between 0.5 and 3.0
+        new_scale = max(0.5, min(3.0, new_scale))
+        store.scale = new_scale
+        # Re-render all active trees with new scale
+        for tree in entity_manager.get_all_trees():
+            tree.render()
+        _show_scale_notification(new_scale)
+
+    def ui_elements_scale_decrease():
+        """Decrease UI scale by browser-like increments"""
+        from .src.core.store import store
+        from .src.core.entity_manager import entity_manager
+        # Browser-like zoom increments: 10% steps
+        new_scale = round(store.scale - 0.1, 1)
+        # Clamp between 0.5 and 3.0
+        new_scale = max(0.5, min(3.0, new_scale))
+        store.scale = new_scale
+        # Re-render all active trees with new scale
+        for tree in entity_manager.get_all_trees():
+            tree.render()
+        _show_scale_notification(new_scale)
+
+    def ui_elements_scale_reset():
+        """Reset UI scale to default (1.0)"""
+        from .src.core.store import store
+        from .src.core.entity_manager import entity_manager
+        store.scale = 1.0
+        # Re-render all active trees with new scale
+        for tree in entity_manager.get_all_trees():
+            tree.render()
+        _show_scale_notification(1.0)
+
+def _show_scale_notification(scale: float):
+    """Show a brief notification displaying the current scale percentage"""
+    try:
+        def scale_notification_ui():
+            screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
+            percent = int(scale * 100)
+            return screen(justify_content="center", align_items="center")[
+                div(
+                    padding=20,
+                    background_color="#000000cc",
+                    border_radius=8
+                )[
+                    text(f"{percent}%", font_size=32, color="ffffff", font_weight="bold")
+                ]
+            ]
+
+        actions.user.ui_elements_show(scale_notification_ui, duration="1500ms")
+    except (AttributeError, ImportError):
+        # ui_elements not available, silently skip
+        pass

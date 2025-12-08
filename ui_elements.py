@@ -1,4 +1,4 @@
-from talon import Module, actions
+from talon import Module, actions, cron
 from typing import List, Any, Union, Callable
 from .src.core.entity_manager import entity_manager
 from .src.core.state_manager import state_manager, debug_gc
@@ -42,6 +42,7 @@ class Actions:
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
             min_version: str = None,
+            duration: str = None,
         ):
         """
         Render and show the UI
@@ -63,12 +64,24 @@ class Actions:
 
         # `on_mount` (after UI is visible) and `on_unmount` (before UI is hidden)
         actions.user.ui_elements_show(ui, on_mount=lambda: print("mounted"), on_unmount=lambda: print("unmounted"))
+
+        # Auto-hide after duration (notification style)
+        actions.user.ui_elements_show(ui, duration="1s")
         ```
         """
         if min_version and show_error_if_not_compatible(renderer, min_version):
             return
 
+        if duration:
+            # Hide previous instance first to prevent overlapping notifications
+            entity_manager.hide_tree(renderer)
+
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+
+        if duration:
+            def hide_notification():
+                actions.user.ui_elements_hide(renderer)
+            cron.after(duration, hide_notification)
 
     def ui_elements_hide(renderer_or_tree_id: Union[str, Callable]):
         """Destroy and hide a specific ui based on its renderer_or_tree_id function or an id on the root node (screen)"""

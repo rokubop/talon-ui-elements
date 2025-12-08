@@ -31,6 +31,7 @@ class Store():
         self.staged_effects: list[Effect] = []
         self.ref_count_nodes = 0
         self.ref_count_trees = 0
+        self.scale: float = 1.0  # UI scale, initialized from settings per tree
         self.mouse_state: MouseState = {
             "disable_events": False,
             "hovered_id": None,

@@ -489,6 +489,8 @@ class Tree(TreeType):
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self.show_hints = False
         self.style: Style = None
+        if not store.trees:
+            store.scale = settings.get("user.ui_elements_scale", 1.0)
         state_manager.init_states(initial_state)
         self.init_tree_constructor()
         state_manager.increment_ref_count_trees()
