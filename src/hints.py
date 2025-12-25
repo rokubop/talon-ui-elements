@@ -1,4 +1,4 @@
-from talon import cron, settings, registry
+from talon import cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
@@ -238,3 +238,24 @@ def hint_clear_state():
     hint_tag_disable()
     focus_next.cleanup()
     focus_previous.cleanup()
+
+def show_scale_notification(scale: float):
+    """Show a brief notification displaying the current scale percentage"""
+    try:
+        def scale_notification_ui():
+            screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
+            percent = int(scale * 100)
+            return screen(justify_content="center", align_items="center")[
+                div(
+                    padding=20,
+                    background_color="#000000cc",
+                    border_radius=8
+                )[
+                    text(f"{percent}%", font_size=32, color="ffffff", font_weight="bold")
+                ]
+            ]
+
+        actions.user.ui_elements_show(scale_notification_ui, duration="1500ms")
+    except (AttributeError, ImportError):
+        # ui_elements not available, silently skip
+        pass
