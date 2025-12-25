@@ -13,7 +13,7 @@ from talon import actions
 div = actions.user.ui_elements("div")
 div, text, button = actions.user.ui_elements(["div", "text", "button"])
 table, th, tr, td = actions.user.ui_elements(["table", "th", "tr", "td"])
-screen, window, icon = actions.user.ui_elements(["screen", "window", "icon"])
+screen, window, icon, cursor = actions.user.ui_elements(["screen", "window", "icon", "cursor"])
 # etc...
 ```
 
@@ -26,6 +26,7 @@ screen, window, icon = actions.user.ui_elements(["screen", "window", "icon"])
 | `screen` | Typically the first element required for every UI, full screen size | `screen()[...]` |
 | `active_window` | Root container that matches the size of currently active window you have open | `active_window()[...]` |
 | `div` | Generic container | `div(padding=16)[...]` |
+| `cursor` | Container that follows the mouse cursor position | `cursor()[text("Status")]` |
 | `window` | Draggable window with title bar, close button, and drop shadow | `window(title="My App")[...]` |
 
 ### Content Elements
@@ -74,6 +75,46 @@ svg, path, rect = actions.user.ui_elements(["svg", "path", "rect"])
 | `line` | SVG line | `line(x1=0, y1=0, x2=10, y2=10)` |
 | `polyline` | SVG polyline | `polyline(points="0,0 10,5 20,0")` |
 | `polygon` | SVG polygon | `polygon(points="0,0 10,0 5,10")` |
+
+## Special Elements
+
+### Cursor Element
+
+The `cursor` element is a container that follows the mouse cursor position in real-time. It's useful for displaying content like custom overlays, tooltips, or visual indicators that track with the cursor. Note that this doesn't replace the system cursor icon itself, but rather displays content that follows it.
+
+Defaults:
+`left: 0`
+`top: 0`
+`refresh_rate: 16` (60fps)
+
+```python
+cursor, div, text, icon = actions.user.ui_elements(["cursor", "div", "text", "icon"])
+
+# Basic cursor with icon
+screen()[
+    cursor()[
+        text("status", font_size=14),
+    ]
+]
+
+# Cursor with offset positioning
+screen()[
+    cursor(left=10, top=10)[
+        div(
+            padding=8,
+            background_color="000000cc",
+            border_radius=4
+        )[
+            text("Cursor Info", color="ffffff")
+        ]
+    ]
+]
+
+# Custom refresh rate (in milliseconds)
+cursor(refresh_rate=33)[...]  # 30fps
+cursor(refresh_rate=16)[...]  # 60fps (default)
+cursor(refresh_rate=8)[...]   # 120fps
+```
 
 ## Reactive Elements
 

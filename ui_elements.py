@@ -1,4 +1,4 @@
-from talon import Module, actions
+from talon import Module, actions, cron
 from typing import List, Any, Union, Callable
 from .src.core.entity_manager import entity_manager
 from .src.core.state_manager import state_manager, debug_gc
@@ -26,7 +26,7 @@ class Actions:
         button, input_text, state = actions.user.ui_elements(["button", "input_text", "state"])
         ref, effect, icon = actions.user.ui_elements(["ref", "effect", "icon"])
         component, style = actions.user.ui_elements(["component", "style"])
-        checkbox, link = actions.user.ui_elements(["checkbox", "link"])
+        checkbox, link, cursor = actions.user.ui_elements(["checkbox", "link", "cursor"])
         table, th, tr, td = actions.user.ui_elements(["table", "th", "tr", "td"])
         svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
         circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
@@ -42,6 +42,7 @@ class Actions:
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
             min_version: str = None,
+            duration: str = None,
         ):
         """
         Render and show the UI
@@ -63,12 +64,24 @@ class Actions:
 
         # `on_mount` (after UI is visible) and `on_unmount` (before UI is hidden)
         actions.user.ui_elements_show(ui, on_mount=lambda: print("mounted"), on_unmount=lambda: print("unmounted"))
+
+        # Auto-hide after duration (notification style)
+        actions.user.ui_elements_show(ui, duration="1s")
         ```
         """
         if min_version and show_error_if_not_compatible(renderer, min_version):
             return
 
+        if duration:
+            # Hide previous instance first to prevent overlapping notifications
+            entity_manager.hide_tree(renderer)
+
         render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+
+        if duration:
+            def hide_notification():
+                actions.user.ui_elements_hide(renderer)
+            cron.after(duration, hide_notification)
 
     def ui_elements_hide(renderer_or_tree_id: Union[str, Callable]):
         """Destroy and hide a specific ui based on its renderer_or_tree_id function or an id on the root node (screen)"""
@@ -85,12 +98,13 @@ class Actions:
             on_unmount: callable = None,
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
+            min_version: str = None,
         ):
         """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
         new_state_visible = not entity_manager.does_tree_exist(renderer)
 
         if new_state_visible:
-            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state, min_version)
         else:
             entity_manager.hide_tree(renderer)
 
@@ -128,14 +142,19 @@ class Actions:
                 raise TypeError("actions.user.ui_elements_set_state requires a string key and a value.")
             state_manager.set_state_value(name, value)
 
-    def ui_elements_get_state(name: str = None):
+    def ui_elements_get_state(name: str = None, initial_state: Any = None):
         """
         Get global state value by its name or None for all states.
         ```
+        actions.user.ui_elements_get_state("my_key")
+        actions.user.ui_elements_get_state("my_key", "default_value")
+        ```
         """
-        return state_manager.get_state_value(name) if name else state_manager.get_all_states()
+        if name:
+            return state_manager.get_state_value(name, initial_state)
+        return state_manager.get_all_states()
 
-    def ui_elements_set_text(id: str, text_or_callable: Union[str, callable]):
+    def ui_elements_set_text(id: str, text_or_callable: Any):
         """
         Set text based on its `id`. Renders on a decoration layer, and faster than using `ui_elements_set_state`.
 

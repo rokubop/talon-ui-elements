@@ -10,6 +10,15 @@ class StateEvent:
 class DragEndEvent:
     not_implemented: Any = field(default=None)
 
-@dataclass
 class WindowCloseEvent:
-    hide: bool = field(default=True)
+    def __init__(self, hide: bool = True):
+        self.hide = hide
+        self._default_prevented = False
+
+    def prevent_default(self):
+        """Prevent the window from closing"""
+        self._default_prevented = True
+
+    @property
+    def default_prevented(self):
+        return self._default_prevented

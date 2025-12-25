@@ -6,7 +6,8 @@ from ..constants import (
     DEFAULT_INTERACTIVE_BORDER_WIDTH,
     DEFAULT_INPUT_BACKGROUND_COLOR,
     DEFAULT_CHECKBOX_SIZE,
-    DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR
+    DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
+    scale_value
 )
 from ..properties import validate_combined_props
 from .component import Component
@@ -40,8 +41,8 @@ default_button_props = {
 }
 
 default_svg_props = {
-    "size": DEFAULT_CHECKBOX_SIZE,
-    "stroke_width": 3,
+    "size": int(scale_value(DEFAULT_CHECKBOX_SIZE)),
+    "stroke_width": int(scale_value(3.0)),
 }
 
 def checkbox_impl(props):

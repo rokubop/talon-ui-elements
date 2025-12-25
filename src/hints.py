@@ -1,4 +1,4 @@
-from talon import Module, Context, cron, settings, registry, actions
+from talon import cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
@@ -6,19 +6,35 @@ from .core.state_manager import state_manager
 from .core.store import store
 from .interfaces import NodeType, ClickEvent
 from .utils import safe_callback
-from .core.entity_manager import entity_manager
 from .interfaces import RenderTransforms
 
-mod = Module()
-ctx, ctx_hints_active_browser = Context(), Context()
-mod.tag("ui_elements_hints_active", desc="tag for ui elements")
+# Store references to the Context objects from hints_and_keys
+_hint_ctx = None
+_hint_ctx_browser = None
 
-ctx_hints_active_browser.matches = """
-tag: user.ui_elements_hints_active
-and tag: browser
-"""
+def set_hint_context(ctx, ctx_browser):
+    """Called by hints_and_keys.py to provide context references"""
+    global _hint_ctx, _hint_ctx_browser
+    _hint_ctx = ctx
+    _hint_ctx_browser = ctx_browser
+    # Initialize rango override
+    if registry.captures.get("user.rango_target"):
+        def rango_target(m) -> str:
+            return m.rango_target
+        _hint_ctx_browser.capture(
+            "user.rango_target",
+            rule="this is a workaround to make rango target match this really long sentence so that it doesnt match anything"
+        )(rango_target)
 
-first_time_setup = False
+def hint_tag_enable():
+    """This pattern is done so that if the files get reloaded, the ctx can be set again"""
+    if _hint_ctx:
+        _hint_ctx.tags = ["user.ui_elements_hints_active"]
+
+def hint_tag_disable():
+    """This pattern is done so that if the files get reloaded, the ctx can be set again"""
+    if _hint_ctx:
+        _hint_ctx.tags = []
 
 class HintGenerator:
     def __init__(self):
@@ -96,11 +112,13 @@ def trigger_hint_focus(hint_trigger: str):
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransforms = None):
-    c.paint.textsize = settings.get("user.ui_elements_hints_size", 12)
+    from .constants import scale_value
+    hint_size = settings.get("user.ui_elements_hints_size", 12)
+    c.paint.textsize = scale_value(hint_size)
 
     hint_text_width = c.paint.measure_text(text)[1].width
     hint_text_height = c.paint.measure_text("X")[1].height
-    hint_padding = 6
+    hint_padding = scale_value(6.0)
     hint_padding_width = hint_text_width + hint_padding
     hint_padding_height = hint_text_height + hint_padding
 
@@ -177,29 +195,6 @@ def get_hint_generator():
         reset_hint_generator()
     return hint_generator.generate_hint
 
-def rango_target(m) -> str:
-    return m.rango_target
-
-def init_rango_override():
-    """
-    If we have UI overlaying the screen with hints, then
-    that should take priority over the rango hints in the browser.
-    """
-    if registry.captures.get("user.rango_target"):
-        ctx_hints_active_browser.capture(
-            "user.rango_target",
-            rule="this is a workaround to make rango target match this really long sentence so that it doesnt match anything"
-        )(rango_target)
-
-def hint_tag_enable():
-    global first_time_setup
-    ctx.tags = ["user.ui_elements_hints_active"]
-    if not first_time_setup:
-        first_time_setup = True
-        init_rango_override()
-
-def hint_tag_disable():
-    ctx.tags = []
 
 class KeyPressOrRepeatHold:
     def __init__(self, action: callable):
@@ -244,28 +239,23 @@ def hint_clear_state():
     focus_next.cleanup()
     focus_previous.cleanup()
 
-# TODO: can we make this so only currently shown hints
-#  are captured instead of any two characters?
-@mod.capture(rule="<user.letter> <user.letter>")
-def ui_elements_hint_target(m) -> list[str]:
-    return "".join(m.letter_list)
+def show_scale_notification(scale: float):
+    """Show a brief notification displaying the current scale percentage"""
+    try:
+        def scale_notification_ui():
+            screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
+            percent = int(scale * 100)
+            return screen(justify_content="center", align_items="center")[
+                div(
+                    padding=20,
+                    background_color="#000000cc",
+                    border_radius=8
+                )[
+                    text(f"{percent}%", font_size=32, color="ffffff", font_weight="bold")
+                ]
+            ]
 
-@mod.action_class
-class Actions:
-    def ui_elements_hint_action(action: str, ui_elements_hint_target: str = None):
-        """Trigger ui_elements specific hint action"""
-        if action == "click":
-            if ui_elements_hint_target:
-                trigger_hint_click(ui_elements_hint_target)
-        elif action == "focus":
-            if ui_elements_hint_target:
-                trigger_hint_focus(ui_elements_hint_target)
-
-    def ui_elements_key_action(action: str, key_down: bool = None):
-        """Trigger ui_elements specific key action"""
-        if action == "focus_next":
-            focus_next.execute(key_down)
-        elif action == "focus_previous":
-            focus_previous.execute(key_down)
-        elif action == "close":
-            entity_manager.hide_all_trees()
+        actions.user.ui_elements_show(scale_notification_ui, duration="1500ms")
+    except (AttributeError, ImportError):
+        # ui_elements not available, silently skip
+        pass

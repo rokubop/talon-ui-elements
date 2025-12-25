@@ -102,6 +102,10 @@ class StateCoordinator:
             if self.batch_job:
                 cron.cancel(self.batch_job)
             self.batch_job = cron.after("1ms", self.request_tree_renders)
+        elif self.phase == self.PHASE_REQUEST_RENDER:
+            # If we're already in REQUEST_RENDER phase, directly request renders
+            # This can happen if a state change occurs while we're processing another state change
+            self.request_tree_renders()
 
     def reset(self):
         store.mouse_state['disable_events'] = False
@@ -270,9 +274,13 @@ class StateManager:
 
         store.reactive_state[key].set_initial_value(initial_value)
 
-    def get_state_value(self, key):
+    def get_state_value(self, key, initial_value=None):
         if key in store.reactive_state:
             return store.reactive_state[key].value
+        elif initial_value is not None:
+            # State doesn't exist yet, initialize it with the default
+            self.init_state(key, initial_value)
+            return initial_value
         return None
 
     def get_all_states(self):
@@ -301,7 +309,7 @@ class StateManager:
             if isinstance(text_or_callable, Callable):
                 node.tree.meta_state.text_mutations[id] = text_or_callable(node.tree.meta_state.text_mutations.get(id, ""))
             else:
-                node.tree.meta_state.text_mutations[id] = text_or_callable
+                node.tree.meta_state.text_mutations[id] = str(text_or_callable)
             node.tree.render_manager.render_text_mutation()
         else:
             print(f"Node with ID '{id}' not found.")

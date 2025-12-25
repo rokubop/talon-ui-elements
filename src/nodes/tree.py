@@ -1,9 +1,10 @@
 import inspect
+import time
 import uuid
 import threading
 import traceback
 import weakref
-from talon import cron, settings, actions
+from talon import cron, settings, ctrl
 from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
@@ -12,7 +13,7 @@ from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..core.entity_manager import entity_manager
 from ..core.render_manager import RenderManager, RenderCause
@@ -35,7 +36,7 @@ from ..interfaces import (
     ScrollRegionType,
     ScrollableType,
 )
-from ..hints import draw_hint, get_hint_generator, hint_tag_enable, hint_clear_state
+from ..hints import draw_hint, get_hint_generator, hint_clear_state, hint_tag_enable
 from ..style import Style
 from ..utils import (
     draw_text_simple,
@@ -115,6 +116,10 @@ class MetaState(MetaStateType):
         self.unhighlight_jobs = {}
         self.new_component_ids = set()
         self.removed_component_ids = set()
+        self.scrollbar_hovered_id = None
+        self.scrollbar_dragging_id = None
+        self.scrollbar_drag_start_y = None
+        self.scrollbar_drag_start_offset_y = None
 
     @property
     def buttons(self):
@@ -313,6 +318,31 @@ class MetaState(MetaStateType):
             self._text_with_for_ids.items()
         )
 
+    # Scrollbar interaction state management
+    def set_scrollbar_hover(self, node_id):
+        self.scrollbar_hovered_id = node_id
+
+    def clear_scrollbar_hover(self):
+        self.scrollbar_hovered_id = None
+
+    def is_scrollbar_hovered(self, node_id):
+        return self.scrollbar_hovered_id == node_id
+
+    def start_scrollbar_drag(self, node_id, mouse_y, scroll_offset_y):
+        self.scrollbar_dragging_id = node_id
+        self.scrollbar_drag_start_y = mouse_y
+        self.scrollbar_drag_start_offset_y = scroll_offset_y
+
+    def clear_scrollbar_drag(self):
+        self.scrollbar_dragging_id = None
+        self.scrollbar_drag_start_y = None
+        self.scrollbar_drag_start_offset_y = None
+
+    def is_scrollbar_dragging(self, node_id=None):
+        if node_id:
+            return self.scrollbar_dragging_id == node_id
+        return self.scrollbar_dragging_id is not None
+
     def get_interaction_links(self):
         return list(
             (b, b) for b in self._buttons
@@ -420,6 +450,11 @@ class Tree(TreeType):
         self.current_base_canvas = None
         self.cursor = None
         self.cursor_v2 = None
+        self.cursor_refresh_job = None
+        self.cursor_refresh_rate = DEFAULT_CURSOR_REFRESH_RATE
+        self.cursor_position = self.get_cursor_position()
+        self.hover_validation_job = None
+        self.last_mouse_event_time = 0
         self.effects = []
         self.destroying = False
         self.drag_end_phase = False
@@ -430,6 +465,7 @@ class Tree(TreeType):
         self.fixed_nodes = []
         self.guid = uuid.uuid4().hex
         self.hashed_tree_constructor = hashed_tree_constructor
+        self.has_cursor_node = False
         self.interactive_node_list = []
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
@@ -453,6 +489,8 @@ class Tree(TreeType):
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self.show_hints = False
         self.style: Style = None
+        if not store.trees:
+            store.scale = settings.get("user.ui_elements_scale", 1.0)
         state_manager.init_states(initial_state)
         self.init_tree_constructor()
         state_manager.increment_ref_count_trees()
@@ -478,6 +516,54 @@ class Tree(TreeType):
     def validate_root_node(self):
         if self.root_node.element_type not in ["screen", "active_window"]:
             raise Exception("Root node must be a screen or active_window element")
+
+    def get_cursor_position(self) -> Point2d:
+        try:
+            x, y = ctrl.mouse_pos()
+            return Point2d(x, y)
+        except:
+            return Point2d(0, 0)
+
+    def start_cursor_refresh_cycle(self, refresh_rate: int = DEFAULT_CURSOR_REFRESH_RATE):
+        if self.cursor_refresh_job is None:
+            self.cursor_refresh_rate = refresh_rate
+
+            def cursor_refresh_callback():
+                if not self.destroying and self.has_cursor_node:
+                    self.update_cursor_positions()
+                    self.render_manager.render_cursor_update()
+
+            self.cursor_refresh_job = cron.interval(f"{refresh_rate}ms", cursor_refresh_callback)
+
+    def stop_cursor_refresh_cycle(self):
+        if self.cursor_refresh_job:
+            cron.cancel(self.cursor_refresh_job)
+            self.cursor_refresh_job = None
+
+    def update_cursor_positions(self):
+        self.cursor_position = self.get_cursor_position()
+
+    def setup_cursor_refresh_cycle(self):
+        if self.has_cursor_node:
+            self.start_cursor_refresh_cycle(self.cursor_refresh_rate)
+        else:
+            self.stop_cursor_refresh_cycle()
+
+    def check_for_stale_hover(self):
+        if not self.destroying:
+            time_since_last_event = time.time() - self.last_mouse_event_time
+            if time_since_last_event >= 0.2:
+                if self.validate_hover_state():
+                    self.render_manager.render_mouse_highlight()
+                self.hover_validation_job = None
+            else:
+                self.schedule_hover_validation()
+
+    def schedule_hover_validation(self):
+        if self.hover_validation_job:
+            cron.cancel(self.hover_validation_job)
+
+        self.hover_validation_job = cron.after("100ms", self.check_for_stale_hover)
 
     def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
@@ -542,8 +628,12 @@ class Tree(TreeType):
             layer.draw_to_canvas(canvas, transforms)
 
     def commit_base_canvas(self):
+        cursor_transforms = RenderTransforms(offset=self.cursor_position) \
+            if self.has_cursor_node \
+            else None
+
         for layer in self.render_layers:
-            layer.draw_to_canvas(self.current_base_canvas)
+            layer.draw_to_canvas(self.current_base_canvas, cursor_transforms)
 
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
@@ -618,6 +708,17 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def on_draw_base_canvas_cursor_update(self, canvas: SkiaCanvas):
+        try:
+            self.nonlayout_flow()
+            self.build_base_render_layers()
+            self.commit_base_canvas()
+        except Exception as e:
+            print(f"Error during cursor update rendering: {e}")
+            log_trace()
+            self.finish_current_render()
+            self.destroy()
+
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
             self.reset_cursor()
@@ -631,6 +732,8 @@ class Tree(TreeType):
             self.nonlayout_flow()
             self.build_base_render_layers()
             self.commit_base_canvas()
+            # Set up cursor refresh cycle after tree is fully processed
+            self.setup_cursor_refresh_cycle()
         except Exception as e:
             print(f"Error during base canvas draw: {e}")
             log_trace()
@@ -647,8 +750,10 @@ class Tree(TreeType):
                 self.on_draw_base_canvas_dragging(canvas)
             elif self.is_drag_end():
                 self.on_draw_base_canvas_drag_end(canvas)
-            elif self.render_manager.is_scrolling():
+            elif self.render_manager.is_scrolling() or self.render_manager.is_scrollbar_dragging():
                 self.on_draw_base_canvas_scroll(canvas)
+            elif self.render_manager.is_cursor_update() and not (self.render_manager.render_cause == RenderCause.STATE_CHANGE or self.render_manager.render_cause == RenderCause.REF_CHANGE):
+                self.on_draw_base_canvas_cursor_update(canvas)
             else:
                 self.on_draw_base_canvas_default(canvas)
 
@@ -995,6 +1100,73 @@ class Tree(TreeType):
             self.render_cause.clear()
             self.drag_end_phase = False
 
+    def handle_scrollbar_drag_move(self, gpos):
+        """Handle scrollbar dragging movement and scroll calculation."""
+        node_id = self.meta_state.scrollbar_dragging_id
+        node = self.meta_state.id_to_node.get(node_id)
+        scrollable_data = self.meta_state.scrollable.get(node_id)
+
+        if not (node and scrollable_data and node.box_model):
+            return
+
+        mouse_delta_y = gpos.y - self.meta_state.scrollbar_drag_start_y
+        view_height = scrollable_data.view_height
+        max_height = scrollable_data.max_height
+        thumb_height = node.box_model.scroll_bar_thumb_rect.height
+        track_height = node.box_model.padding_size.height
+
+        thumb_travel_distance = track_height - thumb_height
+        content_travel_distance = max_height - view_height
+
+        if thumb_travel_distance > 0 and content_travel_distance > 0:
+            # Convert thumb movement to content scroll (inverse ratio)
+            scroll_delta = -(mouse_delta_y / thumb_travel_distance) * content_travel_distance
+            new_offset_y = self.meta_state.scrollbar_drag_start_offset_y + scroll_delta
+            new_offset_y = max(view_height - max_height, min(0, new_offset_y))
+            scrollable_data.offset_y = new_offset_y
+            self.render_manager.render_scrollbar_dragging()
+
+    def handle_scrollbar_mousedown(self, gpos):
+        """Check for scrollbar click and initiate drag if found."""
+        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            node = self.meta_state.id_to_node.get(node_id)
+            if node and node.box_model and node.box_model.scroll_bar_thumb_rect:
+                if node.box_model.scroll_bar_thumb_rect.contains(gpos):
+                    self.meta_state.start_scrollbar_drag(node_id, gpos.y, scrollable_data.offset_y)
+                    self.render_manager.pause()
+                    self.render_base_canvas()
+                    return True
+        return False
+
+    def handle_scrollbar_mouseup(self, gpos):
+        """Handle scrollbar drag end and restore hover state."""
+        self.render_manager.resume()
+        self.meta_state.clear_scrollbar_drag()
+        self.render_base_canvas()
+        self.check_scrollbar_hover(gpos)
+
+    def check_scrollbar_hover(self, gpos):
+        """Check if mouse is hovering over any scrollbar thumb and update visual state."""
+        if self.meta_state.is_scrollbar_dragging():
+            return
+
+        prev_hovered_id = self.meta_state.scrollbar_hovered_id
+        new_hovered_id = None
+
+        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            node = self.meta_state.id_to_node.get(node_id)
+            if node and node.box_model and node.box_model.scroll_bar_thumb_rect:
+                if node.box_model.scroll_bar_thumb_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    break
+
+        if new_hovered_id != prev_hovered_id:
+            if new_hovered_id:
+                self.meta_state.set_scrollbar_hover(new_hovered_id)
+            else:
+                self.meta_state.clear_scrollbar_hover()
+            self.render_base_canvas()
+
     def on_hover(self, gpos):
         try:
             if not state_manager.is_drag_active():
@@ -1016,6 +1188,8 @@ class Tree(TreeType):
                                 changed = True
                                 self.unhighlight_no_render(prev_hovered_id)
                                 self.highlight_no_render(target_id, color=target_node.properties.highlight_color)
+                                if not self.hover_validation_job:
+                                    self.schedule_hover_validation()
                             break
 
                 if not new_hovered_id and prev_hovered_id:
@@ -1036,6 +1210,10 @@ class Tree(TreeType):
         return None
 
     def on_mousemove(self, gpos):
+        if self.meta_state.is_scrollbar_dragging():
+            self.handle_scrollbar_drag_move(gpos)
+            return
+
         if self.is_drag_end():
             return
 
@@ -1046,7 +1224,8 @@ class Tree(TreeType):
         if start_pos and not self.active_modal_count:
             is_drag_start = False
             if not state_manager.is_drag_active():
-                if abs(gpos.x - start_pos.x) > DRAG_INIT_THRESHOLD or abs(gpos.y - start_pos.y) > DRAG_INIT_THRESHOLD:
+                threshold = scale_value(DRAG_INIT_THRESHOLD)
+                if abs(gpos.x - start_pos.x) > threshold or abs(gpos.y - start_pos.y) > threshold:
                     state_manager.set_drag_active(True)
                     is_drag_start = True
 
@@ -1080,6 +1259,9 @@ class Tree(TreeType):
             )
 
     def on_mousedown(self, gpos):
+        if self.handle_scrollbar_mousedown(gpos):
+            return
+
         hovered_id = state_manager.get_hovered_id()
         state_manager.set_mousedown_start_pos(gpos)
 
@@ -1098,6 +1280,9 @@ class Tree(TreeType):
                 state_manager.focus_node(node, visible=False)
                 self.meta_state.set_highlighted(hovered_id, active_color)
                 self.render_manager.render_mouse_highlight()
+                # Schedule validation in case mouse teleports away after click
+                if not self.hover_validation_job:
+                    self.schedule_hover_validation()
                 return
 
         input_id = self.get_mouse_hovered_input_id(gpos)
@@ -1133,6 +1318,10 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
+            if self.meta_state.is_scrollbar_dragging():
+                self.handle_scrollbar_mouseup(gpos)
+                return
+
             hovered_id = state_manager.get_hovered_id()
             mousedown_start_id = state_manager.get_mousedown_start_id()
 
@@ -1169,6 +1358,40 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def validate_hover_state(self):
+        """Validate hover state and clean up if mouse left the UI."""
+        changed = False
+        current_pos = self.get_cursor_position()
+
+        hovered_id = state_manager.get_hovered_id()
+        if hovered_id and not state_manager.is_drag_active():
+            node = self.meta_state.id_to_node.get(hovered_id)
+
+            if node and node.box_model:
+                if not node.box_model.padding_rect.contains(current_pos):
+                    self.unhighlight_no_render(hovered_id)
+                    state_manager.set_hovered_id(None)
+                    changed = True
+            else:
+                state_manager.set_hovered_id(None)
+                changed = True
+
+        # Also validate click state
+        mousedown_start_id = state_manager.get_mousedown_start_id()
+        if mousedown_start_id:
+            node = self.meta_state.id_to_node.get(mousedown_start_id)
+
+            if node and node.box_model:
+                if not node.box_model.padding_rect.contains(current_pos):
+                    self.meta_state.set_unhighlighted(mousedown_start_id)
+                    state_manager.set_mousedown_start_id(None)
+                    changed = True
+            else:
+                state_manager.set_mousedown_start_id(None)
+                changed = True
+
+        return changed
+
     def reconcile_mouse_highlight(self):
         last_clicked_pos = state_manager.get_last_clicked_pos()
         hovered_id = state_manager.get_hovered_id()
@@ -1184,8 +1407,11 @@ class Tree(TreeType):
     def on_mouse(self, e: MouseEvent):
         if not state_manager.are_mouse_events_disabled() and \
                 not self.render_manager.is_destroying:
+            self.last_mouse_event_time = time.time()
+
             if e.event == "mousemove":
                 self.on_mousemove(e.gpos)
+                self.check_scrollbar_hover(e.gpos)
                 self.on_hover(e.gpos)
             elif e.event == "mousedown":
                 self.on_mousedown(e.gpos)
@@ -1289,6 +1515,15 @@ class Tree(TreeType):
                 cron.cancel(self.render_debounce_job)
                 self.render_debounce_job = None
 
+            self.stop_cursor_refresh_cycle()
+            if self.hover_validation_job:
+                cron.cancel(self.hover_validation_job)
+                self.hover_validation_job = None
+            self.cursor_position = None
+            self.cursor_refresh_rate = DEFAULT_CURSOR_REFRESH_RATE
+            self.has_cursor_node = False
+            self.last_mouse_event_time = 0
+
             if self.canvas_base:
                 self.canvas_base.unregister("draw", self.on_draw_base_canvas)
                 self.canvas_base.close()
@@ -1324,7 +1559,13 @@ class Tree(TreeType):
             scroll_throttle_job = None
             self.render_list.clear()
             self.render_layers.clear()
-            hint_clear_state()
+            # Only clear hint state if no other trees have hints
+            has_other_trees_with_hints = any(
+                tree != self and (tree.meta_state.inputs or tree.meta_state.buttons)
+                for tree in store.trees
+            )
+            if not has_other_trees_with_hints:
+                hint_clear_state()
             self.render_cause.clear()
             self.last_base_snapshot = None
             self.last_hints_snapshot = None
@@ -1463,13 +1704,20 @@ class Tree(TreeType):
 
     def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":
-            if node.properties.position == "fixed":
+            if node.element_type == "cursor":
+                self.has_cursor_node = True
+                self.cursor_refresh_rate = getattr(node, 'refresh_rate', DEFAULT_CURSOR_REFRESH_RATE)
+                self.absolute_nodes.append(weakref.ref(node))
+                node.relative_positional_node = weakref.ref(self.root_node)
+            elif node.properties.position == "fixed":
                 self.fixed_nodes.append(weakref.ref(node))
                 node.relative_positional_node = weakref.ref(self.root_node)
                 node.z_subindex += 1
             elif node.properties.position == "absolute":
                 self.absolute_nodes.append(weakref.ref(node))
                 node.relative_positional_node = self._find_parent_relative_positional_node(node.parent_node)
+
+            if node.properties.position != "relative":
                 node.z_subindex += 1
             self._cascade_children_z_subindex(node)
 
@@ -1494,6 +1742,11 @@ class Tree(TreeType):
         Runs once for each node in the tree to establish meta_state and relationships
         """
         current_node = self._resolve_component(current_node, node_index_path)
+
+        # Safety check - ensure current_node is valid
+        if current_node is None:
+            return
+
         current_node.tree = self
         current_node.depth = len(node_index_path)
         current_node.node_index_path = node_index_path

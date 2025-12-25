@@ -24,9 +24,25 @@ from .constants import (
     DEFAULT_JUSTIFY_CONTENT,
     DEFAULT_FOCUS_OUTLINE_COLOR,
     DEFAULT_FOCUS_OUTLINE_WIDTH,
-    ELEMENT_ENUM_TYPE
+    ELEMENT_ENUM_TYPE,
+    scale_value
 )
 from .utils import hex_color
+
+# Properties that should be scaled by the global UI scale setting
+SCALABLE_PROPERTIES = {
+    'font_size', 'gap', 'width', 'height',
+    'min_width', 'max_width', 'min_height', 'max_height',
+    'padding', 'margin', 'border_width', 'border_radius',
+    'focus_outline_width', 'stroke_width',
+    'padding_top', 'padding_right', 'padding_bottom', 'padding_left',
+    'padding_x', 'padding_y',
+    'margin_top', 'margin_right', 'margin_bottom', 'margin_left',
+    'margin_x', 'margin_y',
+    'border_top', 'border_right', 'border_bottom', 'border_left',
+    'left', 'right', 'top', 'bottom',
+    'size'  # For SVG elements
+}
 
 class Properties(PropertiesDimensionalType, PropertiesType):
     """
@@ -54,8 +70,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     flex_wrap: bool = False
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
-    font_size: int = DEFAULT_FONT_SIZE
-    gap: int = None
+    font_size: Union[int, float] = DEFAULT_FONT_SIZE
+    gap: Union[int, float] = None
     height: Union[int, str, float] = 0
     highlight_style: dict = None
     highlight_color: str = None
@@ -92,6 +108,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
         for key, value in kwargs.items():
             self.update_property(key, value)
+
+        # Scale defaults that weren't explicitly set
+        if 'font_size' not in kwargs:
+            self.font_size = scale_value(DEFAULT_FONT_SIZE)
 
         if not self.highlight_color:
             self.highlight_color = f"{self.color}33"
@@ -234,7 +254,12 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if key in self._explicitly_set:
                 continue
             if key in ["background_color", "border_color", "color", "stroke", "fill"]:
-                value = hex_color(value)
+                value = hex_color(value, property_name=key)
+
+            # Apply scaling to dimensional properties from styles
+            if key in SCALABLE_PROPERTIES and value is not None:
+                if isinstance(value, (int, float)):
+                    value = scale_value(value)
 
             update_padding = 'padding' in key or update_padding
             update_margin = 'margin' in key or update_margin
@@ -256,7 +281,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key in properties._explicitly_set:
             value = getattr(properties, key)
             if key in ["background_color", "border_color", "color", "stroke", "fill"]:
-                value = hex_color(value)
+                value = hex_color(value, property_name=key)
             if key in ["padding", "margin", "border"]:
                 value = parse_box_model(type(getattr(self, key)), **value)
             setattr(self, key, value)
@@ -305,7 +330,20 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     def update_property(self, key, value, explicitly_set=True):
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
-                value = hex_color(value)
+                value = hex_color(value, property_name=key)
+
+            # Apply scaling to dimensional properties only when explicitly set by user
+            # Don't scale when inheriting from parent (already scaled values)
+            if explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
+                if isinstance(value, (int, float)):
+                    value = scale_value(value)
+                elif isinstance(value, str) and "%" not in str(value):
+                    # Don't scale percentage values
+                    try:
+                        numeric_value = float(value)
+                        value = scale_value(numeric_value)
+                    except (ValueError, TypeError):
+                        pass
 
             if key == "on_click" and value is not None and callable(value):
                 try:
@@ -343,7 +381,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             variant = Properties.__new__(Properties)
             variant.__dict__ = self.__dict__.copy()
             variant.__dict__.update({
-                k: hex_color(v) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
+                k: hex_color(v, property_name=k) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
                 for k, v in self.highlight_style.items()
             })
             self._highlighted_variant = variant
@@ -420,8 +458,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     focus_outline_color: str
     focus_outline_width: int
     font_family: str
-    font_size: int
-    gap: int
+    font_size: Union[int, float]
+    gap: Union[int, float]
     height: Union[int, str, float]
     highlight_style: dict
     highlight_color: str
@@ -447,14 +485,17 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
 class NodeDivValidationProperties(ValidationProperties):
     drop_shadow: tuple
 
+class NodeCursorValidationProperties(ValidationProperties):
+    refresh_rate: int
+
 class NodeTextValidationProperties(ValidationProperties):
     text: str
-    font_size: int
+    font_size: Union[int, float]
     font_family: str
     font_weight: str
     for_id: str
     stroke_color: str = None
-    stroke_width: int = None
+    stroke_width: Union[int, float] = None
     text_align: str
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
@@ -469,11 +510,11 @@ class NodeLinkValidationProperties(NodeButtonValidationProperties):
 class NodeTextProperties(Properties):
     id: str = None
     font_family: str = ""
-    font_size: int = DEFAULT_FONT_SIZE
+    font_size: Union[int, float] = DEFAULT_FONT_SIZE
     font_weight: str = "normal"
     for_id: str = None
     on_click: any = None
-    stroke_width: int = None
+    stroke_width: Union[int, float] = None
     stroke_color: str = None
     text_align: str = "left"
 
@@ -510,26 +551,26 @@ class NodeDivProperties(Properties):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class NodeSvgValidationProperties(TypedDict):
+class NodeSvgValidationProperties(ValidationProperties):
     color: str
     background_color: str
     fill: Union[str, bool]
     stroke: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke_linejoin: str
     stroke_linecap: str
     view_box: str
-    size: int
+    size: Union[int, float]
 
 @dataclass
 class NodeSvgProperties(Properties):
     fill: Union[str, bool] = None
     stroke: Union[str, bool] = None
-    stroke_width: int = 2
+    stroke_width: Union[int, float] = 2
     stroke_linejoin: str = "round"
     stroke_linecap: str = "round"
     view_box: str = "0 0 24 24"
-    size: int = 24
+    size: Union[int, float] = 24
 
     def __init__(self, **kwargs):
         if not kwargs.get('fill') and not kwargs.get('stroke'):
@@ -538,13 +579,20 @@ class NodeSvgProperties(Properties):
 
         if kwargs.get('fill') and isinstance(kwargs.get('fill'), bool):
             kwargs['fill'] = DEFAULT_COLOR
+
+        # Scale default size and stroke_width if not explicitly provided
+        if 'size' not in kwargs:
+            self.size = scale_value(24)
+        if 'stroke_width' not in kwargs:
+            self.stroke_width = scale_value(2)
+
         super().__init__(**kwargs)
 
 class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
     d: str
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -557,7 +605,7 @@ class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
     ry: int
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -567,7 +615,7 @@ class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
     r: int
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -575,7 +623,7 @@ class NodeSvgPolylineValidationProperties(NodeSvgValidationProperties):
     points: str
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
@@ -589,17 +637,17 @@ class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
     y2: int
     stroke_linecap: str
     stroke_linejoin: str
-    stroke_width: int
+    stroke_width: Union[int, float]
     stroke: str
     fill: Union[str, bool]
 
 class NodeIconValidationProperties(ValidationProperties):
     name: str
-    size: int
-    stroke_width: int
+    size: Union[int, float]
+    stroke_width: Union[int, float]
     stroke_linecap: str = None
     stroke_linejoin: str = None
-    stroke_width: int = None
+    stroke_width: Union[int, float] = None
     stroke: str = None
     fill: Union[str, bool] = None
 
@@ -901,10 +949,18 @@ class NodeModalValidationProperties(ValidationProperties):
     backdrop_click_close: bool
     show_title_bar: bool
 
+@dataclass
+class NodeCursorProperties(Properties):
+    refresh_rate: int
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
 VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,

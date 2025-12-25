@@ -14,11 +14,13 @@ class RenderCause(Enum):
     DRAG_START = "DRAG_START"
     DRAG_END = "DRAG_END"
     DRAGGING = "DRAGGING"
+    SCROLLBAR_DRAGGING = "SCROLLBAR_DRAGGING"
     TEXT_MUTATION = "TEXT_MUTATION"
     HIGHLIGHT_CHANGE = "HIGHLIGHT_CHANGE"
     MOUSE_HIGHLIGHT = "MOUSE_HIGHLIGHT"
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
+    CURSOR_UPDATE = "CURSOR_UPDATE"
 
 class Policy(Enum):
     TAKE_LATEST = "take_latest"
@@ -86,6 +88,11 @@ RenderTaskDragEnd = RenderTask(
     on_base_canvas_change,
 )
 
+RenderTaskScrollbarDragging = RenderTask(
+    RenderCause.SCROLLBAR_DRAGGING,
+    on_base_canvas_change,
+)
+
 RenderStateChange = RenderTask(
     RenderCause.STATE_CHANGE,
     on_full_render,
@@ -94,6 +101,11 @@ RenderStateChange = RenderTask(
 RenderMouseHighlight = RenderTask(
     RenderCause.MOUSE_HIGHLIGHT,
     on_decorator_canvas_change,
+)
+
+RenderTaskCursorUpdate = RenderTask(
+    RenderCause.CURSOR_UPDATE,
+    on_base_canvas_change,
 )
 
 @dataclass
@@ -136,7 +148,8 @@ class RenderManager(RenderManagerType):
         if not self._destroying:
             if store.pause_renders and not (render_task.cause == RenderCause.DRAGGING or \
                     render_task.cause == RenderCause.DRAG_START or \
-                    render_task.cause == RenderCause.DRAG_END):
+                    render_task.cause == RenderCause.DRAG_END or \
+                    render_task.cause == RenderCause.SCROLLBAR_DRAGGING):
                 return
             if not self.current_render_task:
                 self.current_render_task = render_task
@@ -159,6 +172,14 @@ class RenderManager(RenderManagerType):
     def is_scrolling(self):
         return self.current_render_task and \
             self.current_render_task.cause == RenderCause.SCROLLING
+
+    def is_scrollbar_dragging(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.SCROLLBAR_DRAGGING
+
+    def is_cursor_update(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.CURSOR_UPDATE
 
     def _queue_render_after_debounce(self, interval: str, render_task: RenderTask):
         if self._render_debounce_job:
@@ -190,7 +211,8 @@ class RenderManager(RenderManagerType):
         if not self._destroying and self.queue:
             if store.pause_renders and not (self.queue[0].cause == RenderCause.DRAGGING or \
                         self.queue[0].cause == RenderCause.DRAG_START or \
-                        self.queue[0].cause == RenderCause.DRAG_END):
+                        self.queue[0].cause == RenderCause.DRAG_END or \
+                        self.queue[0].cause == RenderCause.SCROLLBAR_DRAGGING):
                     return
             self.current_render_task = self.queue.popleft()
             if self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
@@ -299,11 +321,17 @@ class RenderManager(RenderManagerType):
     def render_scroll(self):
         self._render_throttle("16ms", RenderTaskScrolling)
 
+    def render_scrollbar_dragging(self):
+        self._render_throttle("16ms", RenderTaskScrollbarDragging)
+
     def render_state_change(self):
         self.queue_render(RenderStateChange)
 
     def render_mouse_highlight(self):
         self.queue_render(RenderMouseHighlight)
+
+    def render_cursor_update(self):
+        self._render_throttle("10ms", RenderTaskCursorUpdate)
 
     def schedule_state_change(self, on_start: callable, on_end: callable = None):
         self.queue_render(RenderTask(

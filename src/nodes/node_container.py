@@ -8,6 +8,7 @@ from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAU
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
+from ..utils import adjust_color_alpha
 
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
@@ -32,7 +33,15 @@ class NodeContainer(Node, NodeContainerType):
             c.paint.style = c.paint.Style.FILL
             c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
             c.draw_rect(scroll_bar_track_rect)
-            c.paint.color = DEFAULT_SCROLL_BAR_THUMB_COLOR
+
+            # Apply hover/active state colors via alpha adjustment
+            thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
+            if self.tree.meta_state.is_scrollbar_dragging(self.id):
+                thumb_color = adjust_color_alpha(thumb_color, 30)
+            elif self.tree.meta_state.is_scrollbar_hovered(self.id):
+                thumb_color = adjust_color_alpha(thumb_color, 15)
+
+            c.paint.color = thumb_color
             c.draw_rect(scroll_bar_thumb_rect)
 
     def v2_measure_children_intrinsic_size(self, c: SkiaCanvas) -> Size2d:

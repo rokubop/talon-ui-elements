@@ -1,3 +1,4 @@
+from talon import ctrl
 from typing import List, Dict, Any, Union
 from .constants import ELEMENT_ENUM_TYPE
 from .core.state_manager import state_manager
@@ -5,7 +6,9 @@ from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
 from .nodes.checkbox import checkbox
 from .nodes.link import link
+from .nodes.node import Node
 from .nodes.node_container import NodeContainer
+from .nodes.node_cursor import NodeCursor
 from .nodes.node_input_text import NodeInputText
 from .nodes.node_root import NodeRoot
 from .nodes.node_svg import (
@@ -26,6 +29,7 @@ from .properties import (
     NodeInputTextProperties,
     NodeRootProperties,
     NodeDivProperties,
+    NodeCursorProperties,
     NodeTableProperties,
     NodeTableDataProperties,
     NodeTableHeaderProperties,
@@ -100,8 +104,15 @@ class State:
         if not tree:
             raise ValueError("""
                 state.get() must be called during render, such as during ui_elements_show(ui).
-                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
-                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+
+                If you're calling this from a click handler or other async callback:
+                  - Use state.use(key, initial_value) to get both value and setter
+                  - Then use the setter function in your callback: on_click=lambda: set_value(new_value)
+
+                If you want to use state outside of a render, use:
+                  - actions.user.ui_elements_get_state(key)
+                  - actions.user.ui_elements_set_state(key, value)
+                  - actions.user.ui_elements_set_initial_state(key, value)
             """)
 
         tree.meta_state.associate_state(key, components)
@@ -113,8 +124,15 @@ class State:
         if not tree:
             raise ValueError("""
                 state.use() must be called during render, such as during ui_elements_show(ui).
-                If you want to use state outside of a render, use actions.user.ui_elements_get_state(),
-                actions.user.ui_elements_set_state(), actions.user.ui_elements_set_initial_state()
+
+                If you're calling this from a click handler or other async callback:
+                  - Use state.use(key, initial_value) during render to get both value and setter
+                  - Then use the setter function in your callback: on_click=lambda: set_value(new_value)
+
+                If you want to use state outside of a render, use:
+                  - actions.user.ui_elements_get_state(key)
+                  - actions.user.ui_elements_set_state(key, value)
+                  - actions.user.ui_elements_set_initial_state(key, value)
             """)
 
         tree.meta_state.associate_state(key, components)
@@ -170,6 +188,37 @@ def div(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["div"])
     div_properties = NodeDivProperties(**properties)
     return NodeContainer(ELEMENT_ENUM_TYPE["div"], div_properties)
+
+def cursor(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["cursor"])
+
+    outer_properties = {
+        "position": "absolute",
+        "left": 0,
+        "top": 0,
+    }
+
+    inner_defaults = {
+        "position": "absolute",
+    }
+
+    user_has_horizontal = any(properties.get(prop) is not None for prop in ["left", "right"])
+    if not user_has_horizontal:
+        inner_defaults["left"] = 0
+
+    user_has_vertical = any(properties.get(prop) is not None for prop in ["top", "bottom"])
+    if not user_has_vertical:
+        inner_defaults["top"] = 0
+
+    inner_properties = {
+        **inner_defaults,
+        **properties,
+    }
+
+    return NodeCursor(
+        outer_properties=outer_properties,
+        inner_properties=inner_properties
+    )
 
 def table(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["table"])
@@ -244,6 +293,8 @@ def button(*args, text=None, **additional_props):
     if args and isinstance(args[0], str):
         text = args[0]
         args = args[1:]
+    elif args and isinstance(args[0], Node):
+        raise TypeError(f"Cannot pass an element/node directly to button(). To add children, use the [] syntax: button()[your_element]")
 
     props = args[0] if args and isinstance(args[0], dict) else {}
 
@@ -445,6 +496,7 @@ use_effect_without_tree = use_effect_no_tree
 active_window = UIElementsContainerNoTextProxy(active_window)
 button = UIElementsLeafProxy(button)
 checkbox = UIElementsLeafProxy(checkbox)
+cursor = UIElementsContainerNoTextProxy(cursor)
 div = UIElementsContainerNoTextProxy(div)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
@@ -518,6 +570,7 @@ element_collection: Dict[str, callable] = {
     'button': button,
     'checkbox': checkbox,
     'component': Component,
+    'cursor': cursor,
     'div': div,
     'effect': effect,
     'icon': icon,

@@ -58,6 +58,7 @@ Properties mostly match standard CSS properties.
 | padding_right | int | 0 | Right padding |
 | padding_top | int | 0 | Top padding |
 | position | "static", "relative", "absolute", "fixed" | "static" | Positioning of element. |
+| refresh_rate | int | 16 | Update frequency in milliseconds for `cursor` element (16ms ≈ 60fps) |
 | right | Union[int, str] | None | Used with `"position"` property. Inset from the right. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | screen | int | 0 | Specify the screen index, only applicable to `screen` element |
 | top | Union[int, str] | None | Used with `"position"` property. Inset from the top. e.g. `0`, `50`, `"25%"`, `"100%"` |

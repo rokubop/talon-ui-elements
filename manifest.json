@@ -2,11 +2,16 @@
   "name": "ui_elements",
   "title": "UI Elements",
   "description": "Create stateful canvas UIs using HTML/CSS/React-inspired syntax for python. For use with Talon.",
-  "version": "0.9.2",
+  "version": "0.10.0",
+  "namespace": "user.ui_elements",
   "github": "https://github.com/rokubop/talon-ui-elements",
   "preview": "https://raw.githubusercontent.com/rokubop/talon-ui-elements/main/examples/ui_elements_preview.png",
   "author": "Rokubop",
-  "tags": ["ui"],
+  "tags": [
+    "ui"
+  ],
+  "dependencies": {},
+  "devDependencies": {},
   "contributes": {
     "settings": [
       "user.ui_elements_hints_button_first_char",
@@ -14,9 +19,12 @@
       "user.ui_elements_hints_link_first_char",
       "user.ui_elements_hints_show",
       "user.ui_elements_hints_size",
+      "user.ui_elements_scale",
       "user.ui_elements_scroll_speed"
     ],
-    "tags": ["user.ui_elements_hints_active"],
+    "tags": [
+      "user.ui_elements_hints_active"
+    ],
     "actions": [
       "user.ui_elements",
       "user.ui_elements_debug_gc",
@@ -34,6 +42,9 @@
       "user.ui_elements_is_active",
       "user.ui_elements_key_action",
       "user.ui_elements_register_effect",
+      "user.ui_elements_scale_decrease",
+      "user.ui_elements_scale_increase",
+      "user.ui_elements_scale_reset",
       "user.ui_elements_set_property",
       "user.ui_elements_set_state",
       "user.ui_elements_set_text",
@@ -48,6 +59,10 @@
     ]
   },
   "depends": {
-    "tags": ["browser"]
-  }
+    "tags": [
+      "browser"
+    ]
+  },
+  "_generator": "manifest_builder",
+  "_generatorVersion": "1.0.0"
 }

@@ -11,6 +11,7 @@ from .interfaces import (
 )
 from .constants import (
     DEFAULT_SCROLL_BAR_WIDTH,
+    scale_value,
 )
 
 @dataclass
@@ -37,20 +38,32 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
     model_name_y = f'{model_name}_y'
 
     if "border_width" in kwargs:
-        model.top = model.right = model.bottom = model.left = kwargs["border_width"]
+        value = scale_value(kwargs["border_width"]) if isinstance(kwargs["border_width"], (int, float)) else kwargs["border_width"]
+        model.top = model.right = model.bottom = model.left = value
     elif model_name in kwargs:
         all_sides_value = kwargs[model_name]
+        if isinstance(all_sides_value, (int, float)):
+            all_sides_value = scale_value(all_sides_value)
         model.top = model.right = model.bottom = model.left = all_sides_value
 
     if model_name_x in kwargs:
-        model.left = model.right = kwargs[model_name_x]
+        value = kwargs[model_name_x]
+        if isinstance(value, (int, float)):
+            value = scale_value(value)
+        model.left = model.right = value
     if model_name_y in kwargs:
-        model.top = model.bottom = kwargs[model_name_y]
+        value = kwargs[model_name_y]
+        if isinstance(value, (int, float)):
+            value = scale_value(value)
+        model.top = model.bottom = value
 
     for side in ['top', 'right', 'bottom', 'left']:
         side_key = f'{model_name}_{side}'
         if side_key in kwargs:
-            setattr(model, side, kwargs[side_key])
+            value = kwargs[side_key]
+            if isinstance(value, (int, float)):
+                value = scale_value(value)
+            setattr(model, side, value)
 
     return model
 
@@ -189,7 +202,7 @@ class BoxModelV2(BoxModelV2Type):
 
     @property
     def conditional_scroll_bar_y_width(self):
-        return DEFAULT_SCROLL_BAR_WIDTH if self.has_scroll_bar_y() else 0
+        return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_y() else 0
 
     @classmethod
     def _resolve_percent(self, value, total):
@@ -582,9 +595,9 @@ class BoxModelV2(BoxModelV2Type):
             self.scroll_bar_track_rect = Rect(
                 self.padding_pos.x + self.padding_size.width,
                 self.padding_pos.y,
-                DEFAULT_SCROLL_BAR_WIDTH,
+                scale_value(DEFAULT_SCROLL_BAR_WIDTH),
                 self.padding_size.height
-            )
+)
 
             thumb_height = view_height * (view_height / total_scrollable_height)
             thumb_pos_y = self.padding_pos.y + \
@@ -594,7 +607,7 @@ class BoxModelV2(BoxModelV2Type):
             self.scroll_bar_thumb_rect = Rect(
                 self.padding_pos.x + self.padding_size.width,
                 thumb_pos_y,
-                DEFAULT_SCROLL_BAR_WIDTH,
+                scale_value(DEFAULT_SCROLL_BAR_WIDTH),
                 thumb_height
             )
 

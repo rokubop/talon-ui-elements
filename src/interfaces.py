@@ -692,6 +692,10 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
+    def is_scrollbar_dragging(self):
+        pass
+
+    @abstractmethod
     def is_drag_start(self):
         pass
 

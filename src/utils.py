@@ -84,6 +84,21 @@ def get_active_color_from_highlight_color(highlight_color: str) -> str:
 
     return base_color + new_alpha_hex
 
+def adjust_color_alpha(color: str, adjustment: int) -> str:
+    """Adjust the alpha channel of a hex color with alpha.
+
+    Args:
+        color: Hex color string with alpha (e.g., "FFFFFF44")
+        adjustment: Amount to add to alpha (0-255)
+
+    Returns:
+        Color with adjusted alpha (e.g., "FFFFFF44" + 15 -> "FFFFFF53")
+    """
+    base_color = color[:-2]
+    alpha = int(color[-2:], 16)
+    new_alpha = max(0, min(255, alpha + adjustment))
+    return f"{base_color}{new_alpha:02X}"
+
 def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
     """Adjust the brightness of a hex color by a specified amount.
 
@@ -111,17 +126,52 @@ def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
     # Convert back to hex
     return f"{r:02X}{g:02X}{b:02X}"
 
-def hex_color(color: str) -> str:
+def hex_color(color: str, property_name: str = None) -> str:
     """Resolve color to hex if it's a named color or validate hex format."""
 
     if not color:
         return color
 
+    # Strip leading # if present
+    if color.startswith('#'):
+        color = color[1:]
+
     if all(c in "0123456789ABCDEFabcdef" for c in color):
-        # already hex
+        # already hex - validate length
+        if len(color) not in [3, 4, 6, 8]:
+            prop_msg = f" for property '{property_name}'" if property_name else ""
+            raise ValueError(
+                f"\nInvalid color{prop_msg}: '{color}'\n"
+                f"Hex colors must be 3, 4, 6, or 8 characters (got {len(color)}).\n"
+                f"Valid formats: 'FFF', 'FFFF', 'FFFFFF', 'FFFFFF66' (last 2 digits = opacity)\n"
+            )
         return color
 
-    return NAMED_COLORS_TO_HEX.get(color.lower(), color)
+    # Check for common CSS values that aren't supported
+    common_css_values = ['transparent', 'inherit', 'currentcolor', 'initial', 'unset']
+    if color.lower() in common_css_values:
+        prop_msg = f" for property '{property_name}'" if property_name else ""
+        raise ValueError(
+            f"\nInvalid color{prop_msg}: '{color}'\n"
+            f"CSS value '{color}' is not supported.\n"
+            f"For transparency, use:\n"
+            f"  - 8-character hex with alpha: 'FFFFFF66' (last 2 digits control opacity)\n"
+            f"  - opacity property: opacity=0.5\n"
+            f"  - Don't set background_color (buttons default to transparent background)\n"
+        )
+
+    # Try to resolve as named color
+    resolved = NAMED_COLORS_TO_HEX.get(color.lower())
+    if resolved:
+        return resolved.lstrip('#')
+
+    # Unknown color value
+    prop_msg = f" for property '{property_name}'" if property_name else ""
+    raise ValueError(
+        f"\nInvalid color{prop_msg}: '{color}'\n"
+        f"Use hex colors (e.g., 'FF0000', 'FFFFFF66') or named colors:\n"
+        f"  {', '.join(list(NAMED_COLORS_TO_HEX.keys())[:10])}...\n"
+    )
 
 def get_combined_screens_rect() -> Rect:
     screens = ui.screens()

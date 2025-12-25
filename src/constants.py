@@ -1,11 +1,32 @@
-from typing import TypedDict
+from typing import TypedDict, Union
+from talon import settings
+
+def get_scale() -> float:
+    """Get the global UI scale factor from store"""
+    try:
+        from .core.store import store
+        return store.scale
+    except:
+        return 1.0
+
+def scale_value(value: Union[int, float]) -> Union[int, float]:
+    """Apply scale to a numeric value, returning same type as input"""
+    if value is None:
+        return None
+    try:
+        scale = get_scale()
+        scaled = value * scale
+        return int(round(scaled)) if isinstance(value, int) else scaled
+    except:
+        # Fallback to original value if scaling fails
+        return value
 
 # Don't make these a talon setting
 # Shared UI's should be consistent from user to user
 DEFAULT_COLOR = "FFFFFF"
 DEFAULT_BORDER_COLOR = "555555"
-DEFAULT_CHECKBOX_SIZE = 20
-DEFAULT_FONT_SIZE = 16
+DEFAULT_CHECKBOX_SIZE = 20.0
+DEFAULT_FONT_SIZE = 16.0
 DEFAULT_FLEX_DIRECTION = "column"
 DEFAULT_ALIGN_ITEMS = "stretch"
 DEFAULT_JUSTIFY_CONTENT = "flex_start"
@@ -13,15 +34,16 @@ DEFAULT_FOCUS_OUTLINE_COLOR = "FFFFFF"
 DEFAULT_FOCUS_OUTLINE_WIDTH = 1.5
 DEFAULT_INPUT_BACKGROUND_COLOR = "333333"
 DEFAULT_INTERACTIVE_BORDER_COLOR = "888888"
-DEFAULT_INTERACTIVE_BORDER_WIDTH = 1
+DEFAULT_INTERACTIVE_BORDER_WIDTH = 1.0
 DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR = "88888833"
-DEFAULT_SCROLL_BAR_WIDTH = 10
+DEFAULT_CURSOR_REFRESH_RATE = 16
+DEFAULT_SCROLL_BAR_WIDTH = 10.0
 DEFAULT_SCROLL_BAR_TRACK_COLOR = "FFFFFF22"
 DEFAULT_SCROLL_BAR_THUMB_COLOR = "FFFFFF44"
 DEFAULT_LINK_COLOR = "#67A4FF"
 # DEFAULT_LINK_COLOR = "#589ADB"
 DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
-DRAG_INIT_THRESHOLD = 4
+DRAG_INIT_THRESHOLD = 4.0
 
 CASCADED_PROPERTIES = {
     "color",
@@ -61,6 +83,7 @@ class ElementEnumType(TypedDict):
     active_window: str
     button: str
     checkbox: str
+    cursor: str
     div: str
     icon: str
     input_text: str
@@ -85,6 +108,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "active_window": "active_window",
     "button": "button",
     "checkbox": "checkbox",
+    "cursor": "cursor",
     "div": "div",
     "icon": "icon",
     "input_text": "input_text",
@@ -124,6 +148,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["active_window"]: NODE_ENUM_TYPE["root"],
     ELEMENT_ENUM_TYPE["button"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["checkbox"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["cursor"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["link"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],

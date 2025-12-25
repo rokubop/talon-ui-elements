@@ -123,12 +123,13 @@ class EntityManager:
         if isinstance(tree_constructor, str):
             for tree in store.trees:
                 if tree.root_node.id == tree_constructor:
-                    tree.destroy()
+                    if not tree.destroying:
+                        tree.destroy()
                     break
         else:
             t = self.get_tree_with_hash(tree_constructor)
             tree = t["tree"]
-            if tree:
+            if tree and not tree.destroying:
                 tree.destroy()
 
         if not store.trees:
@@ -172,5 +173,23 @@ class EntityManager:
             print("tree.meta_state.ref_property_overrides", tree.meta_state.ref_property_overrides)
             print("tree.meta_state.focused_id", tree.meta_state.focused_id)
             print("tree.meta_state.unhighlight_jobs", tree.meta_state.unhighlight_jobs)
+
+    def set_scale(self, scale: float):
+        clamped_scale = max(0.5, min(3.0, scale))
+        store.scale = clamped_scale
+        for tree in store.trees:
+            tree.render()
+        return clamped_scale
+
+    def increase_scale(self, increment: float = 0.1) -> float:
+        new_scale = round(store.scale + increment, 1)
+        return self.set_scale(new_scale)
+
+    def decrease_scale(self, decrement: float = 0.1) -> float:
+        new_scale = round(store.scale - decrement, 1)
+        return self.set_scale(new_scale)
+
+    def reset_scale(self) -> float:
+        return self.set_scale(1.0)
 
 entity_manager = EntityManager()

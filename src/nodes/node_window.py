@@ -1,4 +1,4 @@
-from talon import actions
+from talon import actions, cron
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..events import WindowCloseEvent
@@ -22,10 +22,16 @@ class NodeWindow(NodeContainer):
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
-        is_minimized, set_is_minimized = state.use(
-            f"is_minimized_{self.hash}",
-            window_properties.get("minimized", False)
-        )
+        try:
+            is_minimized, set_is_minimized = state.use(
+                f"is_minimized_{self.hash}",
+                window_properties.get("minimized", False)
+            )
+        except Exception as e:
+            is_minimized, set_is_minimized = window_properties.get("minimized", False), lambda x: actions.user.ui_elements_set_state(
+                f"is_minimized_{self.hash}", x
+            )
+
         self.is_minimized = is_minimized
         minimized_style = window_properties.get("minimized_style", None)
 
@@ -111,19 +117,27 @@ class NodeWindow(NodeContainer):
 
         def on_close(e: WindowCloseEvent):
             if not self.destroying:
-                self.destroying = True
+                def deferred_close():
+                    if not self.destroying:
+                        if window_properties.get("on_close", None):
+                            if len(inspect.signature(window_properties.get("on_close")).parameters) == 1:
+                                window_properties.get("on_close")(e)
+                            else:
+                                window_properties.get("on_close")()
 
-                if window_properties.get("on_close", None):
-                    if len(inspect.signature(window_properties.get("on_close")).parameters) == 1:
-                        window_properties.get("on_close")(e)
-                    else:
-                        window_properties.get("on_close")()
+                        if e.default_prevented:
+                            return
 
-                if e.hide:
-                    if self.tree and self.tree.id:
-                        entity_manager.hide_tree(self.tree.id)
-                    else:
-                        entity_manager.hide_all_trees()
+                        if e.hide and not (self.tree and self.tree.render_manager.is_destroying):
+                            self.destroying = True
+                            if self.tree and self.tree.id:
+                                entity_manager.hide_tree(self.tree.id)
+                            else:
+                                entity_manager.hide_all_trees()
+
+                # This helps break call stack and avoid recursive action errors
+                # in case user called actions.user.ui_elements_hide in the on_close handler
+                cron.after("1ms", deferred_close)
 
         def on_button_click_close():
             on_close(WindowCloseEvent(hide=True))
