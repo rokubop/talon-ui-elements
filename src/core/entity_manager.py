@@ -177,14 +177,11 @@ class EntityManager:
             print("tree.meta_state.unhighlight_jobs", tree.meta_state.unhighlight_jobs)
 
     def set_scale(self, scale: float, tree: TreeType = None, persist: bool = False):
-        """Set scale for a specific tree or all trees if tree is None"""
         clamped_scale = max(0.5, min(3.0, scale))
 
         if tree:
-            # Set scale for specific tree
             tree.scale = clamped_scale
             if persist:
-                # If scale matches default, remove from storage; otherwise save it
                 default_scale = settings.get("user.ui_elements_scale", 1.0)
                 if clamped_scale == default_scale:
                     self._remove_tree_scale(tree.hashed_tree_constructor)
@@ -194,7 +191,6 @@ class EntityManager:
 
             show_scale_notification(clamped_scale)
         else:
-            # Set scale for all trees (global fallback)
             store.scale = clamped_scale
             default_scale = settings.get("user.ui_elements_scale", 1.0)
             for t in store.trees:
@@ -211,7 +207,6 @@ class EntityManager:
         return clamped_scale
 
     def _save_tree_scale(self, tree_hash: str, scale: float):
-        """Persist tree scale to storage"""
         ui_elements_data = storage.get("ui_elements", {})
         scale_per_tree = ui_elements_data.get("scale_per_tree", {})
         scale_per_tree[tree_hash] = scale
@@ -219,7 +214,6 @@ class EntityManager:
         storage.set("ui_elements", ui_elements_data)
 
     def _remove_tree_scale(self, tree_hash: str):
-        """Remove tree scale from storage"""
         ui_elements_data = storage.get("ui_elements", {})
         scale_per_tree = ui_elements_data.get("scale_per_tree", {})
         if tree_hash in scale_per_tree:
@@ -290,7 +284,6 @@ class EntityManager:
     def reset_scale(self, tree: TreeType = None) -> float:
         default_scale = settings.get("user.ui_elements_scale", 1.0)
 
-        # Get interactive trees
         interactive_trees = [t for t in store.trees if t.interactive_node_list]
 
         if not interactive_trees:
@@ -311,14 +304,11 @@ class EntityManager:
             return default_scale
 
     def reset_all_scale_overrides(self) -> float:
-        """Clear all saved scale overrides from storage and reset all trees to default scale"""
-        # Clear all scale overrides from storage
         ui_elements_data = storage.get("ui_elements", {})
         if "scale_per_tree" in ui_elements_data:
             ui_elements_data["scale_per_tree"] = {}
             storage.set("ui_elements", ui_elements_data)
 
-        # Reset all current trees to default scale
         default_scale = settings.get("user.ui_elements_scale", 1.0)
         for tree in store.trees:
             tree.scale = default_scale
