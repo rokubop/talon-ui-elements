@@ -159,8 +159,11 @@ class NodeWindow(NodeContainer):
                 else:
                     title_bar_style[key] = value
 
+        drag_title_bar_only = window_properties.get("drag_title_bar_only", True)
+
         def title_bar():
-            return div(title_bar_style, flex_direction="row", justify_content="space_between", align_items="center")[
+            title_bar_props = {"drag_handle": True} if drag_title_bar_only else {}
+            return div(title_bar_style, **title_bar_props, flex_direction="row", justify_content="space_between", align_items="center")[
                 text(window_properties.get("title", ""), **title_style),
                 div(flex_direction="row")[
                     button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, **button_style)[

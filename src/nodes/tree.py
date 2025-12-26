@@ -1227,7 +1227,7 @@ class Tree(TreeType):
         if start_pos:
             state_manager.set_mousedown_start_offset(gpos - start_pos)
 
-        if start_pos and not self.active_modal_count:
+        if start_pos and not self.active_modal_count and state_manager.get_drag_relative_offset():
             is_drag_start = False
             if not state_manager.is_drag_active():
                 threshold = scale_value(DRAG_INIT_THRESHOLD)
@@ -1321,6 +1321,7 @@ class Tree(TreeType):
         self.drag_end_phase = True
         self.meta_state.commit_drag_offset(self.draggable_node.id)
         state_manager.set_drag_active(False)
+        state_manager.set_drag_relative_offset(None)
 
     def on_mouseup(self, gpos):
         try:
@@ -1340,6 +1341,7 @@ class Tree(TreeType):
                         self.click_node(node)
 
             state_manager.set_mousedown_start_pos(None)
+            state_manager.set_drag_relative_offset(None)
 
             if self.draggable_node and self.drag_handle_node:
                 if state_manager.is_drag_active():
