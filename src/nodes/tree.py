@@ -4,7 +4,7 @@ import uuid
 import threading
 import traceback
 import weakref
-from talon import cron, settings, ctrl
+from talon import cron, settings, ctrl, storage
 from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
@@ -489,6 +489,12 @@ class Tree(TreeType):
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self.show_hints = False
         self.style: Style = None
+
+        # Load scale from storage per tree, fallback to settings
+        saved_scales = storage.get("ui_elements", {}).get("scale_per_tree", {})
+        default_scale = settings.get("user.ui_elements_scale", 1.0)
+        self.scale = saved_scales.get(hashed_tree_constructor, default_scale)
+
         if not store.trees:
             store.scale = settings.get("user.ui_elements_scale", 1.0)
         state_manager.init_states(initial_state)

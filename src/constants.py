@@ -2,9 +2,12 @@ from typing import TypedDict, Union
 from talon import settings
 
 def get_scale() -> float:
-    """Get the global UI scale factor from store"""
+    """Get the UI scale factor from current tree or fallback to global"""
     try:
         from .core.store import store
+        # Use processing_tree which is already set during rendering
+        if store.processing_tree and hasattr(store.processing_tree, 'scale'):
+            return store.processing_tree.scale
         return store.scale
     except:
         return 1.0

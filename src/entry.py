@@ -12,6 +12,7 @@ def render_ui(
         show_hints: bool = None,
         initial_state: dict[str, Any] = None,
         test_mode: bool = False,
+        scale: float = None,
     ):
     t = entity_manager.get_tree_with_hash(tree_constructor)
     tree = t["tree"]
@@ -21,6 +22,10 @@ def render_ui(
         Constructor = MockTree if test_mode else Tree
         tree = Constructor(tree_constructor, hash, props, initial_state)
         entity_manager.add_tree(tree)
+
+    # Set scale if provided (overrides stored/default scale)
+    if scale is not None:
+        entity_manager.set_scale(scale, tree)
 
     if show_hints is None:
         show_hints = settings.get("user.ui_elements_hints_show")

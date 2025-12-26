@@ -1,6 +1,7 @@
 from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
 from talon.skia.typeface import Typeface
+from talon import storage, settings
 from typing import Union
 from ..interfaces import NodeType, TreeType, Point2d
 from .store import store
@@ -174,22 +175,125 @@ class EntityManager:
             print("tree.meta_state.focused_id", tree.meta_state.focused_id)
             print("tree.meta_state.unhighlight_jobs", tree.meta_state.unhighlight_jobs)
 
-    def set_scale(self, scale: float):
+    def set_scale(self, scale: float, tree: TreeType = None, persist: bool = False):
+        """Set scale for a specific tree or all trees if tree is None"""
         clamped_scale = max(0.5, min(3.0, scale))
-        store.scale = clamped_scale
-        for tree in store.trees:
+
+        if tree:
+            # Set scale for specific tree
+            tree.scale = clamped_scale
+            if persist:
+                # If scale matches default, remove from storage; otherwise save it
+                default_scale = settings.get("user.ui_elements_scale", 1.0)
+                if clamped_scale == default_scale:
+                    self._remove_tree_scale(tree.hashed_tree_constructor)
+                else:
+                    self._save_tree_scale(tree.hashed_tree_constructor, clamped_scale)
             tree.render()
+        else:
+            # Set scale for all trees (global fallback)
+            store.scale = clamped_scale
+            default_scale = settings.get("user.ui_elements_scale", 1.0)
+            for t in store.trees:
+                t.scale = clamped_scale
+                if persist:
+                    if clamped_scale == default_scale:
+                        self._remove_tree_scale(t.hashed_tree_constructor)
+                    else:
+                        self._save_tree_scale(t.hashed_tree_constructor, clamped_scale)
+                t.render()
+
         return clamped_scale
 
-    def increase_scale(self, increment: float = 0.1) -> float:
-        new_scale = round(store.scale + increment, 1)
-        return self.set_scale(new_scale)
+    def _save_tree_scale(self, tree_hash: str, scale: float):
+        """Persist tree scale to storage"""
+        ui_elements_data = storage.get("ui_elements", {})
+        scale_per_tree = ui_elements_data.get("scale_per_tree", {})
+        scale_per_tree[tree_hash] = scale
+        ui_elements_data["scale_per_tree"] = scale_per_tree
+        storage.set("ui_elements", ui_elements_data)
 
-    def decrease_scale(self, decrement: float = 0.1) -> float:
-        new_scale = round(store.scale - decrement, 1)
-        return self.set_scale(new_scale)
+    def _remove_tree_scale(self, tree_hash: str):
+        """Remove tree scale from storage"""
+        ui_elements_data = storage.get("ui_elements", {})
+        scale_per_tree = ui_elements_data.get("scale_per_tree", {})
+        if tree_hash in scale_per_tree:
+            del scale_per_tree[tree_hash]
+            ui_elements_data["scale_per_tree"] = scale_per_tree
+            storage.set("ui_elements", ui_elements_data)
 
-    def reset_scale(self) -> float:
-        return self.set_scale(1.0)
+    def get_active_tree(self) -> TreeType:
+        """Get the most recently focused/active tree, excluding notification-style UIs"""
+        # Prioritize focused_tree, then processing_tree, then most recent non-notification tree
+        if store.focused_tree and store.focused_tree in store.trees:
+            return store.focused_tree
+        if store.processing_tree:
+            return store.processing_tree
+
+        # Find most recent tree that isn't a temporary notification (has no duration)
+        # Notifications typically use duration parameter and show briefly
+        for tree in reversed(store.trees):
+            # Skip trees that look like notifications (e.g., scale_notification_ui)
+            if tree.name and 'notification' not in tree.name.lower():
+                return tree
+
+        # Fallback to last tree if all else fails
+        return store.trees[-1] if store.trees else None
+
+    def increase_scale(self, increment: float = 0.1, tree: TreeType = None) -> float:
+        """Increase scale for a specific tree or the active tree"""
+        if tree is None:
+            tree = self.get_active_tree()
+
+        if tree:
+            new_scale = round(tree.scale + increment, 1)
+            return self.set_scale(new_scale, tree, persist=True)
+        else:
+            # Fallback to global
+            new_scale = round(store.scale + increment, 1)
+            return self.set_scale(new_scale, persist=True)
+
+    def decrease_scale(self, decrement: float = 0.1, tree: TreeType = None) -> float:
+        """Decrease scale for a specific tree or the active tree"""
+        if tree is None:
+            tree = self.get_active_tree()
+
+        if tree:
+            new_scale = round(tree.scale - decrement, 1)
+            return self.set_scale(new_scale, tree, persist=True)
+        else:
+            # Fallback to global
+            new_scale = round(store.scale - decrement, 1)
+            return self.set_scale(new_scale, persist=True)
+
+    def reset_scale(self, tree: TreeType = None) -> float:
+        """Reset scale to default for a specific tree or the active tree, and remove from storage"""
+        if tree is None:
+            tree = self.get_active_tree()
+
+        default_scale = settings.get("user.ui_elements_scale", 1.0)
+
+        if tree:
+            # Remove from storage and reset to default
+            self._remove_tree_scale(tree.hashed_tree_constructor)
+            return self.set_scale(default_scale, tree, persist=False)
+        else:
+            return self.set_scale(default_scale, persist=False)
+
+    def reset_all_scale_overrides(self) -> float:
+        """Clear all saved scale overrides from storage and reset all trees to default scale"""
+        # Clear all scale overrides from storage
+        ui_elements_data = storage.get("ui_elements", {})
+        if "scale_per_tree" in ui_elements_data:
+            ui_elements_data["scale_per_tree"] = {}
+            storage.set("ui_elements", ui_elements_data)
+
+        # Reset all current trees to default scale
+        default_scale = settings.get("user.ui_elements_scale", 1.0)
+        for tree in store.trees:
+            tree.scale = default_scale
+            tree.render()
+
+        return default_scale
 
 entity_manager = EntityManager()
