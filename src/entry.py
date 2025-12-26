@@ -23,7 +23,6 @@ def render_ui(
         tree = Constructor(tree_constructor, hash, props, initial_state)
         entity_manager.add_tree(tree)
 
-    # Set scale if provided (overrides stored/default scale)
     if scale is not None:
         entity_manager.set_scale(scale, tree)
 

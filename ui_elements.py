@@ -260,7 +260,7 @@ class Actions:
         debug_gc()
 
     def ui_elements_reset_all_scale_overrides():
-        """Clear all saved scale overrides and reset all UIs to default scale"""
+        """Clear all manual scale overrides (from ctrl/cmd +, ctrl/cmd -, etc)"""
         default_scale = entity_manager.reset_all_scale_overrides()
         show_scale_notification(default_scale)
 
