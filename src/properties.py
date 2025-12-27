@@ -851,6 +851,7 @@ class NodeInputTextValidationProperties(ValidationProperties):
 
 @dataclass
 class NodeWindowProperties(Properties):
+    drag_title_bar_only: bool = True
     drop_shadow: tuple[int, int, int, int, str] = None
     minimized: bool = False
     minimized_style: dict = None

@@ -6,6 +6,7 @@ from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
+from .src.hints import show_scale_notification
 from .src.versioning import get_version
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_ui import toggle_elements_examples
@@ -43,6 +44,7 @@ class Actions:
             initial_state: dict[str, Any] = None,
             min_version: str = None,
             duration: str = None,
+            scale: float = None,
         ):
         """
         Render and show the UI
@@ -67,6 +69,10 @@ class Actions:
 
         # Auto-hide after duration (notification style)
         actions.user.ui_elements_show(ui, duration="1s")
+
+        # Set scale (overrides stored/default scale for this tree)
+        # Default: uses stored scale from previous sessions, or user.ui_elements_scale setting, or 1.0
+        actions.user.ui_elements_show(ui, scale=1.5)
         ```
         """
         if min_version and show_error_if_not_compatible(renderer, min_version):
@@ -76,7 +82,7 @@ class Actions:
             # Hide previous instance first to prevent overlapping notifications
             entity_manager.hide_tree(renderer)
 
-        render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state)
+        render_ui(renderer, props, on_mount, on_unmount, show_hints, initial_state, scale=scale)
 
         if duration:
             def hide_notification():
@@ -99,12 +105,13 @@ class Actions:
             show_hints: bool = None,
             initial_state: dict[str, Any] = None,
             min_version: str = None,
+            scale: float = None,
         ):
         """Toggle visibility of a specific ui based on its renderer function or an id on the root node"""
         new_state_visible = not entity_manager.does_tree_exist(renderer)
 
         if new_state_visible:
-            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state, min_version)
+            actions.user.ui_elements_show(renderer, props, on_mount, on_unmount, show_hints, initial_state, min_version, scale=scale)
         else:
             entity_manager.hide_tree(renderer)
 
@@ -251,6 +258,11 @@ class Actions:
     def ui_elements_debug_gc():
         """Debug garbage collection - print to log"""
         debug_gc()
+
+    def ui_elements_reset_all_scale_overrides():
+        """Clear all manual scale overrides (from ctrl/cmd +, ctrl/cmd -, etc)"""
+        default_scale = entity_manager.reset_all_scale_overrides()
+        show_scale_notification(default_scale)
 
     def ui_elements_svg(elements: List[str]) -> Union[tuple[callable], callable]:
         """

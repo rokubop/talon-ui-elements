@@ -4,7 +4,7 @@ import uuid
 import threading
 import traceback
 import weakref
-from talon import cron, settings, ctrl
+from talon import cron, settings, ctrl, storage
 from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
@@ -489,6 +489,12 @@ class Tree(TreeType):
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self.show_hints = False
         self.style: Style = None
+
+        # Load scale from storage per tree, fallback to settings
+        saved_scales = storage.get("ui_elements", {}).get("scale_per_tree", {})
+        default_scale = settings.get("user.ui_elements_scale", 1.0)
+        self.scale = saved_scales.get(hashed_tree_constructor, default_scale)
+
         if not store.trees:
             store.scale = settings.get("user.ui_elements_scale", 1.0)
         state_manager.init_states(initial_state)
@@ -1221,7 +1227,7 @@ class Tree(TreeType):
         if start_pos:
             state_manager.set_mousedown_start_offset(gpos - start_pos)
 
-        if start_pos and not self.active_modal_count:
+        if start_pos and not self.active_modal_count and state_manager.get_drag_relative_offset():
             is_drag_start = False
             if not state_manager.is_drag_active():
                 threshold = scale_value(DRAG_INIT_THRESHOLD)
@@ -1315,6 +1321,7 @@ class Tree(TreeType):
         self.drag_end_phase = True
         self.meta_state.commit_drag_offset(self.draggable_node.id)
         state_manager.set_drag_active(False)
+        state_manager.set_drag_relative_offset(None)
 
     def on_mouseup(self, gpos):
         try:
@@ -1334,6 +1341,7 @@ class Tree(TreeType):
                         self.click_node(node)
 
             state_manager.set_mousedown_start_pos(None)
+            state_manager.set_drag_relative_offset(None)
 
             if self.draggable_node and self.drag_handle_node:
                 if state_manager.is_drag_active():

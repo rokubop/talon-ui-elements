@@ -1,16 +1,15 @@
 from typing import TypedDict, Union
-from talon import settings
 
 def get_scale() -> float:
-    """Get the global UI scale factor from store"""
     try:
         from .core.store import store
+        if store.processing_tree and hasattr(store.processing_tree, 'scale'):
+            return store.processing_tree.scale
         return store.scale
-    except:
+    except Exception as e:
         return 1.0
 
 def scale_value(value: Union[int, float]) -> Union[int, float]:
-    """Apply scale to a numeric value, returning same type as input"""
     if value is None:
         return None
     try:
@@ -18,7 +17,6 @@ def scale_value(value: Union[int, float]) -> Union[int, float]:
         scaled = value * scale
         return int(round(scaled)) if isinstance(value, int) else scaled
     except:
-        # Fallback to original value if scaling fails
         return value
 
 # Don't make these a talon setting
