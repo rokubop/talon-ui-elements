@@ -1,11 +1,6 @@
-"""
-Border radius utilities for per-corner rounded rectangles.
-"""
 from dataclasses import dataclass
-from typing import Union
 from talon.types import Rect
-from talon.skia import Path, RoundRect
-from talon.skia.canvas import Canvas as SkiaCanvas
+from talon.skia import Path
 
 
 @dataclass

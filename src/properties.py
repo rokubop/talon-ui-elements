@@ -335,12 +335,9 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value, property_name=key)
 
-            # Special handling for border_radius
             if key == "border_radius" and value is not None:
-                # Convert to BorderRadius object
                 if not isinstance(value, BorderRadius):
                     value = BorderRadius(value)
-                # Scale if explicitly set
                 if explicitly_set:
                     scale = get_scale()
                     if scale != 1.0:
@@ -410,15 +407,13 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         return self.overflow and self.overflow.scrollable
 
     def get_border_radius(self):
-        """Get border_radius as a BorderRadius object, converting if necessary."""
+        """Always returns a BorderRadius type"""
         if isinstance(self.border_radius, BorderRadius):
             return self.border_radius
         elif self.border_radius is not None:
-            # Convert int/float/tuple to BorderRadius
             self.border_radius = BorderRadius(self.border_radius)
             return self.border_radius
         else:
-            # Return default
             self.border_radius = BorderRadius(0)
             return self.border_radius
 
