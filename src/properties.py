@@ -4,6 +4,7 @@ from talon import app
 from talon.types import Rect
 from typing import TypedDict, Union
 from typing import TypedDict
+from .border_radius import BorderRadius
 from .box_model import (
     Overflow,
     parse_box_model
@@ -25,7 +26,8 @@ from .constants import (
     DEFAULT_FOCUS_OUTLINE_COLOR,
     DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE,
-    scale_value
+    scale_value,
+    get_scale
 )
 from .utils import hex_color
 
@@ -54,7 +56,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     autofocus: bool = False
     background_color: str = None
     border_color: str = DEFAULT_BORDER_COLOR
-    border_radius: int = 0
+    border_radius: Union[int, float, tuple, BorderRadius] = None
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
     bottom: Union[int, str, float] = None
@@ -102,6 +104,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.font_size = DEFAULT_FONT_SIZE
         self.color = DEFAULT_COLOR
         self.border_color = DEFAULT_BORDER_COLOR
+        self.border_radius = BorderRadius(0)
         self.element_type = kwargs.get('element_type', None)
         self._explicitly_set = set()
         self._highlighted_variant = None
@@ -332,9 +335,19 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value, property_name=key)
 
+            # Special handling for border_radius
+            if key == "border_radius" and value is not None:
+                # Convert to BorderRadius object
+                if not isinstance(value, BorderRadius):
+                    value = BorderRadius(value)
+                # Scale if explicitly set
+                if explicitly_set:
+                    scale = get_scale()
+                    if scale != 1.0:
+                        value = value.scale(scale)
             # Apply scaling to dimensional properties only when explicitly set by user
             # Don't scale when inheriting from parent (already scaled values)
-            if explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
+            elif explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
                 if isinstance(value, (int, float)):
                     value = scale_value(value)
                 elif isinstance(value, str) and "%" not in str(value):
@@ -395,6 +408,19 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def is_scrollable(self):
         return self.overflow and self.overflow.scrollable
+    
+    def get_border_radius(self):
+        """Get border_radius as a BorderRadius object, converting if necessary."""
+        if isinstance(self.border_radius, BorderRadius):
+            return self.border_radius
+        elif self.border_radius is not None:
+            # Convert int/float/tuple to BorderRadius
+            self.border_radius = BorderRadius(self.border_radius)
+            return self.border_radius
+        else:
+            # Return default
+            self.border_radius = BorderRadius(0)
+            return self.border_radius
 
     def gc(self):
         pass
@@ -441,7 +467,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     autofocus: bool
     background_color: str
     border_color: str
-    border_radius: int
+    border_radius: Union[int, float, tuple, BorderRadius]
     border_width: int
     bottom: Union[int, str, float]
     class_name: str

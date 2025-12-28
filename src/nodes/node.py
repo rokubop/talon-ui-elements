@@ -6,6 +6,7 @@ from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.imagefilter import ImageFilter
 from .component import Component
+from ..border_radius import draw_rounded_rect
 from ..box_model import BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
@@ -349,8 +350,22 @@ class Node(NodeType):
                     inner_rect.height + border_width,
                 )
 
-                if self.properties.border_radius:
-                    c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
+                border_radius = self.properties.get_border_radius()
+                if border_radius.has_radius():
+                    # Adjust border radius for the stroke offset
+                    if border_radius.is_uniform():
+                        adjusted_radius = border_radius.top_left + border_width / 2
+                        draw_rounded_rect(c, bordered_rect, adjusted_radius)
+                    else:
+                        # Scale per-corner radius for border stroke offset
+                        from ..border_radius import BorderRadius
+                        adjusted_radius = BorderRadius((
+                            border_radius.top_left + border_width / 2,
+                            border_radius.top_right + border_width / 2,
+                            border_radius.bottom_right + border_width / 2,
+                            border_radius.bottom_left + border_width / 2
+                        ))
+                        draw_rounded_rect(c, bordered_rect, adjusted_radius)
                 else:
                     c.draw_rect(bordered_rect)
             else:
@@ -406,10 +421,7 @@ class Node(NodeType):
                     inner_rect.height
                 )
 
-            if self.properties.border_radius and self.is_uniform_border:
-                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
-            else:
-                c.draw_rect(inner_rect)
+            draw_rounded_rect(c, inner_rect, self.properties.get_border_radius())
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):
@@ -428,10 +440,7 @@ class Node(NodeType):
                     inner_rect.height
                 )
 
-            if self.properties.border_radius and self.is_uniform_border:
-                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
-            else:
-                c.draw_rect(inner_rect)
+            draw_rounded_rect(c, inner_rect, self.properties.get_border_radius())
 
     def draw_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.v2_render_background(c, transforms)

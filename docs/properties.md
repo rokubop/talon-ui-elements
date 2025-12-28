@@ -17,7 +17,7 @@ Properties mostly match standard CSS properties.
 | border_right | int | None | Right border width |
 | border_top | int | None | Top border width |
 | border_bottom | int | None | Bottom border width |
-| border_radius | int | 0 | For rounded corners |
+| border_radius | int or tuple | 0 | For rounded corners. Can be a single int for uniform radius, or a tuple of 4 values `(top_left, top_right, bottom_right, bottom_left)` for per-corner radii. Example: `border_radius=20` or `border_radius=(30, 10, 30, 10)` |
 | border_width | int | None | Uniform border width value |
 | bottom | Union[int, str] | None | Used with `"position"` property. Inset from the bottom. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | color | str | "FFFFFF" | Text color - Cascades to children |

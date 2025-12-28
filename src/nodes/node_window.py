@@ -53,6 +53,7 @@ class NodeWindow(NodeContainer):
             "background_color": adjust_color_brightness(
                 window_properties.get("background_color", None), 10
             ) if window_properties.get("background_color", None) else "272727",
+            "border_radius": (4, 4, 0, 0),
         }
         title_style = {
             "padding": 8,

@@ -14,6 +14,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE, scale_value
+from ..border_radius import draw_rounded_rect
 from ..canvas_wrapper import CanvasWeakRef
 from ..core.entity_manager import entity_manager
 from ..core.render_manager import RenderManager, RenderCause
@@ -775,11 +776,7 @@ class Tree(TreeType):
         canvas.paint.color = color or node.properties.highlight_color
 
         if rect:
-            if hasattr(node.properties, 'border_radius'):
-                border_radius = node.properties.border_radius
-                canvas.draw_rrect(RoundRect.from_rect(rect, x=border_radius, y=border_radius))
-            else:
-                canvas.draw_rect(rect)
+            draw_rounded_rect(canvas, rect, node.properties.get_border_radius())
 
     def draw_highlight_overlays(self, canvas: SkiaCanvas, offset: Point2d):
         canvas.paint.style = canvas.paint.Style.FILL
@@ -937,9 +934,15 @@ class Tree(TreeType):
             canvas.paint.color = node.properties.focus_outline_color
             canvas.paint.stroke_width = stroke_width
 
-            if node.properties.border_radius:
-                border_radius = node.properties.border_radius
-                canvas.draw_rrect(RoundRect.from_rect(focus_outline_rect, x=border_radius, y=border_radius))
+            border_radius = node.properties.get_border_radius()
+            if border_radius.has_radius():
+                # Adjust border radius for the stroke offset
+                if border_radius.is_uniform():
+                    adjusted_radius = border_radius.top_left
+                    draw_rounded_rect(canvas, focus_outline_rect, adjusted_radius)
+                else:
+                    # Use per-corner radius as-is for focus outline
+                    draw_rounded_rect(canvas, focus_outline_rect, border_radius)
             else:
                 canvas.draw_rect(focus_outline_rect)
 
