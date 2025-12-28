@@ -408,7 +408,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def is_scrollable(self):
         return self.overflow and self.overflow.scrollable
-    
+
     def get_border_radius(self):
         """Get border_radius as a BorderRadius object, converting if necessary."""
         if isinstance(self.border_radius, BorderRadius):

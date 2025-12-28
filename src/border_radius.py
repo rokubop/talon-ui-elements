@@ -125,31 +125,3 @@ def draw_manual_rounded_rect_path(rect: Rect, border_radius: BorderRadius) -> Pa
 
     path.close()
     return path
-
-
-def draw_rounded_rect(canvas: SkiaCanvas, rect: Rect, border_radius: Union[int, float, tuple, BorderRadius, None]):
-    if isinstance(border_radius, (int, float)):
-        br = BorderRadius(border_radius)
-    elif isinstance(border_radius, (tuple, list)):
-        br = BorderRadius(border_radius)
-    elif isinstance(border_radius, BorderRadius):
-        br = border_radius
-    elif not border_radius:
-        # No radius, just draw a regular rectangle
-        canvas.draw_rect(rect)
-        return
-    else:
-        # Unknown type, default to no radius
-        canvas.draw_rect(rect)
-        return
-
-    if not br.has_radius():
-        # No radius, draw regular rectangle
-        canvas.draw_rect(rect)
-    elif br.is_uniform():
-        # Fast path: use native round rect
-        canvas.draw_rrect(RoundRect.from_rect(rect, x=br.top_left, y=br.top_left))
-    else:
-        # Slow path: manually construct shape with per-corner radii
-        path = draw_manual_rounded_rect_path(rect, br)
-        canvas.draw_path(path)

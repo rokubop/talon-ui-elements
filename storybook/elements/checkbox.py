@@ -7,7 +7,7 @@ def checkbox_stories():
         "component", "div", "text", "checkbox", "icon", "input_text"
     ])
     state = actions.user.ui_elements("state")
-    
+
     # State management example with different default values
     notifications_enabled, set_notifications_enabled = state.use("notifications_enabled", False)
     dark_mode, set_dark_mode = state.use("dark_mode", True)
