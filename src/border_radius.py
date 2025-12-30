@@ -36,12 +36,15 @@ class BorderRadius:
             # Default to 0
             self.top_left = self.top_right = self.bottom_right = self.bottom_left = 0.0
 
+        # Cache checks for hot path rendering
+        self._has_radius = bool(self.top_left or self.top_right or self.bottom_right or self.bottom_left)
+        self._is_uniform = (self.top_left == self.top_right == self.bottom_right == self.bottom_left)
+
     def is_uniform(self) -> bool:
-        return (self.top_left == self.top_right ==
-                self.bottom_right == self.bottom_left)
+        return self._is_uniform
 
     def has_radius(self) -> bool:
-        return any([self.top_left, self.top_right, self.bottom_right, self.bottom_left])
+        return self._has_radius
 
     def scale(self, factor: float) -> 'BorderRadius':
         return BorderRadius((

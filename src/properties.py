@@ -406,6 +406,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     def is_scrollable(self):
         return self.overflow and self.overflow.scrollable
 
+    def has_border_radius(self):
+        """Check if border-radius is present and non-zero"""
+        return self.get_border_radius().has_radius()
+
     def get_border_radius(self):
         """Always returns a BorderRadius type"""
         if isinstance(self.border_radius, BorderRadius):

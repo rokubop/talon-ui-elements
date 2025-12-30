@@ -345,24 +345,49 @@ class NodeContainer(Node, NodeContainerType):
             self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
 
     def v2_crop_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.properties.overflow.scrollable or (self.box_model.overflow.is_boundary and \
-                (self.box_model.overflow_size.width or \
-                self.box_model.overflow_size.height)):
+        needs_clip = (
+            self.properties.overflow.scrollable or
+            (self.box_model.overflow.is_boundary and
+             (self.box_model.overflow_size.width or
+              self.box_model.overflow_size.height)) or
+            self.properties.has_border_radius()
+        )
+
+        if needs_clip:
             c.save()
 
+            rect = self.box_model.padding_rect
             if transforms and transforms.offset:
-                offset_rect = self.box_model.padding_rect.copy()
-                offset_rect.x += transforms.offset.x
-                offset_rect.y += transforms.offset.y
-                c.clip_rect(offset_rect)
+                rect = rect.copy()
+                rect.x += transforms.offset.x
+                rect.y += transforms.offset.y
+
+            if self.properties.has_border_radius():
+                self._clip_with_border_radius(c, rect, self.properties.get_border_radius())
             else:
-                c.clip_rect(self.box_model.padding_rect)
+                c.clip_rect(rect)
 
     def v2_crop_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.properties.overflow.scrollable or (self.box_model.overflow.is_boundary and \
-                (self.box_model.overflow_size.width or \
-                self.box_model.overflow_size.height)):
+        needs_clip = (
+            self.properties.overflow.scrollable or
+            (self.box_model.overflow.is_boundary and
+             (self.box_model.overflow_size.width or
+              self.box_model.overflow_size.height)) or
+            self.properties.has_border_radius()
+        )
+
+        if needs_clip:
             c.restore()
+
+    def _clip_with_border_radius(self, c: SkiaCanvas, rect: Rect, border_radius):
+        """Clip canvas to a rounded rectangle boundary"""
+        if border_radius.is_uniform():
+            from talon.skia import RoundRect
+            c.clip_rrect(RoundRect.from_rect(rect, x=border_radius.top_left, y=border_radius.top_left))
+        else:
+            from ..border_radius import draw_manual_rounded_rect_path
+            path = draw_manual_rounded_rect_path(rect, border_radius)
+            c.clip_path(path)
 
     def debugger_should_continue(self, c: SkiaCanvas, cursor: Cursor):
         pass
