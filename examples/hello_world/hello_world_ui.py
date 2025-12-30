@@ -8,3 +8,12 @@ def hello_world_ui():
             text("Hello world", color="#FFFFFF", font_size=24)
         ]
     ]
+
+def show_hello_world():
+    actions.user.ui_elements_show(hello_world_ui)
+
+def hide_hello_world():
+    actions.user.ui_elements_hide(hello_world_ui)
+
+def toggle_hello_world():
+    actions.user.ui_elements_toggle(hello_world_ui)

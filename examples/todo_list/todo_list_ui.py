@@ -38,3 +38,12 @@ def todo_list_ui():
             ]
         ]
     ]
+
+def show_todo_list():
+    actions.user.ui_elements_show(todo_list_ui)
+
+def hide_todo_list():
+    actions.user.ui_elements_hide(todo_list_ui)
+
+def toggle_todo_list():
+    actions.user.ui_elements_toggle(todo_list_ui)

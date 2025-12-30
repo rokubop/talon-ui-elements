@@ -110,3 +110,12 @@ def cheatsheet_ui():
             table_commands()
         ]
     ]
+
+def show_cheatsheet():
+    actions.user.ui_elements_show(cheatsheet_ui)
+
+def hide_cheatsheet():
+    actions.user.ui_elements_hide(cheatsheet_ui)
+
+def toggle_cheatsheet():
+    actions.user.ui_elements_toggle(cheatsheet_ui)

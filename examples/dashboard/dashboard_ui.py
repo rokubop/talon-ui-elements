@@ -103,8 +103,11 @@ def dashboard_ui():
         ]
     ]
 
-def show_dashboard_ui():
+def show_dashboard():
     actions.user.ui_elements_show(dashboard_ui)
 
-def hide_dashboard_ui():
+def hide_dashboard():
     actions.user.ui_elements_hide(dashboard_ui)
+
+def toggle_dashboard():
+    actions.user.ui_elements_toggle(dashboard_ui)

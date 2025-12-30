@@ -233,3 +233,12 @@ def alignment_ui():
             ]
         ]
     ]
+
+def show_alignment():
+    actions.user.ui_elements_show(alignment_ui)
+
+def hide_alignment():
+    actions.user.ui_elements_hide(alignment_ui)
+
+def toggle_alignment():
+    actions.user.ui_elements_toggle(alignment_ui)

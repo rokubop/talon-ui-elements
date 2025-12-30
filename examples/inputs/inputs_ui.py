@@ -31,3 +31,13 @@ def inputs_ui(props):
             ]
         ]
     ]
+
+def show_inputs(on_submitted=None):
+    props = {"on_submitted": on_submitted or hide_inputs}
+    actions.user.ui_elements_show(inputs_ui, props=props)
+
+def hide_inputs():
+    actions.user.ui_elements_hide(inputs_ui)
+
+def toggle_inputs():
+    actions.user.ui_elements_toggle(inputs_ui)

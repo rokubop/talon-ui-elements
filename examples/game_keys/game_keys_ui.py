@@ -70,3 +70,12 @@ def game_keys_ui():
             ],
         ],
     ]
+
+def show_game_keys():
+    actions.user.ui_elements_show(game_keys_ui)
+
+def hide_game_keys():
+    actions.user.ui_elements_hide(game_keys_ui)
+
+def toggle_game_keys():
+    actions.user.ui_elements_toggle(game_keys_ui)
