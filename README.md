@@ -64,12 +64,6 @@ Say "elements test" to bring up the examples.
 - [Style](docs/concepts/style.md)
 - [SVG](docs/concepts/svg.md)
 
-## 🔍 Examples
-
-Say "elements test" to see the examples in action, or...
-
-📂 See the [examples folder](./examples) for code and screenshots.
-
 ## Development suggestions
 While developing, you might get into a state where the UI gets stuck on your screen and you need to restart Talon. For this reason, it's recommended to have a "talon restart" command.
 

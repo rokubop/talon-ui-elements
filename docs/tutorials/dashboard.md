@@ -5,7 +5,7 @@ In this tutorial we will build a draggable window dashboard that displays Talon 
 ![Dashboard Preview](../../examples/dashboard/dashboard_preview.png)
 
 ## Step 1: See full code
-See [examples/dashboard_ui.py](../../examples/dashboard_ui.py) for the complete code.
+See [examples/dashboard_ui.py](../../examples/dashboard/dashboard_ui.py](../../examples/dashboard_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 

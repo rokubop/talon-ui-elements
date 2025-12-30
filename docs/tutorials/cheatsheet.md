@@ -5,7 +5,7 @@ In this tutorial we will build a draggable transparent cheatsheet with 2 lists a
 ![Cheatsheet Preview](../../examples/cheatsheet/cheatsheet_preview.png)
 
 ## Step 1: See full code
-See [examples/cheatsheet_ui.py](../../examples/cheatsheet_ui.py) for the complete code.
+See [examples/cheatsheet_ui.py](../../examples/cheatsheet/cheatsheet_ui.py](../../examples/cheatsheet_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 

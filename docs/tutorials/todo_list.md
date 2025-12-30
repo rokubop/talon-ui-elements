@@ -5,7 +5,7 @@ Build a fully interactive task manager with real-time updates, input fields, and
 ![TODO List Preview](../../examples/todo_list/todo_list_preview.png)
 
 ## Step 1: See full code
-See [examples/todo_list_ui.py](../../examples/todo_list_ui.py) for the complete code.
+See [examples/todo_list_ui.py](../../examples/todo_list/todo_list_ui.py](../../examples/todo_list_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 
