@@ -6,8 +6,8 @@ from .alignment.alignment_ui import alignment_ui
 from .state_vs_refs.state_vs_refs_ui import state_vs_refs_ui
 from .cheatsheet.cheatsheet_ui import cheatsheet_ui
 from .inputs.inputs_ui import inputs_ui
-from .dashboard.dashboard_ui import show_dashboard_ui
-from .main import examples_ui
+from .dashboard.dashboard_ui import show_dashboard
+from .examples_main import examples_ui
 
 mod = Module()
 
@@ -28,7 +28,7 @@ def examples_ui():
 
 # @test_module
 def test_dashboard_ui():
-    show_dashboard_ui()
+    show_dashboard()
 
 # @test_module
 def test_cheatsheet_ui():

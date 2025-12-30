@@ -35,7 +35,7 @@ Done! 🎉 Start learning below.
 
 Say "elements test" to bring up the examples.
 
-![examples](./examples/examples_preview.png)
+![examples](./examples/examples_main_preview.png)
 
 ## ✨ Tutorials
 
@@ -47,26 +47,26 @@ Say "elements test" to bring up the examples.
 | 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_key_overlay.md) |
 | 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
 
-## 🛠️ Core Actions
+### 📜 References
 
-```python
-actions.user.ui_elements(...)       # Provides elements to compose your UI
-actions.user.ui_elements_show(...)  # Show your UI
-actions.user.ui_elements_hide(...)  # Hide your UI
-```
+- [Elements](docs/elements.md)
+- [Properties](docs/properties.md)
+- [Actions](docs/actions.md)
+- [Icons](docs/icons.md)
 
-### 5. Concepts and Reference
-- [Talon actions](docs/actions.md)
+### 📚 Concepts
 - [Components](docs/concepts/components.md)
 - [Defaults](docs/concepts/defaults.md)
 - [Effect](docs/concepts/effect.md)
-- [Elements](docs/elements.md)
-- [Properties](docs/properties.md)
 - [Ref](docs/concepts/ref.md)
 - [Rendering](docs/concepts/rendering.md)
 - [State](docs/concepts/state.md)
+- [Style](docs/concepts/style.md)
+- [SVG](docs/concepts/svg.md)
 
-## 🔍 More Examples
+## 🔍 Examples
+
+Say "elements test" to see the examples in action, or...
 
 📂 See the [examples folder](./examples) for code and screenshots.
 

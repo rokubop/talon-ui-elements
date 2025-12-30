@@ -142,6 +142,8 @@ class NodeWindow(NodeContainer):
                             self.destroying = True
                             if self.tree and self.tree.id:
                                 entity_manager.hide_tree(self.tree.id)
+                            elif self.tree and self.tree._tree_constructor:
+                                entity_manager.hide_tree(self.tree._tree_constructor)
                             else:
                                 entity_manager.hide_all_trees()
 

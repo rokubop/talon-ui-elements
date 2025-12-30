@@ -104,3 +104,12 @@ def storybook_ui():
             ]
         ]
     ]
+
+def show_storybook():
+    actions.user.ui_elements_show(storybook_ui)
+
+def hide_storybook():
+    actions.user.ui_elements_hide(storybook_ui)
+
+def toggle_storybook():
+    actions.user.ui_elements_toggle(storybook_ui)

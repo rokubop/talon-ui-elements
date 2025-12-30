@@ -70,7 +70,8 @@ def state_accordion():
 
     if store.reactive_state:
         reactive_states = {
-            key: state.value for key, state in store.reactive_state.items() if "DevTools" not in key
+            key: state.value for key, state in store.reactive_state.items()
+            if "DevTools" not in key and "is_minimized" not in key
         }
         content = div(flex_direction="column", gap=8)[
             *[key_val_state(key, val) for key, val in reactive_states.items()]
@@ -88,7 +89,7 @@ def DevTools():
 
     return screen()[
         # top left not working
-        window(title="Dev Tools", min_width=300, min_height=400, margin=100)[
+        window(title="Dev Tools", min_width=600, min_height=400, margin=100)[
             div(padding_bottom=8)[
                 component_accordion(),
                 state_accordion(),

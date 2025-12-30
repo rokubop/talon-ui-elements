@@ -42,3 +42,53 @@ Pass a list of element names to get the elements you need. You can request any c
 | `ref` | Reactive | Direct element access - useful for getting input_text values (see [ref.md](concepts/ref.md)) | `my_ref = ref()` then `input_text(ref=my_ref)` |
 | `component` | Reactive | Reusable component wrapper (see [components.md](concepts/components.md)) | `component(my_component, props={...})` |
 | `style` | Utility | Set styles for all elements or per `class_name` instead of inline (see [style.md](concepts/style.md)) | `style({"text": {"color": "red"}, ".header": {"font_size": 24}})` |
+
+## Full Example
+
+```py
+from talon import actions
+
+# The renderer function
+def counter_ui():
+    # Get the elements you need from ui_elements
+    screen, div, text, button, state = actions.user.ui_elements([
+        "screen", "div", "text", "button", "state"
+    ])
+
+    # Create reactive state for the counter, or use state.get
+    count, set_count = state.use("count", 0)
+
+    # Define click handler
+    def on_increment():
+        set_count(count + 1)
+
+    def on_decrement():
+        set_count(count - 1)
+
+    # Return a tree of elements starting with a root element (screen)
+    return screen(justify_content="center", align_items="center")[
+        div(
+            padding=32,
+            background_color="222222",
+            border_radius=8,
+            border_width=1,
+            border_color="555555"
+        )[
+            text("Counter", font_size=24, margin_bottom=16),
+            text(f"Count: {count}", font_size=32, margin_bottom=16),
+            div(flex_direction="row", gap=8)[
+                button("Decrement", on_click=on_decrement),
+                button("Increment", on_click=on_increment),
+            ]
+        ]
+    ]
+
+def show_counter_ui():
+    actions.user.ui_elements_show(counter_ui)
+
+def hide_counter_ui():
+    actions.user.ui_elements_hide(counter_ui)
+
+def set_counter(value):
+    actions.user.ui_elements_set_state("count", value)
+```

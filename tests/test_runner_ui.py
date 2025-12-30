@@ -50,3 +50,12 @@ def runner_ui():
             ]
         ]
     ]
+
+def show_test_runner():
+    actions.user.ui_elements_show(runner_ui)
+
+def hide_test_runner():
+    actions.user.ui_elements_hide(runner_ui)
+
+def toggle_test_runner():
+    actions.user.ui_elements_toggle(runner_ui)

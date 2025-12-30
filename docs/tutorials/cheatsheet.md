@@ -2,7 +2,7 @@
 
 In this tutorial we will build a draggable transparent cheatsheet with 2 lists and 1 table, each with their own title.
 
-![Cheatsheet Preview](../../examples/cheatsheet_preview.png)
+![Cheatsheet Preview](../../examples/cheatsheet/cheatsheet_preview.png)
 
 ## Step 1: See full code
 See [examples/cheatsheet_ui.py](../../examples/cheatsheet_ui.py) for the complete code.

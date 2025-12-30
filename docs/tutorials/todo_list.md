@@ -2,7 +2,7 @@
 
 Build a fully interactive task manager with real-time updates, input fields, and dynamic state management. This tutorial covers the most advanced UI patterns!
 
-![TODO List Preview](../../examples/todo_list_preview.png)
+![TODO List Preview](../../examples/todo_list/todo_list_preview.png)
 
 ## Step 1: See full code
 See [examples/todo_list_ui.py](../../examples/todo_list_ui.py) for the complete code.

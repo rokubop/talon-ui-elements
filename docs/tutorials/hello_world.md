@@ -1,4 +1,4 @@
-# Your First UI in 5 Minutes
+# 🚀 Your First UI in 5 Minutes
 
 Welcome to UI Elements! In this tutorial, you'll create your first voice-activated UI from scratch.
 
@@ -6,7 +6,7 @@ Welcome to UI Elements! In this tutorial, you'll create your first voice-activat
 
 A simple "Hello World" UI that you can show and hide with voice commands.
 
-![Hello World Preview](../../examples/hello_world_preview.png)
+![Hello World Preview](../../examples/hello_world/hello_world_preview.png)
 
 ## Step 1: Create Your First File
 
@@ -155,6 +155,5 @@ Now that you understand the basics, try these tutorials:
 - **[Game Key Overlay](game_key_overlay.md)** - Build a visual key overlay for gaming
 - **[TODO List](todo_list.md)** - Build an interactive task manager
 
-## Resources
-**Need help?**
+## Concepts
 - Look at the [concepts documentation](../concepts/) for deeper understanding

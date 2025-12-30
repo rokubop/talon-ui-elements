@@ -10,7 +10,7 @@ Icons default to 24 size and are built using SVG elements behind the scenes.
 
 ## Preview
 
-![Icons Preview](../examples/icons_svgs_preview.png)
+![Icons Preview](../examples/icons_svgs/icons_svgs_preview.png)
 
 You can see available icons by saying "elements test".
 

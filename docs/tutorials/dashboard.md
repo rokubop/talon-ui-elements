@@ -2,7 +2,7 @@
 
 In this tutorial we will build a draggable window dashboard that displays Talon user lists with a clickable sidebar for navigation.
 
-![Dashboard Preview](../../examples/dashboard_preview.png)
+![Dashboard Preview](../../examples/dashboard/dashboard_preview.png)
 
 ## Step 1: See full code
 See [examples/dashboard_ui.py](../../examples/dashboard_ui.py) for the complete code.

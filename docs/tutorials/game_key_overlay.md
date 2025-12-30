@@ -2,7 +2,7 @@
 
 In this tutorial we will build a visual overlay showing game controls with arrow keys and action buttons that you can toggle on and off during gameplay.
 
-![Game Keys Preview](../../examples/game_keys_preview.png)
+![Game Keys Preview](../../examples/game_keys/game_keys_preview.png)
 
 ## Step 1: See full code
 See [examples/game_keys_ui.py](../../examples/game_keys_ui.py) for the complete code.

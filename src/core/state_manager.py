@@ -378,14 +378,14 @@ class StateManager:
     def blur(self):
         store.focused_id = None
 
-        if store.focused_tree:
+        if store.focused_tree and store.focused_tree.canvas_decorator:
             store.focused_tree.canvas_decorator.focused = True
             store.focused_tree.render_decorator_canvas()
 
     def blur_all(self):
         store.focused_id = None
 
-        if store.focused_tree:
+        if store.focused_tree and store.focused_tree.canvas_decorator:
             store.focused_tree.canvas_decorator.focused = False
             store.focused_tree.render_decorator_canvas()
         store.focused_tree = None
