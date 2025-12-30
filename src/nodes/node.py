@@ -74,6 +74,7 @@ class Node(NodeType):
         self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
         self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
         self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
+        self.clip_regions_cache: list = None  # Pre-computed clip regions for efficiency
         self.relative_positional_node: weakref.ReferenceType[NodeType] = None
 
         if self.properties.position == "fixed":
@@ -134,6 +135,36 @@ class Node(NodeType):
 
     def clear_clip_nodes(self):
         self.clip_nodes.clear()
+
+    def compute_clip_regions_cache(self):
+        """Pre-compute clip regions after layout for efficient rendering."""
+        clip_regions = []
+
+        # Add ancestor clip boundaries
+        if self.clip_nodes:
+            for clip_ref in self.clip_nodes:
+                clip_node = clip_ref()
+                if clip_node and clip_node.box_model:
+                    rect = clip_node.box_model.padding_rect
+                    border_radius = clip_node.properties.get_border_radius() if clip_node.properties.has_border_radius() else None
+                    clip_regions.append((rect, border_radius))
+
+        # Add self clipping if needed
+        if self.box_model:
+            needs_self_clip = (
+                self.properties.overflow.scrollable or
+                (self.box_model.overflow.is_boundary and
+                 (self.box_model.overflow_size.width or
+                  self.box_model.overflow_size.height)) or
+                self.properties.has_border_radius()
+            )
+
+            if needs_self_clip:
+                rect = self.box_model.padding_rect
+                border_radius = self.properties.get_border_radius() if self.properties.has_border_radius() else None
+                clip_regions.append((rect, border_radius))
+
+        self.clip_regions_cache = clip_regions if clip_regions else None
 
     def wrap_component(self, node: NodeType):
         if callable(node):

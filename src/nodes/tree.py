@@ -595,6 +595,14 @@ class Tree(TreeType):
         for child in node.get_children_nodes():
             self.test(child)
 
+    def compute_clip_regions_cache(self):
+        """Pre-compute clip regions for all nodes after layout."""
+        def compute_for_node(node: NodeType):
+            node.compute_clip_regions_cache()
+            for child in node.get_children_nodes():
+                compute_for_node(child)
+        compute_for_node(self.root_node)
+
     def nonlayout_flow(self):
         for node in self.absolute_nodes + self.fixed_nodes:
             node: NodeType = node()
@@ -651,13 +659,13 @@ class Tree(TreeType):
                 if clip_node and clip_node.box_model:
                     canvas.save()
                     clip_count += 1
-                    
+
                     rect = clip_node.box_model.padding_rect
                     if transforms and transforms.offset:
                         rect = rect.copy()
                         rect.x += transforms.offset.x
                         rect.y += transforms.offset.y
-                    
+
                     if clip_node.properties.has_border_radius():
                         border_radius = clip_node.properties.get_border_radius()
                         if border_radius.is_uniform():
@@ -730,6 +738,7 @@ class Tree(TreeType):
     def on_draw_base_canvas_drag_end(self, canvas: SkiaCanvas):
         try:
             self.root_node.v2_reposition()
+            self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
         except Exception as e:
@@ -743,6 +752,7 @@ class Tree(TreeType):
             self.reset_cursor()
             self.root_node.v2_layout(self.cursor_v2)
             self.nonlayout_flow()
+            self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
         except Exception as e:
@@ -773,6 +783,7 @@ class Tree(TreeType):
             self.root_node.v2_constrain_size()
             self.root_node.v2_layout(self.cursor_v2)
             self.nonlayout_flow()
+            self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
             # Set up cursor refresh cycle after tree is fully processed
@@ -808,7 +819,7 @@ class Tree(TreeType):
     def draw_highlight_overlay(self, canvas: SkiaCanvas, node: NodeType, offset: Point2d, color: str = None):
         transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
         clip_count = self.apply_clip_regions(canvas, node, transforms)
-        
+
         rect = node.box_model.visible_rect
         rect.x += offset.x
         rect.y += offset.y
@@ -816,7 +827,7 @@ class Tree(TreeType):
 
         if rect:
             draw_rect(canvas, rect, node.properties.get_border_radius())
-        
+
         self.restore_clip_regions(canvas, clip_count)
 
     def draw_highlight_overlays(self, canvas: SkiaCanvas, offset: Point2d):
@@ -831,7 +842,7 @@ class Tree(TreeType):
     def draw_text_mutation(self, canvas: SkiaCanvas, node: NodeType, id: str, offset: Point2d):
         transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
         clip_count = self.apply_clip_regions(canvas, node, transforms)
-        
+
         x, y = node.cursor_pre_draw_text
         x += offset.x
         y += offset.y
@@ -843,7 +854,7 @@ class Tree(TreeType):
             x,
             y
         )
-        
+
         self.restore_clip_regions(canvas, clip_count)
 
     def draw_text_mutations(self, canvas: SkiaCanvas, offset: Point2d):

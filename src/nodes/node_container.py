@@ -345,69 +345,28 @@ class NodeContainer(Node, NodeContainerType):
             self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
 
     def v2_crop_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        # First, apply ancestor clip boundaries from clip_nodes
-        ancestor_clip_count = 0
-        if self.clip_nodes:
-            for clip_ref in self.clip_nodes:
-                clip_node = clip_ref()
-                if clip_node and clip_node.box_model:
-                    c.save()
-                    ancestor_clip_count += 1
-                    
-                    rect = clip_node.box_model.padding_rect
-                    if transforms and transforms.offset:
-                        rect = rect.copy()
-                        rect.x += transforms.offset.x
-                        rect.y += transforms.offset.y
-                    
-                    if clip_node.properties.has_border_radius():
-                        self._clip_with_border_radius(c, rect, clip_node.properties.get_border_radius())
-                    else:
-                        c.clip_rect(rect)
-        
-        # Store count for v2_crop_end
-        self._ancestor_clip_count = ancestor_clip_count
-        
-        # Then apply self overflow clipping
-        needs_clip = (
-            self.properties.overflow.scrollable or
-            (self.box_model.overflow.is_boundary and
-             (self.box_model.overflow_size.width or
-              self.box_model.overflow_size.height)) or
-            self.properties.has_border_radius()
-        )
+        """Apply all clipping regions (ancestors + self) from pre-computed cache."""
+        if not self.clip_regions_cache:
+            return
 
-        if needs_clip:
+        for rect, border_radius in self.clip_regions_cache:
             c.save()
 
-            rect = self.box_model.padding_rect
             if transforms and transforms.offset:
                 rect = rect.copy()
                 rect.x += transforms.offset.x
                 rect.y += transforms.offset.y
 
-            if self.properties.has_border_radius():
-                self._clip_with_border_radius(c, rect, self.properties.get_border_radius())
+            if border_radius:
+                self._clip_with_border_radius(c, rect, border_radius)
             else:
                 c.clip_rect(rect)
 
     def v2_crop_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        # Restore self overflow clipping
-        needs_clip = (
-            self.properties.overflow.scrollable or
-            (self.box_model.overflow.is_boundary and
-             (self.box_model.overflow_size.width or
-              self.box_model.overflow_size.height)) or
-            self.properties.has_border_radius()
-        )
-
-        if needs_clip:
-            c.restore()
-        
-        # Restore ancestor clip boundaries
-        ancestor_clip_count = getattr(self, '_ancestor_clip_count', 0)
-        for _ in range(ancestor_clip_count):
-            c.restore()
+        """Restore all clipping regions from cache."""
+        if self.clip_regions_cache:
+            for _ in range(len(self.clip_regions_cache)):
+                c.restore()
 
     def _clip_with_border_radius(self, c: SkiaCanvas, rect: Rect, border_radius):
         """Clip canvas to a rounded rectangle boundary"""
