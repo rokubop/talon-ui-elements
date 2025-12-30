@@ -642,11 +642,47 @@ class Tree(TreeType):
         for layer in self.render_layers:
             layer.draw_to_canvas(self.current_base_canvas, cursor_transforms)
 
+    def apply_clip_regions(self, canvas: SkiaCanvas, node: NodeType, transforms: RenderTransforms = None):
+        """Apply clipping regions from a node's clip_nodes hierarchy."""
+        clip_count = 0
+        if node.clip_nodes:
+            for clip_ref in node.clip_nodes:
+                clip_node = clip_ref()
+                if clip_node and clip_node.box_model:
+                    canvas.save()
+                    clip_count += 1
+                    
+                    rect = clip_node.box_model.padding_rect
+                    if transforms and transforms.offset:
+                        rect = rect.copy()
+                        rect.x += transforms.offset.x
+                        rect.y += transforms.offset.y
+                    
+                    if clip_node.properties.has_border_radius():
+                        border_radius = clip_node.properties.get_border_radius()
+                        if border_radius.is_uniform():
+                            from talon.skia import RoundRect
+                            canvas.clip_rrect(RoundRect.from_rect(rect, x=border_radius.top_left, y=border_radius.top_left))
+                        else:
+                            from .border_radius import draw_manual_rounded_rect_path
+                            path = draw_manual_rounded_rect_path(rect, border_radius)
+                            canvas.clip_path(path)
+                    else:
+                        canvas.clip_rect(rect)
+        return clip_count
+
+    def restore_clip_regions(self, canvas: SkiaCanvas, clip_count: int):
+        """Restore canvas state after clipping."""
+        for _ in range(clip_count):
+            canvas.restore()
+
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
+                clip_count = self.apply_clip_regions(canvas, node, transforms)
                 node.v2_render_decorator(canvas, transforms)
+                self.restore_clip_regions(canvas, clip_count)
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
@@ -770,6 +806,9 @@ class Tree(TreeType):
             state_manager.set_processing_tree(None)
 
     def draw_highlight_overlay(self, canvas: SkiaCanvas, node: NodeType, offset: Point2d, color: str = None):
+        transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
+        clip_count = self.apply_clip_regions(canvas, node, transforms)
+        
         rect = node.box_model.visible_rect
         rect.x += offset.x
         rect.y += offset.y
@@ -777,6 +816,8 @@ class Tree(TreeType):
 
         if rect:
             draw_rect(canvas, rect, node.properties.get_border_radius())
+        
+        self.restore_clip_regions(canvas, clip_count)
 
     def draw_highlight_overlays(self, canvas: SkiaCanvas, offset: Point2d):
         canvas.paint.style = canvas.paint.Style.FILL
@@ -788,6 +829,9 @@ class Tree(TreeType):
                 self.draw_highlight_overlay(canvas, node, offset, color)
 
     def draw_text_mutation(self, canvas: SkiaCanvas, node: NodeType, id: str, offset: Point2d):
+        transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
+        clip_count = self.apply_clip_regions(canvas, node, transforms)
+        
         x, y = node.cursor_pre_draw_text
         x += offset.x
         y += offset.y
@@ -799,6 +843,8 @@ class Tree(TreeType):
             x,
             y
         )
+        
+        self.restore_clip_regions(canvas, clip_count)
 
     def draw_text_mutations(self, canvas: SkiaCanvas, offset: Point2d):
         for id, text_value in list(self.meta_state.text_mutations.items()):

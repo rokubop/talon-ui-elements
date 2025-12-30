@@ -54,6 +54,7 @@ class NodeWindow(NodeContainer):
             "drop_shadow": (0, 20, 25, 25, "000000CC"),
             "border_radius": 4,
             "border_width": 1,
+            "overflow": "hidden",
             **window_properties,
             "on_drag_end": self.update_saved_positions
         }
