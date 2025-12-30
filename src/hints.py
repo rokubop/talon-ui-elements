@@ -2,6 +2,7 @@ from talon import cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
+from .constants import scale_value
 from .core.state_manager import state_manager
 from .core.store import store
 from .interfaces import NodeType, ClickEvent
@@ -112,7 +113,6 @@ def trigger_hint_focus(hint_trigger: str):
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransforms = None):
-    from .constants import scale_value
     hint_size = settings.get("user.ui_elements_hints_size", 12)
     c.paint.textsize = scale_value(hint_size)
 

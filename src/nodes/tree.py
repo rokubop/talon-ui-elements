@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE, scale_value
 from ..utils import draw_rect
 from ..canvas_wrapper import CanvasWeakRef
+from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
@@ -669,10 +670,8 @@ class Tree(TreeType):
                     if clip_node.properties.has_border_radius():
                         border_radius = clip_node.properties.get_border_radius()
                         if border_radius.is_uniform():
-                            from talon.skia import RoundRect
                             canvas.clip_rrect(RoundRect.from_rect(rect, x=border_radius.top_left, y=border_radius.top_left))
                         else:
-                            from .border_radius import draw_manual_rounded_rect_path
                             path = draw_manual_rounded_rect_path(rect, border_radius)
                             canvas.clip_path(path)
                     else:

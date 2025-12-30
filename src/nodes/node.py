@@ -7,6 +7,7 @@ from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.imagefilter import ImageFilter
 from .component import Component
 from ..utils import draw_rect
+from ..border_radius import BorderRadius
 from ..box_model import BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
@@ -389,7 +390,6 @@ class Node(NodeType):
                         draw_rect(c, bordered_rect, adjusted_radius)
                     else:
                         # Scale per-corner radius for border stroke offset
-                        from ..border_radius import BorderRadius
                         adjusted_radius = BorderRadius((
                             border_radius.top_left + border_width / 2,
                             border_radius.top_right + border_width / 2,

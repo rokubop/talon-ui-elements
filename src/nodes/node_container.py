@@ -1,8 +1,10 @@
 from itertools import cycle
 from typing import List
+from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .node import Node
+from ..border_radius import draw_manual_rounded_rect_path
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
 from ..cursor import Cursor
@@ -371,10 +373,8 @@ class NodeContainer(Node, NodeContainerType):
     def _clip_with_border_radius(self, c: SkiaCanvas, rect: Rect, border_radius):
         """Clip canvas to a rounded rectangle boundary"""
         if border_radius.is_uniform():
-            from talon.skia import RoundRect
             c.clip_rrect(RoundRect.from_rect(rect, x=border_radius.top_left, y=border_radius.top_left))
         else:
-            from ..border_radius import draw_manual_rounded_rect_path
             path = draw_manual_rounded_rect_path(rect, border_radius)
             c.clip_path(path)
 

@@ -1,4 +1,6 @@
+import hashlib
 import inspect
+import json
 from dataclasses import dataclass
 from talon import app
 from talon.types import Rect
@@ -426,9 +428,6 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def hash(self) -> str:
         """Return a string hash representing the current properties."""
-        import json
-        import hashlib
-
         props = {
             k: v for k, v in self.__dict__.items()
             if not k.startswith('_') and not callable(v)
