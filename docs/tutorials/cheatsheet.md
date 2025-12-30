@@ -27,7 +27,7 @@ All UI elements come from `actions.user.ui_elements()`:
 div, screen, text, style = actions.user.ui_elements(['div', 'screen', 'text', 'style'])
 ```
 
-The order of returned elements will match the order you specify in the list. See [elements.md](../concepts/elements.md) for a full list of available elements.
+The order of returned elements will match the order you specify in the list. See [elements.md](../elements.md) for a full list of available elements.
 
 **Important:** `screen` must always be the first element - it's the root container that fills the entire screen.
 
@@ -162,7 +162,7 @@ actions.user.ui_elements_toggle(cheatsheet_ui)
 ## Next Steps
 
 - See [hello_world.md](../tutorials/hello_world.md) for setting up voice commands
-- Learn about [Properties](../concepts/properties.md) for styling elements
+- Learn about [Properties](../properties.md) for styling elements
 - Understand [State and Reactivity](../concepts/state.md) for dynamic UIs
 - Explore [Components](../concepts/components.md) for reusable patterns
-- Check [Talon Actions](../concepts/actions.md) for voice integration
+- Check [Talon Actions](../actions.md) for voice integration

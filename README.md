@@ -56,12 +56,12 @@ actions.user.ui_elements_hide(...)  # Hide your UI
 ```
 
 ### 5. Concepts and Reference
-- [Talon actions](docs/concepts/actions.md)
+- [Talon actions](docs/actions.md)
 - [Components](docs/concepts/components.md)
 - [Defaults](docs/concepts/defaults.md)
 - [Effect](docs/concepts/effect.md)
-- [Elements](docs/concepts/elements.md)
-- [Properties](docs/concepts/properties.md)
+- [Elements](docs/elements.md)
+- [Properties](docs/properties.md)
 - [Ref](docs/concepts/ref.md)
 - [Rendering](docs/concepts/rendering.md)
 - [State](docs/concepts/state.md)

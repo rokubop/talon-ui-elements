@@ -44,9 +44,9 @@ class NodeWindow(NodeContainer):
         border_radius = min(window_properties.get("border_radius", 4), 18)
 
         if isinstance(border_radius, tuple):
-            title_bar_border_radius = (border_radius[0] + 2, border_radius[1] + 2, 0, 0)
+            title_bar_border_radius = (border_radius[0], border_radius[1], 0, 0)
         else:
-            title_bar_border_radius = (border_radius + 2, border_radius + 2, 0, 0)
+            title_bar_border_radius = (border_radius, border_radius, 0, 0)
 
         resolved_window_props = {
             "draggable": True,
