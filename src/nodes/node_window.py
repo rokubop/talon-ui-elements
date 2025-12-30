@@ -43,7 +43,7 @@ class NodeWindow(NodeContainer):
         # Cap at 18 because title bar has finite height and larger radii don't render well
         border_radius = min(window_properties.get("border_radius", 4), 18)
 
-        if isinstance(border_radius, (list, tuple)):
+        if isinstance(border_radius, tuple):
             title_bar_border_radius = (border_radius[0] + 2, border_radius[1] + 2, 0, 0)
         else:
             title_bar_border_radius = (border_radius + 2, border_radius + 2, 0, 0)

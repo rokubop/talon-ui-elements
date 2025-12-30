@@ -75,7 +75,7 @@ class Node(NodeType):
         self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
         self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
         self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
-        self.clip_regions_cache: list = None  # Pre-computed clip regions for efficiency
+        self.clip_regions_cache: list = None
         self.relative_positional_node: weakref.ReferenceType[NodeType] = None
 
         if self.properties.position == "fixed":

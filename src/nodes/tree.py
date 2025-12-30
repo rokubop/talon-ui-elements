@@ -597,11 +597,11 @@ class Tree(TreeType):
             self.test(child)
 
     def compute_clip_regions_cache(self):
-        """Pre-compute clip regions for all nodes after layout."""
         def compute_for_node(node: NodeType):
             node.compute_clip_regions_cache()
             for child in node.get_children_nodes():
                 compute_for_node(child)
+
         compute_for_node(self.root_node)
 
     def nonlayout_flow(self):
@@ -652,7 +652,6 @@ class Tree(TreeType):
             layer.draw_to_canvas(self.current_base_canvas, cursor_transforms)
 
     def apply_clip_regions(self, canvas: SkiaCanvas, node: NodeType, transforms: RenderTransforms = None):
-        """Apply clipping regions from a node's clip_nodes hierarchy."""
         clip_count = 0
         if node.clip_nodes:
             for clip_ref in node.clip_nodes:
@@ -679,7 +678,6 @@ class Tree(TreeType):
         return clip_count
 
     def restore_clip_regions(self, canvas: SkiaCanvas, clip_count: int):
-        """Restore canvas state after clipping."""
         for _ in range(clip_count):
             canvas.restore()
 

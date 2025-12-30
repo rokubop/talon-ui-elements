@@ -18,25 +18,20 @@ class BorderRadius:
 
     def __init__(self, value=0):
         if isinstance(value, (int, float)):
-            # Uniform radius
             self.top_left = self.top_right = self.bottom_right = self.bottom_left = float(value)
-        elif isinstance(value, (tuple, list)) and len(value) == 4:
-            # Per-corner
+        elif isinstance(value, tuple) and len(value) == 4:
             self.top_left = float(value[0])
             self.top_right = float(value[1])
             self.bottom_right = float(value[2])
             self.bottom_left = float(value[3])
         elif isinstance(value, BorderRadius):
-            # Copy constructor
             self.top_left = value.top_left
             self.top_right = value.top_right
             self.bottom_right = value.bottom_right
             self.bottom_left = value.bottom_left
         else:
-            # Default to 0
             self.top_left = self.top_right = self.bottom_right = self.bottom_left = 0.0
 
-        # Cache checks for hot path rendering
         self._has_radius = bool(self.top_left or self.top_right or self.bottom_right or self.bottom_left)
         self._is_uniform = (self.top_left == self.top_right == self.bottom_right == self.bottom_left)
 

@@ -222,7 +222,7 @@ def draw_rect(canvas: SkiaCanvas, rect: Rect, border_radius: Union[int, float, t
     # Convert to BorderRadius if needed
     if isinstance(border_radius, (int, float)):
         br = BorderRadius(border_radius)
-    elif isinstance(border_radius, (tuple, list)):
+    elif isinstance(border_radius, tuple):
         br = BorderRadius(border_radius)
     elif isinstance(border_radius, BorderRadius):
         br = border_radius

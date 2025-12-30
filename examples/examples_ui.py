@@ -92,7 +92,6 @@ def examples_ui():
             title="UI Elements",
             min_width=200,
             show_minimize=False,
-            border_radius=18,
             title_bar_style={
                 "border_bottom": 1,
                 "border_color": "#FFCC00",
