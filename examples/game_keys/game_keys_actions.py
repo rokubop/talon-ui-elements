@@ -1,6 +1,6 @@
 from talon import actions
-from .game_keys_ui import game_keys_ui
-from .actions_ui import actions_ui
+from .game_keys_ui import game_keys_ui, show_game_keys, hide_game_keys
+from ..actions.actions_ui import actions_ui, show_actions_ui, hide_actions_ui
 
 sprinting = False
 
@@ -60,5 +60,5 @@ def set_game_keys_actions_state():
 
 def game_keys_show():
     set_game_keys_actions_state()
-    actions.user.ui_elements_show(game_keys_ui)
-    actions.user.ui_elements_show(actions_ui)
+    show_game_keys()
+    show_actions_ui()

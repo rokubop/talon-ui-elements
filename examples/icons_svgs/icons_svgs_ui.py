@@ -131,3 +131,12 @@ def icons_svgs_ui():
             ],
         ]
     ]
+
+def show_icons_svgs():
+    actions.user.ui_elements_show(icons_svgs_ui)
+
+def hide_icons_svgs():
+    actions.user.ui_elements_hide(icons_svgs_ui)
+
+def toggle_icons_svgs():
+    actions.user.ui_elements_toggle(icons_svgs_ui)

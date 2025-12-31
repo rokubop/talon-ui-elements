@@ -40,12 +40,21 @@ class NodeWindow(NodeContainer):
             for dir in ["top", "left", "right", "bottom"]
         )
 
+        # Cap at 18 because title bar has finite height and larger radii don't render well
+        border_radius = min(window_properties.get("border_radius", 4), 18)
+
+        if isinstance(border_radius, tuple):
+            title_bar_border_radius = (border_radius[0], border_radius[1], 0, 0)
+        else:
+            title_bar_border_radius = (border_radius, border_radius, 0, 0)
+
         resolved_window_props = {
             "draggable": True,
             "background_color": "222222",
             "drop_shadow": (0, 20, 25, 25, "000000CC"),
             "border_radius": 4,
             "border_width": 1,
+            "overflow": "hidden",
             **window_properties,
             "on_drag_end": self.update_saved_positions
         }
@@ -53,6 +62,7 @@ class NodeWindow(NodeContainer):
             "background_color": adjust_color_brightness(
                 window_properties.get("background_color", None), 10
             ) if window_properties.get("background_color", None) else "272727",
+            "border_radius": title_bar_border_radius,
         }
         title_style = {
             "padding": 8,
@@ -132,6 +142,8 @@ class NodeWindow(NodeContainer):
                             self.destroying = True
                             if self.tree and self.tree.id:
                                 entity_manager.hide_tree(self.tree.id)
+                            elif self.tree and self.tree._tree_constructor:
+                                entity_manager.hide_tree(self.tree._tree_constructor)
                             else:
                                 entity_manager.hide_all_trees()
 

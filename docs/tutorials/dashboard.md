@@ -2,10 +2,10 @@
 
 In this tutorial we will build a draggable window dashboard that displays Talon user lists with a clickable sidebar for navigation.
 
-![Dashboard Preview](../../examples/dashboard_preview.png)
+![Dashboard Preview](../../examples/dashboard/dashboard_preview.png)
 
 ## Step 1: See full code
-See [examples/dashboard_ui.py](../../examples/dashboard_ui.py) for the complete code.
+See [examples/dashboard_ui.py](../../examples/dashboard/dashboard_ui.py](../../examples/dashboard_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 
@@ -28,7 +28,7 @@ All UI elements come from `actions.user.ui_elements()`:
 window, screen = actions.user.ui_elements(["window", "screen"])
 ```
 
-The order of returned elements will match the order you specify in the list. See [elements.md](../concepts/elements.md) for a full list of available elements.
+The order of returned elements will match the order you specify in the list. See [elements.md](../elements.md) for a full list of available elements.
 
 **Important:** `screen` must always be the first element - it's the root container that fills the entire screen.
 
@@ -157,5 +157,5 @@ actions.user.ui_elements_toggle(dashboard_ui)
 
 - See [hello_world.md](../tutorials/hello_world.md) for setting up voice commands
 - Learn about [State and Reactivity](../concepts/state.md) for dynamic UIs
-- Understand [Properties](../concepts/properties.md) for styling elements
-- Check [Talon Actions](../concepts/actions.md) for voice integration
+- Understand [Properties](../properties.md) for styling elements
+- Check [Talon Actions](../actions.md) for voice integration

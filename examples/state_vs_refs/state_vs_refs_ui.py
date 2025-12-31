@@ -63,3 +63,12 @@ def state_vs_refs_ui():
             ]
         ]
     ]
+
+def show_state_vs_refs():
+    actions.user.ui_elements_show(state_vs_refs_ui)
+
+def hide_state_vs_refs():
+    actions.user.ui_elements_hide(state_vs_refs_ui)
+
+def toggle_state_vs_refs():
+    actions.user.ui_elements_toggle(state_vs_refs_ui)

@@ -9,7 +9,7 @@ from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.versioning import get_version
 from .tests.test_runner_ui import runner_ui
-from .examples.examples_ui import toggle_elements_examples
+from .examples.examples_main import toggle_elements_examples
 from .storybook.main import storybook_ui
 
 mod = Module()

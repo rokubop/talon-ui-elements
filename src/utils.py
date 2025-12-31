@@ -4,11 +4,13 @@ import re
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
+from talon.skia import RoundRect
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
 from .fonts import get_typeface
+from .border_radius import BorderRadius, draw_manual_rounded_rect_path
 
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
@@ -208,3 +210,32 @@ def find_closest_parent_with_id(node):
             return current_node
         current_node = current_node.parent_node
     return None
+
+def draw_rect(canvas: SkiaCanvas, rect: Rect, border_radius: Union[int, float, tuple, BorderRadius, None] = None):
+    """
+    Uses canvas.draw_rect, canvas.draw_rrect, or canvas.draw_path based on border_radius.
+    """
+    if not border_radius:
+        canvas.draw_rect(rect)
+        return
+
+    # Convert to BorderRadius if needed
+    if isinstance(border_radius, (int, float)):
+        br = BorderRadius(border_radius)
+    elif isinstance(border_radius, tuple):
+        br = BorderRadius(border_radius)
+    elif isinstance(border_radius, BorderRadius):
+        br = border_radius
+    else:
+        # Unknown type, default to no radius
+        canvas.draw_rect(rect)
+        return
+
+    # Render with appropriate method
+    if br.is_uniform():
+        # Fast path: use native round rect
+        canvas.draw_rrect(RoundRect.from_rect(rect, x=br.top_left, y=br.top_left))
+    else:
+        # Per-corner radii: manually construct path
+        path = draw_manual_rounded_rect_path(rect, br)
+        canvas.draw_path(path)

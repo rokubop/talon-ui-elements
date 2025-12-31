@@ -2,6 +2,8 @@
 
 `state` is for global reactive state that rerenders the entire UI when changed. Can be updated with `actions.user.ui_elements_set_state`.
 
+> **Note:** If you just want to highlight something (e.g., change background color or show an overlay), consider using `actions.user.ui_elements_highlight` or `actions.user.ui_elements_highlight_briefly` instead. These only update the decoration layer and don't require state or trigger a full UI re-render.
+
 - [State](#state)
   - [`state.get`](#stateget)
   - [`state.set`](#stateset)

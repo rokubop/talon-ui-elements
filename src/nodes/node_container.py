@@ -1,8 +1,10 @@
 from itertools import cycle
 from typing import List
+from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
 from .node import Node
+from ..border_radius import draw_manual_rounded_rect_path
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
 from ..cursor import Cursor
@@ -345,24 +347,36 @@ class NodeContainer(Node, NodeContainerType):
             self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
 
     def v2_crop_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.properties.overflow.scrollable or (self.box_model.overflow.is_boundary and \
-                (self.box_model.overflow_size.width or \
-                self.box_model.overflow_size.height)):
+        """Apply all clipping regions (ancestors + self) from pre-computed cache."""
+        if not self.clip_regions_cache:
+            return
+
+        for rect, border_radius in self.clip_regions_cache:
             c.save()
 
             if transforms and transforms.offset:
-                offset_rect = self.box_model.padding_rect.copy()
-                offset_rect.x += transforms.offset.x
-                offset_rect.y += transforms.offset.y
-                c.clip_rect(offset_rect)
+                rect = rect.copy()
+                rect.x += transforms.offset.x
+                rect.y += transforms.offset.y
+
+            if border_radius:
+                self._clip_with_border_radius(c, rect, border_radius)
             else:
-                c.clip_rect(self.box_model.padding_rect)
+                c.clip_rect(rect)
 
     def v2_crop_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.properties.overflow.scrollable or (self.box_model.overflow.is_boundary and \
-                (self.box_model.overflow_size.width or \
-                self.box_model.overflow_size.height)):
-            c.restore()
+        """Restore all clipping regions from cache."""
+        if self.clip_regions_cache:
+            for _ in range(len(self.clip_regions_cache)):
+                c.restore()
+
+    def _clip_with_border_radius(self, c: SkiaCanvas, rect: Rect, border_radius):
+        """Clip canvas to a rounded rectangle boundary"""
+        if border_radius.is_uniform():
+            c.clip_rrect(RoundRect.from_rect(rect, x=border_radius.top_left, y=border_radius.top_left))
+        else:
+            path = draw_manual_rounded_rect_path(rect, border_radius)
+            c.clip_path(path)
 
     def debugger_should_continue(self, c: SkiaCanvas, cursor: Cursor):
         pass

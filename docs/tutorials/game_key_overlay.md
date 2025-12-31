@@ -2,10 +2,10 @@
 
 In this tutorial we will build a visual overlay showing game controls with arrow keys and action buttons that you can toggle on and off during gameplay.
 
-![Game Keys Preview](../../examples/game_keys_preview.png)
+![Game Keys Preview](../../examples/game_keys/game_keys_preview.png)
 
 ## Step 1: See full code
-See [examples/game_keys_ui.py](../../examples/game_keys_ui.py) for the complete code.
+See [examples/game_keys_ui.py](../../examples/game_keys/game_keys_ui.py](../../examples/game_keys_ui.py) for the complete code.
 
 Say "elements test" to see examples in action.
 
@@ -28,7 +28,7 @@ All UI elements come from `actions.user.ui_elements()`:
 screen, div, style = actions.user.ui_elements(["screen", "div", "style"])
 ```
 
-The order of returned elements will match the order you specify in the list. See [elements.md](../concepts/elements.md) for a full list of available elements.
+The order of returned elements will match the order you specify in the list. See [elements.md](../elements.md) for a full list of available elements.
 
 **Important:** `screen` is *usually* the first element - it's the root container that fills the entire screen. But you can also use `active_window` instead if you are playing in windowed mode.
 
@@ -214,6 +214,6 @@ actions.user.ui_elements_toggle(game_keys_ui)
 ## Next Steps
 
 - See [hello_world.md](../tutorials/hello_world.md) for setting up voice commands
-- Learn about [Properties](../concepts/properties.md) for styling elements
+- Learn about [Properties](../properties.md) for styling elements
 - Understand [Components](../concepts/components.md) for reusable patterns
 - Check [Rendering](../concepts/rendering.md) for highlight performance details

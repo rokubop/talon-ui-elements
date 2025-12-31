@@ -27,3 +27,12 @@ def actions_ui():
             *[button(action["text"], on_click=action["action"], padding=12, border_radius=4) for action in ui_actions]
         ]
     ]
+
+def show_actions_ui():
+    actions.user.ui_elements_show(actions_ui)
+
+def hide_actions_ui():
+    actions.user.ui_elements_hide(actions_ui)
+
+def toggle_actions_ui():
+    actions.user.ui_elements_toggle(actions_ui)

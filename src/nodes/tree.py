@@ -14,7 +14,9 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE, scale_value
+from ..utils import draw_rect
 from ..canvas_wrapper import CanvasWeakRef
+from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
@@ -594,6 +596,14 @@ class Tree(TreeType):
         for child in node.get_children_nodes():
             self.test(child)
 
+    def compute_clip_regions_cache(self):
+        def compute_for_node(node: NodeType):
+            node.compute_clip_regions_cache()
+            for child in node.get_children_nodes():
+                compute_for_node(child)
+
+        compute_for_node(self.root_node)
+
     def nonlayout_flow(self):
         for node in self.absolute_nodes + self.fixed_nodes:
             node: NodeType = node()
@@ -641,11 +651,43 @@ class Tree(TreeType):
         for layer in self.render_layers:
             layer.draw_to_canvas(self.current_base_canvas, cursor_transforms)
 
+    def apply_clip_regions(self, canvas: SkiaCanvas, node: NodeType, transforms: RenderTransforms = None):
+        clip_count = 0
+        if node.clip_nodes:
+            for clip_ref in node.clip_nodes:
+                clip_node = clip_ref()
+                if clip_node and clip_node.box_model:
+                    canvas.save()
+                    clip_count += 1
+
+                    rect = clip_node.box_model.padding_rect
+                    if transforms and transforms.offset:
+                        rect = rect.copy()
+                        rect.x += transforms.offset.x
+                        rect.y += transforms.offset.y
+
+                    if clip_node.properties.has_border_radius():
+                        border_radius = clip_node.properties.get_border_radius()
+                        if border_radius.is_uniform():
+                            canvas.clip_rrect(RoundRect.from_rect(rect, x=border_radius.top_left, y=border_radius.top_left))
+                        else:
+                            path = draw_manual_rounded_rect_path(rect, border_radius)
+                            canvas.clip_path(path)
+                    else:
+                        canvas.clip_rect(rect)
+        return clip_count
+
+    def restore_clip_regions(self, canvas: SkiaCanvas, clip_count: int):
+        for _ in range(clip_count):
+            canvas.restore()
+
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         for id in list(self.meta_state.decoration_renders.keys()):
             if id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
+                clip_count = self.apply_clip_regions(canvas, node, transforms)
                 node.v2_render_decorator(canvas, transforms)
+                self.restore_clip_regions(canvas, clip_count)
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
@@ -693,6 +735,7 @@ class Tree(TreeType):
     def on_draw_base_canvas_drag_end(self, canvas: SkiaCanvas):
         try:
             self.root_node.v2_reposition()
+            self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
         except Exception as e:
@@ -706,6 +749,7 @@ class Tree(TreeType):
             self.reset_cursor()
             self.root_node.v2_layout(self.cursor_v2)
             self.nonlayout_flow()
+            self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
         except Exception as e:
@@ -736,6 +780,7 @@ class Tree(TreeType):
             self.root_node.v2_constrain_size()
             self.root_node.v2_layout(self.cursor_v2)
             self.nonlayout_flow()
+            self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
             # Set up cursor refresh cycle after tree is fully processed
@@ -769,17 +814,18 @@ class Tree(TreeType):
             state_manager.set_processing_tree(None)
 
     def draw_highlight_overlay(self, canvas: SkiaCanvas, node: NodeType, offset: Point2d, color: str = None):
+        transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
+        clip_count = self.apply_clip_regions(canvas, node, transforms)
+
         rect = node.box_model.visible_rect
         rect.x += offset.x
         rect.y += offset.y
         canvas.paint.color = color or node.properties.highlight_color
 
         if rect:
-            if hasattr(node.properties, 'border_radius'):
-                border_radius = node.properties.border_radius
-                canvas.draw_rrect(RoundRect.from_rect(rect, x=border_radius, y=border_radius))
-            else:
-                canvas.draw_rect(rect)
+            draw_rect(canvas, rect, node.properties.get_border_radius())
+
+        self.restore_clip_regions(canvas, clip_count)
 
     def draw_highlight_overlays(self, canvas: SkiaCanvas, offset: Point2d):
         canvas.paint.style = canvas.paint.Style.FILL
@@ -791,6 +837,9 @@ class Tree(TreeType):
                 self.draw_highlight_overlay(canvas, node, offset, color)
 
     def draw_text_mutation(self, canvas: SkiaCanvas, node: NodeType, id: str, offset: Point2d):
+        transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
+        clip_count = self.apply_clip_regions(canvas, node, transforms)
+
         x, y = node.cursor_pre_draw_text
         x += offset.x
         y += offset.y
@@ -802,6 +851,8 @@ class Tree(TreeType):
             x,
             y
         )
+
+        self.restore_clip_regions(canvas, clip_count)
 
     def draw_text_mutations(self, canvas: SkiaCanvas, offset: Point2d):
         for id, text_value in list(self.meta_state.text_mutations.items()):
@@ -937,9 +988,15 @@ class Tree(TreeType):
             canvas.paint.color = node.properties.focus_outline_color
             canvas.paint.stroke_width = stroke_width
 
-            if node.properties.border_radius:
-                border_radius = node.properties.border_radius
-                canvas.draw_rrect(RoundRect.from_rect(focus_outline_rect, x=border_radius, y=border_radius))
+            border_radius = node.properties.get_border_radius()
+            if border_radius.has_radius():
+                # Adjust border radius for the stroke offset
+                if border_radius.is_uniform():
+                    adjusted_radius = border_radius.top_left
+                    draw_rect(canvas, focus_outline_rect, adjusted_radius)
+                else:
+                    # Use per-corner radius as-is for focus outline
+                    draw_rect(canvas, focus_outline_rect, border_radius)
             else:
                 canvas.draw_rect(focus_outline_rect)
 

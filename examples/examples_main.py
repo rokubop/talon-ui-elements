@@ -1,16 +1,16 @@
 from talon import actions
-from .alignment_ui import alignment_ui
-from .cheatsheet_ui import cheatsheet_ui
-from .dashboard_ui import dashboard_ui
-from .game_keys_actions import game_keys_show
-from .hello_world_ui import hello_world_ui
-from .icons_svgs_ui import icons_svgs_ui
-from .inputs_ui import inputs_ui
-from .state_vs_refs_ui import state_vs_refs_ui
-from .todo_list_ui import todo_list_ui
-from ..storybook.main import storybook_ui
+from .alignment.alignment_ui import show_alignment
+from .cheatsheet.cheatsheet_ui import show_cheatsheet
+from .dashboard.dashboard_ui import show_dashboard
+from .game_keys.game_keys_actions import game_keys_show
+from .hello_world.hello_world_ui import show_hello_world
+from .icons_svgs.icons_svgs_ui import show_icons_svgs
+from .inputs.inputs_ui import show_inputs
+from .state_vs_refs.state_vs_refs_ui import show_state_vs_refs
+from .todo_list.todo_list_ui import show_todo_list
+from ..storybook.main import show_storybook
 from ..src.dev_tools import DevTools
-from ..tests.test_runner_ui import runner_ui
+from ..tests.test_runner_ui import show_test_runner
 from ..src.errors import simulate_error
 
 def go_back():
@@ -28,39 +28,37 @@ def go_back_ui():
         ]
     ]
 
-def show_example(ui):
+def show_example(show_func):
     actions.user.ui_elements_hide_all()
     actions.user.ui_elements_show(go_back_ui)
-    actions.user.ui_elements_show(ui)
+    show_func()
 
-def show_game_keys():
+def show_game_keys_example():
     actions.user.ui_elements_hide_all()
     game_keys_show()
     actions.user.ui_elements_show(go_back_ui)
 
-def show_inputs():
+def show_inputs_example():
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(inputs_ui, props={
-        "on_submitted": go_back
-    })
+    show_inputs(on_submitted=go_back)
     actions.user.ui_elements_show(go_back_ui)
 
 button_col1_actions = {
-    "Hello world": lambda: show_example(hello_world_ui),
-    "Alignment": lambda: show_example(alignment_ui),
-    "Cheatsheet": lambda: show_example(cheatsheet_ui),
-    "Dashboard": lambda: show_example(dashboard_ui),
-    "Game keys": show_game_keys,
+    "Hello world": lambda: show_example(show_hello_world),
+    "Alignment": lambda: show_example(show_alignment),
+    "Cheatsheet": lambda: show_example(show_cheatsheet),
+    "Dashboard": lambda: show_example(show_dashboard),
+    "Game keys": show_game_keys_example,
 }
 button_col2_actions = {
-    "Icons and SVGs": lambda: show_example(icons_svgs_ui),
-    "Input Prompt": show_inputs,
-    "State vs Ref": lambda: show_example(state_vs_refs_ui),
-    "Todo List": lambda: show_example(todo_list_ui),
+    "Icons and SVGs": lambda: show_example(show_icons_svgs),
+    "Input Prompt": show_inputs_example,
+    "State vs Ref": lambda: show_example(show_state_vs_refs),
+    "Todo List": lambda: show_example(show_todo_list),
 }
 tools = {
-    "Storybook": lambda: show_example(storybook_ui),
-    "Test Runner": lambda: show_example(runner_ui),
+    "Storybook": lambda: show_example(show_storybook),
+    "Test Runner": lambda: show_example(show_test_runner),
     "Dev Tools": lambda: actions.user.ui_elements_toggle(DevTools),
     "Simulate Error": lambda: (
         actions.user.ui_elements_hide_all(),

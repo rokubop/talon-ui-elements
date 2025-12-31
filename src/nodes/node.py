@@ -6,6 +6,8 @@ from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.imagefilter import ImageFilter
 from .component import Component
+from ..utils import draw_rect
+from ..border_radius import BorderRadius
 from ..box_model import BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
@@ -73,6 +75,7 @@ class Node(NodeType):
         self._parent_node: Optional[weakref.ReferenceType[NodeType]] = None
         self._constraint_nodes: list[weakref.ReferenceType[NodeType]] = []
         self.clip_nodes: list[weakref.ReferenceType[NodeType]] = []
+        self.clip_regions_cache: list = None
         self.relative_positional_node: weakref.ReferenceType[NodeType] = None
 
         if self.properties.position == "fixed":
@@ -133,6 +136,36 @@ class Node(NodeType):
 
     def clear_clip_nodes(self):
         self.clip_nodes.clear()
+
+    def compute_clip_regions_cache(self):
+        """Pre-compute clip regions after layout for efficient rendering."""
+        clip_regions = []
+
+        # Add ancestor clip boundaries
+        if self.clip_nodes:
+            for clip_ref in self.clip_nodes:
+                clip_node = clip_ref()
+                if clip_node and clip_node.box_model:
+                    rect = clip_node.box_model.padding_rect
+                    border_radius = clip_node.properties.get_border_radius() if clip_node.properties.has_border_radius() else None
+                    clip_regions.append((rect, border_radius))
+
+        # Add self clipping if needed
+        if self.box_model:
+            needs_self_clip = (
+                self.properties.overflow.scrollable or
+                (self.box_model.overflow.is_boundary and
+                 (self.box_model.overflow_size.width or
+                  self.box_model.overflow_size.height)) or
+                self.properties.has_border_radius()
+            )
+
+            if needs_self_clip:
+                rect = self.box_model.padding_rect
+                border_radius = self.properties.get_border_radius() if self.properties.has_border_radius() else None
+                clip_regions.append((rect, border_radius))
+
+        self.clip_regions_cache = clip_regions if clip_regions else None
 
     def wrap_component(self, node: NodeType):
         if callable(node):
@@ -349,8 +382,21 @@ class Node(NodeType):
                     inner_rect.height + border_width,
                 )
 
-                if self.properties.border_radius:
-                    c.draw_rrect(RoundRect.from_rect(bordered_rect, x=self.properties.border_radius + border_width / 2, y=self.properties.border_radius + border_width / 2))
+                border_radius = self.properties.get_border_radius()
+                if border_radius.has_radius():
+                    # Adjust border radius for the stroke offset
+                    if border_radius.is_uniform():
+                        adjusted_radius = border_radius.top_left + border_width / 2
+                        draw_rect(c, bordered_rect, adjusted_radius)
+                    else:
+                        # Scale per-corner radius for border stroke offset
+                        adjusted_radius = BorderRadius((
+                            border_radius.top_left + border_width / 2,
+                            border_radius.top_right + border_width / 2,
+                            border_radius.bottom_right + border_width / 2,
+                            border_radius.bottom_left + border_width / 2
+                        ))
+                        draw_rect(c, bordered_rect, adjusted_radius)
                 else:
                     c.draw_rect(bordered_rect)
             else:
@@ -406,10 +452,7 @@ class Node(NodeType):
                     inner_rect.height
                 )
 
-            if self.properties.border_radius and self.is_uniform_border:
-                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
-            else:
-                c.draw_rect(inner_rect)
+            draw_rect(c, inner_rect, self.properties.get_border_radius())
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):
@@ -428,10 +471,7 @@ class Node(NodeType):
                     inner_rect.height
                 )
 
-            if self.properties.border_radius and self.is_uniform_border:
-                c.draw_rrect(RoundRect.from_rect(inner_rect, x=self.properties.border_radius, y=self.properties.border_radius))
-            else:
-                c.draw_rect(inner_rect)
+            draw_rect(c, inner_rect, self.properties.get_border_radius())
 
     def draw_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.v2_render_background(c, transforms)
