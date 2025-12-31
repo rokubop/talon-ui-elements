@@ -1,9 +1,10 @@
 from talon import actions
 from .alignment.alignment_ui import show_alignment
-from .cheatsheet.cheatsheet_ui import show_cheatsheet
+from .cheatsheet.cheatsheet_ui import show_cheatsheet, cheatsheet_mode_basic, cheatsheet_mode_advanced
 from .dashboard.dashboard_ui import show_dashboard
 from .game_keys.game_keys_actions import game_keys_show
 from .hello_world.hello_world_ui import show_hello_world
+from .actions.actions_ui import show_actions_ui
 from .icons_svgs.icons_svgs_ui import show_icons_svgs
 from .inputs.inputs_ui import show_inputs
 from .state_vs_refs.state_vs_refs_ui import show_state_vs_refs
@@ -33,6 +34,19 @@ def show_example(show_func):
     actions.user.ui_elements_show(go_back_ui)
     show_func()
 
+def show_cheatsheet_example():
+    actions.user.ui_elements_hide_all()
+    actions.user.ui_elements_set_state("actions", [{
+        "text": 'Basic Mode',
+        "action": cheatsheet_mode_basic
+    }, {
+        "text": 'Advanced Mode',
+        "action": cheatsheet_mode_advanced
+    }])
+    show_cheatsheet()
+    show_actions_ui()
+    actions.user.ui_elements_show(go_back_ui)
+
 def show_game_keys_example():
     actions.user.ui_elements_hide_all()
     game_keys_show()
@@ -46,7 +60,7 @@ def show_inputs_example():
 button_col1_actions = {
     "Hello world": lambda: show_example(show_hello_world),
     "Alignment": lambda: show_example(show_alignment),
-    "Cheatsheet": lambda: show_example(show_cheatsheet),
+    "Cheatsheet": show_cheatsheet_example,
     "Dashboard": lambda: show_example(show_dashboard),
     "Game keys": show_game_keys_example,
 }

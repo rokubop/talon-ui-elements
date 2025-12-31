@@ -1,3 +1,4 @@
+# cheatsheet_ui.py
 from talon import Module, actions
 
 mod = Module()
@@ -6,6 +7,7 @@ def cheatsheet_ui():
     div, text, screen, state = actions.user.ui_elements(["div", "text", "screen", "state"])
     table, tr, td, style = actions.user.ui_elements(["table", "tr", "td", "style"])
 
+    # Get or create state to track which command set to show
     mode = state.get("mode", "basic")
 
     basic_commands = [
@@ -26,8 +28,10 @@ def cheatsheet_ui():
         ("use item", "Use inventory item")
     ]
 
+    # Choose commands based on mode
     commands = basic_commands if mode == "basic" else advanced_commands
 
+    # Apply styles to all td elements and title
     style({
         "td": {
             "padding": 8
@@ -51,7 +55,10 @@ def cheatsheet_ui():
             border_radius=8,
             gap=8
         )[
+            # Title
             text(f"Commands ({mode})", class_name="title"),
+
+            # Table with commands
             table()[
                 *[tr()[
                     td(command, color="#FFCC00", padding_right=16),
@@ -61,14 +68,16 @@ def cheatsheet_ui():
         ]
     ]
 
-def show_cheatsheet():
-    actions.user.ui_elements_show(cheatsheet_ui)
+@mod.action_class
+class Actions:
+    def toggle_cheatsheet():
+        """Toggle command cheatsheet"""
+        actions.user.ui_elements_toggle(cheatsheet_ui)
 
-def toggle_cheatsheet():
-    actions.user.ui_elements_toggle(cheatsheet_ui)
+    def cheatsheet_mode_basic():
+        """Set cheatsheet to basic mode"""
+        actions.user.ui_elements_set_state("mode", "basic")
 
-def cheatsheet_mode_basic():
-    actions.user.ui_elements_set_state("mode", "basic")
-
-def cheatsheet_mode_advanced():
-    actions.user.ui_elements_set_state("mode", "advanced")
+    def cheatsheet_mode_advanced():
+        """Set cheatsheet to advanced mode"""
+        actions.user.ui_elements_set_state("mode", "advanced")

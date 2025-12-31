@@ -32,7 +32,7 @@ def hello_world_ui():
 
 - First, we create a function called `hello_world_ui` that will return our UI. It must return a tree of elements composed with `actions.user.ui_elements()`.
 - `actions.user.ui_elements()` gives us the building blocks we need.
-- `screen()` is like the canvas - it fills your entire screen
+- `screen()` is our root node and should start first. It's our frame of reference for the UI.
 - `div()` is like a standard HTML `<div>` - a generic container
 - `text()` displays text content
 - The `[]` after each element contains its children
