@@ -8,6 +8,8 @@ A draggable, transparent command reference that can switch between different com
 
 ![Cheatsheet Preview](../../examples/cheatsheet/cheatsheet_preview.png)
 
+> **Want to see the complete code?** Check out [examples/cheatsheet/cheatsheet_ui.py](../../examples/cheatsheet/cheatsheet_ui.py) for the final version. However, we recommend following along step by step to understand how it all comes together!
+
 ## Step 1: Create Your Starting Files
 
 We'll create two files to get started. This gives you a working UI you can test right away!
@@ -112,7 +114,7 @@ class Actions:
 - `flex_direction="row"` changes the main axis to horizontal (so children flow left-to-right)
 - `justify_content="flex_end"` pushes content to the right (along the main axis)
 - `align_items="center"` centers content vertically (along the cross axis)
-- `gap=8` sets tighter spacing between children (default is 16)
+- `gap=8` sets tighter spacing between children (default `gap` is `16` for vertically aligned `text` elements, otherwise `0`)
 - `padding_bottom=8`, `border_bottom=1`, `border_color="#FFCC00"` create the yellow underline
 
 **Important: Everything is flexbox!**
@@ -321,7 +323,7 @@ cheatsheet advanced: user.cheatsheet_mode_advanced()
 
 ## Step 6: Convert to a Table Layout
 
-Let's take Step 5 and convert it to use a **table** for better organization. Tables are perfect for displaying structured data with labels!
+If you want two column layout, then let's take Step 5 and convert it to use a **table**.
 
 ```python
 # cheatsheet_ui.py
@@ -540,7 +542,7 @@ You've built an interactive command cheatsheet! Here's what you learned:
 
 ### More Tutorials
 - **[TODO List Tutorial](todo_list.md)** - Build a more complex stateful application
-- **[Game Key Overlay](game_key_overlay.md)** - Visual overlays for gaming
+- **[Game Key Overlay](game_keys.md)** - Visual overlays for gaming
 - **[Dashboard](dashboard.md)** - Build an interactive dashboard
 
 ### References

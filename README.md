@@ -44,7 +44,7 @@ Say "elements test" to bring up the examples.
 | 👋 Hello World | [Start the tutorial →](docs/tutorials/hello_world.md) |
 | 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/cheatsheet.md) |
 | 🧭 Dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
-| 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_key_overlay.md) |
+| 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_keys.md) |
 | 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
 
 ### 📜 References

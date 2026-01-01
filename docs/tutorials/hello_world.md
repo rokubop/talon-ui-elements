@@ -152,7 +152,7 @@ Check out the elements and properties documentation for a full list of what you 
 Now that you understand the basics, try these tutorials:
 
 - **[Command Cheatsheet](cheatsheet.md)** - Create a dynamic command reference
-- **[Game Key Overlay](game_key_overlay.md)** - Build a visual key overlay for gaming
+- **[Game Key Overlay](game_keys.md)** - Build a visual key overlay for gaming
 - **[TODO List](todo_list.md)** - Build an interactive task manager
 
 ## Concepts
