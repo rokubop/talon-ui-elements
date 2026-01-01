@@ -32,7 +32,7 @@ def hello_world_ui():
 
 - First, we create a function called `hello_world_ui` that will return our UI. It must return a tree of elements composed with `actions.user.ui_elements()`.
 - `actions.user.ui_elements()` gives us the building blocks we need.
-- `screen()` is like the canvas - it fills your entire screen
+- `screen()` is our root node and should start first. It's our frame of reference for the UI.
 - `div()` is like a standard HTML `<div>` - a generic container
 - `text()` displays text content
 - The `[]` after each element contains its children
@@ -143,17 +143,18 @@ You've created your first UI! Here's what you accomplished:
 - ✅ Connected it to Talon actions
 - ✅ Added voice commands
 
-## Next Steps
+## What's Next?
 
-Check out the elements and properties documentation for a full list of what you can use.
-- **[Elements](../elements.md)**
-- **[Properties](../properties.md)**
+### More Tutorials
+- **[Cheatsheet](cheatsheet.md)** - Learn state management and tables
+- **[Game Key Overlay](game_keys.md)** - Build grid layouts with icons and highlighting
 
-Now that you understand the basics, try these tutorials:
+### References
+- **[Elements](../elements.md)** - All available elements
+- **[Properties](../properties.md)** - All styling properties
+- **[Actions](../actions.md)** - Talon voice actions for controlling UIs
 
-- **[Command Cheatsheet](cheatsheet.md)** - Create a dynamic command reference
-- **[Game Key Overlay](game_key_overlay.md)** - Build a visual key overlay for gaming
-- **[TODO List](todo_list.md)** - Build an interactive task manager
-
-## Concepts
-- Look at the [concepts documentation](../concepts/) for deeper understanding
+### Deep Dives
+- **[Components](../concepts/components.md)** - Reusable UI patterns
+- **[State](../concepts/state.md)** - Managing dynamic UIs
+- **[Rendering](../concepts/rendering.md)** - How the UI updates work
