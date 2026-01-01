@@ -39,32 +39,36 @@ Say "elements test" to bring up the examples.
 
 ## ✨ Tutorials
 
-| Tutorial | Preview |
-|----------|---------|
-| 👋 [Hello World](docs/tutorials/hello_world.md) | <img src="./examples/hello_world/hello_world_preview.png" width="300"> |
-| 📜 [Cheatsheet](docs/tutorials/cheatsheet.md) | <img src="./examples/cheatsheet/cheatsheet_preview.png" width="300"> |
-| 🎮 [Game Key Overlay](docs/tutorials/game_keys.md) | <img src="./examples/game_keys/game_keys_preview.png" width="300"> |
+| Tutorial | Preview | Concepts Covered |
+|----------|---------|------------------|
+| 👋 [Hello World](docs/tutorials/hello_world.md) | <img src="./examples/hello_world/hello_world_preview.png" width="300"> | `screen`, `div`, `text`, CSS-like properties, `ui_elements_show()`, `ui_elements_hide()` |
+| 📜 [Cheatsheet](docs/tutorials/cheatsheet.md) | <img src="./examples/cheatsheet/cheatsheet_preview.png" width="300"> | `state`, `table`, `tr`, `td`, `style`, flexbox, dragging, `ui_elements_set_state()` |
+| 🎮 [Game Key Overlay](docs/tutorials/game_keys.md) | <img src="./examples/game_keys/game_keys_preview.png" width="300"> | `icon`, `style`, grid layouts, reusable functions, `ui_elements_highlight()`, `ui_elements_highlight_briefly()` |
 
 ### 📜 References
 
 - [Elements](docs/elements.md)
 - [Properties](docs/properties.md)
-- [Actions](docs/actions.md)
+- [Talon actions](docs/actions.md)
 - [Icons](docs/icons.md)
 
 ### 📚 Concepts
 - [Components](docs/concepts/components.md)
+- [Cursor](docs/concepts/cursor.md)
 - [Defaults](docs/concepts/defaults.md)
 - [Effect](docs/concepts/effect.md)
 - [Ref](docs/concepts/ref.md)
 - [Rendering](docs/concepts/rendering.md)
 - [State](docs/concepts/state.md)
 - [Style](docs/concepts/style.md)
-- [SVG](docs/concepts/svg.md)
+- [SVG](docs/concepts/svgs.md)
+- [Window](docs/concepts/window.md)
 
 ### Other examples
 - [Dashboard](examples/dashboard/dashboard_ui.py)
 - [Todo List](examples/todo_list/todo_list_ui.py)
+- [Inputs](examples/inputs/inputs_ui.py)
+- [Alignment](examples/alignment/alignment_ui.py)
 
 ## Development suggestions
 While developing, you might get into a state where the UI gets stuck on your screen and you need to restart Talon. For this reason, it's recommended to have a "talon restart" command.
