@@ -35,7 +35,7 @@ def cheatsheet_ui():
             border_radius=8
         )[
             text("My Commands", color="#FFCC00", font_weight="bold"),
-            text("up"),^
+            text("up"),
             text("down"),
             text("jump")
         ]
@@ -516,6 +516,8 @@ class Actions:
 - Style lets you target elements by type (like `"td"`) or by class (like `".title"`)
 
 **Try it:** Save and reload - now your table has nice breathing room between rows!
+
+![Cheatsheet Step 7](../../examples/cheatsheet/cheatsheet_preview.png)
 
 ## 🎉 Congratulations!
 
