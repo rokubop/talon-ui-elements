@@ -550,7 +550,7 @@ You've built a professional game key overlay! Here's what you learned:
 
 ### More Tutorials
 - **[Hello World](hello_world.md)** - Start with the basics
-- **[Cheatsheet](cheatsheet.md)** - Build a stateful command reference
+- **[Cheatsheet](cheatsheet.md)** - Learn state management and tables
 
 ### References
 - **[Elements](../elements.md)** - All available elements
@@ -559,9 +559,9 @@ You've built a professional game key overlay! Here's what you learned:
 - **[Actions](../actions.md)** - Controlling UIs with voice
 
 ### Deep Dives
-- **[Components](../concepts/components.md)** - Reusable UI patterns
 - **[Style](../concepts/style.md)** - Advanced styling techniques
 - **[Rendering](../concepts/rendering.md)** - How highlighting works
+- **[SVG](../concepts/svgs.md)** - Working with SVG elements
 
 ### Example Code
 - **[Complete Example](../../examples/game_keys/game_keys_ui.py)** - See the full version

@@ -143,17 +143,18 @@ You've created your first UI! Here's what you accomplished:
 - ✅ Connected it to Talon actions
 - ✅ Added voice commands
 
-## Next Steps
+## What's Next?
 
-Check out the elements and properties documentation for a full list of what you can use.
-- **[Elements](../elements.md)**
-- **[Properties](../properties.md)**
+### More Tutorials
+- **[Cheatsheet](cheatsheet.md)** - Learn state management and tables
+- **[Game Key Overlay](game_keys.md)** - Build grid layouts with icons and highlighting
 
-Now that you understand the basics, try these tutorials:
+### References
+- **[Elements](../elements.md)** - All available elements
+- **[Properties](../properties.md)** - All styling properties
+- **[Actions](../actions.md)** - Talon voice actions for controlling UIs
 
-- **[Command Cheatsheet](cheatsheet.md)** - Create a dynamic command reference
-- **[Game Key Overlay](game_keys.md)** - Build a visual key overlay for gaming
-- **[TODO List](todo_list.md)** - Build an interactive task manager
-
-## Concepts
-- Look at the [concepts documentation](../concepts/) for deeper understanding
+### Deep Dives
+- **[Components](../concepts/components.md)** - Reusable UI patterns
+- **[State](../concepts/state.md)** - Managing dynamic UIs
+- **[Rendering](../concepts/rendering.md)** - How the UI updates work

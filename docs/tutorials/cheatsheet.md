@@ -541,20 +541,18 @@ You've built an interactive command cheatsheet! Here's what you learned:
 ## What's Next?
 
 ### More Tutorials
-- **[TODO List Tutorial](todo_list.md)** - Build a more complex stateful application
-- **[Game Key Overlay](game_keys.md)** - Visual overlays for gaming
-- **[Dashboard](dashboard.md)** - Build an interactive dashboard
+- **[Hello World](hello_world.md)** - Start with the basics
+- **[Game Key Overlay](game_keys.md)** - Build grid layouts with icons and highlighting
 
 ### References
-- **[Elements](../elements.md)** - All available elements (`div`, `button`, `table`, etc.)
-- **[Properties](../properties.md)** - All styling properties (layout, colors, spacing, etc.)
+- **[Elements](../elements.md)** - All available elements
+- **[Properties](../properties.md)** - All styling properties
 - **[Actions](../actions.md)** - Talon voice actions for controlling UIs
-- **[Icons](../icons.md)** - Available icon set
 
 ### Deep Dives
-- **[State Concepts](../concepts/state.md)** - Deep dive into state management
-- **[Components](../concepts/components.md)** - Reusable UI components
+- **[State](../concepts/state.md)** - Deep dive into state management
 - **[Style](../concepts/style.md)** - Advanced styling techniques
+- **[Defaults](../concepts/defaults.md)** - Setting default styles
 
 ### Example Code
 - **[Complete Example](../../examples/cheatsheet/cheatsheet_ui.py)** - See the full featured version
