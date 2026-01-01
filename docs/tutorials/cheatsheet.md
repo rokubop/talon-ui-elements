@@ -323,7 +323,7 @@ cheatsheet advanced: user.cheatsheet_mode_advanced()
 
 ## Step 6: Convert to a Table Layout
 
-If you want two column layout, then let's take Step 5 and convert it to use a **table**.
+Next, let's convert this to a two column layout by using a **table** element.
 
 ```python
 # cheatsheet_ui.py

@@ -39,13 +39,11 @@ Say "elements test" to bring up the examples.
 
 ## ✨ Tutorials
 
-| Use Case |  |
-|----------|---|
-| 👋 Hello World | [Start the tutorial →](docs/tutorials/hello_world.md) |
-| 📜 Command Cheatsheet | [Start the tutorial →](docs/tutorials/cheatsheet.md) |
-| 🧭 Dashboard | [Start the tutorial →](docs/tutorials/dashboard.md) |
-| 🎮 Game Key Overlay | [Start the tutorial →](docs/tutorials/game_keys.md) |
-| 📝 TODO list | [Start the tutorial →](docs/tutorials/todo_list.md) |
+| Tutorial | Preview |
+|----------|---------|
+| 👋 [Hello World](docs/tutorials/hello_world.md) | <img src="./examples/hello_world/hello_world_preview.png" width="300"> |
+| 📜 [Cheatsheet](docs/tutorials/cheatsheet.md) | <img src="./examples/cheatsheet/cheatsheet_preview.png" width="300"> |
+| 🎮 [Game Key Overlay](docs/tutorials/game_keys.md) | <img src="./examples/game_keys/game_keys_preview.png" width="300"> |
 
 ### 📜 References
 
@@ -63,6 +61,10 @@ Say "elements test" to bring up the examples.
 - [State](docs/concepts/state.md)
 - [Style](docs/concepts/style.md)
 - [SVG](docs/concepts/svg.md)
+
+### Other examples
+- [Dashboard](examples/dashboard/dashboard_ui.py)
+- [Todo List](examples/todo_list/todo_list_ui.py)
 
 ## Development suggestions
 While developing, you might get into a state where the UI gets stuck on your screen and you need to restart Talon. For this reason, it's recommended to have a "talon restart" command.

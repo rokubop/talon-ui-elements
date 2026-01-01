@@ -300,7 +300,7 @@ class Actions:
 **What's new?**
 
 - Each key now has a unique `id` (like "up", "space", "q")
-- `highlight_style` in the style block defines how highlighted keys look (cyan background)
+- `highlight_style` is the property we use to optionally customize how highlighted keys look (cyan background)
 - Three UI elements actions available for interactive highlighting:
   - `user.ui_elements_highlight(id)` - Turn on highlight
   - `user.ui_elements_unhighlight(id)` - Turn off highlight
@@ -337,9 +337,11 @@ test sprint release:
 
 Now say "test jump" or "test dash" to see keys flash, or "test sprint" to see the shift key stay highlighted until you say "test sprint release"!
 
+![Game Keys Step 4](./game_keys_step4_preview.png)
+
 **Why highlighting instead of state?**
 
-We could use state to change key colors, but **highlighting is more performant** for real-time feedback. Highlighting uses the decoration layer instead of triggering full UI re-renders, making it perfect for gameplay overlays where responsiveness matters.
+We could use state to change key colors, but **highlighting is more performant** for real-time feedback. Highlighting uses the decoration layer instead of triggering full UI re-renders.
 
 ## Step 5: Replace Directions with Icons and Use Reusable Functions
 
