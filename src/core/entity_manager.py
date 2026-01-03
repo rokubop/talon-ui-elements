@@ -154,7 +154,7 @@ class EntityManager:
 
     def debug(self):
         print("store.trees", store.trees)
-        print("store.processing_tree", store.processing_tree)
+        print("store.processing_tree_stack", store.processing_tree_stack)
         print("store.processing_states", store.processing_states)
         print("store.root_nodes", store.root_nodes)
         print("store.id_to_node", store.id_to_node)

@@ -2,9 +2,12 @@ from typing import TypedDict, Union
 
 def get_scale() -> float:
     try:
+        # Lazy import to avoid circular dependencies since constants is imported by many modules
+        from .core.state_manager import state_manager
         from .core.store import store
-        if store.processing_tree and hasattr(store.processing_tree, 'scale'):
-            return store.processing_tree.scale
+        processing_tree = state_manager.get_processing_tree()
+        if processing_tree and hasattr(processing_tree, 'scale'):
+            return processing_tree.scale
         return store.scale
     except Exception as e:
         return 1.0

@@ -209,7 +209,11 @@ class StateManager:
         store.mouse_state['is_drag_active'] = is_active
 
     def set_processing_tree(self, tree: TreeType):
-        store.processing_tree = tree
+        if tree is None:
+            if store.processing_tree_stack:
+                store.processing_tree_stack.pop()
+        else:
+            store.processing_tree_stack.append(tree)
 
     def get_processing_style(self) -> StyleType:
         context = state_manager.get_processing_component() \
@@ -218,7 +222,7 @@ class StateManager:
             return context.style
 
     def get_processing_tree(self) -> TreeType:
-        return store.processing_tree
+        return store.processing_tree_stack[-1] if store.processing_tree_stack else None
 
     def set_processing_component(self, component):
         store.processing_components.append(component)
@@ -565,7 +569,7 @@ def debug_gc():
     print("Store nodes with ids:", len(store.id_to_node.keys()))
     print("Store trees:", len(store.trees))
     print("Store focused_tree", store.focused_tree)
-    print("Store processing_tree", store.processing_tree)
+    print("Store processing_tree_stack", store.processing_tree_stack)
     print("Store processing_states", store.processing_states)
     print("Store root_nodes", store.root_nodes)
     print("Store id_to_node", store.id_to_node)

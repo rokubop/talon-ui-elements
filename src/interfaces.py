@@ -831,7 +831,7 @@ class TreeType(ABC):
 
 class TreeManagerType(ABC):
     trees: List[TreeType]
-    processing_tree: Optional[TreeType]
+    processing_tree_stack: List[TreeType]
 
     @abstractmethod
     def render(self, tree_constructor: callable):
