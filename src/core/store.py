@@ -21,7 +21,7 @@ class Store():
         self.focused_tree: Optional[TreeType] = None
         self.focused_visible: Optional[bool] = None
         self.processing_tree_stack: list[TreeType] = []
-        self.processing_components: list[NodeType] = []
+        self.processing_components: dict[TreeType, list[NodeType]] = {}
         self.processing_states: set[str] = set()
         self.root_nodes: list[NodeType] = []
         self.id_to_node: dict[str, NodeType] = {}
@@ -68,7 +68,7 @@ class Store():
         self.focused_visible = None
         self.pause_renders = False
         self.processing_tree_stack = []
-        self.processing_components = []
+        self.processing_components = {}
         self.processing_states.clear()
         self.root_nodes = []
         self.id_to_node = {}

@@ -1439,8 +1439,13 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node.get(hovered_id)
 
             if node and node.box_model:
-                if not node.box_model.padding_rect.contains(current_pos):
-                    self.unhighlight_no_render(hovered_id)
+                try:
+                    if not node.box_model.padding_rect.contains(current_pos):
+                        self.unhighlight_no_render(hovered_id)
+                        state_manager.set_hovered_id(None)
+                        changed = True
+                except (AttributeError, TypeError):
+                    # Box model changed/destroyed between check and access
                     state_manager.set_hovered_id(None)
                     changed = True
             else:
@@ -1452,9 +1457,14 @@ class Tree(TreeType):
         if mousedown_start_id:
             node = self.meta_state.id_to_node.get(mousedown_start_id)
 
-            if node and node.box_model:
-                if not node.box_model.padding_rect.contains(current_pos):
-                    self.meta_state.set_unhighlighted(mousedown_start_id)
+            if node and node.box_model and node.box_model.padding_pos:
+                try:
+                    if not node.box_model.padding_rect.contains(current_pos):
+                        self.meta_state.set_unhighlighted(mousedown_start_id)
+                        state_manager.set_mousedown_start_id(None)
+                        changed = True
+                except (AttributeError, TypeError):
+                    # Box model changed/destroyed between check and access
                     state_manager.set_mousedown_start_id(None)
                     changed = True
             else:
