@@ -5,8 +5,8 @@ from ..constants import (
     DEFAULT_INTERACTIVE_BORDER_COLOR,
     DEFAULT_INTERACTIVE_BORDER_WIDTH,
     DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
-    scale_value
 )
+from ..utils import scale_value
 from ..properties import validate_combined_props
 from .component import Component
 

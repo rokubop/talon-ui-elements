@@ -2,7 +2,7 @@ from talon import cron, settings, registry, actions
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia import RoundRect
 from talon.types import Rect
-from .constants import scale_value
+from .utils import scale_value
 from .core.state_manager import state_manager
 from .core.store import store
 from .interfaces import NodeType, ClickEvent

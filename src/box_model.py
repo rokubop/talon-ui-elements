@@ -9,10 +9,8 @@ from .interfaces import (
     PropertiesDimensionalType,
     Size2d,
 )
-from .constants import (
-    DEFAULT_SCROLL_BAR_WIDTH,
-    scale_value,
-)
+from .constants import DEFAULT_SCROLL_BAR_WIDTH
+from .utils import scale_value
 
 @dataclass
 class Overflow(OverflowType):

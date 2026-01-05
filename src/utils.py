@@ -12,6 +12,28 @@ from .constants import NAMED_COLORS_TO_HEX
 from .fonts import get_typeface
 from .border_radius import BorderRadius, draw_manual_rounded_rect_path
 
+def get_scale() -> float:
+    try:
+        # Lazy import to avoid circular dependencies since this is imported by many modules
+        from .core.state_manager import state_manager
+        from .core.store import store
+        processing_tree = state_manager.get_processing_tree()
+        if processing_tree and hasattr(processing_tree, 'scale'):
+            return processing_tree.scale
+        return store.scale
+    except Exception as e:
+        return 1.0
+
+def scale_value(value: Union[int, float]) -> Union[int, float]:
+    if value is None:
+        return None
+    try:
+        scale = get_scale()
+        scaled = value * scale
+        return int(round(scaled)) if isinstance(value, int) else scaled
+    except:
+        return value
+
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
     paint.textsize = properties.font_size
