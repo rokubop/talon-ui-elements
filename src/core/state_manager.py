@@ -209,7 +209,11 @@ class StateManager:
         store.mouse_state['is_drag_active'] = is_active
 
     def set_processing_tree(self, tree: TreeType):
-        store.processing_tree = tree
+        if tree is None:
+            if store.processing_tree_stack:
+                store.processing_tree_stack.pop()
+        else:
+            store.processing_tree_stack.append(tree)
 
     def get_processing_style(self) -> StyleType:
         context = state_manager.get_processing_component() \
@@ -218,24 +222,40 @@ class StateManager:
             return context.style
 
     def get_processing_tree(self) -> TreeType:
-        return store.processing_tree
+        return store.processing_tree_stack[-1] if store.processing_tree_stack else None
 
     def set_processing_component(self, component):
-        store.processing_components.append(component)
+        tree = self.get_processing_tree()
+        if tree:
+            if tree not in store.processing_components:
+                store.processing_components[tree] = []
+            store.processing_components[tree].append(component)
 
     def get_processing_components(self):
-        return store.processing_components
+        tree = self.get_processing_tree()
+        if tree and tree in store.processing_components:
+            return store.processing_components[tree]
+        return []
 
     def get_processing_component(self):
-        if store.processing_components:
-            return store.processing_components[-1]
+        tree = self.get_processing_tree()
+        if tree and tree in store.processing_components:
+            components = store.processing_components[tree]
+            if components:
+                return components[-1]
         return None
 
     def get_processing_states(self):
         return state_coordinator.current_state_keys
 
     def remove_processing_component(self, component):
-        store.processing_components.remove(component)
+        tree = self.get_processing_tree()
+        if tree and tree in store.processing_components:
+            try:
+                store.processing_components[tree].remove(component)
+            except ValueError:
+                # Component not in list - shouldn't happen but handle gracefully
+                pass
 
     def get_trees_for_state(self, state_key):
         try:
@@ -523,6 +543,9 @@ class StateManager:
                 del store.reactive_state[state_key]
             if state_key in store.processing_states:
                 store.processing_states.remove(state_key)
+        # Clean up per-tree component stack
+        if tree in store.processing_components:
+            del store.processing_components[tree]
         if not store.processing_states or not store.trees:
             state_coordinator.reset()
 
@@ -565,7 +588,7 @@ def debug_gc():
     print("Store nodes with ids:", len(store.id_to_node.keys()))
     print("Store trees:", len(store.trees))
     print("Store focused_tree", store.focused_tree)
-    print("Store processing_tree", store.processing_tree)
+    print("Store processing_tree_stack", store.processing_tree_stack)
     print("Store processing_states", store.processing_states)
     print("Store root_nodes", store.root_nodes)
     print("Store id_to_node", store.id_to_node)

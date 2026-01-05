@@ -1,24 +1,5 @@
 from typing import TypedDict, Union
 
-def get_scale() -> float:
-    try:
-        from .core.store import store
-        if store.processing_tree and hasattr(store.processing_tree, 'scale'):
-            return store.processing_tree.scale
-        return store.scale
-    except Exception as e:
-        return 1.0
-
-def scale_value(value: Union[int, float]) -> Union[int, float]:
-    if value is None:
-        return None
-    try:
-        scale = get_scale()
-        scaled = value * scale
-        return int(round(scaled)) if isinstance(value, int) else scaled
-    except:
-        return value
-
 # Don't make these a talon setting
 # Shared UI's should be consistent from user to user
 DEFAULT_COLOR = "FFFFFF"

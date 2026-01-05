@@ -28,10 +28,8 @@ from .constants import (
     DEFAULT_FOCUS_OUTLINE_COLOR,
     DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE,
-    scale_value,
-    get_scale
 )
-from .utils import hex_color
+from .utils import hex_color, scale_value, get_scale
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {

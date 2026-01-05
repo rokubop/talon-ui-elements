@@ -9,6 +9,8 @@ class Component(ComponentType):
     """
     Has it's own renderer for containing rerenders, state, and styles.
     """
+    participates_in_layout = False  # Components are replaced by their nodes before layout
+
     def __init__(self, renderer: callable, props: dict = None):
         if not callable(renderer):
             raise ValueError("component must be passed a render function")

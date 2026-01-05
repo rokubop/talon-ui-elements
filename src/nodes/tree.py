@@ -13,8 +13,8 @@ from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE, scale_value
-from ..utils import draw_rect
+from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE
+from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
@@ -575,18 +575,20 @@ class Tree(TreeType):
 
     def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
-        if len(inspect.signature(self._tree_constructor).parameters) > 0:
-            if self.props and not isinstance(self.props, dict):
-                raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
-            self.root_node = self._tree_constructor(self.props or {})
-        else:
-            self.root_node = self._tree_constructor()
-        self.absolute_nodes.clear()
-        self.fixed_nodes.clear()
-        if not isinstance(self.root_node, NodeType):
-            raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
-        self.validate_root_node()
-        state_manager.set_processing_tree(None)
+        try:
+            if len(inspect.signature(self._tree_constructor).parameters) > 0:
+                if self.props and not isinstance(self.props, dict):
+                    raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
+                self.root_node = self._tree_constructor(self.props or {})
+            else:
+                self.root_node = self._tree_constructor()
+            self.absolute_nodes.clear()
+            self.fixed_nodes.clear()
+            if not isinstance(self.root_node, NodeType):
+                raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
+            self.validate_root_node()
+        finally:
+            state_manager.set_processing_tree(None)
 
     def test(self, node: NodeType):
         if getattr(node, "text", None):
@@ -700,21 +702,23 @@ class Tree(TreeType):
                 if offset:
                     transforms = RenderTransforms(offset=offset)
                 state_manager.set_processing_tree(self)
-                if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
-                    self.reconcile_mouse_highlight()
-                self.draw_decoration_renders(draw_canvas, transforms)
-                self.draw_highlight_overlays(draw_canvas, transforms.offset)
-                canvas.paint.color = "FFFFFF"
-                self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
-                if self.interactive_node_list or self.draggable_node:
-                    if state_manager.is_focus_visible():
-                        self.draw_focus_outline(draw_canvas, offset)
-                    if self.show_hints:
-                        self.draw_hints(draw_canvas, transforms)
-                self.init_key_controls()
-                self.draw_blockable_canvases()
-                self.on_fully_rendered()
-                state_manager.set_processing_tree(None)
+                try:
+                    if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
+                        self.reconcile_mouse_highlight()
+                    self.draw_decoration_renders(draw_canvas, transforms)
+                    self.draw_highlight_overlays(draw_canvas, transforms.offset)
+                    canvas.paint.color = "FFFFFF"
+                    self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
+                    if self.interactive_node_list or self.draggable_node:
+                        if state_manager.is_focus_visible():
+                            self.draw_focus_outline(draw_canvas, offset)
+                        if self.show_hints:
+                            self.draw_hints(draw_canvas, transforms)
+                    self.init_key_controls()
+                    self.draw_blockable_canvases()
+                    self.on_fully_rendered()
+                finally:
+                    state_manager.set_processing_tree(None)
                 self.finish_current_render()
         except Exception as e:
             print(f"Error during decorator canvas rendering: {e}")
@@ -795,23 +799,25 @@ class Tree(TreeType):
         if not self.render_manager.is_destroying:
             self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
-            dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
+            try:
+                dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
 
-            if dragging:
-                self.on_draw_base_canvas_dragging(canvas)
-            elif self.is_drag_end():
-                self.on_draw_base_canvas_drag_end(canvas)
-            elif self.render_manager.is_scrolling() or self.render_manager.is_scrollbar_dragging():
-                self.on_draw_base_canvas_scroll(canvas)
-            elif self.render_manager.is_cursor_update() and not (self.render_manager.render_cause == RenderCause.STATE_CHANGE or self.render_manager.render_cause == RenderCause.REF_CHANGE):
-                self.on_draw_base_canvas_cursor_update(canvas)
-            else:
-                self.on_draw_base_canvas_default(canvas)
+                if dragging:
+                    self.on_draw_base_canvas_dragging(canvas)
+                elif self.is_drag_end():
+                    self.on_draw_base_canvas_drag_end(canvas)
+                elif self.render_manager.is_scrolling() or self.render_manager.is_scrollbar_dragging():
+                    self.on_draw_base_canvas_scroll(canvas)
+                elif self.render_manager.is_cursor_update() and not (self.render_manager.render_cause == RenderCause.STATE_CHANGE or self.render_manager.render_cause == RenderCause.REF_CHANGE):
+                    self.on_draw_base_canvas_cursor_update(canvas)
+                else:
+                    self.on_draw_base_canvas_default(canvas)
 
-            if not dragging:
-                self.show_inputs()
-            self.render_decorator_canvas()
-            state_manager.set_processing_tree(None)
+                if not dragging:
+                    self.show_inputs()
+                self.render_decorator_canvas()
+            finally:
+                state_manager.set_processing_tree(None)
 
     def draw_highlight_overlay(self, canvas: SkiaCanvas, node: NodeType, offset: Point2d, color: str = None):
         transforms = RenderTransforms(offset=offset) if offset.x or offset.y else None
@@ -1433,8 +1439,13 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node.get(hovered_id)
 
             if node and node.box_model:
-                if not node.box_model.padding_rect.contains(current_pos):
-                    self.unhighlight_no_render(hovered_id)
+                try:
+                    if not node.box_model.padding_rect.contains(current_pos):
+                        self.unhighlight_no_render(hovered_id)
+                        state_manager.set_hovered_id(None)
+                        changed = True
+                except (AttributeError, TypeError):
+                    # Box model changed/destroyed between check and access
                     state_manager.set_hovered_id(None)
                     changed = True
             else:
@@ -1446,9 +1457,14 @@ class Tree(TreeType):
         if mousedown_start_id:
             node = self.meta_state.id_to_node.get(mousedown_start_id)
 
-            if node and node.box_model:
-                if not node.box_model.padding_rect.contains(current_pos):
-                    self.meta_state.set_unhighlighted(mousedown_start_id)
+            if node and node.box_model and node.box_model.padding_pos:
+                try:
+                    if not node.box_model.padding_rect.contains(current_pos):
+                        self.meta_state.set_unhighlighted(mousedown_start_id)
+                        state_manager.set_mousedown_start_id(None)
+                        changed = True
+                except (AttributeError, TypeError):
+                    # Box model changed/destroyed between check and access
                     state_manager.set_mousedown_start_id(None)
                     changed = True
             else:
@@ -1789,8 +1805,10 @@ class Tree(TreeType):
     def _resolve_component(self, node: NodeType, node_index_path: list[int]):
         if isinstance(node, ComponentType):
             state_manager.set_processing_tree(self)
-            node_tree = node.initialize(node_index_path)
-            state_manager.set_processing_tree(None)
+            try:
+                node_tree = node.initialize(node_index_path)
+            finally:
+                state_manager.set_processing_tree(None)
             self.meta_state.add_component(node)
             return node_tree
         return node
