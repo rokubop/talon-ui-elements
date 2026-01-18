@@ -7,7 +7,6 @@ from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
-from .src.versioning import get_version
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
 from .storybook.main import storybook_ui
@@ -227,25 +226,6 @@ class Actions:
     def ui_elements_storybook_toggle():
         """Toggle the storybook UI"""
         actions.user.ui_elements_toggle(storybook_ui)
-
-    def ui_elements_version():
-        """
-        Get the current version of `talon-ui-elements`.
-
-        Returns:
-            Version: A dataclass with the following attributes:
-                - `major` (int): The major version number.
-                - `minor` (int): The minor version number.
-                - `patch` (int): The patch version number.
-
-        Usage:
-            version = ui_elements_version()
-            print(version.minor)  # Access the minor version
-            print(version.major)  # Access the major version
-            print(version)        # Print the full version as a string
-            print(version < "0.6.2")  # Compare with a string version
-        """
-        return get_version()
 
     def ui_elements_examples():
         """Test example UIs"""
