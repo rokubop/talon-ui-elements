@@ -30,6 +30,7 @@ font_aliases = {
 }
 
 font_cache = {}
+_logged_font_errors = set()  # Track fonts we've already logged errors for
 LOG = False
 
 def log(*args):
@@ -130,7 +131,15 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
         font_cache[key] = typeface
         return typeface
 
-    print(f"Font '{font_family}' not found. Use one of:")
-    for font in list_available_fonts():
-        print("  ", font)
+    # Only log the error once per font to avoid console spam
+    if font_family not in _logged_font_errors:
+        _logged_font_errors.add(font_family)
+        print(f"Font '{font_family}' not found. Use one of:")
+        for font in list_available_fonts():
+            print("  ", font)
     return None
+
+def reset_font_state():
+    """Reset logged font errors so they can be shown again. Called by store.clear()."""
+    global _logged_font_errors
+    _logged_font_errors.clear()
