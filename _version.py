@@ -14,7 +14,11 @@ mod = Module()
 @mod.action_class
 class Actions:
     def ui_elements_version() -> tuple[int, int, int]:
-        """Returns the package version as (major, minor, patch)"""
+        """
+        Returns the package version as (major, minor, patch).
+
+        Usage: actions.user.ui_elements_version() >= (1, 2, 0)
+        """
         manifest_path = os.path.join(os.path.dirname(__file__), 'manifest.json')
         with open(manifest_path, 'r', encoding='utf-8') as f:
             version_str = json.load(f)['version']

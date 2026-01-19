@@ -11,9 +11,13 @@
   "tags": [
     "ui"
   ],
+  "license": "MIT",
   "dependencies": {},
   "devDependencies": {},
   "contributes": {
+    "tags": [
+      "user.ui_elements_hints_active"
+    ],
     "settings": [
       "user.ui_elements_hints_button_first_char",
       "user.ui_elements_hints_input_text_first_char",
@@ -23,8 +27,8 @@
       "user.ui_elements_scale",
       "user.ui_elements_scroll_speed"
     ],
-    "tags": [
-      "user.ui_elements_hints_active"
+    "captures": [
+      "user.ui_elements_hint_target"
     ],
     "actions": [
       "user.ui_elements",
@@ -60,15 +64,11 @@
       "user.ui_elements_version"
     ]
   },
-  "depends": {
-    "tags": [
-      "browser"
-    ]
-  },
-  "requiresTalonBeta": false,
+  "depends": {},
   "validateDependencies": true,
   "_generator": "talon-manifest-generator",
   "_generatorVersion": "2.0.0",
   "_generatorRequiresVersionAction": true,
-  "_generatorStrictNamespace": true
+  "_generatorStrictNamespace": true,
+  "_generatorFrozenFields": []
 }
