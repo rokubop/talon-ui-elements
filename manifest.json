@@ -1,16 +1,23 @@
 {
-  "name": "ui_elements",
+  "name": "talon-ui-elements",
   "title": "UI Elements",
   "description": "Create stateful canvas UIs using HTML/CSS/React-inspired syntax for python. For use with Talon.",
-  "version": "0.12.2",
+  "version": "0.13.0",
+  "status": "stable",
   "namespace": "user.ui_elements",
   "github": "https://github.com/rokubop/talon-ui-elements",
   "preview": "https://raw.githubusercontent.com/rokubop/talon-ui-elements/main/examples/ui_elements_preview.png",
   "author": "Rokubop",
-  "tags": ["ui"],
+  "tags": [
+    "ui"
+  ],
+  "license": "MIT",
   "dependencies": {},
   "devDependencies": {},
   "contributes": {
+    "tags": [
+      "user.ui_elements_hints_active"
+    ],
     "settings": [
       "user.ui_elements_hints_button_first_char",
       "user.ui_elements_hints_input_text_first_char",
@@ -20,7 +27,9 @@
       "user.ui_elements_scale",
       "user.ui_elements_scroll_speed"
     ],
-    "tags": ["user.ui_elements_hints_active"],
+    "captures": [
+      "user.ui_elements_hint_target"
+    ],
     "actions": [
       "user.ui_elements",
       "user.ui_elements_debug_gc",
@@ -38,6 +47,7 @@
       "user.ui_elements_is_active",
       "user.ui_elements_key_action",
       "user.ui_elements_register_effect",
+      "user.ui_elements_reset_all_scale_overrides",
       "user.ui_elements_scale_decrease",
       "user.ui_elements_scale_increase",
       "user.ui_elements_scale_reset",
@@ -54,9 +64,11 @@
       "user.ui_elements_version"
     ]
   },
-  "depends": {
-    "tags": ["browser"]
-  },
-  "_generator": "manifest_builder",
-  "_generatorVersion": "1.0.0"
+  "depends": {},
+  "validateDependencies": true,
+  "_generator": "talon-manifest-generator",
+  "_generatorVersion": "2.0.0",
+  "_generatorRequiresVersionAction": true,
+  "_generatorStrictNamespace": true,
+  "_generatorFrozenFields": []
 }

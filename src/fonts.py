@@ -29,7 +29,29 @@ font_aliases = {
     "times new roman": ["times", "timesnewroman"],
 }
 
+# Cross-platform font equivalents - ordered by preference
+platform_equivalents = {
+    # Monospace fonts
+    "consolas": ["menlo", "sfnsmono", "monaco", "courier new"],  # Windows -> Mac
+    "menlo": ["consolas", "courier new"],  # Mac -> Windows
+    "sf mono": ["consolas", "menlo", "courier new"],  # Mac -> Windows/Linux
+    "sfnsmono": ["consolas", "menlo", "courier new"],
+    "monaco": ["consolas", "menlo", "courier new"],  # Mac -> Windows/Linux
+
+    # Sans-serif fonts
+    "segoe ui": ["sfns", "helvetica neue", "arial"],  # Windows -> Mac/Linux
+    "segoe_ui": ["sfns", "helvetica neue", "arial"],
+    "sf pro": ["segoe ui", "arial"],  # Mac -> Windows/Linux
+    "sfns": ["segoe ui", "arial"],
+    "helvetica neue": ["segoe ui", "arial"],  # Mac -> Windows/Linux
+
+    # Serif fonts
+    "times new roman": ["times", "times new roman"],
+    "georgia": ["times", "times new roman"],
+}
+
 font_cache = {}
+_logged_font_errors = set()  # Track fonts we've already logged errors for
 LOG = False
 
 def log(*args):
@@ -130,7 +152,29 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
         font_cache[key] = typeface
         return typeface
 
-    print(f"Font '{font_family}' not found. Use one of:")
-    for font in list_available_fonts():
-        print("  ", font)
+    # Try platform equivalents before giving up
+    equivalents = platform_equivalents.get(font_family.lower(), [])
+    for equivalent in equivalents:
+        log(f"Trying platform equivalent: {equivalent}")
+        equiv_path = find_installed_font(equivalent, font_weight)
+        if equiv_path:
+            print(f"Font '{font_family}' not found, using platform equivalent '{equivalent}'")
+            try:
+                typeface = Typeface.from_file(equiv_path, 0)
+            except TypeError:
+                typeface = Typeface.from_file(equiv_path)
+            font_cache[key] = typeface
+            return typeface
+
+    # Only log the error once per font to avoid console spam
+    if font_family not in _logged_font_errors:
+        _logged_font_errors.add(font_family)
+        print(f"Font '{font_family}' not found. Use one of:")
+        for font in list_available_fonts():
+            print("  ", font)
     return None
+
+def reset_font_state():
+    """Reset logged font errors so they can be shown again. Called by store.clear()."""
+    global _logged_font_errors
+    _logged_font_errors.clear()

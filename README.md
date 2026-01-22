@@ -1,5 +1,9 @@
 # UI Elements
 
+![Version](https://img.shields.io/badge/version-0.13.0-blue)
+![Status](https://img.shields.io/badge/status-stable-green)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 [ui_elements](.) is an experimental library for building stateful voice activated canvas UIs using a HTML/CSS/React-inspired syntax for python, for use with [Talon](https://talonvoice.com/).
 
 ![ui_elements](./examples/ui_elements_preview.png)

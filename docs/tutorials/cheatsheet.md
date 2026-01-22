@@ -8,7 +8,7 @@ A draggable, transparent command reference that can switch between different com
 
 ![Cheatsheet Preview](../../examples/cheatsheet/cheatsheet_preview.png)
 
-> **Want to see the complete code?** Check out [examples/cheatsheet/cheatsheet_ui.py](../../examples/cheatsheet/cheatsheet_ui.py) for the final version. However, we recommend following along step by step to understand how it all comes together!
+> **Skip to full code:** [examples/cheatsheet/cheatsheet_ui.py](../../examples/cheatsheet/cheatsheet_ui.py)
 
 ## Step 1: Create Your Starting Files
 
@@ -290,14 +290,6 @@ class Actions:
     def toggle_cheatsheet():
         """Toggle command cheatsheet"""
         actions.user.ui_elements_toggle(cheatsheet_ui)
-
-    def cheatsheet_mode_basic():
-        """Set cheatsheet to basic mode"""
-        actions.user.ui_elements_set_state("mode", "basic")
-
-    def cheatsheet_mode_advanced():
-        """Set cheatsheet to advanced mode"""
-        actions.user.ui_elements_set_state("mode", "advanced")
 ```
 
 **Add voice commands** in `cheatsheet_ui.talon`:
@@ -305,14 +297,14 @@ class Actions:
 ```talon
 # cheatsheet_ui.talon
 toggle cheatsheet: user.toggle_cheatsheet()
-cheatsheet basic: user.cheatsheet_mode_basic()
-cheatsheet advanced: user.cheatsheet_mode_advanced()
+cheatsheet basic: user.ui_elements_set_state("mode", "basic")
+cheatsheet advanced: user.ui_elements_set_state("mode", "advanced")
 ```
 
 **What's new?**
 
 - `mode = state.get("mode", "basic")` gets state with key "mode", defaulting to "basic".
-- `actions.user.ui_elements_set_state("mode", value)` updates the state from actions
+- `user.ui_elements_set_state("mode", value)` updates the state from actions
 - `*[text(cmd) for cmd in (...)]` uses the `*[...]` pattern to dynamically generate command list
 - We can now control the mode with voice commands!
 
@@ -393,14 +385,6 @@ class Actions:
     def toggle_cheatsheet():
         """Toggle command cheatsheet"""
         actions.user.ui_elements_toggle(cheatsheet_ui)
-
-    def cheatsheet_mode_basic():
-        """Set cheatsheet to basic mode"""
-        actions.user.ui_elements_set_state("mode", "basic")
-
-    def cheatsheet_mode_advanced():
-        """Set cheatsheet to advanced mode"""
-        actions.user.ui_elements_set_state("mode", "advanced")
 ```
 
 **What's new?**
@@ -497,14 +481,6 @@ class Actions:
     def toggle_cheatsheet():
         """Toggle command cheatsheet"""
         actions.user.ui_elements_toggle(cheatsheet_ui)
-
-    def cheatsheet_mode_basic():
-        """Set cheatsheet to basic mode"""
-        actions.user.ui_elements_set_state("mode", "basic")
-
-    def cheatsheet_mode_advanced():
-        """Set cheatsheet to advanced mode"""
-        actions.user.ui_elements_set_state("mode", "advanced")
 ```
 
 **What's new?**

@@ -1,6 +1,8 @@
 from talon import actions
-from .versioning import get_version
 from .entry import render_ui
+
+def tuple_to_string(t) -> str:
+    return ".".join(map(str, t))
 
 def title(renderer):
     return f"talon-ui-elements error when trying to show {renderer.__qualname__}"
@@ -20,23 +22,31 @@ def fake_ui():
     ]
 
 def simulate_error():
-    show_error_if_not_compatible(fake_ui, get_version(), force=True)
+    show_error_if_not_compatible(
+        fake_ui,
+        actions.user.ui_elements_version(),
+        force=True
+    )
 
 def show_error_if_not_compatible(renderer, min_version, force=False) -> None:
     is_incompatible = False
-    current_version = get_version()
 
-    if current_version < min_version or force:
+    current_version_tuple = actions.user.ui_elements_version()
+    current_version_str = tuple_to_string(current_version_tuple)
+    min_version_tuple = tuple(map(int, min_version.split('.'))) if isinstance(min_version, str) else min_version
+    min_version_str = tuple_to_string(min_version_tuple)
+
+    if current_version_tuple < min_version_tuple or force:
         is_incompatible = True
         renderer_name = renderer.__qualname__
         title_message = title(renderer)
-        error_message = message(current_version, min_version)
+        error_message = message(current_version_str, min_version_str)
         print(f"Error: {title_message}\n{error_message}")
-        if current_version >= "0.9.0":
+        if current_version_tuple >= (0, 9, 0):
             render_ui(generic_error_ui, props={
                 "renderer_name": renderer_name,
-                "current_version": current_version,
-                "min_version": min_version,
+                "current_version": current_version_str,
+                "min_version": min_version_str,
             })
 
     return is_incompatible

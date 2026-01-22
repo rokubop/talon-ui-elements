@@ -556,10 +556,15 @@ class StateManager:
             self.clear_state_for_tree(tree)
             store.synchronize_ids()
         store.mouse_state['disable_events'] = False
+        if not store.trees:
+            from .. import fonts
+            fonts.reset_font_state()
 
     def clear_all(self):
+        from .. import fonts
         store.clear()
         state_coordinator.reset()
+        fonts.reset_font_state()
 
     def deprecated_event_register_on_lifecycle(self, callback):
         if callback not in _deprecated_event_subscribers:
