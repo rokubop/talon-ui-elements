@@ -11,13 +11,25 @@ from talon import Module
 
 mod = Module()
 
-try:
-    # Version is cached at import. Restart or save this file to pick up changes.
-    with open(Path(__file__).parent / 'manifest.json', 'r', encoding='utf-8') as f:
-        _VERSION = tuple(map(int, json.load(f)['version'].split('.')))
-except Exception as e:
-    print(f"ERROR: talon-ui-elements failed to load version from manifest.json: {e}")
-    _VERSION = (0, 0, 0)
+_cached_version = None
+
+def _get_version() -> tuple[int, int, int]:
+    """
+    Loads version from manifest.json. Cached after first successful load.
+    To reload: restart Talon or save this file
+    """
+    global _cached_version
+    if _cached_version is not None:
+        return _cached_version
+
+    try:
+        with open(Path(__file__).parent / 'manifest.json', 'r', encoding='utf-8') as f:
+            version = tuple(map(int, json.load(f)['version'].split('.')))
+            _cached_version = version
+            return version
+    except Exception as e:
+        print(f"ERROR: talon-ui-elements failed to load version from manifest.json: {e}")
+        return (0, 0, 0)
 
 @mod.action_class
 class Actions:
@@ -27,4 +39,4 @@ class Actions:
 
         Usage: actions.user.ui_elements_version() >= (1, 2, 0)
         """
-        return _VERSION
+        return _get_version()
