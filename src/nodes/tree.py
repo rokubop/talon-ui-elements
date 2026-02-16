@@ -1156,8 +1156,8 @@ class Tree(TreeType):
                             cleanup = effect.callback(StateEvent())
                         else:
                             cleanup = effect.callback()
-                    if cleanup and not effect.cleanup:
-                        effect.cleanup = cleanup
+                        if cleanup and not effect.cleanup:
+                            effect.cleanup = cleanup
 
             # component mounted
             if self.meta_state.new_component_ids:
