@@ -9,6 +9,7 @@ from .icons_svgs.icons_svgs_ui import show_icons_svgs
 from .inputs.inputs_ui import show_inputs
 from .state_vs_refs.state_vs_refs_ui import show_state_vs_refs
 from .todo_list.todo_list_ui import show_todo_list
+from .transitions.transitions_ui import show_transitions
 from ..storybook.main import show_storybook
 from ..src.dev_tools import DevTools
 from ..tests.test_runner_ui import show_test_runner
@@ -69,6 +70,7 @@ button_col2_actions = {
     "Input Prompt": show_inputs_example,
     "State vs Ref": lambda: show_example(show_state_vs_refs),
     "Todo List": lambda: show_example(show_todo_list),
+    "Transitions": lambda: show_example(show_transitions),
 }
 tools = {
     "Storybook": lambda: show_example(show_storybook),
