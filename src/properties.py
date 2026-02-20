@@ -95,7 +95,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     position: str = 'static'
     right: Union[int, str, float] = None
     top: Union[int, str, float] = None
-    transition: list[str] = None
+    transition: dict = None
     value: str = None
     width: Union[int, str, float] = 0
     z_index: int = 0
@@ -204,17 +204,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_transition(self):
         if self.transition:
-            VALID_VALUES = ['opacity']
-
-            if not isinstance(self.transition, list):
+            if not isinstance(self.transition, dict):
                 raise ValueError(
                     f"\nInvalid value for transition: '{self.transition}'\n"
-                    f"transition property should be a list: transition=['opacity']"
-                )
-            if any(prop not in VALID_VALUES for prop in self.transition):
-                raise ValueError(
-                    f"\nInvalid value for transition: '{self.transition}'\n"
-                    f"Valid values are: {VALID_VALUES}\n"
+                    f"transition property should be a dict: transition={{'opacity': 200}} "
+                    f"or transition={{'all': 300}}"
                 )
 
     def validate_highlight_style(self):
@@ -499,7 +493,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     position: str
     right: Union[int, str, float]
     top: Union[int, str, float]
-    transition: list[str]
+    transition: dict
     value: str
     width: Union[int, str, float]
     z_index: int

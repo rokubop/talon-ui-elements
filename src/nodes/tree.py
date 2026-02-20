@@ -18,6 +18,7 @@ from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
+from ..core.animations import TransitionManager
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
 from ..core.store import store
@@ -491,6 +492,7 @@ class Tree(TreeType):
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self.show_hints = False
         self.style: Style = None
+        self.transition_manager = TransitionManager(self)
 
         # Load scale from storage per tree, fallback to settings
         saved_scales = storage.get("ui_elements", {}).get("scale_per_tree", {})
@@ -773,6 +775,23 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def on_draw_base_canvas_animation_frame(self, canvas: SkiaCanvas):
+        try:
+            self.reset_cursor()
+            self.root_node.v2_measure_intrinsic_size(canvas)
+            self.root_node.v2_grow_size()
+            self.root_node.v2_constrain_size()
+            self.root_node.v2_layout(self.cursor_v2)
+            self.nonlayout_flow()
+            self.compute_clip_regions_cache()
+            self.build_base_render_layers()
+            self.commit_base_canvas()
+        except Exception as e:
+            print(f"Error during animation frame rendering: {e}")
+            log_trace()
+            self.finish_current_render()
+            self.destroy()
+
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
             self.reset_cursor()
@@ -808,6 +827,8 @@ class Tree(TreeType):
                     self.on_draw_base_canvas_drag_end(canvas)
                 elif self.render_manager.is_scrolling() or self.render_manager.is_scrollbar_dragging():
                     self.on_draw_base_canvas_scroll(canvas)
+                elif self.render_manager.is_animation_frame():
+                    self.on_draw_base_canvas_animation_frame(canvas)
                 elif self.render_manager.is_cursor_update() and not (self.render_manager.render_cause == RenderCause.STATE_CHANGE or self.render_manager.render_cause == RenderCause.REF_CHANGE):
                     self.on_draw_base_canvas_cursor_update(canvas)
                 else:
@@ -1085,6 +1106,10 @@ class Tree(TreeType):
                 self.show_hints = show_hints
 
             self.render_base_canvas()
+
+    def render_animation_frame(self):
+        if not self.destroying:
+            self.render_manager.render_animation_frame()
 
     def append_to_render_list(self, node: NodeType, draw: Callable[[SkiaCanvas], None]):
         self.render_list.append(RenderItem(node, draw))
@@ -1622,6 +1647,7 @@ class Tree(TreeType):
 
             self._tree_constructor = None
             self.current_base_canvas = None
+            self.transition_manager.destroy()
             self.render_manager.destroy()
             state_manager.clear_state_for_tree(self)
             self.meta_state.clear()
@@ -1674,6 +1700,8 @@ class Tree(TreeType):
             requires_id = True
         elif getattr(node.properties, "for_id", False):
             requires_id = True
+        elif node.properties.transition:
+            requires_id = True
 
         if requires_id and not node.id:
             node_index_path_str = "-".join(map(str, node_index_path)) # "1-2-0"
@@ -1702,6 +1730,9 @@ class Tree(TreeType):
 
             if node.properties.draggable:
                 self.meta_state.add_draggable(node.id)
+
+            if node.properties.transition:
+                self.transition_manager.detect_changes(node.id, node)
 
     def _use_decorator(self, node: NodeType):
         if ((node.disabled and node.properties.disabled_style) or node.properties.highlight_style) \

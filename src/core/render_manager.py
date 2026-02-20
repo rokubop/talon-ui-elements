@@ -215,10 +215,6 @@ class RenderManager(RenderManagerType):
                         self.queue[0].cause == RenderCause.SCROLLBAR_DRAGGING):
                     return
             self.current_render_task = self.queue.popleft()
-            if self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
-                self.current_render_task.on_start()
-                self.process_next_render()
-                return
             self.current_render_task.on_start(self.tree, *self.current_render_task.args)
 
     def finish_current_render(self):
@@ -341,12 +337,29 @@ class RenderManager(RenderManagerType):
             [],
         ))
 
+    def render_animation_frame(self):
+        # Don't queue if one is already pending
+        if self.current_render_task and \
+                self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
+            return
+        for task in self.queue:
+            if task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
+                return
+        self.queue_render(RenderTask(
+            RenderCause.REQUEST_ANIMATION_FRAME,
+            on_base_canvas_change,
+        ))
+
+    def is_animation_frame(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME
+
     def request_animation_frame(self, callback: callable):
         if not store.pause_renders:
-            cron.after("500ms", self.queue_render(RenderTask(
+            self.queue_render(RenderTask(
                 RenderCause.REQUEST_ANIMATION_FRAME,
                 callback,
-            )))
+            ))
 
     def prepare_destroy(self):
         self._destroying = True
