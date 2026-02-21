@@ -629,6 +629,25 @@ div(
 
 **Easing functions:** `"linear"`, `"ease_in"`, `"ease_out"`, `"ease_in_out"`, `"ease_out_bounce"`
 
+### Highlight Transitions
+
+When a node has both `highlight_style` and `transition`, hover highlights animate smoothly instead of snapping instantly:
+
+```python
+button(
+    "Click me",
+    highlight_style={"background_color": "#444444"},
+    transition={"background_color": 150},
+)
+```
+
+If a node has `transition` with color properties and `on_click` but no explicit `highlight_style`, one is auto-generated from `highlight_color`.
+
+```python
+# highlight_style auto-generated from highlight_color
+button("Click me", transition={"background_color": 150})
+```
+
 ### Mount / Unmount Animations
 
 Animate elements in and out:
