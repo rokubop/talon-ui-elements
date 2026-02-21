@@ -2,6 +2,7 @@ import time
 from dataclasses import dataclass
 from talon import cron
 from ..utils import hex_color
+from ..border_radius import BorderRadius
 
 
 def linear(t):
@@ -70,7 +71,9 @@ ANIMATABLE_COLOR_PROPERTIES = {
     "border_color",
 }
 
-ANIMATABLE_PROPERTIES = ANIMATABLE_NUMERIC_PROPERTIES | ANIMATABLE_COLOR_PROPERTIES
+ANIMATABLE_BORDER_RADIUS = {"border_radius"}
+
+ANIMATABLE_PROPERTIES = ANIMATABLE_NUMERIC_PROPERTIES | ANIMATABLE_COLOR_PROPERTIES | ANIMATABLE_BORDER_RADIUS
 
 
 @dataclass
@@ -121,6 +124,15 @@ def interpolate_color(from_hex, to_hex, t):
     return channels_to_hex(r, g, b, a)
 
 
+def interpolate_border_radius(from_br, to_br, t):
+    return BorderRadius((
+        interpolate_number(from_br.top_left, to_br.top_left, t),
+        interpolate_number(from_br.top_right, to_br.top_right, t),
+        interpolate_number(from_br.bottom_right, to_br.bottom_right, t),
+        interpolate_number(from_br.bottom_left, to_br.bottom_left, t),
+    ))
+
+
 class TransitionManager:
     def __init__(self, tree):
         self.tree = tree
@@ -153,6 +165,9 @@ class TransitionManager:
         if prop in ANIMATABLE_COLOR_PROPERTIES:
             if isinstance(value, str):
                 return value
+        elif prop in ANIMATABLE_BORDER_RADIUS:
+            if isinstance(value, BorderRadius):
+                return value
         elif prop in ANIMATABLE_NUMERIC_PROPERTIES:
             if isinstance(value, (int, float)):
                 return value
@@ -164,6 +179,8 @@ class TransitionManager:
         eased_t = easing_fn(t)
         if anim.property in ANIMATABLE_COLOR_PROPERTIES:
             return interpolate_color(anim.from_value, anim.to_value, eased_t)
+        if anim.property in ANIMATABLE_BORDER_RADIUS:
+            return interpolate_border_radius(anim.from_value, anim.to_value, eased_t)
         return interpolate_number(anim.from_value, anim.to_value, eased_t)
 
     def _get_current_value(self, anim):
