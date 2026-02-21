@@ -18,7 +18,7 @@ from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
-from ..core.animations import TransitionManager
+from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
 from ..core.store import store
@@ -914,6 +914,9 @@ class Tree(TreeType):
         if id in self.meta_state.highlighted:
             return
         self.meta_state.set_highlighted(id, color)
+        node = self.meta_state.id_to_node.get(id)
+        if node and node.properties.transition and node.properties.highlight_style:
+            self.transition_manager.start_highlight(id, node, "in")
 
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
@@ -921,11 +924,18 @@ class Tree(TreeType):
 
         self.render_cause.highlight_change()
         self.meta_state.set_highlighted(id, color)
+        node = self.meta_state.id_to_node.get(id)
+        if node and node.properties.transition and node.properties.highlight_style:
+            self.transition_manager.start_highlight(id, node, "in")
         self.canvas_decorator.freeze()
 
     def unhighlight_no_render(self, id: str):
         if id in self.meta_state.highlighted:
-            self.meta_state.set_unhighlighted(id)
+            node = self.meta_state.id_to_node.get(id)
+            if node and node.properties.transition and node.properties.highlight_style:
+                self.transition_manager.start_highlight(id, node, "out")
+            else:
+                self.meta_state.set_unhighlighted(id)
 
             job = self.meta_state.unhighlight_jobs.pop(id, None)
             if job:
@@ -934,7 +944,11 @@ class Tree(TreeType):
     def unhighlight(self, id: str):
         if id in self.meta_state.highlighted:
             self.render_cause.highlight_change()
-            self.meta_state.set_unhighlighted(id)
+            node = self.meta_state.id_to_node.get(id)
+            if node and node.properties.transition and node.properties.highlight_style:
+                self.transition_manager.start_highlight(id, node, "out")
+            else:
+                self.meta_state.set_unhighlighted(id)
 
             job = self.meta_state.unhighlight_jobs.pop(id, None)
             if job:
@@ -1767,6 +1781,18 @@ class Tree(TreeType):
                 self.transition_manager.detect_changes(node.id, node)
 
     def _use_decorator(self, node: NodeType):
+        if not node.properties.highlight_style and node.properties.transition \
+                and isinstance(node.properties.transition, dict) and node.interactive \
+                and node.properties.highlight_color:
+            has_color_transition = any(
+                prop in node.properties.transition or "all" in node.properties.transition
+                for prop in ANIMATABLE_COLOR_PROPERTIES
+            )
+            if has_color_transition:
+                node.properties.highlight_style = {
+                    "background_color": node.properties.highlight_color
+                }
+
         if ((node.disabled and node.properties.disabled_style) or node.properties.highlight_style) \
                 and node.uses_decoration_render == False:
             target_node = node if node.id else find_closest_parent_with_id(node.parent_node)

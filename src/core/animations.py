@@ -87,6 +87,14 @@ class ActiveAnimation:
     node_id: str
 
 
+@dataclass
+class HighlightAnimation:
+    node_id: str
+    direction: str  # "in" or "out"
+    start_time: float
+    max_duration_ms: float
+
+
 def interpolate_number(from_val, to_val, t):
     return from_val + (to_val - from_val) * t
 
@@ -137,6 +145,7 @@ class TransitionManager:
     def __init__(self, tree):
         self.tree = tree
         self.active = {}  # {node_id: {property: ActiveAnimation}}
+        self.highlight_anims = {}  # {node_id: HighlightAnimation}
         self.previous_values = {}  # {node_id: {property: value}}
         self.tick_job = None
         self._unmount_callback = None
@@ -205,6 +214,69 @@ class TransitionManager:
                 child.properties.opacity = opacity
                 child.properties.update_colors_with_opacity()
                 self._cascade_opacity(child, opacity)
+
+    def start_highlight(self, node_id, node, direction):
+        """Start or retarget a highlight animation for a node."""
+        transition_dict = node.properties.transition
+        if not transition_dict or not isinstance(transition_dict, dict):
+            return
+
+        highlight_style = node.properties.highlight_style
+        if not highlight_style:
+            return
+
+        max_duration = 0
+        for prop in highlight_style:
+            config = self._parse_transition_config(transition_dict, prop)
+            if config:
+                max_duration = max(max_duration, config[0])
+
+        if max_duration <= 0:
+            return
+
+        existing = self.highlight_anims.get(node_id)
+        if existing:
+            elapsed = (time.monotonic() - existing.start_time) * 1000
+            old_t = min(1.0, elapsed / existing.max_duration_ms) if existing.max_duration_ms > 0 else 1.0
+            if existing.direction != direction:
+                new_start = time.monotonic() - (1.0 - old_t) * max_duration / 1000
+                self.highlight_anims[node_id] = HighlightAnimation(
+                    node_id=node_id,
+                    direction=direction,
+                    start_time=new_start,
+                    max_duration_ms=max_duration,
+                )
+        else:
+            self.highlight_anims[node_id] = HighlightAnimation(
+                node_id=node_id,
+                direction=direction,
+                start_time=time.monotonic(),
+                max_duration_ms=max_duration,
+            )
+
+        self.start_tick_loop()
+
+    def get_highlight_t(self, node_id, prop, transition_dict):
+        """Returns eased t (0→1) for a highlight property animation.
+        0 = base style, 1 = fully highlight_style.
+        Returns None if no active highlight animation."""
+        anim = self.highlight_anims.get(node_id)
+        if not anim:
+            return None
+
+        config = self._parse_transition_config(transition_dict, prop)
+        if not config:
+            return None
+
+        duration_ms, easing = config
+        elapsed = (time.monotonic() - anim.start_time) * 1000
+        raw_t = min(1.0, max(0.0, elapsed / duration_ms)) if duration_ms > 0 else 1.0
+
+        if anim.direction == "out":
+            raw_t = 1.0 - raw_t
+
+        easing_fn = EASING_FUNCTIONS.get(easing, ease_out)
+        return easing_fn(raw_t)
 
     def detect_changes(self, node_id, node):
         """Compare new property values with stored previous values.
@@ -308,9 +380,9 @@ class TransitionManager:
 
     def tick(self):
         """Called every 16ms. Interpolates values, applies to nodes, triggers repaint."""
-        if not self.active or not self.tree:
+        if (not self.active and not self.highlight_anims) or not self.tree:
             self.stop_tick_loop()
-            if not self.active and self._unmount_callback:
+            if not self.active and not self.highlight_anims and self._unmount_callback:
                 callback = self._unmount_callback
                 self._unmount_callback = None
                 callback()
@@ -332,6 +404,8 @@ class TransitionManager:
                 for node_id, animations in self.active.items():
                     for prop, anim in animations.items():
                         anim.start_time += adjustment
+                for node_id, h_anim in self.highlight_anims.items():
+                    h_anim.start_time += adjustment
         self._last_tick_time = now
 
         finished_nodes = []
@@ -385,11 +459,32 @@ class TransitionManager:
         for node_id in finished_nodes:
             self.active.pop(node_id, None)
 
+        highlight_needs_decorator_redraw = False
+        finished_highlight_nodes = []
+        for node_id, h_anim in list(self.highlight_anims.items()):
+            node = self.tree.meta_state.id_to_node.get(node_id)
+            if not node:
+                finished_highlight_nodes.append(node_id)
+                continue
+
+            elapsed = (now - h_anim.start_time) * 1000
+            if elapsed >= h_anim.max_duration_ms:
+                finished_highlight_nodes.append(node_id)
+            highlight_needs_decorator_redraw = True
+
+        for node_id in finished_highlight_nodes:
+            h_anim = self.highlight_anims.pop(node_id, None)
+            if h_anim and h_anim.direction == "out":
+                self.tree.meta_state.set_unhighlighted(node_id)
+
         # Trigger repaint
         if self.tree and not self.tree.destroying:
-            self.tree.render_animation_frame()
+            if self.active:
+                self.tree.render_animation_frame()
+            if highlight_needs_decorator_redraw and self.tree.canvas_decorator:
+                self.tree.canvas_decorator.freeze()
 
-        if not self.active:
+        if not self.active and not self.highlight_anims:
             self.stop_tick_loop()
             if self._unmount_callback:
                 callback = self._unmount_callback
@@ -481,7 +576,7 @@ class TransitionManager:
 
     def start_tick_loop(self):
         """Start the 16ms tick loop if not already running."""
-        if not self.tick_job and self.active:
+        if not self.tick_job and (self.active or self.highlight_anims):
             self.tick_job = cron.interval("16ms", self.tick)
 
     def stop_tick_loop(self):
@@ -495,14 +590,16 @@ class TransitionManager:
         """Remove animation state for a destroyed node."""
         self.active.pop(node_id, None)
         self.previous_values.pop(node_id, None)
+        self.highlight_anims.pop(node_id, None)
 
     def has_active_animations(self):
-        return bool(self.active)
+        return bool(self.active) or bool(self.highlight_anims)
 
     def destroy(self):
         """Cleanup on tree destroy."""
         self.stop_tick_loop()
         self.active.clear()
+        self.highlight_anims.clear()
         self.previous_values.clear()
         self._unmount_callback = None
         self._pending_mount_values.clear()

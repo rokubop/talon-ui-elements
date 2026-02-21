@@ -20,8 +20,10 @@ def transitions_ui():
             "border_color": "#444444",
             "color": "#FFFFFF",
             "font_size": 14,
-            "highlight_style": {
-                "background_color": "#444444",
+            "transition": {
+                "background_color": 150,
+                "border_color": 150,
+                "color": 150,
             },
         },
         ".sidebar_btn_active": {
@@ -34,8 +36,10 @@ def transitions_ui():
             "background_color": "#3D3200",
             "color": "#FFCC00",
             "font_size": 14,
-            "highlight_style": {
-                "background_color": "#4D4200",
+            "transition": {
+                "background_color": 150,
+                "border_color": 150,
+                "color": 150,
             },
         },
     })
@@ -149,13 +153,13 @@ def transitions_ui():
                         f"width: {'250' if expanded else '120'}  "
                         f"height: {'200' if expanded else '120'}  "
                         f"opacity: {'1.0' if not faded else '0.15'}",
-                        font_size=11,
+                        font_size=13,
                         color="#888888",
                     ),
                     text(
                         f"color: {'#FFCC00' if color_shifted else '#4488FF'}  "
                         f"border_radius: {'24' if bounced else '8'}",
-                        font_size=11,
+                        font_size=13,
                         color="#888888",
                     ),
                 ],
