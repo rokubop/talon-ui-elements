@@ -77,6 +77,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     height: Union[int, str, float] = 0
     highlight_style: dict = None
     highlight_color: str = None
+    mount_style: dict = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
@@ -96,6 +97,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     right: Union[int, str, float] = None
     top: Union[int, str, float] = None
     transition: dict = None
+    unmount_style: dict = None
     value: str = None
     width: Union[int, str, float] = 0
     z_index: int = 0
@@ -227,6 +229,22 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     f"Valid values are: {VALID_VALUES}\n"
                 )
 
+    def validate_mount_style(self):
+        if self.mount_style:
+            if not isinstance(self.mount_style, dict):
+                raise ValueError(
+                    f"\nInvalid value for mount_style: '{self.mount_style}'\n"
+                    f"mount_style property should be a dictionary: mount_style={{'opacity': 0, 'top': 20}}"
+                )
+
+    def validate_unmount_style(self):
+        if self.unmount_style:
+            if not isinstance(self.unmount_style, dict):
+                raise ValueError(
+                    f"\nInvalid value for unmount_style: '{self.unmount_style}'\n"
+                    f"unmount_style property should be a dictionary: unmount_style={{'opacity': 0, 'top': 20}}"
+                )
+
     def validate_properties(self, kwargs):
         self.validate_justify_content()
         self.validate_align_items()
@@ -234,6 +252,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.validate_transition()
         self.validate_position_constraints(kwargs)
         self.validate_highlight_style()
+        self.validate_mount_style()
+        self.validate_unmount_style()
 
     def init_box_model_properties(self, kwargs):
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
@@ -480,6 +500,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     highlight_style: dict
     highlight_color: str
     id: str
+    mount_style: dict
     justify_content: str
     left: Union[int, str, float]
     max_height: int
@@ -494,6 +515,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     right: Union[int, str, float]
     top: Union[int, str, float]
     transition: dict
+    unmount_style: dict
     value: str
     width: Union[int, str, float]
     z_index: int

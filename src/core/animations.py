@@ -1,6 +1,7 @@
 import time
 from dataclasses import dataclass
 from talon import cron
+from ..utils import hex_color
 
 
 def linear(t):
@@ -57,6 +58,10 @@ ANIMATABLE_NUMERIC_PROPERTIES = {
     "gap",
     "font_size",
     "border_width",
+    "top",
+    "bottom",
+    "left",
+    "right",
 }
 
 ANIMATABLE_COLOR_PROPERTIES = {
@@ -122,6 +127,10 @@ class TransitionManager:
         self.active = {}  # {node_id: {property: ActiveAnimation}}
         self.previous_values = {}  # {node_id: {property: value}}
         self.tick_job = None
+        self._unmount_callback = None
+        self._pending_mount_values = []
+        self._mount_animations_pending = False
+        self._last_tick_time = None
 
     def _parse_transition_config(self, transition_dict, property_name):
         """Parse transition config for a property. Returns (duration_ms, easing) or None."""
@@ -168,8 +177,17 @@ class TransitionManager:
         if prop == "opacity":
             node.properties.opacity = value
             node.properties.update_colors_with_opacity()
+            self._cascade_opacity(node, value)
         else:
             setattr(node.properties, prop, value)
+
+    def _cascade_opacity(self, node, opacity):
+        """Cascade opacity to children that inherited it."""
+        for child in node.get_children_nodes():
+            if "opacity" in child.cascaded_properties:
+                child.properties.opacity = opacity
+                child.properties.update_colors_with_opacity()
+                self._cascade_opacity(child, opacity)
 
     def detect_changes(self, node_id, node):
         """Compare new property values with stored previous values.
@@ -183,13 +201,45 @@ class TransitionManager:
         else:
             watch_props = set(transition_dict.keys()) & ANIMATABLE_PROPERTIES
 
-        # First encounter - snapshot values, no animation
+        # First encounter - snapshot values; start mount animations if mount_style exists
         if node_id not in self.previous_values:
             self.previous_values[node_id] = {}
+            mount_style = getattr(node.properties, 'mount_style', None)
+
             for prop in watch_props:
                 value = self._get_animatable_value(node, prop)
-                if value is not None:
-                    self.previous_values[node_id][prop] = value
+                if value is None:
+                    continue
+
+                # Check if this property should animate from mount_style
+                if mount_style and prop in mount_style:
+                    config = self._parse_transition_config(transition_dict, prop)
+                    if config:
+                        duration_ms, easing = config
+                        from_value = mount_style[prop]
+                        if prop in ANIMATABLE_COLOR_PROPERTIES and isinstance(from_value, str):
+                            from_value = hex_color(from_value, property_name=prop)
+
+                        anim = ActiveAnimation(
+                            property=prop,
+                            from_value=from_value,
+                            to_value=value,
+                            duration_ms=duration_ms,
+                            easing=easing,
+                            start_time=time.monotonic(),
+                            node_id=node_id,
+                        )
+                        if node_id not in self.active:
+                            self.active[node_id] = {}
+                        self.active[node_id][prop] = anim
+                        self.previous_values[node_id][prop] = value
+                        # Defer applying mount values until after tree hierarchy is initialized
+                        # to avoid corrupting inherited colors for children
+                        self._pending_mount_values.append((node_id, prop, from_value))
+                        continue
+
+                self.previous_values[node_id][prop] = value
+
             return
 
         prev = self.previous_values[node_id]
@@ -241,12 +291,35 @@ class TransitionManager:
 
     def tick(self):
         """Called every 16ms. Interpolates values, applies to nodes, triggers repaint."""
-        if not self.active or not self.tree or self.tree.destroying:
+        if not self.active or not self.tree:
+            self.stop_tick_loop()
+            if not self.active and self._unmount_callback:
+                callback = self._unmount_callback
+                self._unmount_callback = None
+                callback()
+            return
+
+        if self.tree.destroying:
             self.stop_tick_loop()
             return
 
         now = time.monotonic()
+
+        # Gap compensation: if the main thread was blocked (gap > 32ms),
+        # push animation start_times forward so the animation pauses during
+        # the gap instead of jumping. This keeps visual progression smooth.
+        if self._last_tick_time is not None:
+            gap_ms = (now - self._last_tick_time) * 1000
+            if gap_ms > 32:
+                adjustment = (gap_ms - 16) / 1000
+                for node_id, animations in self.active.items():
+                    for prop, anim in animations.items():
+                        anim.start_time += adjustment
+        self._last_tick_time = now
+
         finished_nodes = []
+        is_unmounting = self._unmount_callback is not None
+        phase = "UNMOUNT" if is_unmounting else "MOUNT"
 
         for node_id, animations in list(self.active.items()):
             node = self.tree.meta_state.id_to_node.get(node_id)
@@ -301,6 +374,93 @@ class TransitionManager:
 
         if not self.active:
             self.stop_tick_loop()
+            if self._unmount_callback:
+                callback = self._unmount_callback
+                self._unmount_callback = None
+                callback()
+
+    def apply_pending_mount_values(self):
+        """Apply mount animation starting values after tree hierarchy is fully initialized.
+        This must be called after init_node_hierarchy so children have already
+        inherited correct (non-modified) colors from parents."""
+        if not self._pending_mount_values:
+            return
+        for node_id, prop, value in self._pending_mount_values:
+            node = self.tree.meta_state.id_to_node.get(node_id)
+            if node:
+                self._apply_value(node, prop, value)
+        self._pending_mount_values.clear()
+        self._mount_animations_pending = True
+
+    def start_mount_animations(self):
+        """Start mount animations with fresh timing. Call after tree is fully rendered.
+        Deferred via cron.after to let other pending tree renders complete first,
+        preventing competing renders from blocking animation ticks."""
+        if not self._mount_animations_pending:
+            return
+        self._mount_animations_pending = False
+
+        def _deferred_start():
+            if not self.tree or self.tree.destroying:
+                return
+            now = time.monotonic()
+            for node_id, anims in self.active.items():
+                for prop, anim in anims.items():
+                    anim.start_time = now
+            self._last_tick_time = None
+            self.start_tick_loop()
+
+        cron.after("0ms", _deferred_start)
+
+    def start_unmount(self, on_complete):
+        """Start exit animations for all nodes with unmount_style. Calls on_complete when done."""
+        has_unmount_anim = False
+
+        for node_id, node in list(self.tree.meta_state.id_to_node.items()):
+            unmount_style = getattr(node.properties, 'unmount_style', None)
+            transition_dict = node.properties.transition
+            if not unmount_style or not transition_dict or not isinstance(transition_dict, dict):
+                continue
+
+            for prop, to_value in unmount_style.items():
+                if prop not in ANIMATABLE_PROPERTIES:
+                    continue
+                config = self._parse_transition_config(transition_dict, prop)
+                if not config:
+                    continue
+
+                duration_ms, easing = config
+                from_value = self._get_animatable_value(node, prop)
+                if from_value is None:
+                    continue
+
+                if prop in ANIMATABLE_COLOR_PROPERTIES and isinstance(to_value, str):
+                    to_value = hex_color(to_value, property_name=prop)
+
+                # Retarget from current interpolated position if animation is active
+                if node_id in self.active and prop in self.active[node_id]:
+                    from_value = self._get_current_value(self.active[node_id][prop])
+
+                anim = ActiveAnimation(
+                    property=prop,
+                    from_value=from_value,
+                    to_value=to_value,
+                    duration_ms=duration_ms,
+                    easing=easing,
+                    start_time=time.monotonic(),
+                    node_id=node_id,
+                )
+                if node_id not in self.active:
+                    self.active[node_id] = {}
+                self.active[node_id][prop] = anim
+                has_unmount_anim = True
+
+        if has_unmount_anim:
+            self._unmount_callback = on_complete
+            self._last_tick_time = None
+            self.start_tick_loop()
+        else:
+            on_complete()
 
     def start_tick_loop(self):
         """Start the 16ms tick loop if not already running."""
@@ -326,4 +486,8 @@ class TransitionManager:
         self.stop_tick_loop()
         self.active.clear()
         self.previous_values.clear()
+        self._unmount_callback = None
+        self._pending_mount_values.clear()
+        self._mount_animations_pending = False
+        self._last_tick_time = None
         self.tree = None

@@ -460,6 +460,8 @@ class Tree(TreeType):
         self.last_mouse_event_time = 0
         self.effects = []
         self.destroying = False
+        self.unmounting = False
+        self._unmount_complete = False
         self.drag_end_phase = False
         self.draggable_node = False
         self.draggable_node_delta_pos = None
@@ -796,6 +798,7 @@ class Tree(TreeType):
         try:
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
+            self.transition_manager.apply_pending_mount_values()
             self.consume_components()
             self.consume_effects()
             self.root_node.v2_measure_intrinsic_size(canvas)
@@ -1174,6 +1177,7 @@ class Tree(TreeType):
                             self.draggable_node.properties.on_drag_end()
             else:
                 self.is_mounted = True
+                self.transition_manager.start_mount_animations()
 
                 for effect in self.effects:
                     if effect.callback:
@@ -1511,6 +1515,8 @@ class Tree(TreeType):
         state_manager.set_last_clicked_pos(None)
 
     def on_mouse(self, e: MouseEvent):
+        if self.unmounting:
+            return
         if not state_manager.are_mouse_events_disabled() and \
                 not self.render_manager.is_destroying:
             self.last_mouse_event_time = time.time()
@@ -1564,6 +1570,8 @@ class Tree(TreeType):
                 self.render_manager.render_scroll()
 
     def on_scroll(self, e):
+        if self.unmounting:
+            return
         self.on_scroll_tick(e)
 
     def is_drag_end(self):
@@ -1604,9 +1612,33 @@ class Tree(TreeType):
                         print(f"Error during window on_minimize: {e}")
                         log_trace()
 
+    def _has_unmount_animations(self):
+        """Check if any node has unmount_style + transition"""
+        for node in self.meta_state.id_to_node.values():
+            if getattr(node.properties, 'unmount_style', None) and node.properties.transition:
+                return True
+        return False
+
+    def _start_unmount(self):
+        """Begin exit animations, defer actual destruction"""
+        self.unmounting = True
+        self.transition_manager.start_unmount(on_complete=self._finish_unmount)
+
+    def _finish_unmount(self):
+        """Called when all exit animations complete — do actual destruction"""
+        self._unmount_complete = True
+        self.destroy()
+
     def destroy(self):
         global scroll_throttle_job
         if not self.destroying:
+            if not self.unmounting and self._has_unmount_animations():
+                self._start_unmount()
+                return
+            if self.unmounting and not self._unmount_complete:
+                # Already playing unmount animations — ignore duplicate destroy calls.
+                # _finish_unmount will call destroy() when animations complete.
+                return
             self.destroying = True
             self.render_manager.prepare_destroy()
             for effect in reversed(self.effects):
