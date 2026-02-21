@@ -23,7 +23,7 @@ from ..constants import (
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
 )
-from ..utils import draw_rect, scale_value
+from ..utils import draw_rect, get_scale, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
@@ -133,6 +133,7 @@ class MetaState(MetaStateType):
         self.scrollbar_drag_start_y = None
         self.scrollbar_drag_start_offset_y = None
         self.resize_edge_hovered = None
+        self.resize_original_constraints = {}
         self.resize_dragging_id = None
         self.resize_edge = None
         self.resize_start_pos = None
@@ -425,6 +426,7 @@ class MetaState(MetaStateType):
         self.removed_component_ids.clear()
         self.clear_resize_drag()
         self.resize_edge_hovered = None
+        self.resize_original_constraints.clear()
         self.clear_nodes()
 
 class RenderCauseState(RenderCauseStateType):
@@ -1376,11 +1378,12 @@ class Tree(TreeType):
         new_x, new_y = sr.x, sr.y
         new_w, new_h = sr.width, sr.height
 
-        node = ms.id_to_node.get(ms.resize_dragging_id)
-        min_w = getattr(node.properties, 'min_width', None) or scale_value(100)
-        min_h = getattr(node.properties, 'min_height', None) or scale_value(40)
-        max_w = getattr(node.properties, 'max_width', None)
-        max_h = getattr(node.properties, 'max_height', None)
+        # Use original user constraints (before any resize overrides)
+        oc = ms.resize_original_constraints.get(ms.resize_dragging_id, {})
+        min_w = oc.get('min_width') or scale_value(100)
+        min_h = oc.get('min_height') or scale_value(40)
+        max_w = oc.get('max_width')
+        max_h = oc.get('max_height')
 
         if "right" in edge:
             new_w = sr.width + dx
@@ -1461,8 +1464,16 @@ class Tree(TreeType):
         if node and ghost:
             start_rect = ms.resize_start_rect
 
-            ms.set_ref_property_override(node_id, "width", ghost.width)
-            ms.set_ref_property_override(node_id, "height", ghost.height)
+            # Unscale ghost dimensions since update_property will re-scale
+            scale = get_scale() or 1.0
+            unscaled_w = ghost.width / scale
+            unscaled_h = ghost.height / scale
+
+            ms.set_ref_property_override(node_id, "width", unscaled_w)
+            ms.set_ref_property_override(node_id, "height", unscaled_h)
+            # Also cap max so layout can't expand beyond resized size
+            ms.set_ref_property_override(node_id, "max_width", unscaled_w)
+            ms.set_ref_property_override(node_id, "max_height", unscaled_h)
 
             # Compensate for layout repositioning (e.g. centering shifts)
             compensation = self._compute_resize_layout_compensation(
@@ -1479,11 +1490,12 @@ class Tree(TreeType):
                         ms._draggable_offset[node_id].y + offset_dy,
                     )
 
-            # Save dimensions for persistence
+            # Save dimensions for persistence (unscaled)
             if hasattr(node, 'save_resize_dimensions'):
-                node.save_resize_dimensions(ghost.width, ghost.height)
+                node.save_resize_dimensions(unscaled_w, unscaled_h)
 
         ms.clear_resize_drag()
+        self.destroy_blockable_canvas()
         self.render_manager.resume()
         self.render_base_canvas()
 
@@ -1647,6 +1659,14 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node.get(node_id)
             if node and node.box_model and node.box_model.border_rect:
                 start_rect = node.box_model.border_rect
+                # Save original user constraints on first resize
+                if node_id not in self.meta_state.resize_original_constraints:
+                    self.meta_state.resize_original_constraints[node_id] = {
+                        'min_width': getattr(node.properties, 'min_width', None),
+                        'min_height': getattr(node.properties, 'min_height', None),
+                        'max_width': getattr(node.properties, 'max_width', None),
+                        'max_height': getattr(node.properties, 'max_height', None),
+                    }
                 self.meta_state.start_resize_drag(node_id, edge, gpos, start_rect)
                 self.render_manager.pause()
                 return

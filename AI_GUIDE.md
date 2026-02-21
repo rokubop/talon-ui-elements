@@ -1,4 +1,4 @@
-# talon-ui-elements - AI Guide
+# talon-ui-elements - AI Guide for building UIs with user.ui_elements*
 
 **Python canvas UI library for Talon voice control runtime.**
 
