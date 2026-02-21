@@ -336,7 +336,7 @@ class TransitionManager:
                     continue
                 elapsed = (now - anim.start_time) * 1000
                 t = (
-                    min(1.0, elapsed / anim.duration_ms)
+                    max(0.0, min(1.0, elapsed / anim.duration_ms))
                     if anim.duration_ms > 0
                     else 1.0
                 )
@@ -350,7 +350,7 @@ class TransitionManager:
                 anim = animations["opacity"]
                 elapsed = (now - anim.start_time) * 1000
                 t = (
-                    min(1.0, elapsed / anim.duration_ms)
+                    max(0.0, min(1.0, elapsed / anim.duration_ms))
                     if anim.duration_ms > 0
                     else 1.0
                 )
@@ -472,6 +472,7 @@ class TransitionManager:
         if self.tick_job:
             cron.cancel(self.tick_job)
             self.tick_job = None
+            self._last_tick_time = None
 
     def clear_node(self, node_id):
         """Remove animation state for a destroyed node."""
