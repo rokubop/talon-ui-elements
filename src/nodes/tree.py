@@ -89,13 +89,21 @@ class Scrollable(ScrollableType):
         self.offset_y = 0
         self.view_height = 0
         self.max_height = 0
+        self.view_width = 0
+        self.max_width = 0
 
     def reevaluate(self, node: NodeType):
         max_height = node.box_model.content_children_with_padding_size.height
         view_height = node.box_model.padding_size.height
-        if view_height != self.view_height or max_height != self.max_height:
+        max_width = node.box_model.content_children_with_padding_size.width
+        view_width = node.box_model.padding_size.width
+        height_changed = view_height != self.view_height or max_height != self.max_height
+        width_changed = view_width != self.view_width or max_width != self.max_width
+        if height_changed or width_changed:
             self.view_height = view_height
             self.max_height = max_height
+            self.view_width = view_width
+            self.max_width = max_width
             self.offset_x = 0
             self.offset_y = 0
 
@@ -129,9 +137,13 @@ class MetaState(MetaStateType):
         self.new_component_ids = set()
         self.removed_component_ids = set()
         self.scrollbar_hovered_id = None
+        self.scrollbar_hovered_axis = None
         self.scrollbar_dragging_id = None
+        self.scrollbar_dragging_axis = None
         self.scrollbar_drag_start_y = None
         self.scrollbar_drag_start_offset_y = None
+        self.scrollbar_drag_start_x = None
+        self.scrollbar_drag_start_offset_x = None
         self.resize_edge_hovered = None
         self.resize_original_constraints = {}
         self.resize_dragging_id = None
@@ -338,24 +350,36 @@ class MetaState(MetaStateType):
         )
 
     # Scrollbar interaction state management
-    def set_scrollbar_hover(self, node_id):
+    def set_scrollbar_hover(self, node_id, axis="y"):
         self.scrollbar_hovered_id = node_id
+        self.scrollbar_hovered_axis = axis
 
     def clear_scrollbar_hover(self):
         self.scrollbar_hovered_id = None
+        self.scrollbar_hovered_axis = None
 
-    def is_scrollbar_hovered(self, node_id):
+    def is_scrollbar_hovered(self, node_id, axis=None):
+        if axis:
+            return self.scrollbar_hovered_id == node_id and self.scrollbar_hovered_axis == axis
         return self.scrollbar_hovered_id == node_id
 
-    def start_scrollbar_drag(self, node_id, mouse_y, scroll_offset_y):
+    def start_scrollbar_drag(self, node_id, mouse_pos, scroll_offset, axis="y"):
         self.scrollbar_dragging_id = node_id
-        self.scrollbar_drag_start_y = mouse_y
-        self.scrollbar_drag_start_offset_y = scroll_offset_y
+        self.scrollbar_dragging_axis = axis
+        if axis == "y":
+            self.scrollbar_drag_start_y = mouse_pos
+            self.scrollbar_drag_start_offset_y = scroll_offset
+        else:
+            self.scrollbar_drag_start_x = mouse_pos
+            self.scrollbar_drag_start_offset_x = scroll_offset
 
     def clear_scrollbar_drag(self):
         self.scrollbar_dragging_id = None
+        self.scrollbar_dragging_axis = None
         self.scrollbar_drag_start_y = None
         self.scrollbar_drag_start_offset_y = None
+        self.scrollbar_drag_start_x = None
+        self.scrollbar_drag_start_offset_x = None
 
     def is_scrollbar_dragging(self, node_id=None):
         if node_id:
@@ -1268,30 +1292,53 @@ class Tree(TreeType):
         if not (node and scrollable_data and node.box_model):
             return
 
-        mouse_delta_y = gpos.y - self.meta_state.scrollbar_drag_start_y
-        view_height = scrollable_data.view_height
-        max_height = scrollable_data.max_height
-        thumb_height = node.box_model.scroll_bar_thumb_rect.height
-        track_height = node.box_model.padding_size.height
+        axis = self.meta_state.scrollbar_dragging_axis
 
-        thumb_travel_distance = track_height - thumb_height
-        content_travel_distance = max_height - view_height
+        if axis == "x":
+            mouse_delta_x = gpos.x - self.meta_state.scrollbar_drag_start_x
+            view_width = scrollable_data.view_width
+            max_width = scrollable_data.max_width
+            thumb_width = node.box_model.scroll_bar_x_thumb_rect.width
+            track_width = node.box_model.padding_size.width
 
-        if thumb_travel_distance > 0 and content_travel_distance > 0:
-            # Convert thumb movement to content scroll (inverse ratio)
-            scroll_delta = -(mouse_delta_y / thumb_travel_distance) * content_travel_distance
-            new_offset_y = self.meta_state.scrollbar_drag_start_offset_y + scroll_delta
-            new_offset_y = max(view_height - max_height, min(0, new_offset_y))
-            scrollable_data.offset_y = new_offset_y
-            self.render_manager.render_scrollbar_dragging()
+            thumb_travel_distance = track_width - thumb_width
+            content_travel_distance = max_width - view_width
+
+            if thumb_travel_distance > 0 and content_travel_distance > 0:
+                scroll_delta = -(mouse_delta_x / thumb_travel_distance) * content_travel_distance
+                new_offset_x = self.meta_state.scrollbar_drag_start_offset_x + scroll_delta
+                new_offset_x = max(view_width - max_width, min(0, new_offset_x))
+                scrollable_data.offset_x = new_offset_x
+                self.render_manager.render_scrollbar_dragging()
+        else:
+            mouse_delta_y = gpos.y - self.meta_state.scrollbar_drag_start_y
+            view_height = scrollable_data.view_height
+            max_height = scrollable_data.max_height
+            thumb_height = node.box_model.scroll_bar_thumb_rect.height
+            track_height = node.box_model.padding_size.height
+
+            thumb_travel_distance = track_height - thumb_height
+            content_travel_distance = max_height - view_height
+
+            if thumb_travel_distance > 0 and content_travel_distance > 0:
+                scroll_delta = -(mouse_delta_y / thumb_travel_distance) * content_travel_distance
+                new_offset_y = self.meta_state.scrollbar_drag_start_offset_y + scroll_delta
+                new_offset_y = max(view_height - max_height, min(0, new_offset_y))
+                scrollable_data.offset_y = new_offset_y
+                self.render_manager.render_scrollbar_dragging()
 
     def handle_scrollbar_mousedown(self, gpos):
         """Check for scrollbar click and initiate drag if found."""
         for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
             node = self.meta_state.id_to_node.get(node_id)
-            if node and node.box_model and node.box_model.scroll_bar_thumb_rect:
-                if node.box_model.scroll_bar_thumb_rect.contains(gpos):
-                    self.meta_state.start_scrollbar_drag(node_id, gpos.y, scrollable_data.offset_y)
+            if node and node.box_model:
+                if node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos):
+                    self.meta_state.start_scrollbar_drag(node_id, gpos.y, scrollable_data.offset_y, axis="y")
+                    self.render_manager.pause()
+                    self.render_base_canvas()
+                    return True
+                if node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos):
+                    self.meta_state.start_scrollbar_drag(node_id, gpos.x, scrollable_data.offset_x, axis="x")
                     self.render_manager.pause()
                     self.render_base_canvas()
                     return True
@@ -1310,18 +1357,25 @@ class Tree(TreeType):
             return
 
         prev_hovered_id = self.meta_state.scrollbar_hovered_id
+        prev_hovered_axis = self.meta_state.scrollbar_hovered_axis
         new_hovered_id = None
+        new_hovered_axis = None
 
         for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
             node = self.meta_state.id_to_node.get(node_id)
-            if node and node.box_model and node.box_model.scroll_bar_thumb_rect:
-                if node.box_model.scroll_bar_thumb_rect.contains(gpos):
+            if node and node.box_model:
+                if node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos):
                     new_hovered_id = node_id
+                    new_hovered_axis = "y"
+                    break
+                if node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    new_hovered_axis = "x"
                     break
 
-        if new_hovered_id != prev_hovered_id:
+        if new_hovered_id != prev_hovered_id or new_hovered_axis != prev_hovered_axis:
             if new_hovered_id:
-                self.meta_state.set_scrollbar_hover(new_hovered_id)
+                self.meta_state.set_scrollbar_hover(new_hovered_id, new_hovered_axis)
             else:
                 self.meta_state.clear_scrollbar_hover()
             self.render_base_canvas()
@@ -1854,38 +1908,65 @@ class Tree(TreeType):
             for id, data in list(self.meta_state.scrollable.items()):
                 node = self.meta_state.id_to_node.get(id)
                 if getattr(node, 'box_model', None) and node.box_model.padding_rect.contains(e.gpos):
-                    smallest_node = node if not smallest_node or node.box_model.padding_rect.height < smallest_node.box_model.padding_rect.height else smallest_node
+                    if not smallest_node:
+                        smallest_node = node
+                    else:
+                        node_area = node.box_model.padding_rect.width * node.box_model.padding_rect.height
+                        smallest_area = smallest_node.box_model.padding_rect.width * smallest_node.box_model.padding_rect.height
+                        if node_area < smallest_area:
+                            smallest_node = node
 
             if smallest_node:
+                scrollable_data = self.meta_state.scrollable[smallest_node.id]
+                did_scroll = False
+
+                # Vertical scroll
                 max_height = smallest_node.box_model.content_children_with_padding_size.height
                 view_height = smallest_node.box_model.padding_size.height
 
-                if max_height <= view_height:
-                    return
+                if max_height > view_height:
+                    offset_y = 0
+                    # mouse wheel
+                    if abs(e.degrees.y) > 1e-5:
+                        offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
+                    # touchpad
+                    elif abs(e.pixels.y) > 1e-5:
+                        offset_y = e.pixels.y
 
-                # mouse wheel
-                if abs(e.degrees.y) > 1e-5:
-                    offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
-                # touchpad
-                elif abs(e.pixels.y) > 1e-5:
-                    offset_y = e.pixels.y
-                else:
-                    return
+                    if offset_y:
+                        new_offset_y = scrollable_data.offset_y + offset_y
+                        new_offset_y = max(view_height - max_height, min(0, new_offset_y))
+                        scrollable_data.offset_y = new_offset_y
+                        scrollable_data.view_height = view_height
+                        scrollable_data.max_height = max_height
+                        did_scroll = True
 
-                max_positive_offset_y = 0
-                max_negative_offset = view_height - max_height
+                # Horizontal scroll
+                max_width = smallest_node.box_model.content_children_with_padding_size.width
+                view_width = smallest_node.box_model.padding_size.width
 
-                new_offset_y = self.meta_state.scrollable[smallest_node.id].offset_y + offset_y
+                if max_width > view_width:
+                    offset_x = 0
+                    degrees_x = getattr(e.degrees, 'x', 0) if hasattr(e.degrees, 'x') else 0
+                    pixels_x = getattr(e.pixels, 'x', 0) if hasattr(e.pixels, 'x') else 0
 
-                if new_offset_y > max_positive_offset_y:
-                    new_offset_y = max_positive_offset_y
-                elif new_offset_y < max_negative_offset:
-                    new_offset_y = max_negative_offset
+                    # mouse wheel
+                    if abs(degrees_x) > 1e-5:
+                        offset_x = self.scroll_amount_per_tick if degrees_x > 0 else -self.scroll_amount_per_tick
+                    # touchpad
+                    elif abs(pixels_x) > 1e-5:
+                        offset_x = pixels_x
 
-                self.meta_state.scrollable[smallest_node.id].offset_y = new_offset_y
-                self.meta_state.scrollable[smallest_node.id].view_height = view_height
-                self.meta_state.scrollable[smallest_node.id].max_height = max_height
-                self.render_manager.render_scroll()
+                    if offset_x:
+                        new_offset_x = scrollable_data.offset_x + offset_x
+                        new_offset_x = max(view_width - max_width, min(0, new_offset_x))
+                        scrollable_data.offset_x = new_offset_x
+                        scrollable_data.view_width = view_width
+                        scrollable_data.max_width = max_width
+                        did_scroll = True
+
+                if did_scroll:
+                    self.render_manager.render_scroll()
 
     def on_scroll(self, e):
         if self.unmounting:

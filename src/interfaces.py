@@ -174,6 +174,8 @@ class ScrollableType(ABC):
     offset_y: Union[int, float]
     view_height: Union[int, float]
     max_height: Union[int, float]
+    view_width: Union[int, float]
+    max_width: Union[int, float]
 
     @abstractmethod
     def reevaluate(self, node: "NodeType"):
@@ -451,7 +453,10 @@ class BoxModelV2Type(ABC):
 
     scroll_bar_track_rect: Union[Rect, None]
     scroll_bar_thumb_rect: Union[Rect, None]
+    scroll_bar_x_track_rect: Union[Rect, None]
+    scroll_bar_x_thumb_rect: Union[Rect, None]
     conditional_scroll_bar_y_width: int
+    conditional_scroll_bar_x_height: int
 
     clip_nodes: List['NodeType']
     clip_rect: Union[Rect, None]
@@ -460,6 +465,9 @@ class BoxModelV2Type(ABC):
         pass
 
     def has_scroll_bar_y(self) -> bool:
+        pass
+
+    def has_scroll_bar_x(self) -> bool:
         pass
 
     def shift_relative_position(self, cursor):
