@@ -365,6 +365,7 @@ def window(props=None, **additional_props):
             "on_close",
             "title",
             "show_title_bar",
+            "resizable",
             "show_close",
             "show_minimize",
             "title_bar_style",

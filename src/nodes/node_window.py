@@ -106,6 +106,14 @@ class NodeWindow(NodeContainer):
                 "left": resolved_window_props.get("left", None),
             })
 
+        if resolved_window_props.get("resizable", False) and not self.is_minimized:
+            saved_w = last_pos_map[self.hash].get("last_resize_width")
+            saved_h = last_pos_map[self.hash].get("last_resize_height")
+            if saved_w is not None:
+                resolved_window_props["width"] = saved_w
+            if saved_h is not None:
+                resolved_window_props["height"] = saved_h
+
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["window"],
             properties=NodeWindowProperties(**resolved_window_props)
@@ -202,6 +210,8 @@ class NodeWindow(NodeContainer):
                 "last_docked_pos": None,
                 "last_pos_drag_offset": None,
                 "last_docked_pos_drag_offset": None,
+                "last_resize_width": None,
+                "last_resize_height": None,
             }
 
     @property
@@ -211,6 +221,10 @@ class NodeWindow(NodeContainer):
     @property
     def last_docked_pos(self):
         return last_pos_map.get(self.hash, {}).get("last_docked_pos", None)
+
+    def save_resize_dimensions(self, width, height):
+        last_pos_map[self.hash]["last_resize_width"] = width
+        last_pos_map[self.hash]["last_resize_height"] = height
 
     def update_saved_positions(self):
         if self.has_dock_behavior and self.is_minimized:

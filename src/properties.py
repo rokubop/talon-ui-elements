@@ -897,6 +897,7 @@ class NodeWindowProperties(Properties):
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
+    resizable: bool = False
     show_close: bool = True
     show_minimize: bool = True
     show_title_bar: bool = True
@@ -924,6 +925,7 @@ class NodeWindowValidationProperties(ValidationProperties):
     on_close: callable
     on_minimize: callable
     on_restore: callable
+    resizable: bool
     show_close: bool
     show_minimize: bool
     show_title_bar: bool

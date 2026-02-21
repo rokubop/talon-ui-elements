@@ -89,6 +89,7 @@ def dashboard_ui():
             width=1100,
             height=700,
             flex_direction="row",
+            resizable=True,
             minimized_body=minimized_body,
             minimized_style={
                 "max_height": 400,

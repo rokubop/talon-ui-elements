@@ -13,7 +13,16 @@ from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..constants import ELEMENT_ENUM_TYPE, DRAG_INIT_THRESHOLD, DEFAULT_CURSOR_REFRESH_RATE
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    DRAG_INIT_THRESHOLD,
+    DEFAULT_CURSOR_REFRESH_RATE,
+    RESIZE_EDGE_THRESHOLD,
+    RESIZE_GHOST_COLOR,
+    RESIZE_GHOST_STROKE_WIDTH,
+    RESIZE_EDGE_HIGHLIGHT_COLOR,
+    RESIZE_EDGE_HIGHLIGHT_WIDTH,
+)
 from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef
 from ..border_radius import draw_manual_rounded_rect_path
@@ -123,6 +132,12 @@ class MetaState(MetaStateType):
         self.scrollbar_dragging_id = None
         self.scrollbar_drag_start_y = None
         self.scrollbar_drag_start_offset_y = None
+        self.resize_edge_hovered = None
+        self.resize_dragging_id = None
+        self.resize_edge = None
+        self.resize_start_pos = None
+        self.resize_start_rect = None
+        self.resize_ghost_rect = None
 
     @property
     def buttons(self):
@@ -346,6 +361,32 @@ class MetaState(MetaStateType):
             return self.scrollbar_dragging_id == node_id
         return self.scrollbar_dragging_id is not None
 
+    # Resize interaction state management
+    def start_resize_drag(self, node_id, edge, mouse_pos, start_rect):
+        self.resize_dragging_id = node_id
+        self.resize_edge = edge
+        self.resize_start_pos = mouse_pos
+        self.resize_start_rect = start_rect
+        self.resize_ghost_rect = Rect(start_rect.x, start_rect.y, start_rect.width, start_rect.height)
+
+    def clear_resize_drag(self):
+        self.resize_dragging_id = None
+        self.resize_edge = None
+        self.resize_start_pos = None
+        self.resize_start_rect = None
+        self.resize_ghost_rect = None
+
+    def is_resize_dragging(self, node_id=None):
+        if node_id:
+            return self.resize_dragging_id == node_id
+        return self.resize_dragging_id is not None
+
+    def set_resize_edge_hover(self, node_id, edge):
+        self.resize_edge_hovered = (node_id, edge)
+
+    def clear_resize_edge_hover(self):
+        self.resize_edge_hovered = None
+
     def get_interaction_links(self):
         return list(
             (b, b) for b in self._buttons
@@ -382,6 +423,8 @@ class MetaState(MetaStateType):
         self.ref_property_overrides.clear()
         self.new_component_ids.clear()
         self.removed_component_ids.clear()
+        self.clear_resize_drag()
+        self.resize_edge_hovered = None
         self.clear_nodes()
 
 class RenderCauseState(RenderCauseStateType):
@@ -711,6 +754,8 @@ class Tree(TreeType):
                         self.reconcile_mouse_highlight()
                     self.draw_decoration_renders(draw_canvas, transforms)
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
+                    self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
+                    self.draw_resize_ghost(draw_canvas)
                     canvas.paint.color = "FFFFFF"
                     self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
                     if self.interactive_node_list or self.draggable_node:
@@ -1279,9 +1324,231 @@ class Tree(TreeType):
                 self.meta_state.clear_scrollbar_hover()
             self.render_base_canvas()
 
+    def detect_resize_edge(self, gpos):
+        """Detect if mouse is near a resizable window's edge. Returns (node_id, edge_str) or (None, None)."""
+        threshold = scale_value(RESIZE_EDGE_THRESHOLD)
+        for window_id in self.meta_state.windows:
+            node = self.meta_state.id_to_node.get(window_id)
+            if not node or not getattr(node.properties, 'resizable', False):
+                continue
+            if getattr(node, 'is_minimized', False):
+                continue
+            if not node.box_model or not node.box_model.border_rect:
+                continue
+
+            rect = node.box_model.border_rect
+            x, y = gpos.x, gpos.y
+
+            near_top = abs(y - rect.y) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
+            near_bottom = abs(y - (rect.y + rect.height)) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
+            near_left = abs(x - rect.x) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
+            near_right = abs(x - (rect.x + rect.width)) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
+
+            # Corners first
+            if near_top and near_left:
+                return (window_id, "top_left")
+            if near_top and near_right:
+                return (window_id, "top_right")
+            if near_bottom and near_left:
+                return (window_id, "bottom_left")
+            if near_bottom and near_right:
+                return (window_id, "bottom_right")
+            # Single edges
+            if near_top:
+                return (window_id, "top")
+            if near_bottom:
+                return (window_id, "bottom")
+            if near_left:
+                return (window_id, "left")
+            if near_right:
+                return (window_id, "right")
+
+        return (None, None)
+
+    def handle_resize_drag_move(self, gpos):
+        """Compute ghost rect during resize drag."""
+        ms = self.meta_state
+        dx = gpos.x - ms.resize_start_pos.x
+        dy = gpos.y - ms.resize_start_pos.y
+        edge = ms.resize_edge
+        sr = ms.resize_start_rect
+
+        new_x, new_y = sr.x, sr.y
+        new_w, new_h = sr.width, sr.height
+
+        node = ms.id_to_node.get(ms.resize_dragging_id)
+        min_w = getattr(node.properties, 'min_width', None) or scale_value(100)
+        min_h = getattr(node.properties, 'min_height', None) or scale_value(40)
+        max_w = getattr(node.properties, 'max_width', None)
+        max_h = getattr(node.properties, 'max_height', None)
+
+        if "right" in edge:
+            new_w = sr.width + dx
+        if "left" in edge:
+            new_w = sr.width - dx
+            new_x = sr.x + dx
+        if "bottom" in edge:
+            new_h = sr.height + dy
+        if "top" in edge:
+            new_h = sr.height - dy
+            new_y = sr.y + dy
+
+        # Clamp width
+        if new_w < min_w:
+            if "left" in edge:
+                new_x = sr.x + sr.width - min_w
+            new_w = min_w
+        if max_w and new_w > max_w:
+            if "left" in edge:
+                new_x = sr.x + sr.width - max_w
+            new_w = max_w
+
+        # Clamp height
+        if new_h < min_h:
+            if "top" in edge:
+                new_y = sr.y + sr.height - min_h
+            new_h = min_h
+        if max_h and new_h > max_h:
+            if "top" in edge:
+                new_y = sr.y + sr.height - max_h
+            new_h = max_h
+
+        ms.resize_ghost_rect = Rect(new_x, new_y, new_w, new_h)
+        self.render_manager.render_resize_ghost()
+
+    def _compute_resize_layout_compensation(self, node, old_width, old_height, new_width, new_height):
+        """Compute drag offset adjustment to counteract layout repositioning after resize.
+
+        When a parent uses center/flex_end alignment, changing the window size
+        shifts its natural (layout-computed) position. We compensate so the
+        window stays where the ghost outline was.
+        """
+        parent = node.parent_node
+        if not parent:
+            return Point2d(0, 0)
+
+        dw = new_width - old_width
+        dh = new_height - old_height
+        flex_dir = parent.properties.flex_direction or "column"
+        justify = parent.properties.justify_content or "flex_start"
+        align = parent.properties.align_items or "stretch"
+
+        def axis_compensation(delta, alignment):
+            if alignment == "center":
+                return delta / 2
+            elif alignment == "flex_end":
+                return delta
+            return 0
+
+        if flex_dir == "column":
+            # Main axis = Y (justify), Cross axis = X (align)
+            comp_x = axis_compensation(dw, align)
+            comp_y = axis_compensation(dh, justify)
+        else:
+            # Main axis = X (justify), Cross axis = Y (align)
+            comp_x = axis_compensation(dw, justify)
+            comp_y = axis_compensation(dh, align)
+
+        return Point2d(comp_x, comp_y)
+
+    def handle_resize_mouseup(self, gpos):
+        """Apply final size from resize ghost and resume rendering."""
+        ms = self.meta_state
+        node_id = ms.resize_dragging_id
+        ghost = ms.resize_ghost_rect
+        node = ms.id_to_node.get(node_id)
+
+        if node and ghost:
+            start_rect = ms.resize_start_rect
+
+            ms.set_ref_property_override(node_id, "width", ghost.width)
+            ms.set_ref_property_override(node_id, "height", ghost.height)
+
+            # Compensate for layout repositioning (e.g. centering shifts)
+            compensation = self._compute_resize_layout_compensation(
+                node, start_rect.width, start_rect.height, ghost.width, ghost.height
+            )
+
+            # Combine left/top edge movement + layout compensation
+            offset_dx = (ghost.x - start_rect.x) + compensation.x
+            offset_dy = (ghost.y - start_rect.y) + compensation.y
+            if offset_dx != 0 or offset_dy != 0:
+                if node_id in ms._draggable_offset:
+                    ms._draggable_offset[node_id] = Point2d(
+                        ms._draggable_offset[node_id].x + offset_dx,
+                        ms._draggable_offset[node_id].y + offset_dy,
+                    )
+
+            # Save dimensions for persistence
+            if hasattr(node, 'save_resize_dimensions'):
+                node.save_resize_dimensions(ghost.width, ghost.height)
+
+        ms.clear_resize_drag()
+        self.render_manager.resume()
+        self.render_base_canvas()
+
+    def draw_resize_edge_highlight(self, canvas, offset):
+        """Draw colored bars on hovered resize edges."""
+        ms = self.meta_state
+        if not ms.resize_edge_hovered or ms.is_resize_dragging():
+            return
+
+        node_id, edge = ms.resize_edge_hovered
+        node = ms.id_to_node.get(node_id)
+        if not node or not node.box_model or not node.box_model.border_rect:
+            return
+
+        rect = node.box_model.border_rect
+        ox = offset.x if offset else 0
+        oy = offset.y if offset else 0
+        x, y, w, h = rect.x + ox, rect.y + oy, rect.width, rect.height
+        hw = scale_value(RESIZE_EDGE_HIGHLIGHT_WIDTH)
+
+        canvas.paint.style = canvas.paint.Style.FILL
+        canvas.paint.color = RESIZE_EDGE_HIGHLIGHT_COLOR
+
+        if "top" in edge:
+            canvas.draw_rect(Rect(x, y, w, hw))
+        if "bottom" in edge:
+            canvas.draw_rect(Rect(x, y + h - hw, w, hw))
+        if "left" in edge:
+            canvas.draw_rect(Rect(x, y, hw, h))
+        if "right" in edge:
+            canvas.draw_rect(Rect(x + w - hw, y, hw, h))
+
+    def draw_resize_ghost(self, canvas):
+        """Draw stroke outline during resize drag."""
+        ms = self.meta_state
+        if not ms.is_resize_dragging() or not ms.resize_ghost_rect:
+            return
+
+        ghost = ms.resize_ghost_rect
+        canvas.paint.style = canvas.paint.Style.STROKE
+        canvas.paint.color = RESIZE_GHOST_COLOR
+        canvas.paint.stroke_width = scale_value(RESIZE_GHOST_STROKE_WIDTH)
+        canvas.draw_rect(ghost)
+
     def on_hover(self, gpos):
         try:
             if not state_manager.is_drag_active():
+                # Detect resize edge hover before button hover
+                resize_node_id, resize_edge = self.detect_resize_edge(gpos)
+                prev_resize_hover = self.meta_state.resize_edge_hovered
+                if resize_edge:
+                    new_hover = (resize_node_id, resize_edge)
+                    if prev_resize_hover != new_hover:
+                        self.meta_state.set_resize_edge_hover(resize_node_id, resize_edge)
+                        # Suppress button hover when on resize edge
+                        prev_hovered_id = state_manager.get_hovered_id()
+                        if prev_hovered_id:
+                            self.unhighlight_no_render(prev_hovered_id)
+                            state_manager.set_hovered_id(None)
+                        self.render_manager.render_mouse_highlight()
+                    return
+                elif prev_resize_hover:
+                    self.meta_state.clear_resize_edge_hover()
+                    self.render_manager.render_mouse_highlight()
+
                 changed = False
                 new_hovered_id = None
                 prev_hovered_id = state_manager.get_hovered_id()
@@ -1322,6 +1589,10 @@ class Tree(TreeType):
         return None
 
     def on_mousemove(self, gpos):
+        if self.meta_state.is_resize_dragging():
+            self.handle_resize_drag_move(gpos)
+            return
+
         if self.meta_state.is_scrollbar_dragging():
             self.handle_scrollbar_drag_move(gpos)
             return
@@ -1371,6 +1642,15 @@ class Tree(TreeType):
             )
 
     def on_mousedown(self, gpos):
+        if self.meta_state.resize_edge_hovered:
+            node_id, edge = self.meta_state.resize_edge_hovered
+            node = self.meta_state.id_to_node.get(node_id)
+            if node and node.box_model and node.box_model.border_rect:
+                start_rect = node.box_model.border_rect
+                self.meta_state.start_resize_drag(node_id, edge, gpos, start_rect)
+                self.render_manager.pause()
+                return
+
         if self.handle_scrollbar_mousedown(gpos):
             return
 
@@ -1431,6 +1711,10 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
+            if self.meta_state.is_resize_dragging():
+                self.handle_resize_mouseup(gpos)
+                return
+
             if self.meta_state.is_scrollbar_dragging():
                 self.handle_scrollbar_mouseup(gpos)
                 return
