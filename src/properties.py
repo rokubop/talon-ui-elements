@@ -706,6 +706,7 @@ class NodeTableRowProperties(NodeDivProperties):
             "height",
             "padding_top",
             "padding_bottom",
+            "width",
         ]
 
         for key in kwargs.keys():

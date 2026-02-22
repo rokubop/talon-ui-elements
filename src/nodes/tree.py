@@ -1382,6 +1382,15 @@ class Tree(TreeType):
 
     def detect_resize_edge(self, gpos):
         """Detect if mouse is near a resizable window's edge. Returns (node_id, edge_str) or (None, None)."""
+        # Scrollbar takes priority over resize edges
+        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            node = self.meta_state.id_to_node.get(node_id)
+            if node and node.box_model:
+                if (node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos)):
+                    return (None, None)
+                if (node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos)):
+                    return (None, None)
+
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
         for window_id in self.meta_state.windows:
             node = self.meta_state.id_to_node.get(window_id)
@@ -1610,6 +1619,8 @@ class Tree(TreeType):
                             self.unhighlight_no_render(prev_hovered_id)
                             state_manager.set_hovered_id(None)
                         self.render_manager.render_mouse_highlight()
+                    if not self.hover_validation_job:
+                        self.schedule_hover_validation()
                     return
                 elif prev_resize_hover:
                     self.meta_state.clear_resize_edge_hover()
@@ -1851,6 +1862,14 @@ class Tree(TreeType):
                     changed = True
             else:
                 state_manager.set_hovered_id(None)
+                changed = True
+
+        # Validate resize edge hover state
+        if self.meta_state.resize_edge_hovered:
+            resize_node_id, _ = self.meta_state.resize_edge_hovered
+            current_resize_node_id, current_edge = self.detect_resize_edge(current_pos)
+            if not current_edge or current_resize_node_id != resize_node_id:
+                self.meta_state.clear_resize_edge_hover()
                 changed = True
 
         # Also validate click state
@@ -2399,6 +2418,21 @@ class Tree(TreeType):
             full_rect = self.draggable_node.box_model.border_rect \
                 if getattr(self.draggable_node, 'box_model', None) \
                 else self.root_node.box_model.content_children_rect
+
+            # Expand blockable area to cover resize edge detection zone
+            has_resizable = any(
+                self.meta_state.id_to_node.get(wid) and
+                getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
+                for wid in self.meta_state.windows
+            )
+            if has_resizable:
+                threshold = scale_value(RESIZE_EDGE_THRESHOLD)
+                full_rect = Rect(
+                    full_rect.x - threshold,
+                    full_rect.y - threshold,
+                    full_rect.width + threshold * 2,
+                    full_rect.height + threshold * 2
+                )
 
             blockable_rects = [full_rect]
 
