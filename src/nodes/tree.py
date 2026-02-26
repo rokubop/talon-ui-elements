@@ -632,7 +632,7 @@ class Tree(TreeType):
 
     def check_for_stale_hover(self):
         if not self.destroying:
-            if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering():
+            if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering:
                 self.schedule_hover_validation()
                 return
             time_since_last_event = time.time() - self.last_mouse_event_time
@@ -1855,7 +1855,7 @@ class Tree(TreeType):
 
     def validate_hover_state(self):
         """Validate hover state and clean up if mouse left the UI."""
-        if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering():
+        if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering:
             return False
         changed = False
         current_pos = self.get_cursor_position()
