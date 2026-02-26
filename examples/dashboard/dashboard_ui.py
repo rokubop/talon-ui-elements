@@ -87,10 +87,6 @@ def dashboard_ui():
         window(
             title="Dashboard",
             width=1100,
-            min_width=600,
-            max_width=1200,
-            min_height=400,
-            max_height=800,
             height=700,
             flex_direction="row",
             resizable=True,

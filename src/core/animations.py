@@ -177,9 +177,35 @@ class TransitionManager:
         elif prop in ANIMATABLE_BORDER_RADIUS:
             if isinstance(value, BorderRadius):
                 return value
+            if isinstance(value, (int, float)):
+                return BorderRadius(value)
         elif prop in ANIMATABLE_NUMERIC_PROPERTIES:
             if isinstance(value, (int, float)):
                 return value
+        return None
+
+    def _normalize_style_value(self, prop, value, style_name="style"):
+        """Normalize a mount_style/unmount_style value for animation.
+        Returns the normalized value, or None if not animatable."""
+        if value is None:
+            return None
+        if prop in ANIMATABLE_COLOR_PROPERTIES:
+            if isinstance(value, str):
+                return value
+            print(f"ui_elements: '{prop}' in {style_name} must be a color string, got {type(value).__name__}")
+            return None
+        if prop in ANIMATABLE_BORDER_RADIUS:
+            if isinstance(value, BorderRadius):
+                return value
+            if isinstance(value, (int, float)):
+                return BorderRadius(value)
+            print(f"ui_elements: '{prop}' in {style_name} must be a number or BorderRadius, got {type(value).__name__}")
+            return None
+        if prop in ANIMATABLE_NUMERIC_PROPERTIES:
+            if isinstance(value, (int, float)):
+                return value
+            print(f"ui_elements: '{prop}' in {style_name} must be a number, got {type(value).__name__}. Percentage values cannot be transitioned.")
+            return None
         return None
 
     def _interpolate(self, anim, t):
@@ -305,7 +331,10 @@ class TransitionManager:
                     config = self._parse_transition_config(transition_dict, prop)
                     if config:
                         duration_ms, easing = config
-                        from_value = mount_style[prop]
+                        from_value = self._normalize_style_value(prop, mount_style[prop], "mount_style")
+                        if from_value is None:
+                            self.previous_values[node_id][prop] = value
+                            continue
                         if prop in ANIMATABLE_COLOR_PROPERTIES and isinstance(from_value, str):
                             from_value = hex_color(from_value, property_name=prop)
 
@@ -505,24 +534,19 @@ class TransitionManager:
         self._mount_animations_pending = True
 
     def start_mount_animations(self):
-        """Start mount animations with fresh timing. Call after tree is fully rendered.
-        Deferred via cron.after to let other pending tree renders complete first,
-        preventing competing renders from blocking animation ticks."""
+        """Start mount animations with fresh timing. Call after tree is fully rendered."""
         if not self._mount_animations_pending:
             return
         self._mount_animations_pending = False
 
-        def _deferred_start():
-            if not self.tree or self.tree.destroying:
-                return
-            now = time.monotonic()
-            for node_id, anims in self.active.items():
-                for prop, anim in anims.items():
-                    anim.start_time = now
-            self._last_tick_time = None
-            self.start_tick_loop()
-
-        cron.after("0ms", _deferred_start)
+        if not self.tree or self.tree.destroying:
+            return
+        now = time.monotonic()
+        for node_id, anims in self.active.items():
+            for prop, anim in anims.items():
+                anim.start_time = now
+        self._last_tick_time = None
+        self.start_tick_loop()
 
     def start_unmount(self, on_complete):
         """Start exit animations for all nodes with unmount_style. Calls on_complete when done."""
@@ -546,6 +570,9 @@ class TransitionManager:
                 if from_value is None:
                     continue
 
+                to_value = self._normalize_style_value(prop, to_value, "unmount_style")
+                if to_value is None:
+                    continue
                 if prop in ANIMATABLE_COLOR_PROPERTIES and isinstance(to_value, str):
                     to_value = hex_color(to_value, property_name=prop)
 

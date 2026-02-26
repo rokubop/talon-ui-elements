@@ -632,6 +632,9 @@ class Tree(TreeType):
 
     def check_for_stale_hover(self):
         if not self.destroying:
+            if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering():
+                self.schedule_hover_validation()
+                return
             time_since_last_event = time.time() - self.last_mouse_event_time
             if time_since_last_event >= 0.2:
                 if self.validate_hover_state():
@@ -776,7 +779,9 @@ class Tree(TreeType):
                     transforms = RenderTransforms(offset=offset)
                 state_manager.set_processing_tree(self)
                 try:
-                    if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
+                    if self.interactive_node_list and self.render_manager.render_cause in (
+                        RenderCause.STATE_CHANGE, RenderCause.REF_CHANGE
+                    ):
                         self.reconcile_mouse_highlight()
                     self.draw_decoration_renders(draw_canvas, transforms)
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
@@ -880,6 +885,11 @@ class Tree(TreeType):
             self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
+            # Start mount animations immediately after base canvas commits,
+            # since mount_style values are already visible at this point.
+            # Waiting for the decorator canvas roundtrip adds ~150-300ms delay.
+            if not self.is_mounted:
+                self.transition_manager.start_mount_animations()
             # Set up cursor refresh cycle after tree is fully processed
             self.setup_cursor_refresh_cycle()
         except Exception as e:
@@ -894,7 +904,6 @@ class Tree(TreeType):
             state_manager.set_processing_tree(self)
             try:
                 dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
-
                 if dragging:
                     self.on_draw_base_canvas_dragging(canvas)
                 elif self.is_drag_end():
@@ -1127,10 +1136,14 @@ class Tree(TreeType):
         # Just check 1 level deep
         return any([node.properties.draggable for node in self.root_node.get_children_nodes()])
 
+    def _has_cursor_element(self):
+        """Check if any child of root is a cursor element (1 level deep)."""
+        return any([node.element_type == "cursor" for node in self.root_node.get_children_nodes()])
+
     def create_canvas(self):
         rect = self.root_node.boundary_rect
 
-        if self._is_draggable_ui():
+        if self._is_draggable_ui() or self._has_cursor_element():
             rect = get_combined_screens_rect()
 
         # Some display drivers will show a "black screen of death"
@@ -1262,7 +1275,6 @@ class Tree(TreeType):
                             self.draggable_node.properties.on_drag_end()
             else:
                 self.is_mounted = True
-                self.transition_manager.start_mount_animations()
 
                 for effect in self.effects:
                     if effect.callback:
@@ -1843,6 +1855,8 @@ class Tree(TreeType):
 
     def validate_hover_state(self):
         """Validate hover state and clean up if mouse left the UI."""
+        if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering():
+            return False
         changed = False
         current_pos = self.get_cursor_position()
 
@@ -1895,14 +1909,34 @@ class Tree(TreeType):
 
     def reconcile_mouse_highlight(self):
         last_clicked_pos = state_manager.get_last_clicked_pos()
-        hovered_id = state_manager.get_hovered_id()
-        if hovered_id and last_clicked_pos:
-            node = self.meta_state.id_to_node.get(hovered_id)
-            if node and node.box_model and node.box_model.padding_rect.contains(last_clicked_pos):
-                self.meta_state.set_highlighted(hovered_id, node.properties.highlight_color)
-            else:
-                self.meta_state.set_unhighlighted(hovered_id)
-                state_manager.set_hovered_id(None)
+        prev_hovered_id = state_manager.get_hovered_id()
+        gpos = self.get_cursor_position()
+
+        # Re-detect which element is under the cursor after re-render
+        new_hovered_id = None
+        for source_id, target_id in self.meta_state.get_hover_links():
+            source_node = self.meta_state.id_to_node.get(source_id, None)
+            target_node = source_node
+            if source_id != target_id:
+                target_node = self.meta_state.id_to_node.get(target_id, None)
+            if source_node and not getattr(target_node, 'disabled', False):
+                if source_node.is_fully_clipped_by_scroll():
+                    continue
+                if source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                    new_hovered_id = target_id
+                    break
+
+        if new_hovered_id:
+            if new_hovered_id != prev_hovered_id:
+                self.meta_state.set_unhighlighted(prev_hovered_id)
+            state_manager.set_hovered_id(new_hovered_id)
+            node = self.meta_state.id_to_node.get(new_hovered_id)
+            if node:
+                self.meta_state.set_highlighted(new_hovered_id, node.properties.highlight_color)
+        elif prev_hovered_id:
+            self.meta_state.set_unhighlighted(prev_hovered_id)
+            state_manager.set_hovered_id(None)
+
         state_manager.set_last_clicked_pos(None)
 
     def on_mouse(self, e: MouseEvent):
@@ -2059,12 +2093,23 @@ class Tree(TreeType):
                 return
             self.destroying = True
             self.render_manager.prepare_destroy()
+            # Defer effect cleanups to avoid recursive action errors when
+            # a cleanup calls ui_elements_hide for another tree
+            deferred_cleanups = []
             for effect in reversed(self.effects):
                 if effect.cleanup:
-                    if len(inspect.signature(effect.cleanup).parameters) == 1:
-                        effect.cleanup(StateEvent())
-                    else:
-                        effect.cleanup()
+                    deferred_cleanups.append(effect.cleanup)
+            if deferred_cleanups:
+                def run_deferred_cleanups():
+                    for cleanup in deferred_cleanups:
+                        try:
+                            if len(inspect.signature(cleanup).parameters) == 1:
+                                cleanup(StateEvent())
+                            else:
+                                cleanup()
+                        except Exception as e:
+                            print(f"Error during effect cleanup: {e}")
+                cron.after("1ms", run_deferred_cleanups)
             self.window_cleanup(hide=False)
 
             if self.render_debounce_job:
