@@ -104,8 +104,10 @@ class Scrollable(ScrollableType):
             self.max_height = max_height
             self.view_width = view_width
             self.max_width = max_width
-            self.offset_x = 0
-            self.offset_y = 0
+            min_offset_y = min(0, view_height - max_height)
+            min_offset_x = min(0, view_width - max_width)
+            self.offset_y = max(min_offset_y, min(0, self.offset_y))
+            self.offset_x = max(min_offset_x, min(0, self.offset_x))
 
 @dataclass
 class DraggableOffset:
