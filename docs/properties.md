@@ -135,7 +135,7 @@ Properties mostly match standard CSS properties.
 | focus_outline_color | str | "#FFFFFF" | Focus outline color - for keyboard accessibility and after you have interacted with an element. Cascades to children. Use 8-char hex for opacity |
 | focus_outline_width | Union[int, float] | 1.5 | Focus outline width - for keyboard accessibility and after you have interacted with an element. Cascades to children |
 | highlight_color | str | `{color}33` | Highlight color (on hover/interaction). Cascades to children. Defaults to text color with 20% opacity |
-| highlight_style | dict | None | Style overrides when highlighted. Valid keys: `background_color`, `border_color`, `color`, `fill`, `stroke` |
+| highlight_style | dict | None | Style overrides when highlighted. Valid keys: `background_color`, `border_color`, `color`, `fill`, `stroke`. Animates smoothly when `transition` is also set. Auto-generated for interactive nodes with `transition` + color properties |
 
 ## Identification Properties
 

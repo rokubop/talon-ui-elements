@@ -79,7 +79,7 @@ div(class_name="key")[...]
 
 ## Nested Styles
 
-You can nest special styles like `highlight_style`:
+You can nest special styles like `highlight_style` and `transition`:
 
 ```py
 style({
@@ -88,9 +88,14 @@ style({
         "highlight_style": {
             "background_color": "#44BCE799",
         },
+        "transition": {
+            "background_color": 150,
+        },
     }
 })
 ```
+
+When both `highlight_style` and `transition` are present, hover highlights animate smoothly.
 
 ## Component Scoping
 

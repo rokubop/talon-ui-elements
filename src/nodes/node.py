@@ -8,6 +8,13 @@ from talon.skia.imagefilter import ImageFilter
 from .component import Component
 from ..utils import draw_rect
 from ..border_radius import BorderRadius
+from ..core.animations import (
+    ANIMATABLE_COLOR_PROPERTIES,
+    ANIMATABLE_BORDER_RADIUS,
+    interpolate_color,
+    interpolate_number,
+    interpolate_border_radius,
+)
 from ..box_model import BoxModelV2
 from ..constants import (
     ELEMENT_ENUM_TYPE,
@@ -184,6 +191,26 @@ class Node(NodeType):
 
     def resolve_render_property(self, property_name: str):
         base = getattr(self.properties, property_name)
+
+        if self.properties.transition and self.properties.highlight_style \
+                and property_name in self.properties.highlight_style:
+            node_id = self.id or self.interactive_id
+            if node_id:
+                t = self.tree.transition_manager.get_highlight_t(node_id, property_name, self.properties.transition)
+                if t is not None:
+                    override = self.properties.highlight_style[property_name]
+                    if t >= 1.0:
+                        return override
+                    if t <= 0.0:
+                        return base
+                    if property_name in ANIMATABLE_COLOR_PROPERTIES:
+                        return interpolate_color(base or "00000000", override, t)
+                    elif property_name in ANIMATABLE_BORDER_RADIUS:
+                        return interpolate_border_radius(base, override, t)
+                    elif isinstance(base, (int, float)) and isinstance(override, (int, float)):
+                        return interpolate_number(base, override, t)
+                    return override if t >= 0.5 else base
+
         variant, t = self.get_active_variant()
         if not variant or t == 0:
             return base
@@ -195,18 +222,6 @@ class Node(NodeType):
             return base
 
         override = style[property_name]
-
-        # future interpolation logic
-        # if t == 1.0:
-        #     return override
-
-        # if isinstance(base, str) and property_name.endswith("color"):
-        #     return interpolate_color(base, override, t)
-        # elif isinstance(base, (int, float)) and isinstance(override, (int, float)):
-        #     return base + (override - base) * t
-        # else:
-        #     return override
-
         return override
 
 

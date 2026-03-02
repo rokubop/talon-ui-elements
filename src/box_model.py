@@ -144,6 +144,8 @@ class BoxModelV2(BoxModelV2Type):
 
         self.scroll_bar_track_rect = None
         self.scroll_bar_thumb_rect = None
+        self.scroll_bar_x_track_rect = None
+        self.scroll_bar_x_thumb_rect = None
 
         self.clip_nodes = clip_nodes
         self.relative_positional_node = relative_positional_node
@@ -195,12 +197,16 @@ class BoxModelV2(BoxModelV2Type):
             self.padding_pos.x,
             self.padding_pos.y,
             self.padding_size.width + self.conditional_scroll_bar_y_width,
-            self.padding_size.height
+            self.padding_size.height + self.conditional_scroll_bar_x_height
         )
 
     @property
     def conditional_scroll_bar_y_width(self):
         return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_y() else 0
+
+    @property
+    def conditional_scroll_bar_x_height(self):
+        return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_x() else 0
 
     @classmethod
     def _resolve_percent(self, value, total):
@@ -259,11 +265,12 @@ class BoxModelV2(BoxModelV2Type):
         content_size: Size2d,
         padding_spacing: BoxModelSpacing,
         border_spacing: BoxModelSpacing,
-        conditional_scroll_bar_y_width: bool
+        conditional_scroll_bar_y_width: bool,
+        conditional_scroll_bar_x_height: int = 0
     ) -> Size2d:
         return Size2d(
             content_size.width + padding_spacing.left + padding_spacing.right + border_spacing.left + border_spacing.right + conditional_scroll_bar_y_width,
-            content_size.height + padding_spacing.top + padding_spacing.bottom + border_spacing.top + border_spacing.bottom
+            content_size.height + padding_spacing.top + padding_spacing.bottom + border_spacing.top + border_spacing.bottom + conditional_scroll_bar_x_height
         )
 
     def init_intrinsic_sizes(self, content_size: Size2d):
@@ -299,7 +306,8 @@ class BoxModelV2(BoxModelV2Type):
                     content_size,
                     self.padding_spacing,
                     self.border_spacing,
-                    self.conditional_scroll_bar_y_width
+                    self.conditional_scroll_bar_y_width,
+                    self.conditional_scroll_bar_x_height
                 )
                 self.resolve_intrinsic_sizes_from_border_size(
                     Size2d(
@@ -351,7 +359,7 @@ class BoxModelV2(BoxModelV2Type):
         )
         self.intrinsic_border_size = Size2d(
             self.intrinsic_padding_size.width + self.border_spacing.left + self.border_spacing.right + self.conditional_scroll_bar_y_width,
-            self.intrinsic_padding_size.height + self.border_spacing.top + self.border_spacing.bottom
+            self.intrinsic_padding_size.height + self.border_spacing.top + self.border_spacing.bottom + self.conditional_scroll_bar_x_height
         )
         self.intrinsic_margin_size = Size2d(
             self.intrinsic_border_size.width + self.margin_spacing.left + self.margin_spacing.right,
@@ -444,7 +452,7 @@ class BoxModelV2(BoxModelV2Type):
         if margin_height < self.calculated_margin_size.height:
             self.overflow_size.height = self.calculated_margin_size.height - margin_height
             border_height = margin_height - self.margin_spacing.top - self.margin_spacing.bottom
-            padding_height = border_height - self.border_spacing.top - self.border_spacing.bottom
+            padding_height = border_height - self.border_spacing.top - self.border_spacing.bottom - self.conditional_scroll_bar_x_height
             content_height = padding_height - self.padding_spacing.top - self.padding_spacing.bottom
             content_constraint_height = content_height
             content_children_height = content_height if self.overflow.y != "visible" else self.calculated_content_children_size.height
@@ -485,6 +493,12 @@ class BoxModelV2(BoxModelV2Type):
         if self.scroll_bar_track_rect:
             self.scroll_bar_track_rect.x += offset.x
             self.scroll_bar_track_rect.y += offset.y
+        if self.scroll_bar_x_thumb_rect:
+            self.scroll_bar_x_thumb_rect.x += offset.x
+            self.scroll_bar_x_thumb_rect.y += offset.y
+        if self.scroll_bar_x_track_rect:
+            self.scroll_bar_x_track_rect.x += offset.x
+            self.scroll_bar_x_track_rect.y += offset.y
 
     def set_top_left(self, top_left: Point2d):
         diff = top_left - self.margin_pos
@@ -585,6 +599,9 @@ class BoxModelV2(BoxModelV2Type):
     def has_scroll_bar_y(self):
         return self.overflow.scrollable_y
 
+    def has_scroll_bar_x(self):
+        return self.overflow.scrollable_x
+
     def resolve_scroll_bar_rects(self, offset_y):
         view_height = self.padding_size.height
         total_scrollable_height = self.content_children_with_padding_size.height
@@ -612,6 +629,34 @@ class BoxModelV2(BoxModelV2Type):
     def adjust_scroll_y(self, offset_y: int):
         self.content_children_pos.y += offset_y
         self.resolve_scroll_bar_rects(offset_y)
+
+    def resolve_scroll_bar_x_rects(self, offset_x):
+        view_width = self.padding_size.width
+        total_scrollable_width = self.content_children_with_padding_size.width
+
+        if view_width and total_scrollable_width and total_scrollable_width > view_width:
+            self.scroll_bar_x_track_rect = Rect(
+                self.padding_pos.x,
+                self.padding_pos.y + self.padding_size.height,
+                self.padding_size.width,
+                scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+            )
+
+            thumb_width = view_width * (view_width / total_scrollable_width)
+            thumb_pos_x = self.padding_pos.x + \
+                (-offset_x / (total_scrollable_width - view_width)) \
+                * (self.padding_size.width - thumb_width)
+
+            self.scroll_bar_x_thumb_rect = Rect(
+                thumb_pos_x,
+                self.padding_pos.y + self.padding_size.height,
+                thumb_width,
+                scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+            )
+
+    def adjust_scroll_x(self, offset_x: int):
+        self.content_children_pos.x += offset_x
+        self.resolve_scroll_bar_x_rects(offset_x)
 
     def gc(self):
         self.clip_nodes = []

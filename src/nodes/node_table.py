@@ -70,7 +70,7 @@ class NodeTable(NodeContainer):
 
         div = actions.user.ui_elements(["div"])
         self.column_layout_children_nodes = [
-            div()[
+            div(flex=1)[
                 *column
             ]
             for column in self.columns
@@ -89,8 +89,37 @@ class NodeTable(NodeContainer):
                     measured_sizes[td_node] = td_node.v2_measure_children_intrinsic_size(c)
 
                 size = measured_sizes[td_node]
-                self.row_heights[row_index] = max(self.row_heights[row_index], getattr(size, 'height'))
-                self.col_widths[col_index] = max(self.col_widths[col_index], getattr(size, 'width'))
+                content_width = size.width
+                content_height = size.height
+
+                # Factor in explicit width/min_width (these are border-level sizes)
+                props = td_node.properties
+                explicit_width = props.width or props.min_width
+                if explicit_width and isinstance(explicit_width, (int, float)):
+                    pad_h = props.padding.left + props.padding.right
+                    bdr_h = props.border.left + props.border.right
+                    content_from_explicit = explicit_width - pad_h - bdr_h
+                    content_width = max(content_width, content_from_explicit)
+
+                explicit_height = props.height or props.min_height
+                if explicit_height and isinstance(explicit_height, (int, float)):
+                    pad_v = props.padding.top + props.padding.bottom
+                    bdr_v = props.border.top + props.border.bottom
+                    content_from_explicit = explicit_height - pad_v - bdr_v
+                    content_height = max(content_height, content_from_explicit)
+
+                self.col_widths[col_index] = max(self.col_widths[col_index], content_width)
+                self.row_heights[row_index] = max(self.row_heights[row_index], content_height)
+
+        # Factor in explicit tr height
+        for row_index, tr_node in enumerate(self.children_nodes):
+            if tr_node.element_type == "tr":
+                tr_height = tr_node.properties.height
+                if tr_height and isinstance(tr_height, (int, float)):
+                    pad_v = tr_node.properties.padding.top + tr_node.properties.padding.bottom
+                    bdr_v = tr_node.properties.border.top + tr_node.properties.border.bottom
+                    content_from_tr = tr_height - pad_v - bdr_v
+                    self.row_heights[row_index] = max(self.row_heights[row_index], content_from_tr)
 
         return super().v2_measure_intrinsic_size(c)
 
@@ -116,7 +145,29 @@ class NodeTableRow(NodeContainer):
 
 class NodeTableHeader(NodeContainer):
     def __init__(self, properties: Properties = None):
+        self._table_node: Optional[weakref.ReferenceType[NodeTable]] = None
+        self.column_index = None
+        self.row_index = None
         super().__init__(element_type="th", properties=properties)
+
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        table_node = self._table_node()
+        width = table_node.col_widths[self.column_index] if table_node else 0
+        height = table_node.row_heights[self.row_index] if table_node else 0
+
+        self.box_model = BoxModelV2(
+            self.properties,
+            Size2d(width, height),
+            self.clip_nodes,
+            self.relative_positional_node
+        )
+
+        return self.box_model.intrinsic_margin_size_with_bounding_constraints
+
+    def destroy(self):
+        if self._table_node is not None:
+            self._table_node = None
+        super().destroy()
 
 class NodeTableData(NodeContainer):
     def __init__(self, properties: Properties = None):

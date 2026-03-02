@@ -22,7 +22,11 @@ class NodeContainer(Node, NodeContainerType):
 
     def render_scroll_bar(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
-        if scrollable and self.box_model.scroll_bar_thumb_rect:
+        if not scrollable:
+            return
+
+        # Y scrollbar
+        if self.box_model.scroll_bar_thumb_rect:
             scroll_bar_track_rect = self.box_model.scroll_bar_track_rect.copy()
             scroll_bar_thumb_rect = self.box_model.scroll_bar_thumb_rect.copy()
 
@@ -36,15 +40,38 @@ class NodeContainer(Node, NodeContainerType):
             c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
             c.draw_rect(scroll_bar_track_rect)
 
-            # Apply hover/active state colors via alpha adjustment
             thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
-            if self.tree.meta_state.is_scrollbar_dragging(self.id):
+            if self.tree.meta_state.is_scrollbar_dragging(self.id) and self.tree.meta_state.scrollbar_dragging_axis == "y":
                 thumb_color = adjust_color_alpha(thumb_color, 30)
-            elif self.tree.meta_state.is_scrollbar_hovered(self.id):
+            elif self.tree.meta_state.is_scrollbar_hovered(self.id, axis="y"):
                 thumb_color = adjust_color_alpha(thumb_color, 15)
 
             c.paint.color = thumb_color
             c.draw_rect(scroll_bar_thumb_rect)
+
+        # X scrollbar
+        if self.box_model.scroll_bar_x_thumb_rect:
+            scroll_bar_x_track_rect = self.box_model.scroll_bar_x_track_rect.copy()
+            scroll_bar_x_thumb_rect = self.box_model.scroll_bar_x_thumb_rect.copy()
+
+            if transforms and transforms.offset:
+                scroll_bar_x_track_rect.x += transforms.offset.x
+                scroll_bar_x_track_rect.y += transforms.offset.y
+                scroll_bar_x_thumb_rect.x += transforms.offset.x
+                scroll_bar_x_thumb_rect.y += transforms.offset.y
+
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.draw_rect(scroll_bar_x_track_rect)
+
+            thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
+            if self.tree.meta_state.is_scrollbar_dragging(self.id) and self.tree.meta_state.scrollbar_dragging_axis == "x":
+                thumb_color = adjust_color_alpha(thumb_color, 30)
+            elif self.tree.meta_state.is_scrollbar_hovered(self.id, axis="x"):
+                thumb_color = adjust_color_alpha(thumb_color, 15)
+
+            c.paint.color = thumb_color
+            c.draw_rect(scroll_bar_x_thumb_rect)
 
     def v2_measure_children_intrinsic_size(self, c: SkiaCanvas) -> Size2d:
         children_accumulated_size = Size2d(0, 0)
@@ -243,10 +270,11 @@ class NodeContainer(Node, NodeContainerType):
             self.properties.justify_content
         )
 
-        scrollable = self.tree.meta_state.scrollable.get(self.id, None)
+        scrollable = self.tree.meta_state.scrollable.get(self.id, None) if self.tree else None
         if scrollable:
             scrollable.reevaluate(self)
             self.box_model.adjust_scroll_y(scrollable.offset_y)
+            self.box_model.adjust_scroll_x(scrollable.offset_x)
 
         self.v2_move_cursor_to_align_axis_before_children_render(cursor)
 
@@ -345,6 +373,14 @@ class NodeContainer(Node, NodeContainerType):
     def v2_adjust_for_scroll_y_end(self):
         if self.tree.meta_state.scrollable.get(self.id, None):
             self.box_model.adjust_scroll_y(-self.tree.meta_state.scrollable[self.id].offset_y)
+
+    def v2_adjust_for_scroll_x_start(self):
+        if self.tree.meta_state.scrollable.get(self.id, None):
+            self.box_model.adjust_scroll_x(self.tree.meta_state.scrollable[self.id].offset_x)
+
+    def v2_adjust_for_scroll_x_end(self):
+        if self.tree.meta_state.scrollable.get(self.id, None):
+            self.box_model.adjust_scroll_x(-self.tree.meta_state.scrollable[self.id].offset_x)
 
     def v2_crop_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         """Apply all clipping regions (ancestors + self) from pre-computed cache."""

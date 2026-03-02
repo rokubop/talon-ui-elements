@@ -21,6 +21,7 @@ class RenderCause(Enum):
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
     CURSOR_UPDATE = "CURSOR_UPDATE"
+    RESIZE_GHOST = "RESIZE_GHOST"
 
 class Policy(Enum):
     TAKE_LATEST = "take_latest"
@@ -108,6 +109,11 @@ RenderTaskCursorUpdate = RenderTask(
     on_base_canvas_change,
 )
 
+RenderTaskResizeGhost = RenderTask(
+    RenderCause.RESIZE_GHOST,
+    on_decorator_canvas_change,
+)
+
 @dataclass
 class RenderCallbackEvent:
     tree: TreeType = None
@@ -149,7 +155,8 @@ class RenderManager(RenderManagerType):
             if store.pause_renders and not (render_task.cause == RenderCause.DRAGGING or \
                     render_task.cause == RenderCause.DRAG_START or \
                     render_task.cause == RenderCause.DRAG_END or \
-                    render_task.cause == RenderCause.SCROLLBAR_DRAGGING):
+                    render_task.cause == RenderCause.SCROLLBAR_DRAGGING or \
+                    render_task.cause == RenderCause.RESIZE_GHOST):
                 return
             if not self.current_render_task:
                 self.current_render_task = render_task
@@ -212,13 +219,10 @@ class RenderManager(RenderManagerType):
             if store.pause_renders and not (self.queue[0].cause == RenderCause.DRAGGING or \
                         self.queue[0].cause == RenderCause.DRAG_START or \
                         self.queue[0].cause == RenderCause.DRAG_END or \
-                        self.queue[0].cause == RenderCause.SCROLLBAR_DRAGGING):
+                        self.queue[0].cause == RenderCause.SCROLLBAR_DRAGGING or \
+                        self.queue[0].cause == RenderCause.RESIZE_GHOST):
                     return
             self.current_render_task = self.queue.popleft()
-            if self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
-                self.current_render_task.on_start()
-                self.process_next_render()
-                return
             self.current_render_task.on_start(self.tree, *self.current_render_task.args)
 
     def finish_current_render(self):
@@ -330,6 +334,9 @@ class RenderManager(RenderManagerType):
     def render_mouse_highlight(self):
         self.queue_render(RenderMouseHighlight)
 
+    def render_resize_ghost(self):
+        self._render_throttle("16ms", RenderTaskResizeGhost)
+
     def render_cursor_update(self):
         self._render_throttle("10ms", RenderTaskCursorUpdate)
 
@@ -341,12 +348,29 @@ class RenderManager(RenderManagerType):
             [],
         ))
 
+    def render_animation_frame(self):
+        # Don't queue if one is already pending
+        if self.current_render_task and \
+                self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
+            return
+        for task in self.queue:
+            if task.cause == RenderCause.REQUEST_ANIMATION_FRAME:
+                return
+        self.queue_render(RenderTask(
+            RenderCause.REQUEST_ANIMATION_FRAME,
+            on_base_canvas_change,
+        ))
+
+    def is_animation_frame(self):
+        return self.current_render_task and \
+            self.current_render_task.cause == RenderCause.REQUEST_ANIMATION_FRAME
+
     def request_animation_frame(self, callback: callable):
         if not store.pause_renders:
-            cron.after("500ms", self.queue_render(RenderTask(
+            self.queue_render(RenderTask(
                 RenderCause.REQUEST_ANIMATION_FRAME,
                 callback,
-            )))
+            ))
 
     def prepare_destroy(self):
         self._destroying = True
