@@ -976,7 +976,7 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def draw_hints(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.meta_state.inputs or self.meta_state.buttons:
+        if self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list:
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
@@ -1076,6 +1076,13 @@ class Tree(TreeType):
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
 
+        # Route to custom input when focused
+        if settings.get("user.ui_elements_custom_input", False):
+            from ..platform.custom_input import custom_input_manager
+            if custom_input_manager.has_focused_input:
+                custom_input_manager.handle_canvas_key(e)
+                return
+
         if key_string == "space" or key_string == "enter" or key_string == "return":
             focused_node = state_manager.get_focused_node()
             if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
@@ -1169,8 +1176,9 @@ class Tree(TreeType):
                     focus_canvas = True
                     node = state_manager.get_focused_node()
                     if node and node.tree == self and node.element_type == "input_text":
-                        # input text has its own focus managed by Talon
-                        focus_canvas = False
+                        # For non-custom input, TextArea manages its own focus
+                        if not settings.get("user.ui_elements_custom_input", False):
+                            focus_canvas = False
                     if focus_canvas:
                         self.canvas_decorator.focused = True
                 elif not focused_tree:
@@ -1674,6 +1682,12 @@ class Tree(TreeType):
             self.destroy()
 
     def get_mouse_hovered_input_id(self, gpos):
+        if settings.get("user.ui_elements_custom_input", False):
+            for node in self.interactive_node_list:
+                if node.element_type == ELEMENT_ENUM_TYPE["input_text"] and node.box_model:
+                    if node.box_model.padding_rect.contains(gpos):
+                        return node.id
+            return None
         for id, input_data in list(self.meta_state.inputs.items()):
             if input_data.input and input_data.input.rect.contains(gpos):
                 return id
@@ -1780,7 +1794,8 @@ class Tree(TreeType):
         if input_id:
             node = self.meta_state.id_to_node.get(input_id)
             if node:
-                state_manager.focus_node(node, visible=False)
+                use_custom = settings.get("user.ui_elements_custom_input", False)
+                state_manager.focus_node(node, visible=use_custom)
                 return
 
         if self.root_node.box_model:
@@ -2079,7 +2094,7 @@ class Tree(TreeType):
         self.transition_manager.start_unmount(on_complete=self._finish_unmount)
 
     def _finish_unmount(self):
-        """Called when all exit animations complete — do actual destruction"""
+        """Called when all exit animations complete - do actual destruction"""
         self._unmount_complete = True
         self.destroy()
 
@@ -2090,7 +2105,7 @@ class Tree(TreeType):
                 self._start_unmount()
                 return
             if self.unmounting and not self._unmount_complete:
-                # Already playing unmount animations — ignore duplicate destroy calls.
+                # Already playing unmount animations - ignore duplicate destroy calls.
                 # _finish_unmount will call destroy() when animations complete.
                 return
             self.destroying = True
@@ -2461,7 +2476,7 @@ class Tree(TreeType):
         """
         blockable_rects = []
 
-        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node:
+        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node or self.interactive_node_list:
             full_rect = self.draggable_node.box_model.border_rect \
                 if getattr(self.draggable_node, 'box_model', None) \
                 else self.root_node.box_model.content_children_rect

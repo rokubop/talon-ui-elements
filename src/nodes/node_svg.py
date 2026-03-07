@@ -1,5 +1,10 @@
 import re
 from talon.skia import Path
+
+try:
+    from talon.skia import PathBuilder
+except ImportError:
+    PathBuilder = None
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
 from talon.types import Rect
@@ -178,8 +183,13 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
 
         new_d = scale_d(self.properties.d, scale)
         path = Path.from_svg(new_d)
-        translated_path = Path()
-        translated_path.add_path_offset(path, dx=top_left_pos.x, dy=top_left_pos.y, add_mode=Path.AddMode.APPEND)
+        if PathBuilder:
+            builder = PathBuilder()
+            builder.add_path_offset(path, dx=top_left_pos.x, dy=top_left_pos.y)
+            translated_path = builder.detach()
+        else:
+            translated_path = Path()
+            translated_path.add_path_offset(path, dx=top_left_pos.x, dy=top_left_pos.y, add_mode=Path.AddMode.APPEND)
 
         prev_paint = c.paint.clone()
 

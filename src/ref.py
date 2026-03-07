@@ -1,7 +1,11 @@
 from typing import Any
+from talon import settings
 from talon.experimental.textarea import Span
 from .core.entity_manager import entity_manager
 from .core.state_manager import state_manager
+
+def _use_custom_input():
+    return settings.get("user.ui_elements_custom_input", False)
 
 class Ref:
     """
@@ -54,6 +58,10 @@ class Ref:
         return entity_manager.get_node(self._get("id"))
 
     def clear(self):
+        if _use_custom_input():
+            from .platform.custom_input import custom_input_manager
+            custom_input_manager.set_value(self._get("id"), "")
+            return
         input_data = entity_manager.get_input_data(self._get("id"))
         input_data.input.erase(Span(0, len(input_data.input.value)))
 
@@ -67,8 +75,12 @@ class Ref:
     def set_value(self, new_value: Any):
         node = self.get_node()
         if node.element_type == "input_text":
-            input_data = entity_manager.get_input_data(self._get("id"))
-            input_data.input.value = new_value
+            if _use_custom_input():
+                from .platform.custom_input import custom_input_manager
+                custom_input_manager.set_value(self._get("id"), str(new_value))
+            else:
+                input_data = entity_manager.get_input_data(self._get("id"))
+                input_data.input.value = new_value
         else:
             raise ValueError(f"Element type '{node.element_type}' does not support 'value' property")
 
@@ -100,6 +112,9 @@ class Ref:
                 raise ValueError(f"Element type '{element_type}' does not support 'text' property")
         elif name == "value":
             if element_type == "input_text":
+                if _use_custom_input():
+                    from .platform.custom_input import custom_input_manager
+                    return custom_input_manager.get_value(self._get("id"))
                 input_data = entity_manager.get_input_data(self._get("id"))
                 return input_data.input.value
             else:

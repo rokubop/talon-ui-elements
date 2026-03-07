@@ -8,6 +8,9 @@ from .store import store
 from ..utils import generate_hash
 from ..hints import show_scale_notification
 
+def _use_custom_input():
+    return settings.get("user.ui_elements_custom_input", False)
+
 @dataclass
 class ChangeEvent:
     value: str
@@ -41,6 +44,8 @@ class EntityManager:
             return node.tree.meta_state.inputs.get(id)
 
     def create_input(self, node: NodeType):
+        if _use_custom_input():
+            return
         if not self.get_input_data(node.id):
             text_area_input = TextArea()
             args = {
