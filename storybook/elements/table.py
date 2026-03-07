@@ -1,5 +1,6 @@
 from talon import actions
 from ..common import example_with_code, code
+from .. import theme as t
 import textwrap
 
 def default_table():
@@ -107,7 +108,7 @@ def table_stories():
     ])
 
     return div(padding=32, gap=24)[
-        text("Table", font_size=22, font_weight="bold", color="#F1F1F1"),
+        text("Table", font_size=22, font_weight="bold", color=t.TEXT),
         code(
             textwrap.dedent("""\
                 table, th, tr, td = actions.user.ui_elements(['table', 'th', 'tr', 'td'])"""
@@ -115,7 +116,7 @@ def table_stories():
         ),
 
         div(gap=16)[
-            text("Stories", font_size=18, font_weight="bold", color="#F1F1F1", border_bottom=1, padding_bottom=12,border_color="#333333"),
+            text("Stories", font_size=18, font_weight="bold", color=t.TEXT, border_bottom=1, padding_bottom=12,border_color=t.BORDER),
             component(example_with_code, props={
                 "title": "Default Table",
                 "example": component(default_table),

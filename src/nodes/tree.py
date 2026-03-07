@@ -2177,6 +2177,11 @@ class Tree(TreeType):
 
             self.destroy_blockable_canvas()
 
+            if settings.get("user.ui_elements_custom_input", False):
+                from ..platform.custom_input import custom_input_manager
+                if custom_input_manager.has_focused_input:
+                    custom_input_manager.blur()
+
             self._tree_constructor = None
             self.current_base_canvas = None
             self.transition_manager.destroy()

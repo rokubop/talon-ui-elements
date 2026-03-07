@@ -1,5 +1,6 @@
 from talon import actions
 from ..common import example_with_code, code
+from .. import theme as t
 import textwrap
 
 def checkbox_stories():
@@ -14,7 +15,7 @@ def checkbox_stories():
     auto_save, set_auto_save = state.use("auto_save", True)
 
     return div(padding=32, gap=24)[
-        text("Checkbox", font_size=22, font_weight="bold", color="#F1F1F1"),
+        text("Checkbox", font_size=22, font_weight="bold", color=t.TEXT),
         code(
             textwrap.dedent("""\
                 checkbox = actions.user.ui_elements(['checkbox'])"""
@@ -22,7 +23,7 @@ def checkbox_stories():
         ),
 
         div(gap=16)[
-            text("Stories", font_size=18, font_weight="bold", color="#F1F1F1", border_bottom=1, padding_bottom=12,border_color="#333333"),
+            text("Stories", font_size=18, font_weight="bold", color=t.TEXT, border_bottom=1, padding_bottom=12, border_color=t.BORDER),
             component(example_with_code, props={
                 "title": "Default Checkbox",
                 "example": checkbox(),

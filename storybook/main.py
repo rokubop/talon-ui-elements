@@ -5,6 +5,7 @@ from .elements.table import table_stories
 from .elements.checkbox import checkbox_stories
 from .elements.input_text import input_text_stories
 from .placeholder_stories import placeholder_stories
+from . import theme as t
 
 elements = [
     "active_window",
@@ -57,28 +58,28 @@ def sidebar():
 
     return div(
         min_width=180,
-        background_color="#181A20",
-        color="#F1F1F1",
+        background_color=t.BG,
+        color=t.TEXT,
         border_right=1,
-        border_color="#23242A",
+        border_color=t.BORDER,
         height="100%",
         overflow_y="scroll",
     )[
-        button(flex_direction="row", border_bottom=1, border_color="#23242A", padding=12, gap=8)[
-            icon("chevron_down", size=18, color="#A0A0A0"),
-            text("Elements", font_weight="bold", font_size=16, color="#F1F1F1"),
+        button(flex_direction="row", border_bottom=1, border_color=t.BORDER, padding=12, gap=8)[
+            icon("chevron_down", size=18, color=t.TEXT_MUTED),
+            text("Elements", font_weight="bold", font_size=16, color=t.TEXT),
         ],
         div(padding=8, gap=4, flex_direction="column")[
             *[button(
                 text=element,
-                background_color="#23242A" if page == element else None,
+                background_color=t.BG_ACTIVE if page == element else None,
                 on_click=lambda e, page=element: set_page(page),
-                color="#F1F1F1",
+                color=t.TEXT_SECONDARY,
                 border_radius=6,
                 padding=12,
                 padding_top=8,
                 padding_bottom=8,
-                highlight_color="#31323A33",
+                highlight_color=t.HIGHLIGHT,
                 font_size=14) for element in elements]
         ],
     ]
@@ -89,7 +90,7 @@ def main_content():
 
     page = state.get("page")
 
-    page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color="#888888")])
+    page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color=t.TEXT_MUTED)])
     return div(height="100%", overflow_y="scroll", width="100%")[
         page_fn()
     ]
@@ -98,7 +99,7 @@ def storybook_ui():
     screen, window, div, component = actions.user.ui_elements(["screen", "window", "div", "component"])
 
     return screen(align_items="center", justify_content="center")[
-        window(title="UI Elements Storybook", width=1200, height=800, background_color="#181A20")[
+        window(title="UI Elements Storybook", width=1200, height=800, background_color=t.BG)[
             div(flex_direction="row", height="100%")[
                 component(sidebar),
                 component(main_content)
