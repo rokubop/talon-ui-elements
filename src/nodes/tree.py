@@ -534,6 +534,7 @@ class Tree(TreeType):
         self.unmounting = False
         self._unmount_complete = False
         self.drag_end_phase = False
+        self._text_selecting_node = None
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
@@ -1705,6 +1706,10 @@ class Tree(TreeType):
         if self.is_drag_end():
             return
 
+        if self._text_selecting_node:
+            self._text_selecting_node.update_selection_from_drag(gpos.x)
+            return
+
         start_pos = state_manager.get_mousedown_start_pos()
         if start_pos:
             state_manager.set_mousedown_start_offset(gpos - start_pos)
@@ -1796,6 +1801,9 @@ class Tree(TreeType):
             if node:
                 use_custom = settings.get("user.ui_elements_custom_input", False)
                 state_manager.focus_node(node, visible=use_custom)
+                if use_custom and hasattr(node, 'set_cursor_from_click'):
+                    node.set_cursor_from_click(gpos.x)
+                    self._text_selecting_node = node
                 return
 
         if self.root_node.box_model:
@@ -1825,6 +1833,8 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
+            self._text_selecting_node = None
+
             if self.meta_state.is_resize_dragging():
                 self.handle_resize_mouseup(gpos)
                 return

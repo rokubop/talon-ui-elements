@@ -116,6 +116,61 @@ class NodeInputText(Node):
                 return render_cb
             custom_input_manager.set_render_callback(make_render_cb(self.tree))
 
+    def _get_cursor_index_from_x(self, click_x: float) -> int:
+        """Convert an x-coordinate to a character index in the text."""
+        from ..platform.custom_input import custom_input_manager
+
+        state = custom_input_manager.get_state(self.id)
+        if not state or not self.box_model:
+            return 0
+
+        paint = Paint()
+        paint.textsize = self.properties.font_size
+        if self.properties.font_family:
+            typeface = get_typeface(self.properties.font_family)
+            if typeface:
+                paint.typeface = typeface
+
+        content_x = self.box_model.content_children_pos.x
+        relative_x = click_x - content_x - state.scroll_offset
+        text = state.text or ""
+
+        best_pos = 0
+        best_dist = abs(relative_x)
+        for i in range(1, len(text) + 1):
+            width = paint.measure_text(text[:i])[1].width
+            dist = abs(relative_x - width)
+            if dist < best_dist:
+                best_dist = dist
+                best_pos = i
+        return best_pos
+
+    def set_cursor_from_click(self, click_x: float):
+        """Position cursor at the character closest to click_x."""
+        from ..platform.custom_input import custom_input_manager
+
+        state = custom_input_manager.get_state(self.id)
+        if not state:
+            return
+
+        pos = self._get_cursor_index_from_x(click_x)
+        state.cursor_pos = pos
+        state.selection_start = pos
+        custom_input_manager._reset_blink()
+        custom_input_manager._render()
+
+    def update_selection_from_drag(self, click_x: float):
+        """Update cursor position during drag selection."""
+        from ..platform.custom_input import custom_input_manager
+
+        state = custom_input_manager.get_state(self.id)
+        if not state:
+            return
+
+        state.cursor_pos = self._get_cursor_index_from_x(click_x)
+        custom_input_manager._reset_blink()
+        custom_input_manager._render()
+
     def _render_custom_input_text(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         """Draw text, cursor, and selection on canvas."""
         from ..platform.custom_input import custom_input_manager
