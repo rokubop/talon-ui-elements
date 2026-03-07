@@ -124,6 +124,9 @@ class NodeInputText(Node):
             return
 
         top_left_pos = self.box_model.content_children_pos.copy()
+        if transforms and transforms.offset:
+            top_left_pos.x += transforms.offset.x
+            top_left_pos.y += transforms.offset.y
         content_width = self.box_model.content_size.width
         content_height = self.box_model.content_size.height
 
