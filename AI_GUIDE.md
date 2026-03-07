@@ -460,7 +460,7 @@ button("Click", on_click=handle_click)
 
 ## Input Text
 
-Text input field. **Requires `id` prop.**
+Text input field. **Requires `id` prop.** Custom canvas-rendered input with full keyboard support (Ctrl+A/C/V/X, Ctrl+arrow word nav, Shift+arrow selection, Home/End, etc.) and mouse interaction (click to position cursor, drag to select, double-click to select word, triple-click to select all).
 
 ```python
 input_text, ref = actions.user.ui_elements(["input_text", "ref"])
@@ -470,13 +470,21 @@ my_input = ref("my_input")
 # In the UI tree:
 input_text(id="my_input", autofocus=True, background_color="222222", border_radius=4, width=200)
 
+# With placeholder and custom colors:
+input_text(
+    id="search",
+    placeholder="Search...",
+    placeholder_color="FFFFFF55",
+    selection_color="4488FF88",
+    cursor_color="FF8800",
+    on_change=handle_change,
+)
+
 # on_change callback receives ChangeEvent:
 def handle_change(e):
     print(e.value)           # Current value
     print(e.previous_value)  # Previous value
     print(e.id)              # Element id
-
-input_text(id="search", on_change=handle_change)
 
 # Read value via ref:
 current_value = my_input.value
@@ -485,6 +493,15 @@ current_value = my_input.value
 my_input.clear()
 my_input.focus()
 ```
+
+**Input-specific properties:**
+
+| Property | Type | Default | Notes |
+|---|---|---|---|
+| `placeholder` | str | `""` | Hint text shown when empty and unfocused |
+| `placeholder_color` | str | `"FFFFFF55"` | Color of placeholder text |
+| `selection_color` | str | `"4488FF88"` | Selection highlight color |
+| `cursor_color` | str | None | Cursor color (falls back to `color`) |
 
 ---
 

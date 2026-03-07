@@ -3,26 +3,32 @@
 ## Overview
 Replacing Talon's buggy experimental `TextArea` with a fully custom canvas-rendered text input. Feature-toggled via `user.ui_elements_custom_input` setting (default `False`).
 
-## Status: Core typing works, needs testing of edge cases
+## Status: Fully functional, needs edge case testing
 
 ### What works
 - Custom input renders on the Skia canvas (text, cursor, selection highlight)
 - Real-time typing with immediate visual feedback
 - Cursor blink animation
 - Autofocus on load
-- Click-to-focus
+- Click-to-focus with cursor positioning
+- Click-drag to select text
+- Double-click to select word, triple-click to select all
 - Focus outline ring
+- Text scrolling/clipping when text overflows input width
+- Scroll adjusts back when deleting characters
+- Text follows window during drag
 - `user.ui_elements_typing` tag activates when input is focused (suppresses other commands)
 - on_change callback fires with ChangeEvent
-
-### Needs testing
-- Tab / shift-tab focus navigation (does typing work after tabbing back?)
-- Escape to blur
 - Ctrl+A (select all), Ctrl+C/V/X (copy/paste/cut)
 - Shift+arrow selection
 - Ctrl+arrow word navigation
 - Ctrl+backspace/delete (word delete)
 - Home/End keys
+- Escape to blur
+- Configurable properties: `placeholder`, `placeholder_color`, `selection_color`, `cursor_color`
+
+### Needs testing
+- Tab / shift-tab focus navigation (does typing work after tabbing back?)
 - Click off UI completely and back
 - Destroy/cleanup (keyboard hook cleanup, tag clearing)
 - Multiple inputs in same UI

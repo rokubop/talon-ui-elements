@@ -3,6 +3,7 @@ from .elements.button import button_stories
 from .elements.link import link_stories
 from .elements.table import table_stories
 from .elements.checkbox import checkbox_stories
+from .elements.input_text import input_text_stories
 from .placeholder_stories import placeholder_stories
 
 elements = [
@@ -35,7 +36,7 @@ storybook_pages = {
     "div": lambda: placeholder_stories("div"),
     "effect": lambda: placeholder_stories("effect"),
     "icon": lambda: placeholder_stories("icon"),
-    "input_text": lambda: placeholder_stories("input_text"),
+    "input_text": input_text_stories,
     "link": link_stories,
     "ref": lambda: placeholder_stories("ref"),
     "screen": lambda: placeholder_stories("screen"),

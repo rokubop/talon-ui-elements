@@ -145,7 +145,7 @@ class NodeInputText(Node):
                 best_pos = i
         return best_pos
 
-    def set_cursor_from_click(self, click_x: float):
+    def set_cursor_from_click(self, click_x: float, click_count: int = 1):
         """Position cursor at the character closest to click_x."""
         from ..platform.custom_input import custom_input_manager
 
@@ -153,9 +153,27 @@ class NodeInputText(Node):
         if not state:
             return
 
-        pos = self._get_cursor_index_from_x(click_x)
-        state.cursor_pos = pos
-        state.selection_start = pos
+        text = state.text or ""
+
+        if click_count == 3:
+            state.selection_start = 0
+            state.cursor_pos = len(text)
+        elif click_count == 2:
+            pos = self._get_cursor_index_from_x(click_x)
+            # Select word under cursor
+            start = pos
+            while start > 0 and text[start - 1] != ' ':
+                start -= 1
+            end = pos
+            while end < len(text) and text[end] != ' ':
+                end += 1
+            state.selection_start = start
+            state.cursor_pos = end
+        else:
+            pos = self._get_cursor_index_from_x(click_x)
+            state.cursor_pos = pos
+            state.selection_start = pos
+
         custom_input_manager._reset_blink()
         custom_input_manager._render()
 
@@ -239,7 +257,7 @@ class NodeInputText(Node):
             sel_width = paint.measure_text(text_in_sel)[1].width if text_in_sel else 0
 
             sel_paint = Paint()
-            sel_paint.color = "4488FF88"
+            sel_paint.color = self.properties.selection_color
             sel_paint.style = sel_paint.Style.FILL
             c.draw_rect(Rect(
                 x_sel_start,
@@ -248,18 +266,22 @@ class NodeInputText(Node):
                 char_height + 4
             ), sel_paint)
 
-        # Text
+        # Text or placeholder
         if text:
             paint.style = paint.Style.FILL
             paint.color = self.properties.color
             c.draw_text(text, text_x, text_y, paint)
+        elif self.properties.placeholder and not is_focused:
+            paint.style = paint.Style.FILL
+            paint.color = self.properties.placeholder_color
+            c.draw_text(self.properties.placeholder, top_left_pos.x, text_y, paint)
 
         # Cursor
         if is_focused and state.cursor_visible:
             cursor_x = text_x + cursor_x_in_text
 
             cursor_paint = Paint()
-            cursor_paint.color = self.properties.color
+            cursor_paint.color = self.properties.cursor_color or self.properties.color
             cursor_paint.stroke_width = 1.5
             cursor_paint.style = cursor_paint.Style.STROKE
 

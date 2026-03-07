@@ -127,6 +127,10 @@ Properties mostly match standard CSS properties.
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
 | value | str | None | Value of `input_text` |
+| placeholder | str | "" | Placeholder hint text for `input_text`, shown when empty and unfocused |
+| placeholder_color | str | "FFFFFF55" | Color of placeholder text for `input_text` |
+| selection_color | str | "4488FF88" | Selection highlight color for `input_text` |
+| cursor_color | str | None | Cursor (caret) color for `input_text`. Falls back to `color` |
 
 ## Focus & Highlight Properties
 

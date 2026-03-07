@@ -107,6 +107,10 @@ class CustomInputManager:
             _ctx.tags = ["user.ui_elements_typing"]
 
     def blur(self):
+        if self._focused_id:
+            state = self._inputs.get(self._focused_id)
+            if state:
+                state.selection_start = None
         self._focused_id = None
         self._stop_blink()
         _ctx.tags = []

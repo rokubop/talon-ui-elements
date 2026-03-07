@@ -535,6 +535,8 @@ class Tree(TreeType):
         self._unmount_complete = False
         self.drag_end_phase = False
         self._text_selecting_node = None
+        self._input_click_count = 0
+        self._input_last_click_time = 0
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
@@ -1802,8 +1804,16 @@ class Tree(TreeType):
                 use_custom = settings.get("user.ui_elements_custom_input", False)
                 state_manager.focus_node(node, visible=use_custom)
                 if use_custom and hasattr(node, 'set_cursor_from_click'):
-                    node.set_cursor_from_click(gpos.x)
-                    self._text_selecting_node = node
+                    import time
+                    now = time.monotonic()
+                    if now - self._input_last_click_time < 0.4:
+                        self._input_click_count = min(self._input_click_count + 1, 3)
+                    else:
+                        self._input_click_count = 1
+                    self._input_last_click_time = now
+                    node.set_cursor_from_click(gpos.x, self._input_click_count)
+                    if self._input_click_count == 1:
+                        self._text_selecting_node = node
                 return
 
         if self.root_node.box_model:

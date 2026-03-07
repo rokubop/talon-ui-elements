@@ -104,4 +104,4 @@ class Actions:
 - Recommend using "Andreas Talon" VSCode extension + its dependency pokey command server, so you can get autocomplete for talon user actions, and hover over hint documentation on things like `actions.user.ui_elements()` or `actions.user.ui_elements_show()`.
 
 ## Under the hood
-Uses Talon's `Canvas` and Skia canvas integration under the hood, along with Talon's experimental `TextArea` for input.
+Uses Talon's `Canvas` and Skia canvas integration under the hood with a custom canvas-rendered text input.

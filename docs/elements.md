@@ -21,7 +21,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `window` | Layout | Draggable window with title bar, close button, and drop shadow - must be first element after screen | `screen(justify_content="center", align_items="center")[window(title="My App")[...]]` |
 | `cursor` | Layout | Container that follows the mouse cursor position | `cursor()[text("Status")]` |
 | `text` | Content | Display text content | `text("Hello world", font_size=16)` |
-| `input_text` | Content | Text input field | `input_text(id="my_input", on_change=handler)` |
+| `input_text` | Content | Text input field with keyboard/mouse support | `input_text(id="my_input", placeholder="Search...", on_change=handler)` |
 | `icon` | Content | Built-in icons (see [icons.md](icons.md)) | `icon("microphone", size=24)` |
 | `button` | Interactive | Interactive button with click handler | `button(text="Click me", on_click=handler)` |
 | `checkbox` | Interactive | Checkbox input with change handler | `checkbox(checked=True, on_change=handler)` |

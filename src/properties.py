@@ -859,6 +859,10 @@ class NodeInputTextProperties(Properties):
     stroke_color: str = None
     value = ""
     on_change: callable = None
+    placeholder: str = ""
+    placeholder_color: str = "FFFFFF55"
+    selection_color: str = "4488FF88"
+    cursor_color: str = None
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -887,6 +891,10 @@ class NodeInputTextValidationProperties(ValidationProperties):
     font_size: int
     value: Union[str, int, float] = None
     on_change: callable
+    placeholder: str
+    placeholder_color: str
+    selection_color: str
+    cursor_color: str
 
 @dataclass
 class NodeWindowProperties(Properties):
