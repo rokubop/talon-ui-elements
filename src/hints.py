@@ -68,15 +68,16 @@ class HintGenerator:
         if node.id in store.id_to_hint:
             return store.id_to_hint[node.id]
 
-        if node.element_type in self.char_map:
-            first_char, second_char_list = self.char_map[node.element_type]
-            first_char_ascii, index = self.state[node.element_type]
+        element_type = "input_text" if node.element_type == "textarea" else node.element_type
+        if element_type in self.char_map:
+            first_char, second_char_list = self.char_map[element_type]
+            first_char_ascii, index = self.state[element_type]
 
             if index < len(second_char_list):
                 # increment second char
                 second_char = second_char_list[index]
                 hint = f"{chr(first_char_ascii)}{second_char}"
-                self.state[node.element_type] = (first_char_ascii, index + 1)
+                self.state[element_type] = (first_char_ascii, index + 1)
             else:
                 # increment first char
                 index = 0
@@ -85,7 +86,7 @@ class HintGenerator:
                     first_char_ascii = ord("a")
                 second_char = second_char_list[index]
                 hint = f"{chr(first_char_ascii)}{second_char}"
-                self.state[node.element_type] = (first_char_ascii, index + 1)
+                self.state[element_type] = (first_char_ascii, index + 1)
 
             store.id_to_hint[node.id] = hint
             return hint

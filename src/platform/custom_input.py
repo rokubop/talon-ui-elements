@@ -56,14 +56,17 @@ class CustomInputManager:
     def __init__(self):
         self._inputs: dict[str, InputState] = {}
         self._focused_id: Optional[str] = None
+        self._multiline_ids: set[str] = set()
         self._on_change_callbacks: dict[str, Callable] = {}
         self._on_submit_callbacks: dict[str, Callable] = {}
         self._render_callback: Optional[Callable] = None
         self._blink_job = None
 
-    def create_input(self, id: str, initial_value: str = "", on_change: Callable = None, on_submit: Callable = None):
+    def create_input(self, id: str, initial_value: str = "", on_change: Callable = None, on_submit: Callable = None, multiline: bool = False):
         if id not in self._inputs:
             self._inputs[id] = InputState(text=initial_value, cursor_pos=len(initial_value))
+        if multiline:
+            self._multiline_ids.add(id)
         if on_change:
             self._on_change_callbacks[id] = on_change
         if on_submit:
@@ -71,6 +74,7 @@ class CustomInputManager:
 
     def remove_input(self, id: str):
         self._inputs.pop(id, None)
+        self._multiline_ids.discard(id)
         self._on_change_callbacks.pop(id, None)
         self._on_submit_callbacks.pop(id, None)
         if self._focused_id == id:
@@ -80,6 +84,7 @@ class CustomInputManager:
 
     def remove_all(self):
         self._inputs.clear()
+        self._multiline_ids.clear()
         self._on_change_callbacks.clear()
         self._on_submit_callbacks.clear()
         self._focused_id = None
@@ -190,6 +195,27 @@ class CustomInputManager:
 
         return False
 
+    @property
+    def _is_multiline(self) -> bool:
+        return self._focused_id in self._multiline_ids
+
+    def _get_line_info(self, state: InputState):
+        """Get (line_index, col_index, lines) for cursor position in raw text."""
+        lines = state.text.split("\n")
+        pos = 0
+        for i, line in enumerate(lines):
+            if pos + len(line) >= state.cursor_pos:
+                return i, state.cursor_pos - pos, lines
+            pos += len(line) + 1  # +1 for \n
+        return len(lines) - 1, len(lines[-1]) if lines else 0, lines
+
+    def _line_col_to_pos(self, line_idx: int, col: int, lines: list[str]) -> int:
+        pos = 0
+        for i in range(min(line_idx, len(lines) - 1)):
+            pos += len(lines[i]) + 1
+        target_line = lines[min(line_idx, len(lines) - 1)]
+        return pos + min(col, len(target_line))
+
     def _process_key(self, state: InputState, key: str, shift: bool, ctrl: bool, alt: bool) -> bool:
         # Ctrl shortcuts
         if ctrl:
@@ -205,7 +231,9 @@ class CustomInputManager:
             elif key == 'v':
                 text = clip.text()
                 if text:
-                    text = text.replace('\n', ' ').replace('\r', '')
+                    text = text.replace('\r\n', '\n').replace('\r', '')
+                    if not self._is_multiline:
+                        text = text.replace('\n', ' ')
                     if state.has_selection:
                         state.delete_selection()
                     state.text = state.text[:state.cursor_pos] + text + state.text[state.cursor_pos:]
@@ -302,7 +330,11 @@ class CustomInputManager:
                     state.selection_start = state.cursor_pos
             else:
                 state.selection_start = None
-            state.cursor_pos = 0
+            if self._is_multiline:
+                line_idx, col, lines = self._get_line_info(state)
+                state.cursor_pos = self._line_col_to_pos(line_idx, 0, lines)
+            else:
+                state.cursor_pos = 0
             return True
 
         if key == 'end':
@@ -311,7 +343,33 @@ class CustomInputManager:
                     state.selection_start = state.cursor_pos
             else:
                 state.selection_start = None
-            state.cursor_pos = len(state.text)
+            if self._is_multiline:
+                line_idx, col, lines = self._get_line_info(state)
+                state.cursor_pos = self._line_col_to_pos(line_idx, len(lines[line_idx]), lines)
+            else:
+                state.cursor_pos = len(state.text)
+            return True
+
+        if key == 'up' and self._is_multiline:
+            line_idx, col, lines = self._get_line_info(state)
+            if line_idx > 0:
+                if shift:
+                    if state.selection_start is None:
+                        state.selection_start = state.cursor_pos
+                else:
+                    state.selection_start = None
+                state.cursor_pos = self._line_col_to_pos(line_idx - 1, col, lines)
+            return True
+
+        if key == 'down' and self._is_multiline:
+            line_idx, col, lines = self._get_line_info(state)
+            if line_idx < len(lines) - 1:
+                if shift:
+                    if state.selection_start is None:
+                        state.selection_start = state.cursor_pos
+                else:
+                    state.selection_start = None
+                state.cursor_pos = self._line_col_to_pos(line_idx + 1, col, lines)
             return True
 
         if key == 'backspace':
@@ -332,6 +390,13 @@ class CustomInputManager:
             return True
 
         if key == 'enter' or key == 'return':
+            if self._is_multiline:
+                if state.has_selection:
+                    state.delete_selection()
+                state.text = state.text[:state.cursor_pos] + "\n" + state.text[state.cursor_pos:]
+                state.cursor_pos += 1
+                state.selection_start = None
+                return True
             cb = self._on_submit_callbacks.get(self._focused_id)
             if cb:
                 cb(state.text)

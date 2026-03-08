@@ -2,15 +2,16 @@ from talon import actions
 from ..common import (
     code, example_with_code, interactive_section,
     build_controls_state, build_preview_props,
-    STRING, INT, COLOR, BOOL,
+    STRING, INT, COLOR,
 )
 from .. import theme as t
 import textwrap
 
 CONTROLS = [
-    ("placeholder", STRING, "Search..."),
+    ("placeholder", STRING, "Enter text..."),
     ("value", STRING, ""),
-    ("width", INT, "300"),
+    ("rows", INT, "3"),
+    ("width", INT, "400"),
     ("border_radius", INT, "4"),
     ("border_width", INT, "0"),
     ("border_color", COLOR, ""),
@@ -19,32 +20,31 @@ CONTROLS = [
     ("placeholder_color", COLOR, ""),
     ("selection_color", COLOR, ""),
     ("cursor_color", COLOR, ""),
-    ("autofocus", BOOL, False),
 ]
 
-def input_text_stories():
-    component, div, text, input_text, state, button = actions.user.ui_elements([
-        "component", "div", "text", "input_text", "state", "button"
+def textarea_stories():
+    component, div, text, textarea, state, button = actions.user.ui_elements([
+        "component", "div", "text", "textarea", "state", "button"
     ])
 
-    cs = build_controls_state(state, "it", CONTROLS)
+    cs = build_controls_state(state, "ta", CONTROLS)
     preview_props = build_preview_props(CONTROLS, cs)
-    preview_props["id"] = "it_preview"
+    preview_props["id"] = "ta_preview"
 
     return div(padding=32, gap=24)[
-        text("Input Text", font_size=22, font_weight="bold", color=t.TEXT),
+        text("Textarea", font_size=22, font_weight="bold", color=t.TEXT),
         code(
             textwrap.dedent("""\
-                input_text = actions.user.ui_elements(['input_text'])""")
+                textarea = actions.user.ui_elements(['textarea'])""")
         ),
 
         interactive_section(
-            element_name="input_text",
-            preview_element=input_text(**preview_props),
+            element_name="textarea",
+            preview_element=textarea(**preview_props),
             controls_spec=CONTROLS,
             controls_state=cs,
-            prefix="it",
-            id_override="my_input",
+            prefix="ta",
+            id_override="my_textarea",
         ),
 
         # Examples
@@ -53,23 +53,34 @@ def input_text_stories():
 
             component(example_with_code, props={
                 "title": "With Placeholder",
-                "example": input_text(id="ex_placeholder", placeholder="Search..."),
+                "example": textarea(id="ex_ta_placeholder", placeholder="Write your notes here..."),
                 "code": textwrap.dedent("""\
-                    input_text(id="my_input", placeholder="Search...")"""),
+                    textarea(id="my_textarea", placeholder="Write your notes here...")"""),
+            }),
+
+            component(example_with_code, props={
+                "title": "With Rows",
+                "example": textarea(id="ex_ta_rows", rows=5, placeholder="5 rows tall"),
+                "code": textwrap.dedent("""\
+                    textarea(id="my_textarea", rows=5, placeholder="5 rows tall")"""),
             }),
 
             component(example_with_code, props={
                 "title": "With Initial Value",
-                "example": input_text(id="ex_value", value="Hello world"),
+                "example": textarea(id="ex_ta_value", value="Line one\nLine two\nLine three", rows=4),
                 "code": textwrap.dedent("""\
-                    input_text(id="my_input", value="Hello world")"""),
+                    textarea(
+                        id="my_textarea",
+                        value="Line one\\nLine two\\nLine three",
+                        rows=4,
+                    )"""),
             }),
 
             component(example_with_code, props={
-                "title": "Styled Input",
-                "example": input_text(
-                    id="ex_styled",
-                    placeholder="Styled input",
+                "title": "Styled Textarea",
+                "example": textarea(
+                    id="ex_ta_styled",
+                    placeholder="Styled textarea",
                     background_color="#1A1A2E",
                     color="#E94560",
                     border_radius=8,
@@ -77,12 +88,13 @@ def input_text_stories():
                     border_color="#E94560",
                     cursor_color="#E94560",
                     selection_color="E9456088",
-                    width=300,
+                    width=400,
+                    rows=4,
                 ),
                 "code": textwrap.dedent("""\
-                    input_text(
-                        id="my_input",
-                        placeholder="Styled input",
+                    textarea(
+                        id="my_textarea",
+                        placeholder="Styled textarea",
                         background_color="#1A1A2E",
                         color="#E94560",
                         border_radius=8,
@@ -90,15 +102,17 @@ def input_text_stories():
                         border_color="#E94560",
                         cursor_color="#E94560",
                         selection_color="E9456088",
-                        width=300,
+                        width=400,
+                        rows=4,
                     )"""),
             }),
 
             component(example_with_code, props={
                 "title": "With on_change Callback",
-                "example": input_text(
-                    id="ex_onchange",
+                "example": textarea(
+                    id="ex_ta_onchange",
                     placeholder="Type to see events",
+                    rows=3,
                     on_change=lambda e: print(f"Value: {e.value}"),
                 ),
                 "code": textwrap.dedent("""\
@@ -107,26 +121,27 @@ def input_text_stories():
                         print(e.previous_value)  # Previous value
                         print(e.id)              # Element id
 
-                    input_text(
-                        id="my_input",
+                    textarea(
+                        id="my_textarea",
                         placeholder="Type to see events",
+                        rows=3,
                         on_change=handle_change,
                     )"""),
             }),
 
             component(example_with_code, props={
                 "title": "Reading Value with Ref",
-                "example": div(flex_direction="row", gap=8, align_items="center")[
-                    input_text(id="ex_ref", placeholder="Type something"),
+                "example": div(flex_direction="row", gap=8, align_items="flex_start")[
+                    textarea(id="ex_ta_ref", placeholder="Type something", rows=3),
                     button("Log Value", on_click=lambda: print(
-                        actions.user.ui_elements_get_input_value("ex_ref")
+                        actions.user.ui_elements_get_input_value("ex_ta_ref")
                     ), border_radius=4, padding=8, padding_top=6, padding_bottom=6),
                 ],
                 "code": textwrap.dedent("""\
                     ref = actions.user.ui_elements("ref")
-                    my_ref = ref("my_input")
+                    my_ref = ref("my_textarea")
 
-                    input_text(id="my_input", placeholder="Type something")
+                    textarea(id="my_textarea", placeholder="Type something", rows=3)
                     button("Log Value", on_click=lambda: print(my_ref.value))"""),
             }),
         ],

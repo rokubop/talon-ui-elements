@@ -121,7 +121,7 @@ class NodeText(Node):
         self.text_line_height = paint.measure_text("X")[1].height
         self.text_body_height = self.text_line_height
 
-        if (self.properties.width or self.properties.max_width) and self.text_width > self.properties.width:
+        if (self.properties.width or self.properties.max_width) and isinstance(self.properties.width, (int, float)) and self.text_width > self.properties.width:
             self.text_multiline = split_lines(text_cleansed, self.text_width, paint.measure_text)
             gap = self.properties.gap or 16
             self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
@@ -139,7 +139,7 @@ class NodeText(Node):
         paint = Paint()
         paint.textsize = self.properties.font_size
         if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family)
+            typeface = get_typeface(self.properties.font_family, self.properties.font_weight)
             if typeface:
                 paint.typeface = typeface
 

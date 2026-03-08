@@ -886,6 +886,37 @@ class NodeInputTextProperties(Properties):
         if self.on_change:
             self.on_change = None
 
+@dataclass
+class NodeSelectProperties(Properties):
+    id: str = None
+    font_family: str = ""
+    font_size: int = DEFAULT_FONT_SIZE
+    options: list = None
+    value = ""
+    on_change: callable = None
+    placeholder: str = "Select..."
+    placeholder_color: str = "FFFFFF55"
+
+    def __init__(self, **kwargs):
+        self.font_size = DEFAULT_FONT_SIZE
+        if app.platform == "mac":
+            self.font_family = "helvetica"
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
+
+class NodeSelectValidationProperties(ValidationProperties):
+    id: str
+    font_size: int
+    font_family: str
+    options: list
+    value: Union[str, int, float]
+    on_change: callable
+    placeholder: str
+    placeholder_color: str
+
 class NodeInputTextValidationProperties(ValidationProperties):
     id: str
     font_size: int
@@ -895,6 +926,60 @@ class NodeInputTextValidationProperties(ValidationProperties):
     placeholder_color: str
     selection_color: str
     cursor_color: str
+
+@dataclass
+class NodeTextareaProperties(Properties):
+    id: str = None
+    font_family: str = ""
+    font_size: int = DEFAULT_FONT_SIZE
+    stroke_width: int = None
+    stroke_color: str = None
+    value = ""
+    on_change: callable = None
+    placeholder: str = ""
+    placeholder_color: str = "FFFFFF55"
+    selection_color: str = "4488FF88"
+    cursor_color: str = None
+    rows: int = 3
+
+    def __init__(self, **kwargs):
+        self.font_size = DEFAULT_FONT_SIZE
+        if kwargs.get('value'):
+            kwargs['value'] = str(kwargs['value'])
+        if app.platform == "mac":
+            self.font_family = "helvetica"
+        kwargs['padding_left'] = max(
+            kwargs.get('padding_left', 0),
+            kwargs.get('padding', 0)
+        ) + max(8, kwargs.get('border_radius', 0))
+        kwargs['padding_right'] = max(
+            kwargs.get('padding_right', 0),
+            kwargs.get('padding', 0)
+        ) + max(8, kwargs.get('border_radius', 0))
+        kwargs['padding_top'] = max(
+            kwargs.get('padding_top', 0),
+            kwargs.get('padding', 0)
+        ) + 8
+        kwargs['padding_bottom'] = max(
+            kwargs.get('padding_bottom', 0),
+            kwargs.get('padding', 0)
+        ) + 8
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
+
+class NodeTextareaValidationProperties(ValidationProperties):
+    id: str
+    font_size: int
+    value: Union[str, int, float] = None
+    on_change: callable
+    placeholder: str
+    placeholder_color: str
+    selection_color: str
+    cursor_color: str
+    rows: int
 
 @dataclass
 class NodeWindowProperties(Properties):
@@ -1015,6 +1100,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["select"]: NodeSelectValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["modal"]: NodeModalValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_circle"]: NodeSvgCircleValidationProperties.__annotations__,
@@ -1028,6 +1114,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["table"]: NodeTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["td"]: NodeTableDataValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["textarea"]: NodeTextareaValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["th"]: NodeTableHeaderValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["tr"]: NodeTableRowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["window"]: NodeWindowValidationProperties.__annotations__,

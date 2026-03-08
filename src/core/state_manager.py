@@ -409,21 +409,23 @@ class StateManager:
         if node:
             node.tree.highlight_briefly(id, color)
 
-    def blur(self):
+    def blur(self, pos=None):
         if _use_custom_input():
             from ..platform.custom_input import custom_input_manager
             custom_input_manager.blur()
         store.focused_id = None
+        store.blur_pos = pos
 
         if store.focused_tree and store.focused_tree.canvas_decorator:
             store.focused_tree.canvas_decorator.focused = True
             store.focused_tree.render_decorator_canvas()
 
-    def blur_all(self):
+    def blur_all(self, pos=None):
         if _use_custom_input():
             from ..platform.custom_input import custom_input_manager
             custom_input_manager.blur()
         store.focused_id = None
+        store.blur_pos = pos
 
         if store.focused_tree and store.focused_tree.canvas_decorator:
             store.focused_tree.canvas_decorator.focused = False
@@ -456,6 +458,7 @@ class StateManager:
         store.focused_id = node.id
         store.focused_tree = node.tree
         store.focused_visible = visible
+        store.blur_pos = None
 
         if node.element_type == "input_text":
             self.focus_input(node.id)
@@ -468,6 +471,22 @@ class StateManager:
         if blur_tree:
             blur_tree.render_decorator_canvas()
         node.tree.render_decorator_canvas()
+
+    def _find_nearest_node(self, nodes, pos):
+        """Find the nearest interactive node to a position based on distance to node center."""
+        nearest = None
+        nearest_dist = float('inf')
+        for node in nodes:
+            if not getattr(node, 'box_model', None) or not node.box_model.border_rect:
+                continue
+            rect = node.box_model.border_rect
+            cx = rect.x + rect.width / 2
+            cy = rect.y + rect.height / 2
+            dist = (pos.x - cx) ** 2 + (pos.y - cy) ** 2
+            if dist < nearest_dist:
+                nearest_dist = dist
+                nearest = node
+        return nearest
 
     def focus_next(self):
         interactive_nodes = []
@@ -488,12 +507,15 @@ class StateManager:
             current_index = interactive_nodes.index(current_node)
             next_index = current_index + 1 if current_index < len(interactive_nodes) - 1 else 0
             next_node = interactive_nodes[next_index]
+        elif store.blur_pos and interactive_nodes:
+            next_node = self._find_nearest_node(interactive_nodes, store.blur_pos)
         elif store.focused_tree:
             next_node = store.focused_tree.interactive_node_list[0]
         else:
             next_node = interactive_nodes[0]
 
         if next_node:
+            store.blur_pos = None
             self.focus_node(next_node)
 
     def focus_previous(self):
@@ -515,12 +537,15 @@ class StateManager:
             current_index = interactive_nodes.index(current_node)
             previous_index = current_index - 1 if current_index > 0 else len(interactive_nodes) - 1
             previous_node = interactive_nodes[previous_index]
+        elif store.blur_pos and interactive_nodes:
+            previous_node = self._find_nearest_node(interactive_nodes, store.blur_pos)
         elif store.focused_tree:
             previous_node = store.focused_tree.interactive_node_list[-1]
         else:
             previous_node = interactive_nodes[-1]
 
         if previous_node:
+            store.blur_pos = None
             self.focus_node(previous_node)
 
     def scroll_to(self, id: str, x: int, y: int):

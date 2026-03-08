@@ -57,6 +57,8 @@ def checkbox_impl(props):
                 CheckboxEvent(checked=new_checked, id=button_props.get("id", None))
             )
 
+    unchecked_size = svg_props.get("size", default_svg_props["size"])
+
     if checkbox_props.get("disabled"):
         return div(
             {
@@ -69,7 +71,7 @@ def checkbox_impl(props):
             div()[
                 svg({ **default_svg_props, **svg_props })[
                     polyline(points="20 6 9 17 4 12")
-                ] if is_checked else div(width=20, height=20),
+                ] if is_checked else div(width=unchecked_size, height=unchecked_size),
             ]
         ]
 
@@ -82,7 +84,7 @@ def checkbox_impl(props):
     )[
         svg({ **default_svg_props, **svg_props })[
             polyline(points="20 6 9 17 4 12")
-        ] if is_checked else div(width=20, height=20)
+        ] if is_checked else div(width=unchecked_size, height=unchecked_size)
     ]
 
 def checkbox(props=None, **additional_props):

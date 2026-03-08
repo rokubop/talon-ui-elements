@@ -1,15 +1,21 @@
 # Storybook color tokens
-BG = "#1C1E26"
-BG_RAISED = "#252838"
-BG_ACTIVE = "#2E3040"
-BG_CODE = "#141620"
 
-BORDER = "#444860"
-BORDER_SUBTLE = "#3A3D50"
+# Backgrounds - neutral gray, clear layer separation
+BG = "#1A1A1F"           # Window/sidebar - darkest
+BG_CONTENT = "#222228"   # Main content area
+BG_RAISED = "#2E2E36"    # Cards, panels, controls
+BG_ACTIVE = "#3A3A44"    # Selected/active states
+BG_CODE = "#161618"      # Code blocks - darker than content
 
-TEXT = "#E0E0E8"
-TEXT_SECONDARY = "#B0B8C8"
-TEXT_CODE = "#D0D8E8"
-TEXT_MUTED = "#8B90A0"
+# Borders - visible
+BORDER = "#4A4A56"
+BORDER_SUBTLE = "#3A3A44"
 
-HIGHLIGHT = "#3A3D5033"
+# Text - good contrast
+TEXT = "#E8E8EC"
+TEXT_SECONDARY = "#C0C0C8"
+TEXT_CODE = "#D8D8E0"
+TEXT_MUTED = "#808088"
+
+# Interactive
+HIGHLIGHT = "#4A4A5633"

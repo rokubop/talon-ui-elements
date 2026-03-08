@@ -1,54 +1,28 @@
 from talon import actions
 from .elements.button import button_stories
+from .elements.div import div_stories
 from .elements.link import link_stories
 from .elements.table import table_stories
 from .elements.checkbox import checkbox_stories
 from .elements.input_text import input_text_stories
-from .placeholder_stories import placeholder_stories
+from .elements.select import select_stories
+from .elements.text import text_stories
+from .elements.textarea import textarea_stories
 from . import theme as t
-
-elements = [
-    "active_window",
-    "button",
-    "checkbox",
-    "component",
-    "div",
-    "effect",
-    "icon",
-    "input_text",
-    "link",
-    "ref",
-    "screen",
-    "state",
-    "table",
-    "td",
-    "text",
-    "th",
-    "tr",
-    "window"
-]
 
 storybook_pages = {
     "button": button_stories,
-    # Placeholders for other elements
-    "active_window": lambda: placeholder_stories("active_window"),
     "checkbox": checkbox_stories,
-    "component": lambda: placeholder_stories("component"),
-    "div": lambda: placeholder_stories("div"),
-    "effect": lambda: placeholder_stories("effect"),
-    "icon": lambda: placeholder_stories("icon"),
+    "div": div_stories,
     "input_text": input_text_stories,
     "link": link_stories,
-    "ref": lambda: placeholder_stories("ref"),
-    "screen": lambda: placeholder_stories("screen"),
-    "state": lambda: placeholder_stories("state"),
+    "select": select_stories,
     "table": table_stories,
-    "td": table_stories,
-    "text": lambda: placeholder_stories("text"),
-    "th": table_stories,
-    "tr": table_stories,
-    "window": lambda: placeholder_stories("window"),
+    "text": text_stories,
+    "textarea": textarea_stories,
 }
+
+elements = list(storybook_pages.keys())
 
 def sidebar():
     div, text, icon, button = actions.user.ui_elements(["div", "text", "icon", "button"])
@@ -91,7 +65,7 @@ def main_content():
     page = state.get("page")
 
     page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color=t.TEXT_MUTED)])
-    return div(height="100%", overflow_y="scroll", width="100%")[
+    return div(height="100%", overflow_y="scroll", width="100%", background_color=t.BG_CONTENT)[
         page_fn()
     ]
 

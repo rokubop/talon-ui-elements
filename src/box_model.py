@@ -104,8 +104,8 @@ class BoxModelV2(BoxModelV2Type):
         self.max_height =  properties.max_height
         self.width_percent = properties.width if isinstance(properties.width, str) and "%" in properties.width else None
         self.height_percent = properties.height if isinstance(properties.height, str) and "%" in properties.height else None
-        self.fixed_width = bool(properties.width)
-        self.fixed_height = bool(properties.height)
+        self.fixed_width = bool(properties.width) and not self.width_percent
+        self.fixed_height = bool(properties.height) and not self.height_percent
         self.overflow = properties.overflow
         self.overflow_size = Size2d(0, 0)
         self.position = properties.position
