@@ -1803,6 +1803,14 @@ class Tree(TreeType):
         hovered_id = state_manager.get_hovered_id()
         state_manager.set_mousedown_start_pos(gpos)
 
+        # Close open selects if click is outside the select's own elements
+        hovered_node = self.meta_state.id_to_node.get(hovered_id) if hovered_id else None
+        hovered_interactive_id = getattr(hovered_node, 'interactive_id', None) if hovered_node else None
+        for node in self.interactive_node_list:
+            if node.element_type == ELEMENT_ENUM_TYPE["select"] and getattr(node, 'is_open', False):
+                if hovered_interactive_id != node.id:
+                    node._close()
+
         if self.draggable_node and self.drag_handle_node and self.draggable_node.box_model:
             draggable_top_left_pos = self.draggable_node.box_model.margin_pos
             drag_handle_rect = self.drag_handle_node.box_model.border_rect
@@ -2265,6 +2273,9 @@ class Tree(TreeType):
         requires_id = False
         if node.interactive:
             self.interactive_node_list.append(node)
+            requires_id = True
+        elif node.element_type in (ELEMENT_ENUM_TYPE["button"], ELEMENT_ENUM_TYPE["link"]) \
+                and getattr(node, 'on_click', None):
             requires_id = True
         elif node.properties.is_scrollable() or getattr(node.properties, "draggable", False):
             requires_id = True

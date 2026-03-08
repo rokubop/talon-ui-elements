@@ -18,7 +18,7 @@ CONTROLS = [
     ("placeholder_color", COLOR, ""),
 ]
 
-PREVIEW_OPTIONS = ["Small", "Medium", "Large"]
+PREVIEW_OPTIONS = ["Extra Small", "Small", "Medium", "Large", "Extra Large", "XXL", "XXXL", "Huge", "Massive", "Colossal"]
 
 def select_stories():
     component, div, text, select, state = actions.user.ui_elements([

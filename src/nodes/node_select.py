@@ -92,21 +92,6 @@ class NodeSelect(NodeContainer):
         self.add_child(trigger)
 
         if self._is_open:
-            # Backdrop - invisible full-screen click catcher
-            backdrop = button(
-                on_click=lambda e: self._close(),
-                position="fixed",
-                top=0,
-                left=0,
-                width="100%",
-                height="100%",
-                background_color="00000001",
-                highlight_color="00000000",
-                z_index=9,
-            )
-            backdrop.interactive = False
-            self.add_child(backdrop)
-
             # Dropdown container
             option_height = round(props.font_size * 2.2)
             dropdown_bg = props.background_color or DEFAULT_INPUT_BACKGROUND_COLOR
