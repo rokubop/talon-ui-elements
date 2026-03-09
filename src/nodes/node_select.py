@@ -46,18 +46,24 @@ class NodeSelect(NodeContainer):
         open_key = f"__select_open_{properties.id}"
         hl_key = f"__select_hl_{properties.id}"
 
+        flip_key = f"__select_flip_{properties.id}"
+
         try:
             is_open, set_is_open = state.use(open_key, False)
             highlighted_index, set_highlighted_index = state.use(hl_key, -1)
+            flip_up, set_flip_up = state.use(flip_key, False)
         except Exception:
             from ..core.state_manager import state_manager
             is_open, set_is_open = state_manager.use_state(open_key, False)
             highlighted_index, set_highlighted_index = state_manager.use_state(hl_key, -1)
+            flip_up, set_flip_up = state_manager.use_state(flip_key, False)
 
         self._is_open = is_open
         self._highlighted_index = highlighted_index
         self._set_is_open = set_is_open
         self._set_highlighted_index = set_highlighted_index
+        self._flip_up = flip_up
+        self._set_flip_up = set_flip_up
 
         self._build_children(div, button, text, icon)
 
@@ -95,13 +101,16 @@ class NodeSelect(NodeContainer):
             # Dropdown container
             option_height = round(props.font_size * 2.2)
             dropdown_bg = props.background_color or DEFAULT_INPUT_BACKGROUND_COLOR
+            dropdown_max_height = round(option_height * 6.5)
+
+            dropdown_pos = {"bottom": props.height} if self._flip_up else {"top": props.height}
 
             dropdown = div(
                 position="absolute",
-                top=props.height,
+                **dropdown_pos,
                 left=0,
                 width=props.width,
-                max_height=round(option_height * 6.5),
+                max_height=dropdown_max_height,
                 overflow_y="auto",
                 background_color=dropdown_bg,
                 border_width=1,
@@ -140,6 +149,16 @@ class NodeSelect(NodeContainer):
         new_open = not self._is_open
         self._set_is_open(new_open)
         if new_open:
+            # Determine if dropdown should flip upward
+            flip_up = False
+            if self.box_model and self.tree and self.tree.root_node and self.tree.root_node.box_model:
+                option_height = round(self._select_properties.font_size * 2.2)
+                dropdown_max_height = round(option_height * 6.5)
+                trigger_bottom = self.box_model.border_rect.y + self.box_model.border_rect.height
+                ui_bottom = self.tree.root_node.box_model.border_rect.y + self.tree.root_node.box_model.border_rect.height
+                flip_up = (trigger_bottom + dropdown_max_height) > ui_bottom
+            self._set_flip_up(flip_up)
+
             for i, opt in enumerate(self._normalized_options):
                 if opt["value"] == self._select_properties.value:
                     self._set_highlighted_index(i)
