@@ -373,9 +373,10 @@ class StateManager:
             store.focused_id = node.id
             store.focused_tree = node.tree
             store.focused_visible = True
-            if node.element_type == "input_text" and _use_custom_input():
+            if node.element_type == "textarea" or (node.element_type == "input_text" and _use_custom_input()):
+                focus_method = self.focus_textarea if node.element_type == "textarea" else self.focus_input
                 def delayed_focus():
-                    self.focus_input(node.id)
+                    focus_method(node.id)
                     if node.tree.canvas_decorator:
                         node.tree.canvas_decorator.focused = True
                         node.tree.render_decorator_canvas()
@@ -410,8 +411,8 @@ class StateManager:
             node.tree.highlight_briefly(id, color)
 
     def blur(self, pos=None):
-        if _use_custom_input():
-            from ..platform.custom_input import custom_input_manager
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input:
             custom_input_manager.blur()
         store.focused_id = None
         store.blur_pos = pos
@@ -421,8 +422,8 @@ class StateManager:
             store.focused_tree.render_decorator_canvas()
 
     def blur_all(self, pos=None):
-        if _use_custom_input():
-            from ..platform.custom_input import custom_input_manager
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input:
             custom_input_manager.blur()
         store.focused_id = None
         store.blur_pos = pos
@@ -443,16 +444,21 @@ class StateManager:
             node.input.hide()
             node.input.show()
 
+    def focus_textarea(self, id):
+        from ..platform.custom_input import custom_input_manager
+        custom_input_manager.focus(id)
+
     def focus_node(self, node: NodeType, visible=True):
         blur_tree = None
         if node.tree != store.focused_tree:
             blur_tree = store.focused_tree
 
         # Blur custom input when focus moves away from it
-        if _use_custom_input():
+        is_custom_input_node = node.element_type in ("input_text", "textarea")
+        if _use_custom_input() or node.element_type == "textarea":
             from ..platform.custom_input import custom_input_manager
             if custom_input_manager.has_focused_input and \
-                    (node.element_type != "input_text" or custom_input_manager.focused_id != node.id):
+                    (not is_custom_input_node or custom_input_manager.focused_id != node.id):
                 custom_input_manager.blur()
 
         store.focused_id = node.id
@@ -460,7 +466,11 @@ class StateManager:
         store.focused_visible = visible
         store.blur_pos = None
 
-        if node.element_type == "input_text":
+        if node.element_type == "textarea":
+            self.focus_textarea(node.id)
+            if node.tree.canvas_decorator:
+                node.tree.canvas_decorator.focused = True
+        elif node.element_type == "input_text":
             self.focus_input(node.id)
             # Canvas must be focused to receive key events for custom input
             if _use_custom_input() and node.tree.canvas_decorator:
@@ -597,11 +607,12 @@ class StateManager:
         store.mouse_state['disable_events'] = False
 
     def clear_state_for_tree(self, tree: TreeType):
-        if _use_custom_input():
-            from ..platform.custom_input import custom_input_manager
-            for node in tree.interactive_node_list:
-                if node.element_type == "input_text":
-                    custom_input_manager.remove_input(node.id)
+        from ..platform.custom_input import custom_input_manager
+        for node in tree.interactive_node_list:
+            if node.element_type == "textarea":
+                custom_input_manager.remove_input(node.id)
+            elif node.element_type == "input_text" and _use_custom_input():
+                custom_input_manager.remove_input(node.id)
         for state_key in tree.meta_state.states:
             if state_key in store.reactive_state:
                 del store.reactive_state[state_key]

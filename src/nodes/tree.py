@@ -537,6 +537,8 @@ class Tree(TreeType):
         self._text_selecting_node = None
         self._input_click_count = 0
         self._input_last_click_time = 0
+        self._input_last_click_x = 0
+        self._input_last_click_y = 0
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
@@ -1159,6 +1161,7 @@ class Tree(TreeType):
         if not self.is_key_controls_init and self.canvas_decorator:
             self.is_key_controls_init = True
             self.canvas_decorator.register("key", self.on_key)
+            self.canvas_decorator.register("scroll", self.on_scroll)
 
     def _is_draggable_ui(self):
         # Just check 1 level deep
@@ -1841,11 +1844,15 @@ class Tree(TreeType):
                 if use_custom and hasattr(node, 'set_cursor_from_click'):
                     import time
                     now = time.monotonic()
-                    if now - self._input_last_click_time < 0.4:
+                    click_x, click_y = gpos.x, gpos.y
+                    near_last = abs(click_x - self._input_last_click_x) < 20 and abs(click_y - self._input_last_click_y) < 20
+                    if now - self._input_last_click_time < 0.4 and near_last:
                         self._input_click_count = min(self._input_click_count + 1, 3)
                     else:
                         self._input_click_count = 1
                     self._input_last_click_time = now
+                    self._input_last_click_x = click_x
+                    self._input_last_click_y = click_y
                     if is_textarea:
                         node.set_cursor_from_click(gpos.x, click_y=gpos.y, click_count=self._input_click_count)
                     else:
@@ -2084,7 +2091,68 @@ class Tree(TreeType):
 
         return did_scroll
 
+    def _try_scroll_textarea(self, e) -> bool:
+        """Handle mouse wheel scrolling for textarea nodes."""
+        from ..platform.custom_input import custom_input_manager
+        from .node_textarea import wrap_lines
+
+        # Find textarea to scroll: prefer focused, fall back to hovered
+        node = None
+        focused_node = state_manager.get_focused_node()
+        if focused_node and focused_node.tree == self \
+                and focused_node.element_type == ELEMENT_ENUM_TYPE["textarea"]:
+            node = focused_node
+        else:
+            for n in self.interactive_node_list:
+                if n.element_type != ELEMENT_ENUM_TYPE["textarea"]:
+                    continue
+                if getattr(n, 'box_model', None) and n.box_model.border_rect.contains(e.gpos):
+                    node = n
+                    break
+
+        if not node or not getattr(node, 'box_model', None):
+            return False
+
+        state = custom_input_manager.get_state(node.id)
+        if not state:
+            return False
+
+        paint = node._make_paint()
+        line_h = node._get_line_height(paint)
+        content_width = node.box_model.content_size.width
+        content_height = node.box_model.content_size.height
+
+        text = state.text or ""
+        lines = wrap_lines(text, content_width, paint.measure_text) if text else [("", 0)]
+        total_height = len(lines) * line_h
+
+        if total_height <= content_height:
+            return False
+
+        offset_y = 0
+        if abs(e.degrees.y) > 1e-5:
+            offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
+        elif abs(e.pixels.y) > 1e-5:
+            offset_y = e.pixels.y
+
+        if not offset_y:
+            return True
+
+        max_scroll = total_height - content_height
+        new_offset = state.scroll_offset - offset_y
+        new_offset = max(0, min(max_scroll, new_offset))
+
+        if new_offset != state.scroll_offset:
+            state.scroll_offset = new_offset
+            self.render_decorator_canvas()
+
+        # Always consume scroll when over a textarea with overflow
+        return True
+
     def on_scroll_tick(self, e):
+        if self._try_scroll_textarea(e):
+            return
+
         if self.meta_state.scrollable:
             # Collect all scrollable containers under the cursor, sorted smallest first
             candidates = []
@@ -2214,6 +2282,7 @@ class Tree(TreeType):
             if self.canvas_decorator:
                 if self.is_key_controls_init:
                     self.canvas_decorator.unregister("key", self.on_key)
+                    self.canvas_decorator.unregister("scroll", self.on_scroll)
                     self.is_key_controls_init = False
                 self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
                 self.canvas_decorator.close()
