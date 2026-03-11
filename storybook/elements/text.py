@@ -70,6 +70,36 @@ def text_stories():
             }),
 
             component(example_with_code, props={
+                "title": "Inline bold (row of text elements)",
+                "example": div(flex_direction="row")[
+                    text("Press "),
+                    text("enter", font_weight="bold"),
+                    text(" to submit"),
+                ],
+                "code": textwrap.dedent("""\
+                    div(flex_direction="row")[
+                        text("Press "),
+                        text("enter", font_weight="bold"),
+                        text(" to submit"),
+                    ]""")
+            }),
+
+            component(example_with_code, props={
+                "title": "text_align",
+                "example": div(gap=8, width=300)[
+                    text("Left (default)", color=t.TEXT),
+                    text("Center", text_align="center", color=t.TEXT),
+                    text("Right", text_align="right", color=t.TEXT),
+                ],
+                "code": textwrap.dedent("""\
+                    div(width=300)[
+                        text("Left (default)"),
+                        text("Center", text_align="center"),
+                        text("Right", text_align="right"),
+                    ]""")
+            }),
+
+            component(example_with_code, props={
                 "title": "With Label (for_id)",
                 "example": text("Links to checkbox via for_id", color=t.TEXT_SECONDARY),
                 "code": textwrap.dedent("""\

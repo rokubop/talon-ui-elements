@@ -149,7 +149,10 @@ def div_stories():
                         text("flex=1, flex=2", font_size=12, color=t.TEXT_MUTED),
                         div(flex_direction="row", gap=8, padding=12,
                             border_width=1, border_color=t.BORDER, border_radius=8, width=400)[
-                            _box("flex=1", bg="3689E8"),
+                            div(
+                                background_color="3689E8", border_radius=4, padding=8,
+                                min_height=40, align_items="center", justify_content="center", flex=1,
+                            )[text("flex=1", font_size=12, color="FFFFFF")],
                             div(
                                 background_color="E24A70", border_radius=4, padding=8,
                                 min_height=40, align_items="center", justify_content="center", flex=2,

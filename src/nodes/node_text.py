@@ -118,7 +118,6 @@ class NodeText(Node):
         # if text_cleansed.endswith(" "):
         #     text_cleansed = text_cleansed[:-1] + "x"
         self.text_width = paint.measure_text(text_cleansed)[1].width
-        self.text_line_height = paint.measure_text("X")[1].height
         self.text_body_height = self.text_line_height
 
         if (self.properties.width or self.properties.max_width) and isinstance(self.properties.width, (int, float)) and self.text_width > self.properties.width:
@@ -144,6 +143,13 @@ class NodeText(Node):
                 paint.typeface = typeface
 
         paint.font.embolden = True if self.properties.font_weight == "bold" else False
+
+        # Measure line height without embolden so all text at the same
+        # font_size produces the same box height regardless of weight.
+        was_bold = paint.font.embolden
+        paint.font.embolden = False
+        self.text_line_height = paint.measure_text("X")[1].height
+        paint.font.embolden = was_bold
 
         self.v2_measure_and_account_for_multiline(paint)
         self.box_model = BoxModelV2(
@@ -178,7 +184,8 @@ class NodeText(Node):
             text_top_left.x += transforms.offset.x
             text_top_left.y += transforms.offset.y
 
-        self.cursor_pre_draw_text = (text_top_left.x, text_top_left.y + self.text_line_height)
+        text_y = text_top_left.y + self.text_line_height
+        self.cursor_pre_draw_text = (text_top_left.x, text_y)
         color = self.resolve_render_property("color")
 
         if self.text_multiline:
@@ -186,7 +193,7 @@ class NodeText(Node):
             for i, line in enumerate(self.text_multiline):
                 draw_text_simple(c, line, color, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
         else:
-            draw_text_simple(c, self.text, color, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)
+            draw_text_simple(c, self.text, color, self.properties, text_top_left.x, text_y)
 
     def v2_render(self, c, transforms: RenderTransforms = None):
         render_now = not self.uses_decoration_render
@@ -211,7 +218,8 @@ class NodeText(Node):
         elif self.properties.text_align == "right":
             text_top_left.x += available_width
 
-        self.cursor_pre_draw_text = (text_top_left.x, text_top_left.y + self.text_line_height)
+        text_y = text_top_left.y + self.text_line_height
+        self.cursor_pre_draw_text = (text_top_left.x, text_y)
 
         if render_now:
             if self.text_multiline:
@@ -219,4 +227,4 @@ class NodeText(Node):
                 for i, line in enumerate(self.text_multiline):
                     draw_text_simple(c, line, self.properties.color, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
             else:
-                draw_text_simple(c, self.text, self.properties.color, self.properties, text_top_left.x, text_top_left.y + self.text_line_height)
+                draw_text_simple(c, self.text, self.properties.color, self.properties, text_top_left.x, text_y)
