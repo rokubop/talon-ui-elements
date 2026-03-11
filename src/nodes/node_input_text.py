@@ -17,7 +17,7 @@ def _binary_search_cursor(text: str, relative_x: float, paint) -> int:
     lo, hi = 0, n
     while lo < hi:
         mid = (lo + hi) // 2
-        width = paint.measure_text(text[:mid + 1])[1].width
+        width = paint.measure_text(text[:mid + 1])[0]
         if width < relative_x:
             lo = mid + 1
         else:
@@ -25,13 +25,13 @@ def _binary_search_cursor(text: str, relative_x: float, paint) -> int:
     # lo is now the first index whose cumulative width >= relative_x
     # Compare lo-1 and lo to find which is closer
     if lo == 0:
-        width_at_lo = paint.measure_text(text[:1])[1].width
+        width_at_lo = paint.measure_text(text[:1])[0]
         return 0 if relative_x < width_at_lo / 2 else 1
     if lo >= n:
-        width_at_prev = paint.measure_text(text[:n])[1].width
+        width_at_prev = paint.measure_text(text[:n])[0]
         return n if relative_x >= width_at_prev / 2 else n - 1
-    width_before = paint.measure_text(text[:lo])[1].width
-    width_after = paint.measure_text(text[:lo + 1])[1].width
+    width_before = paint.measure_text(text[:lo])[0]
+    width_after = paint.measure_text(text[:lo + 1])[0]
     return lo if abs(relative_x - width_before) <= abs(relative_x - width_after) else lo + 1
 
 class NodeInputText(Node):
@@ -183,13 +183,13 @@ class NodeInputText(Node):
 
         # Update scroll offset to keep cursor in view
         text_before_cursor = text[:state.cursor_pos]
-        cursor_x_in_text = paint.measure_text(text_before_cursor)[1].width if text_before_cursor else 0
+        cursor_x_in_text = paint.measure_text(text_before_cursor)[0] if text_before_cursor else 0
         padding = 2
         if cursor_x_in_text + state.scroll_offset > content_width - padding:
             state.scroll_offset = content_width - padding - cursor_x_in_text
         if cursor_x_in_text + state.scroll_offset < padding:
             state.scroll_offset = padding - cursor_x_in_text
-        total_text_width = paint.measure_text(text)[1].width if text else 0
+        total_text_width = paint.measure_text(text)[0] if text else 0
         if total_text_width + state.scroll_offset < content_width - padding and state.scroll_offset < 0:
             state.scroll_offset = min(0, content_width - padding - total_text_width)
         if state.scroll_offset > 0:
@@ -208,8 +208,8 @@ class NodeInputText(Node):
             text_before_sel = text[:sel_start]
             text_in_sel = text[sel_start:sel_end]
 
-            x_sel_start = text_x + (paint.measure_text(text_before_sel)[1].width if text_before_sel else 0)
-            sel_width = paint.measure_text(text_in_sel)[1].width if text_in_sel else 0
+            x_sel_start = text_x + (paint.measure_text(text_before_sel)[0] if text_before_sel else 0)
+            sel_width = paint.measure_text(text_in_sel)[0] if text_in_sel else 0
 
             sel_paint = Paint()
             sel_paint.color = self.properties.selection_color

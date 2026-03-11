@@ -30,7 +30,7 @@ def wrap_lines(text, max_width, measure_text):
 
         for word in words:
             candidate = " ".join(buf + [word])
-            width = measure_text(candidate)[1].width
+            width = measure_text(candidate)[0]
 
             if buf and width > max_width:
                 wrapped.append((" ".join(buf), buf_start))
@@ -272,9 +272,9 @@ class NodeTextarea(Node):
                 local_start = max(0, sel_start - line_start)
                 local_end = min(len(line_text), sel_end - line_start)
 
-                x_start = top_left_pos.x + (paint.measure_text(line_text[:local_start])[1].width if local_start > 0 else 0)
+                x_start = top_left_pos.x + (paint.measure_text(line_text[:local_start])[0] if local_start > 0 else 0)
                 sel_text = line_text[local_start:local_end]
-                sel_width = paint.measure_text(sel_text)[1].width if sel_text else 0
+                sel_width = paint.measure_text(sel_text)[0] if sel_text else 0
 
                 # If selection extends past this line into next, extend to content width
                 if sel_end > line_end and local_end == len(line_text):
@@ -304,7 +304,7 @@ class NodeTextarea(Node):
         # Cursor
         if is_focused and state.cursor_visible:
             cursor_text = lines[cursor_line][0][:cursor_col] if lines else ""
-            cursor_x = top_left_pos.x + (paint.measure_text(cursor_text)[1].width if cursor_text else 0)
+            cursor_x = top_left_pos.x + (paint.measure_text(cursor_text)[0] if cursor_text else 0)
             cursor_y = top_left_pos.y + cursor_line * line_h - state.scroll_offset
 
             cursor_paint = Paint()
