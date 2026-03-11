@@ -29,7 +29,7 @@ from .constants import (
     DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE,
 )
-from .utils import hex_color, scale_value, get_scale
+from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
@@ -119,7 +119,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             self.font_size = scale_value(DEFAULT_FONT_SIZE)
 
         if not self.highlight_color:
-            self.highlight_color = f"{self.color}33"
+            self.highlight_color = _expand_shorthand_hex(self.color) + "33"
 
         self.validate_properties(kwargs)
         self.update_colors_with_opacity()
@@ -304,45 +304,33 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             setattr(self, key, value)
             self._explicitly_set.add(key)
 
+    @staticmethod
+    def _apply_opacity_to_color(color: str, opacity_hex: str) -> str:
+        """Expand shorthand, strip existing alpha, append opacity."""
+        color = _expand_shorthand_hex(color)
+        if len(color) > 6:
+            color = color[:6]
+        return color + opacity_hex
+
     def update_colors_with_opacity(self):
         if self.opacity is not None:
             # convert float to 2 digit hex e.g. 00, 44, 88, AA, FF
             opacity_hex = format(int(round(self.opacity * 255)), '02X')
 
             if self.background_color:
-                if self.background_color.startswith("#"):
-                    self.background_color = self.background_color[1:]
-                if len(self.background_color) > 6:
-                    self.background_color = self.background_color[:6]
-                self.background_color = self.background_color + opacity_hex
+                self.background_color = self._apply_opacity_to_color(self.background_color, opacity_hex)
 
             if self.border_color:
-                if self.border_color.startswith("#"):
-                    self.border_color = self.border_color[1:]
-                if len(self.border_color) > 6:
-                    self.border_color = self.border_color[:6]
-                self.border_color = self.border_color + opacity_hex
+                self.border_color = self._apply_opacity_to_color(self.border_color, opacity_hex)
 
             if self.color:
-                if self.color.startswith("#"):
-                    self.color = self.color[1:]
-                if len(self.color) > 6:
-                    self.color = self.color[:6]
-                self.color = self.color + opacity_hex
+                self.color = self._apply_opacity_to_color(self.color, opacity_hex)
 
             if getattr(self, 'fill', None):
-                if self.fill.startswith("#"):
-                    self.fill = self.fill[1:]
-                if len(self.fill) > 6:
-                    self.fill = self.fill[:6]
-                self.fill = self.fill + opacity_hex
+                self.fill = self._apply_opacity_to_color(self.fill, opacity_hex)
 
             if getattr(self, 'stroke', None):
-                if self.stroke.startswith("#"):
-                    self.stroke = self.stroke[1:]
-                if len(self.stroke) > 6:
-                    self.stroke = self.stroke[:6]
-                self.stroke = self.stroke + opacity_hex
+                self.stroke = self._apply_opacity_to_color(self.stroke, opacity_hex)
 
     def update_property(self, key, value, explicitly_set=True):
         if hasattr(self, key):

@@ -6,7 +6,7 @@ from ..constants import (
     DEFAULT_CHECKBOX_SIZE,
     DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
 )
-from ..utils import scale_value
+from ..utils import scale_value, _expand_shorthand_hex
 from ..properties import validate_combined_props
 from .component import Component
 
@@ -22,7 +22,7 @@ def split_checkbox_props(props):
         elif key in ["color", "stroke", "fill"]:
             if key == "color":
                 svg_props["stroke"] = value
-            button_props["highlight_color"] = value + "33"
+            button_props["highlight_color"] = _expand_shorthand_hex(value) + "33"
             button_props[key] = value
         else:
             button_props[key] = value

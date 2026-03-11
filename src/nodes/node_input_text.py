@@ -1,17 +1,13 @@
-from talon import app, cron, settings
+from talon import app, cron
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
 from talon.types import Rect
 from .node import Node
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
-from ..core.entity_manager import entity_manager
 from ..interfaces import RenderTransforms
 from ..properties import NodeInputTextProperties
 from ..fonts import get_typeface
-
-def _use_custom_input():
-    return settings.get("user.ui_elements_custom_input", False)
 
 def _binary_search_cursor(text: str, relative_x: float, paint) -> int:
     """Binary search for the character index closest to relative_x."""
@@ -66,15 +62,6 @@ class NodeInputText(Node):
             self._cached_paint = paint
         return self._cached_paint
 
-    @property
-    def input(self):
-        if _use_custom_input():
-            return None
-        input_data = entity_manager.get_input_data(self.id)
-        if input_data:
-            return input_data.input
-        return None
-
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
         self.box_model = BoxModelV2(
             self.properties,
@@ -90,51 +77,15 @@ class NodeInputText(Node):
         )
 
     def v2_render_decorator(self, c, transforms: RenderTransforms = None):
-        if _use_custom_input():
-            self._render_custom_input_text(c, transforms)
-            return
-        return self.v2_render(c, transforms)
+        self._render_custom_input_text(c, transforms)
 
     def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.v2_render_background(c, transforms)
         self.v2_render_borders(c, transforms)
 
-        if _use_custom_input():
-            self._setup_custom_input()
-            # Register as decoration render so text/cursor update on decorator canvas
-            self.tree.meta_state.add_decoration_render(self.id)
-            # Draw initial text on base canvas too
-            self._render_custom_input_text(c, transforms)
-        else:
-            self._render_textarea_input(c, transforms)
-
-    def _render_textarea_input(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        """Original TextArea-based rendering."""
-        top_left_pos = self.box_model.content_children_pos.copy()
-
-        if not entity_manager.get_input_data(self.id):
-            entity_manager.create_input(self)
-
-        platform_adjustment_x = 0
-        platform_adjustment_height = 0
-
-        if app.platform == "mac":
-            platform_adjustment_x = 6
-            platform_adjustment_height = -6
-
-        input_rect = Rect(
-            top_left_pos.x,
-            top_left_pos.y + platform_adjustment_x,
-            self.box_model.content_size.width,
-            self.box_model.content_size.height + platform_adjustment_height
-        )
-        top_offset = 0
-        clip_rect = self.box_model.clip_rect
-        if clip_rect:
-            new_input_rect = input_rect.intersect(clip_rect)
-            top_offset = new_input_rect.top - input_rect.top
-            input_rect = new_input_rect
-        entity_manager.update_input_rect(self.id, input_rect, top_offset=top_offset)
+        self._setup_custom_input()
+        self.tree.meta_state.add_decoration_render(self.id)
+        self._render_custom_input_text(c, transforms)
 
     def _setup_custom_input(self):
         from ..platform.custom_input import setup_custom_input

@@ -1,4 +1,4 @@
-from talon import Context, cron, settings
+from talon import Context, cron
 from typing import Callable, Optional
 from ..interfaces import (
     Effect,
@@ -9,9 +9,6 @@ from ..interfaces import (
 )
 from .store import store
 import gc
-
-def _use_custom_input():
-    return settings.get("user.ui_elements_custom_input", False)
 
 class StateCoordinator:
     PHASE_FREE = "free"
@@ -344,15 +341,8 @@ class StateManager:
         return node.text
 
     def get_input_value(self, id):
-        if _use_custom_input():
-            from ..platform.custom_input import custom_input_manager
-            return custom_input_manager.get_value(id)
-        node = store.id_to_node.get(id)
-        if node:
-            input_data = node.tree.meta_state.inputs.get(id)
-            if input_data:
-                return input_data.value
-        return ""
+        from ..platform.custom_input import custom_input_manager
+        return custom_input_manager.get_value(id)
 
     def is_focused(self, id):
         return store.focused_id == id
@@ -373,7 +363,7 @@ class StateManager:
             store.focused_id = node.id
             store.focused_tree = node.tree
             store.focused_visible = True
-            if node.element_type == "textarea" or (node.element_type == "input_text" and _use_custom_input()):
+            if node.element_type in ("input_text", "textarea"):
                 focus_method = self.focus_textarea if node.element_type == "textarea" else self.focus_input
                 def delayed_focus():
                     focus_method(node.id)
@@ -434,15 +424,8 @@ class StateManager:
         store.focused_tree = None
 
     def focus_input(self, id):
-        if _use_custom_input():
-            from ..platform.custom_input import custom_input_manager
-            custom_input_manager.focus(id)
-            return
-        node = store.id_to_node.get(id)
-        if node and node.input:
-            # workaround for focus
-            node.input.hide()
-            node.input.show()
+        from ..platform.custom_input import custom_input_manager
+        custom_input_manager.focus(id)
 
     def focus_textarea(self, id):
         from ..platform.custom_input import custom_input_manager
@@ -455,11 +438,10 @@ class StateManager:
 
         # Blur custom input when focus moves away from it
         is_custom_input_node = node.element_type in ("input_text", "textarea")
-        if _use_custom_input() or node.element_type == "textarea":
-            from ..platform.custom_input import custom_input_manager
-            if custom_input_manager.has_focused_input and \
-                    (not is_custom_input_node or custom_input_manager.focused_id != node.id):
-                custom_input_manager.blur()
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input and \
+                (not is_custom_input_node or custom_input_manager.focused_id != node.id):
+            custom_input_manager.blur()
 
         store.focused_id = node.id
         store.focused_tree = node.tree
@@ -472,8 +454,7 @@ class StateManager:
                 node.tree.canvas_decorator.focused = True
         elif node.element_type == "input_text":
             self.focus_input(node.id)
-            # Canvas must be focused to receive key events for custom input
-            if _use_custom_input() and node.tree.canvas_decorator:
+            if node.tree.canvas_decorator:
                 node.tree.canvas_decorator.focused = True
         elif node.tree.canvas_decorator and not node.tree.canvas_decorator.focused:
             node.tree.canvas_decorator.focused = True
@@ -609,9 +590,7 @@ class StateManager:
     def clear_state_for_tree(self, tree: TreeType):
         from ..platform.custom_input import custom_input_manager
         for node in tree.interactive_node_list:
-            if node.element_type == "textarea":
-                custom_input_manager.remove_input(node.id)
-            elif node.element_type == "input_text" and _use_custom_input():
+            if node.element_type in ("input_text", "textarea"):
                 custom_input_manager.remove_input(node.id)
         for state_key in tree.meta_state.states:
             if state_key in store.reactive_state:
@@ -637,9 +616,8 @@ class StateManager:
 
     def clear_all(self):
         from .. import fonts
-        if _use_custom_input():
-            from ..platform.custom_input import custom_input_manager
-            custom_input_manager.remove_all()
+        from ..platform.custom_input import custom_input_manager
+        custom_input_manager.remove_all()
         store.clear()
         state_coordinator.reset()
         fonts.reset_font_state()

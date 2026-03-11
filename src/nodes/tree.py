@@ -1096,13 +1096,8 @@ class Tree(TreeType):
         # Route to custom input when focused
         from ..platform.custom_input import custom_input_manager
         if custom_input_manager.has_focused_input:
-            focused_node = state_manager.get_focused_node()
-            is_custom = settings.get("user.ui_elements_custom_input", False) or (
-                focused_node and focused_node.element_type == ELEMENT_ENUM_TYPE["textarea"]
-            )
-            if is_custom:
-                custom_input_manager.handle_canvas_key(e)
-                return
+            custom_input_manager.handle_canvas_key(e)
+            return
 
         if key_string == "space" or key_string == "enter" or key_string == "return":
             focused_node = state_manager.get_focused_node()
@@ -1195,14 +1190,7 @@ class Tree(TreeType):
             if self.interactive_node_list:
                 focused_tree = state_manager.get_focused_tree()
                 if focused_tree == self:
-                    focus_canvas = True
-                    node = state_manager.get_focused_node()
-                    if node and node.tree == self and node.element_type == "input_text":
-                        # For non-custom input_text, TextArea manages its own focus
-                        if not settings.get("user.ui_elements_custom_input", False):
-                            focus_canvas = False
-                    if focus_canvas:
-                        self.canvas_decorator.focused = True
+                    self.canvas_decorator.focused = True
                 elif not focused_tree:
                     self.canvas_decorator.focused = True
 
@@ -1711,15 +1699,10 @@ class Tree(TreeType):
                 if node.box_model.border_rect.contains(gpos):
                     return node.id
 
-        if settings.get("user.ui_elements_custom_input", False):
-            for node in self.interactive_node_list:
-                if node.element_type == ELEMENT_ENUM_TYPE["input_text"] and node.box_model:
-                    if node.box_model.border_rect.contains(gpos):
-                        return node.id
-            return None
-        for id, input_data in list(self.meta_state.inputs.items()):
-            if input_data.input and input_data.input.rect.contains(gpos):
-                return id
+        for node in self.interactive_node_list:
+            if node.element_type == ELEMENT_ENUM_TYPE["input_text"] and node.box_model:
+                if node.box_model.border_rect.contains(gpos):
+                    return node.id
         return None
 
     def on_mousemove(self, gpos):
@@ -1839,9 +1822,8 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node.get(input_id)
             if node:
                 is_textarea = node.element_type == ELEMENT_ENUM_TYPE["textarea"]
-                use_custom = is_textarea or settings.get("user.ui_elements_custom_input", False)
-                state_manager.focus_node(node, visible=use_custom)
-                if use_custom and hasattr(node, 'set_cursor_from_click'):
+                state_manager.focus_node(node, visible=True)
+                if hasattr(node, 'set_cursor_from_click'):
                     import time
                     now = time.monotonic()
                     click_x, click_y = gpos.x, gpos.y
