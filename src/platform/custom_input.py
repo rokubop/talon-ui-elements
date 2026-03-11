@@ -450,3 +450,21 @@ class CustomInputManager:
 
 
 custom_input_manager = CustomInputManager()
+
+
+def setup_custom_input(node, multiline: bool = False):
+    """Shared setup for custom input nodes (input_text and textarea)."""
+    if not custom_input_manager.get_state(node.id):
+        custom_input_manager.create_input(
+            id=node.id,
+            initial_value=node.properties.value or "",
+            on_change=node.properties.on_change,
+            multiline=multiline,
+        )
+
+        def make_render_cb(tree_ref):
+            def render_cb():
+                if tree_ref.canvas_decorator:
+                    tree_ref.render_decorator_canvas()
+            return render_cb
+        custom_input_manager.set_render_callback(node.id, make_render_cb(node.tree))

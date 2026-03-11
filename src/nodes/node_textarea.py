@@ -130,22 +130,8 @@ class NodeTextarea(Node):
         self._render_textarea(c, transforms)
 
     def _setup_custom_input(self):
-        from ..platform.custom_input import custom_input_manager
-
-        if not custom_input_manager.get_state(self.id):
-            custom_input_manager.create_input(
-                id=self.id,
-                initial_value=self.properties.value or "",
-                on_change=self.properties.on_change,
-                multiline=True,
-            )
-
-            def make_render_cb(tree_ref):
-                def render_cb():
-                    if tree_ref.canvas_decorator:
-                        tree_ref.render_decorator_canvas()
-                return render_cb
-            custom_input_manager.set_render_callback(self.id, make_render_cb(self.tree))
+        from ..platform.custom_input import setup_custom_input
+        setup_custom_input(self, multiline=True)
 
     def _get_cursor_pos_from_click(self, click_x: float, click_y: float) -> int:
         from ..platform.custom_input import custom_input_manager

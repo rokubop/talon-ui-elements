@@ -137,22 +137,8 @@ class NodeInputText(Node):
         entity_manager.update_input_rect(self.id, input_rect, top_offset=top_offset)
 
     def _setup_custom_input(self):
-        """Initialize custom input state if not already created."""
-        from ..platform.custom_input import custom_input_manager
-
-        if not custom_input_manager.get_state(self.id):
-            custom_input_manager.create_input(
-                id=self.id,
-                initial_value=self.properties.value or "",
-                on_change=self.properties.on_change,
-            )
-
-            def make_render_cb(tree_ref):
-                def render_cb():
-                    if tree_ref.canvas_decorator:
-                        tree_ref.render_decorator_canvas()
-                return render_cb
-            custom_input_manager.set_render_callback(self.id, make_render_cb(self.tree))
+        from ..platform.custom_input import setup_custom_input
+        setup_custom_input(self)
 
     def _get_cursor_index_from_x(self, click_x: float) -> int:
         """Convert an x-coordinate to a character index in the text."""

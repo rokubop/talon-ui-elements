@@ -17,6 +17,8 @@ Properties mostly match standard CSS properties.
   - [Focus \& Highlight Properties](#focus--highlight-properties)
   - [Identification Properties](#identification-properties)
   - [Window-Specific Properties](#window-specific-properties)
+  - [Textarea-Specific Properties](#textarea-specific-properties)
+  - [Select-Specific Properties](#select-specific-properties)
   - [Checkbox-Specific Properties](#checkbox-specific-properties)
   - [Link-Specific Properties](#link-specific-properties)
   - [Table-Specific Properties](#table-specific-properties)
@@ -118,19 +120,19 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
-| autofocus | bool | False | Autofocus for `input_text` or `button` |
+| autofocus | bool | False | Autofocus for `input_text`, `textarea`, or `button` |
 | disabled | bool | False | Whether element is disabled (for interactive elements) |
 | disabled_style | dict | None | Style overrides when disabled |
 | draggable | bool | False | Whether element can be dragged |
 | drag_handle | bool | False | Treat this area as the drag handle for a parent draggable |
-| on_change | callable | None | On change callback, for `input_text`, `checkbox`, `switch`. Accepts 1 event argument. |
+| on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
-| value | str | None | Value of `input_text` |
-| placeholder | str | "" | Placeholder hint text for `input_text`, shown when empty and unfocused |
-| placeholder_color | str | "FFFFFF55" | Color of placeholder text for `input_text` |
-| selection_color | str | "4488FF88" | Selection highlight color for `input_text` |
-| cursor_color | str | None | Cursor (caret) color for `input_text`. Falls back to `color` |
+| value | str | None | Value of `input_text`, `textarea`, or `select` |
+| placeholder | str | "" | Placeholder hint text for `input_text`, `textarea`, or `select`, shown when empty/unfocused |
+| placeholder_color | str | "FFFFFF55" | Color of placeholder text |
+| selection_color | str | "4488FF88" | Selection highlight color for `input_text` and `textarea` |
+| cursor_color | str | None | Cursor (caret) color for `input_text` and `textarea`. Falls back to `color` |
 
 ## Focus & Highlight Properties
 
@@ -165,6 +167,31 @@ Properties mostly match standard CSS properties.
 | show_title_bar | bool | True | Whether to show title bar |
 | title | str | None | Window title text |
 | title_bar_style | dict | None | Style overrides for title bar |
+
+## Textarea-Specific Properties
+
+| Property | Type | Default | Description |
+| -- | -- | -- | -- |
+| id | str | Required | Unique identifier for the textarea |
+| rows | int | 3 | Number of visible text rows (determines height) |
+| value | str | "" | Initial text content |
+| placeholder | str | "" | Hint text shown when empty and unfocused |
+| placeholder_color | str | "FFFFFF55" | Color of placeholder text |
+| selection_color | str | "4488FF88" | Selection highlight color |
+| cursor_color | str | None | Cursor (caret) color. Falls back to `color` |
+| on_change | callable | None | Callback when text changes. Receives `ChangeEvent` |
+| autofocus | bool | False | Auto-focus on mount |
+
+## Select-Specific Properties
+
+| Property | Type | Default | Description |
+| -- | -- | -- | -- |
+| id | str | Required | Unique identifier for the select |
+| options | list | Required | List of options. Can be strings `["Red", "Blue"]` or dicts `[{"label": "Red", "value": "r"}]` |
+| value | str | "" | Currently selected value |
+| placeholder | str | "Select..." | Hint text shown when no value is selected |
+| placeholder_color | str | "FFFFFF55" | Color of placeholder text |
+| on_change | callable | None | Callback when selection changes. Receives `ChangeEvent` |
 
 ## Checkbox-Specific Properties
 

@@ -48,15 +48,10 @@ class NodeSelect(NodeContainer):
 
         flip_key = f"__select_flip_{properties.id}"
 
-        try:
-            is_open, set_is_open = state.use(open_key, False)
-            highlighted_index, set_highlighted_index = state.use(hl_key, -1)
-            flip_up, set_flip_up = state.use(flip_key, False)
-        except Exception:
-            from ..core.state_manager import state_manager
-            is_open, set_is_open = state_manager.use_state(open_key, False)
-            highlighted_index, set_highlighted_index = state_manager.use_state(hl_key, -1)
-            flip_up, set_flip_up = state_manager.use_state(flip_key, False)
+        from ..core.state_manager import state_manager
+        is_open, set_is_open = state_manager.use_state(open_key, False)
+        highlighted_index, set_highlighted_index = state_manager.use_state(hl_key, -1)
+        flip_up, set_flip_up = state_manager.use_state(flip_key, False)
 
         self._is_open = is_open
         self._highlighted_index = highlighted_index
