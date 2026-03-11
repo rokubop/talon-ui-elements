@@ -71,6 +71,80 @@ def bordered_table():
         ],
     ]
 
+def flush_table():
+    table, th, tr, td, div, text, style = actions.user.ui_elements([
+        "table", "th", "tr", "td", "div", "text", "style"
+    ])
+
+    style({
+        "td": {
+            "padding": 8,
+            "padding_left": 0,
+        },
+        "th": {
+            "padding": 8,
+            "padding_left": 0,
+        }
+    })
+
+    return div(gap=16, align_items="flex_start")[
+        text("Settings", font_size=18, font_weight="bold"),
+        text("Configure your preferences below.", font_size=14, color="AAAAAA"),
+        table()[
+            tr()[
+                th()[text("Option")],
+                th()[text("Value")],
+                th()[text("Description")],
+            ],
+            tr()[
+                td()[text("Theme")],
+                td()[text("Dark")],
+                td()[text("Color scheme")],
+            ],
+            tr()[
+                td()[text("Font size")],
+                td()[text("14px")],
+                td()[text("Base text size")],
+            ],
+        ],
+    ]
+
+STRIPE_COLOR = "FFFFFF15"
+
+def striped_table():
+    table, th, tr, td, text, style = actions.user.ui_elements([
+        "table", "th", "tr", "td", "text", "style"
+    ])
+
+    style({
+        "td": {
+            "padding": 8,
+        },
+        "th": {
+            "padding": 8,
+        }
+    })
+
+    rows = [
+        ("Row 1, Cell 1", "Row 1, Cell 2", "Row 1, Cell 3"),
+        ("Row 2, Cell 1", "Row 2, Cell 2", "Row 2, Cell 3"),
+        ("Row 3, Cell 1", "Row 3, Cell 2", "Row 3, Cell 3"),
+        ("Row 4, Cell 1", "Row 4, Cell 2", "Row 4, Cell 3"),
+    ]
+
+    return table()[
+        tr()[
+            th()[text("Header 1")],
+            th()[text("Header 2")],
+            th()[text("Header 3")],
+        ],
+        *[tr(background_color=STRIPE_COLOR if i % 2 == 0 else None)[
+            td()[text(r[0])],
+            td()[text(r[1])],
+            td()[text(r[2])],
+        ] for i, r in enumerate(rows)],
+    ]
+
 def colspan_table():
     table, th, tr, td, text, style = actions.user.ui_elements([
         "table", "th", "tr", "td", "text", "style"
@@ -159,6 +233,33 @@ def table_stories():
                 )
             }),
             component(example_with_code, props={
+                "title": "Flush with content",
+                "example": component(flush_table),
+                "code": textwrap.dedent("""\
+                    style({
+                        "td": { "padding": 8, "padding_left": 0 },
+                        "th": { "padding": 8, "padding_left": 0 },
+                    })
+
+                    div(gap=16, align_items="flex_start")[
+                        text("Settings", font_size=18, font_weight="bold"),
+                        text("Configure your preferences below.", font_size=14),
+                        table()[
+                            tr()[
+                                th()[text("Option")],
+                                th()[text("Value")],
+                                th()[text("Description")],
+                            ],
+                            tr()[
+                                td()[text("Theme")],
+                                td()[text("Dark")],
+                                td()[text("Color scheme")],
+                            ],
+                        ],
+                    ]"""
+                )
+            }),
+            component(example_with_code, props={
                 "title": "Bordered cells",
                 "example": component(bordered_table),
                 "code": textwrap.dedent("""\
@@ -200,6 +301,26 @@ def table_stories():
 
                     # Use component to encapsulate the style
                     component(bordered_table)"""
+                )
+            }),
+            component(example_with_code, props={
+                "title": "Striped rows",
+                "example": component(striped_table),
+                "code": textwrap.dedent("""\
+                    rows = [("Cell 1", "Cell 2", "Cell 3"), ...]
+
+                    table()[
+                        tr()[
+                            th()[text("Header 1")],
+                            th()[text("Header 2")],
+                            th()[text("Header 3")],
+                        ],
+                        *[tr(background_color="FFFFFF15" if i % 2 == 0 else None)[
+                            td()[text(r[0])],
+                            td()[text(r[1])],
+                            td()[text(r[2])],
+                        ] for i, r in enumerate(rows)],
+                    ]"""
                 )
             }),
         ],

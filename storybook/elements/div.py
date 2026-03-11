@@ -135,8 +135,14 @@ def div_stories():
                         text("flex=1, flex=1", font_size=12, color=t.TEXT_MUTED),
                         div(flex_direction="row", gap=8, padding=12,
                             border_width=1, border_color=t.BORDER, border_radius=8, width=400)[
-                            _box("flex=1", bg="3689E8"),
-                            _box("flex=1", bg="E24A70"),
+                            div(
+                                background_color="3689E8", border_radius=4, padding=8,
+                                min_height=40, align_items="center", justify_content="center", flex=1,
+                            )[text("flex=1", font_size=12, color="FFFFFF")],
+                            div(
+                                background_color="E24A70", border_radius=4, padding=8,
+                                min_height=40, align_items="center", justify_content="center", flex=1,
+                            )[text("flex=1", font_size=12, color="FFFFFF")],
                         ],
                     ],
                     div(gap=4)[
@@ -164,8 +170,8 @@ def div_stories():
                 "example": div(flex_direction="row", gap=24)[
                     div(gap=4)[
                         text("padding=20", font_size=12, color=t.TEXT_MUTED),
-                        div(padding=20, background_color=t.BG_RAISED, border_radius=8, border_width=1, border_color=t.BORDER)[
-                            div(background_color="3689E8", border_radius=4, padding=8)[
+                        div(background_color=t.BG_RAISED, border_radius=8, border_width=1, border_color=t.BORDER)[
+                            div(padding=20, background_color="3689E855", border_radius=4)[
                                 text("content", font_size=12, color="FFFFFF"),
                             ],
                         ],
@@ -173,20 +179,26 @@ def div_stories():
                     div(gap=4)[
                         text("margin=20", font_size=12, color=t.TEXT_MUTED),
                         div(background_color=t.BG_RAISED, border_radius=8, border_width=1, border_color=t.BORDER)[
-                            div(margin=20, background_color="E24A70", border_radius=4, padding=8)[
+                            div(margin=20, background_color="E24A7055", border_radius=4)[
+                                text("content", font_size=12, color="FFFFFF"),
+                            ],
+                        ],
+                    ],
+                    div(gap=4)[
+                        text("both", font_size=12, color=t.TEXT_MUTED),
+                        div(background_color=t.BG_RAISED, border_radius=8, border_width=1, border_color=t.BORDER)[
+                            div(margin=20, padding=20, background_color="22AA6655", border_radius=4)[
                                 text("content", font_size=12, color="FFFFFF"),
                             ],
                         ],
                     ],
                 ],
                 "code": textwrap.dedent("""\
-                    div(padding=20)[
-                        div()[text("content")],
-                    ]
+                    # padding: space inside (pushes content inward)
+                    div(padding=20)[text("content")]
 
-                    div()[
-                        div(margin=20)[text("content")],
-                    ]"""),
+                    # margin: space outside (pushes element away from siblings)
+                    div(margin=20)[text("content")]"""),
             }),
 
             # overflow scroll
