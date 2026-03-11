@@ -13,6 +13,31 @@ from ..fonts import get_typeface
 def _use_custom_input():
     return settings.get("user.ui_elements_custom_input", False)
 
+def _binary_search_cursor(text: str, relative_x: float, paint) -> int:
+    """Binary search for the character index closest to relative_x."""
+    if not text:
+        return 0
+    n = len(text)
+    lo, hi = 0, n
+    while lo < hi:
+        mid = (lo + hi) // 2
+        width = paint.measure_text(text[:mid + 1])[1].width
+        if width < relative_x:
+            lo = mid + 1
+        else:
+            hi = mid
+    # lo is now the first index whose cumulative width >= relative_x
+    # Compare lo-1 and lo to find which is closer
+    if lo == 0:
+        width_at_lo = paint.measure_text(text[:1])[1].width
+        return 0 if relative_x < width_at_lo / 2 else 1
+    if lo >= n:
+        width_at_prev = paint.measure_text(text[:n])[1].width
+        return n if relative_x >= width_at_prev / 2 else n - 1
+    width_before = paint.measure_text(text[:lo])[1].width
+    width_after = paint.measure_text(text[:lo + 1])[1].width
+    return lo if abs(relative_x - width_before) <= abs(relative_x - width_after) else lo + 1
+
 class NodeInputText(Node):
     def __init__(self, properties: NodeInputTextProperties = None):
         super().__init__(
@@ -27,6 +52,19 @@ class NodeInputText(Node):
         self.properties.value = str(self.properties.value) if self.properties.value else ""
         if self.properties.gap is None:
             self.properties.gap = 16
+        self._cached_paint = None
+
+    def _get_paint(self):
+        if self._cached_paint is None:
+            paint = Paint()
+            paint.textsize = self.properties.font_size
+            paint.antialias = True
+            if self.properties.font_family:
+                typeface = get_typeface(self.properties.font_family)
+                if typeface:
+                    paint.typeface = typeface
+            self._cached_paint = paint
+        return self._cached_paint
 
     @property
     def input(self):
@@ -114,7 +152,7 @@ class NodeInputText(Node):
                     if tree_ref.canvas_decorator:
                         tree_ref.render_decorator_canvas()
                 return render_cb
-            custom_input_manager.set_render_callback(make_render_cb(self.tree))
+            custom_input_manager.set_render_callback(self.id, make_render_cb(self.tree))
 
     def _get_cursor_index_from_x(self, click_x: float) -> int:
         """Convert an x-coordinate to a character index in the text."""
@@ -124,26 +162,12 @@ class NodeInputText(Node):
         if not state or not self.box_model:
             return 0
 
-        paint = Paint()
-        paint.textsize = self.properties.font_size
-        if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family)
-            if typeface:
-                paint.typeface = typeface
-
+        paint = self._get_paint()
         content_x = self.box_model.content_children_pos.x
         relative_x = click_x - content_x - state.scroll_offset
         text = state.text or ""
 
-        best_pos = 0
-        best_dist = abs(relative_x)
-        for i in range(1, len(text) + 1):
-            width = paint.measure_text(text[:i])[1].width
-            dist = abs(relative_x - width)
-            if dist < best_dist:
-                best_dist = dist
-                best_pos = i
-        return best_pos
+        return _binary_search_cursor(text, relative_x, paint)
 
     def set_cursor_from_click(self, click_x: float, click_count: int = 1):
         """Position cursor at the character closest to click_x."""
@@ -213,13 +237,7 @@ class NodeInputText(Node):
 
         is_focused = custom_input_manager.is_focused(self.id)
 
-        paint = Paint()
-        paint.textsize = self.properties.font_size
-        paint.antialias = True
-        if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family)
-            if typeface:
-                paint.typeface = typeface
+        paint = self._get_paint()
 
         text = state.text or ""
         metrics = paint.measure_text("X")

@@ -340,7 +340,7 @@ class StateManager:
     def use_text_mutation(self, node: NodeType):
         if node.tree.meta_state.text_mutations.get(node.id):
             return node.tree.meta_state.text_mutations[node.id]
-        node.tree.meta_state.text_mutations[id] = node.text
+        node.tree.meta_state.text_mutations[node.id] = node.text
         return node.text
 
     def get_input_value(self, id):

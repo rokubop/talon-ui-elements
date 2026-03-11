@@ -59,7 +59,7 @@ class CustomInputManager:
         self._multiline_ids: set[str] = set()
         self._on_change_callbacks: dict[str, Callable] = {}
         self._on_submit_callbacks: dict[str, Callable] = {}
-        self._render_callback: Optional[Callable] = None
+        self._render_callbacks: dict[str, Callable] = {}
         self._blink_job = None
 
     def create_input(self, id: str, initial_value: str = "", on_change: Callable = None, on_submit: Callable = None, multiline: bool = False):
@@ -77,6 +77,7 @@ class CustomInputManager:
         self._multiline_ids.discard(id)
         self._on_change_callbacks.pop(id, None)
         self._on_submit_callbacks.pop(id, None)
+        self._render_callbacks.pop(id, None)
         if self._focused_id == id:
             self._focused_id = None
             self._stop_blink()
@@ -87,6 +88,7 @@ class CustomInputManager:
         self._multiline_ids.clear()
         self._on_change_callbacks.clear()
         self._on_submit_callbacks.clear()
+        self._render_callbacks.clear()
         self._focused_id = None
         self._stop_blink()
         _ctx.tags = []
@@ -131,12 +133,12 @@ class CustomInputManager:
     def has_focused_input(self) -> bool:
         return self._focused_id is not None
 
-    def set_render_callback(self, callback: Callable):
-        self._render_callback = callback
+    def set_render_callback(self, id: str, callback: Callable):
+        self._render_callbacks[id] = callback
 
     def _render(self):
-        if self._render_callback:
-            self._render_callback()
+        if self._focused_id and self._focused_id in self._render_callbacks:
+            self._render_callbacks[self._focused_id]()
 
     def _start_blink(self):
         self._stop_blink()

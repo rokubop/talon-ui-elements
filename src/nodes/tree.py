@@ -2094,7 +2094,6 @@ class Tree(TreeType):
     def _try_scroll_textarea(self, e) -> bool:
         """Handle mouse wheel scrolling for textarea nodes."""
         from ..platform.custom_input import custom_input_manager
-        from .node_textarea import wrap_lines
 
         # Find textarea to scroll: prefer focused, fall back to hovered
         node = None
@@ -2123,7 +2122,7 @@ class Tree(TreeType):
         content_height = node.box_model.content_size.height
 
         text = state.text or ""
-        lines = wrap_lines(text, content_width, paint.measure_text) if text else [("", 0)]
+        lines = node._get_wrapped_lines(text, content_width, paint) if text else [("", 0)]
         total_height = len(lines) * line_h
 
         if total_height <= content_height:

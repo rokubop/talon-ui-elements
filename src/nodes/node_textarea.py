@@ -7,6 +7,7 @@ from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
 from ..interfaces import RenderTransforms
 from ..properties import NodeTextareaProperties
 from ..fonts import get_typeface
+from .node_input_text import _binary_search_cursor
 
 
 def wrap_lines(text, max_width, measure_text):
@@ -64,16 +65,34 @@ class NodeTextarea(Node):
         self.properties.value = str(self.properties.value) if self.properties.value else ""
         if self.properties.gap is None:
             self.properties.gap = 4
+        self._cached_paint = None
+        self._cached_wrap_text = None
+        self._cached_wrap_width = None
+        self._cached_wrap_result = None
+
+    def _get_paint(self):
+        if self._cached_paint is None:
+            paint = Paint()
+            paint.textsize = self.properties.font_size
+            paint.antialias = True
+            if self.properties.font_family:
+                typeface = get_typeface(self.properties.font_family)
+                if typeface:
+                    paint.typeface = typeface
+            self._cached_paint = paint
+        return self._cached_paint
 
     def _make_paint(self):
-        paint = Paint()
-        paint.textsize = self.properties.font_size
-        paint.antialias = True
-        if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family)
-            if typeface:
-                paint.typeface = typeface
-        return paint
+        return self._get_paint()
+
+    def _get_wrapped_lines(self, text, max_width, paint):
+        """Cached wrap_lines — only recalculates when text or width changes."""
+        if text == self._cached_wrap_text and max_width == self._cached_wrap_width:
+            return self._cached_wrap_result
+        self._cached_wrap_text = text
+        self._cached_wrap_width = max_width
+        self._cached_wrap_result = wrap_lines(text, max_width, paint.measure_text)
+        return self._cached_wrap_result
 
     def _get_line_height(self, paint):
         return paint.measure_text("X")[1].height + (self.properties.gap or 4)
@@ -106,9 +125,6 @@ class NodeTextarea(Node):
         self._render_textarea(c, transforms)
 
     def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
-        self.v2_render_background(c, transforms)
-        self.v2_render_borders(c, transforms)
-
         self._setup_custom_input()
         self.tree.meta_state.add_decoration_render(self.id)
         self._render_textarea(c, transforms)
@@ -129,7 +145,7 @@ class NodeTextarea(Node):
                     if tree_ref.canvas_decorator:
                         tree_ref.render_decorator_canvas()
                 return render_cb
-            custom_input_manager.set_render_callback(make_render_cb(self.tree))
+            custom_input_manager.set_render_callback(self.id, make_render_cb(self.tree))
 
     def _get_cursor_pos_from_click(self, click_x: float, click_y: float) -> int:
         from ..platform.custom_input import custom_input_manager
@@ -144,7 +160,7 @@ class NodeTextarea(Node):
         top_left = self.box_model.content_children_pos
 
         text = state.text or ""
-        lines = wrap_lines(text, content_width, paint.measure_text)
+        lines = self._get_wrapped_lines(text, content_width, paint)
 
         relative_y = click_y - top_left.y + state.scroll_offset
         line_idx = max(0, min(int(relative_y / line_h), len(lines) - 1))
@@ -152,16 +168,7 @@ class NodeTextarea(Node):
         line_text, line_start = lines[line_idx]
         relative_x = click_x - top_left.x
 
-        best_pos = 0
-        best_dist = abs(relative_x)
-        for i in range(1, len(line_text) + 1):
-            width = paint.measure_text(line_text[:i])[1].width
-            dist = abs(relative_x - width)
-            if dist < best_dist:
-                best_dist = dist
-                best_pos = i
-
-        return line_start + best_pos
+        return line_start + _binary_search_cursor(line_text, relative_x, paint)
 
     def set_cursor_from_click(self, click_x: float, click_y: float = None, click_count: int = 1):
         from ..platform.custom_input import custom_input_manager
@@ -241,7 +248,7 @@ class NodeTextarea(Node):
         char_height = paint.measure_text("X")[1].height
 
         text = state.text or ""
-        lines = wrap_lines(text, content_width, paint.measure_text) if text else [("", 0)]
+        lines = self._get_wrapped_lines(text, content_width, paint) if text else [("", 0)]
 
         # Find cursor line and update scroll offset
         cursor_line, cursor_col = self._cursor_to_line_col(state.cursor_pos, lines)
