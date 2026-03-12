@@ -13,10 +13,10 @@
   ],
   "license": "MIT",
   "dependencies": {},
-  "devDependencies": {},
   "contributes": {
     "tags": [
-      "user.ui_elements_hints_active"
+      "user.ui_elements_hints_active",
+      "user.ui_elements_typing"
     ],
     "settings": [
       "user.ui_elements_hints_button_first_char",
@@ -67,7 +67,7 @@
   "depends": {},
   "validateDependencies": true,
   "_generator": "talon-pack",
-  "_generatorVersion": "3.0.0",
+  "_generatorVersion": "3.3.0",
   "_generatorRequiresVersionAction": true,
   "_generatorStrictNamespace": true,
   "_generatorFrozenFields": []
