@@ -860,14 +860,14 @@ class NodeInputTextProperties(Properties):
             # Talon TextArea for mac defaults to a text that looks like code,
             # so change it to something that looks more like normal prose
             self.font_family = "helvetica"
-        kwargs['padding_left'] = max(
-            kwargs.get('padding_left', 0),
-            kwargs.get('padding', 0)
-        ) + max(8, kwargs.get('border_radius', 0))
-        kwargs['padding_right'] = max(
-            kwargs.get('padding_right', 0),
-            kwargs.get('padding', 0)
-        ) + max(8, kwargs.get('border_radius', 0))
+        has_padding = any(
+            k in kwargs
+            for k in ('padding', 'padding_left', 'padding_right')
+        )
+        if not has_padding:
+            default_pad_x = max(8, kwargs.get('border_radius', 0))
+            kwargs['padding_left'] = default_pad_x
+            kwargs['padding_right'] = default_pad_x
         super().__init__(**kwargs)
 
     def gc(self):
@@ -936,22 +936,16 @@ class NodeTextareaProperties(Properties):
             kwargs['value'] = str(kwargs['value'])
         if app.platform == "mac":
             self.font_family = "helvetica"
-        kwargs['padding_left'] = max(
-            kwargs.get('padding_left', 0),
-            kwargs.get('padding', 0)
-        ) + max(8, kwargs.get('border_radius', 0))
-        kwargs['padding_right'] = max(
-            kwargs.get('padding_right', 0),
-            kwargs.get('padding', 0)
-        ) + max(8, kwargs.get('border_radius', 0))
-        kwargs['padding_top'] = max(
-            kwargs.get('padding_top', 0),
-            kwargs.get('padding', 0)
-        ) + 8
-        kwargs['padding_bottom'] = max(
-            kwargs.get('padding_bottom', 0),
-            kwargs.get('padding', 0)
-        ) + 8
+        has_padding = any(
+            k in kwargs
+            for k in ('padding', 'padding_left', 'padding_right', 'padding_top', 'padding_bottom')
+        )
+        if not has_padding:
+            default_pad_x = max(8, kwargs.get('border_radius', 0))
+            kwargs['padding_left'] = default_pad_x
+            kwargs['padding_right'] = default_pad_x
+            kwargs['padding_top'] = 8
+            kwargs['padding_bottom'] = 8
         super().__init__(**kwargs)
 
     def gc(self):

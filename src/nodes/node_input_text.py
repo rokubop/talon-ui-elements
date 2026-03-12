@@ -42,7 +42,17 @@ class NodeInputText(Node):
         )
         self.interactive = True
         self.properties.width = self.properties.width or round(self.properties.font_size * 15)
-        self.properties.height = self.properties.height or round(self.properties.font_size * 2.2)
+        if not self.properties.height:
+            has_pad = any(
+                k in self.properties._explicitly_set
+                for k in ('padding', 'padding_top', 'padding_bottom')
+            )
+            if has_pad:
+                text_height = round(self.properties.font_size * 1.4)
+                pad = self.properties.padding
+                self.properties.height = text_height + pad.top + pad.bottom
+            else:
+                self.properties.height = round(self.properties.font_size * 2.2)
         self.properties.background_color = self.properties.background_color or DEFAULT_INPUT_BACKGROUND_COLOR
         self.properties.color = self.properties.color or "FFFFFF"
         self.properties.value = str(self.properties.value) if self.properties.value else ""
