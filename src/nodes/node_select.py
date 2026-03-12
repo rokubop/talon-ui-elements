@@ -45,13 +45,11 @@ class NodeSelect(NodeContainer):
         div, button, text, icon, state = actions.user.ui_elements(["div", "button", "text", "icon", "state"])
         open_key = f"__select_open_{properties.id}"
         hl_key = f"__select_hl_{properties.id}"
-
         flip_key = f"__select_flip_{properties.id}"
 
-        from ..core.state_manager import state_manager
-        is_open, set_is_open = state_manager.use_state(open_key, False)
-        highlighted_index, set_highlighted_index = state_manager.use_state(hl_key, -1)
-        flip_up, set_flip_up = state_manager.use_state(flip_key, False)
+        is_open, set_is_open = state.use(open_key, False)
+        highlighted_index, set_highlighted_index = state.use(hl_key, -1)
+        flip_up, set_flip_up = state.use(flip_key, False)
 
         self._is_open = is_open
         self._highlighted_index = highlighted_index

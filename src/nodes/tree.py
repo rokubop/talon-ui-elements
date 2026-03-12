@@ -290,7 +290,7 @@ class MetaState(MetaStateType):
             self._highlighted[id] = color
 
     def set_unhighlighted(self, id):
-        if id in self._id_to_node and id in self._highlighted:
+        if id in self._highlighted:
             self._highlighted.pop(id)
 
     def scroll_y_increment(self, id, y):

@@ -10,7 +10,9 @@ import textwrap
 CONTROLS = [
     ("placeholder", STRING, "Search..."),
     ("value", STRING, ""),
+    ("font_size", INT, "16"),
     ("width", INT, "300"),
+    ("padding", INT, "0"),
     ("border_radius", INT, "4"),
     ("border_width", INT, "0"),
     ("border_color", COLOR, ""),

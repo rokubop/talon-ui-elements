@@ -343,8 +343,8 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
         )
         self.intrinsic_padding_size = Size2d(
-            border_size.width - self.border_spacing.left - self.border_spacing.right,
-            border_size.height - self.border_spacing.top - self.border_spacing.bottom
+            border_size.width - self.border_spacing.left - self.border_spacing.right - self.conditional_scroll_bar_y_width,
+            border_size.height - self.border_spacing.top - self.border_spacing.bottom - self.conditional_scroll_bar_x_height
         )
         self.intrinsic_content_size = Size2d(
             self.intrinsic_padding_size.width - self.padding_spacing.left - self.padding_spacing.right,
