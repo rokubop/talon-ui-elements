@@ -10,6 +10,7 @@ import textwrap
 CONTROLS = [
     ("placeholder", STRING, "Select..."),
     ("width", INT, "240"),
+    ("padding", INT, ""),
     ("border_radius", INT, "4"),
     ("border_width", INT, "0"),
     ("border_color", COLOR, ""),

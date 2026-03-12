@@ -2,6 +2,7 @@ from talon import actions
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
 from ..core.entity_manager import ChangeEvent
+from ..interfaces import Padding
 from ..properties import NodeSelectProperties
 
 
@@ -31,7 +32,21 @@ class NodeSelect(NodeContainer):
         self._normalized_options = _normalize_options(properties.options or [])
 
         properties.width = properties.width or round(properties.font_size * 15)
-        properties.height = properties.height or round(properties.font_size * 2.2)
+
+        # Save user padding for trigger/options, zero out container padding
+        self._user_padding = Padding(properties.padding.top, properties.padding.right, properties.padding.bottom, properties.padding.left) if properties.padding else Padding(0, 0, 0, 0)
+        self._has_user_padding = any(
+            k in properties._explicitly_set
+            for k in ('padding', 'padding_left', 'padding_right', 'padding_top', 'padding_bottom')
+        )
+        properties.padding = Padding(0, 0, 0, 0)
+
+        if not properties.height:
+            if self._has_user_padding:
+                text_height = round(properties.font_size * 1.4)
+                properties.height = text_height + self._user_padding.top + self._user_padding.bottom
+            else:
+                properties.height = round(properties.font_size * 2.2)
         properties.background_color = properties.background_color or DEFAULT_INPUT_BACKGROUND_COLOR
         properties.color = properties.color or "FFFFFF"
 
@@ -67,6 +82,19 @@ class NodeSelect(NodeContainer):
         trigger_text = selected_label or props.placeholder or "Select..."
         trigger_color = props.color if selected_label else props.placeholder_color
 
+        has_pad = self._has_user_padding
+        pad = self._user_padding
+        if has_pad:
+            pad_left = pad.left
+            pad_right = pad.right
+            pad_top = pad.top
+            pad_bottom = pad.bottom
+        else:
+            pad_left = 10
+            pad_right = 6
+            pad_top = 0
+            pad_bottom = 0
+
         trigger = button(
             on_click=lambda e: self._toggle_open(),
             background_color=props.background_color,
@@ -79,8 +107,10 @@ class NodeSelect(NodeContainer):
             flex_direction="row",
             justify_content="space_between",
             align_items="center",
-            padding_left=10,
-            padding_right=6,
+            padding_left=pad_left,
+            padding_right=pad_right,
+            padding_top=pad_top,
+            padding_bottom=pad_bottom,
         )[
             text(trigger_text, color=trigger_color, font_size=props.font_size,
                  font_family=props.font_family),
@@ -123,9 +153,10 @@ class NodeSelect(NodeContainer):
                     on_click=lambda e, v=opt_value: self._select_option(v),
                     background_color=opt_bg,
                     highlight_color="FFFFFF22",
-                    padding=8,
-                    padding_left=10,
-                    padding_right=10,
+                    padding_top=pad_top if has_pad else 8,
+                    padding_bottom=pad_bottom if has_pad else 8,
+                    padding_left=pad_left if has_pad else 10,
+                    padding_right=pad_right if has_pad else 10,
                     border_radius=0,
                 )[
                     text(opt["label"],
