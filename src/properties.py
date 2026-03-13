@@ -573,6 +573,7 @@ class NodeRootValidationProperties(ValidationProperties):
 @dataclass
 class NodeDivProperties(Properties):
     drop_shadow: tuple
+    font_family: str = ""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
