@@ -287,7 +287,7 @@ class Node(NodeType):
                             self.properties.update_property(prop, {
                                 "color": parent_node.properties.highlight_style.get("color", None),
                             })
-                    else:
+                    elif hasattr(self.properties, prop):
                         self.properties.update_property(
                             prop,
                             getattr(parent_node.properties, prop),
