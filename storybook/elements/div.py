@@ -204,6 +204,28 @@ def div_stories():
                     div(margin=20)[text("content")]"""),
             }),
 
+            # flex_wrap
+            component(example_with_code, props={
+                "title": "flex_wrap",
+                "example": div(gap=8)[
+                    text("flex_wrap=\"wrap\"", font_size=12, color=t.TEXT_MUTED),
+                    div(
+                        flex_direction="row", flex_wrap="wrap", gap=8, padding=12,
+                        border_width=1, border_color=t.BORDER, border_radius=8, width=280,
+                    )[
+                        *[_box(f"{i+1}", bg=["3689E8", "E24A70", "22AA66", "9B59B6", "E67E22", "1ABC9C"][i % 6], width=60, height=40)
+                          for i in range(9)],
+                    ],
+                ],
+                "code": textwrap.dedent("""\
+                    div(flex_direction="row", flex_wrap="wrap",
+                        gap=8, width=280)[
+                        div(...)[text("1")],
+                        div(...)[text("2")],
+                        # ...items wrap to next line
+                    ]"""),
+            }),
+
             # overflow scroll
             component(example_with_code, props={
                 "title": "overflow_y=\"scroll\"",

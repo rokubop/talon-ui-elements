@@ -16,9 +16,16 @@ class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
         super().__init__(element_type=element_type, properties=properties)
         self.justify_between_gaps = None
+        self.wrap_lines = None
+        self.wrap_line_secondary_sizes = None
         self.debug_number = 0
         self.debug_color = "red"
         self.debug_colors = iter(cycle(["red", "green", "blue", "yellow", "purple", "orange", "cyan", "magenta"]))
+
+    @property
+    def is_flex_wrap(self):
+        fw = self.properties.flex_wrap
+        return fw is True or fw == "wrap"
 
     def render_scroll_bar(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
@@ -81,27 +88,78 @@ class NodeContainer(Node, NodeContainerType):
         participating_children_nodes = self.participating_children_nodes
 
         if participating_children_nodes:
+            child_sizes = []
             for i, child in enumerate(participating_children_nodes):
                 margin_size = child.v2_measure_intrinsic_size(c)
+                child_sizes.append(margin_size)
 
-                # find the single item with the maximum length for secondary axis
+            fixed_gap = self.determine_intrinsic_fixed_gap()
+
+            # Flex wrap: split into lines if explicit primary size is known
+            if self.is_flex_wrap:
+                explicit_primary = self.properties.width if is_row else self.properties.height
+                if explicit_primary and isinstance(explicit_primary, (int, float)) and explicit_primary > 0:
+                    props = self.properties
+                    pad = props.padding
+                    border = props.border
+                    pad_start = pad.left if is_row else pad.top
+                    pad_end = pad.right if is_row else pad.bottom
+                    border_start = border.left if is_row else border.top
+                    border_end = border.right if is_row else border.bottom
+                    available_primary = explicit_primary - pad_start - pad_end - border_start - border_end
+
+                    lines = []
+                    current_line = []
+                    current_line_primary = 0
+
+                    for i, size in enumerate(child_sizes):
+                        child_primary = getattr(size, primary_axis)
+                        gap = fixed_gap if current_line else 0
+
+                        if current_line and current_line_primary + gap + child_primary > available_primary:
+                            lines.append(current_line)
+                            current_line = [(i, size)]
+                            current_line_primary = child_primary
+                        else:
+                            current_line_primary += gap + child_primary
+                            current_line.append((i, size))
+
+                    if current_line:
+                        lines.append(current_line)
+
+                    max_line_primary = 0
+                    total_secondary = 0
+                    for line in lines:
+                        line_primary = sum(getattr(s, primary_axis) for _, s in line)
+                        line_primary += fixed_gap * max(0, len(line) - 1)
+                        max_line_primary = max(max_line_primary, line_primary)
+
+                        line_secondary = max(getattr(s, secondary_axis) for _, s in line)
+                        total_secondary += line_secondary
+
+                    if len(lines) > 1:
+                        total_secondary += fixed_gap * (len(lines) - 1)
+
+                    setattr(children_accumulated_size, primary_axis, max_line_primary)
+                    setattr(children_accumulated_size, secondary_axis, total_secondary)
+                    return children_accumulated_size
+
+            # Standard single-line accumulation
+            for i, size in enumerate(child_sizes):
                 setattr(
                     children_accumulated_size,
                     secondary_axis,
                     max(
                         getattr(children_accumulated_size, secondary_axis),
-                        getattr(margin_size, secondary_axis)
+                        getattr(size, secondary_axis)
                     )
                 )
-
-                # total all the item lengths for primary axis
                 setattr(
                     children_accumulated_size,
                     primary_axis,
-                    getattr(children_accumulated_size, primary_axis) + getattr(margin_size, primary_axis)
+                    getattr(children_accumulated_size, primary_axis) + getattr(size, primary_axis)
                 )
 
-            fixed_gap = self.determine_intrinsic_fixed_gap()
             for i, child in enumerate(participating_children_nodes):
                 if i != len(participating_children_nodes) - 1:
                     gap = self.gap_between_elements(child, i, fixed_gap)
@@ -141,6 +199,13 @@ class NodeContainer(Node, NodeContainerType):
             #  isinstance(self.properties.height, str) and "%" in self.properties.height) or \
             # (self.properties.flex_direction == "column" and \
             #  isinstance(self.properties.width, str) and "%" in self.properties.width)
+
+        # Wrapped layout: skip counter-axis stretch and primary flex growth.
+        # Children keep their intrinsic sizes; constraint phase handles line-breaking.
+        if self.is_flex_wrap:
+            for child in self.participating_children_nodes:
+                child.v2_grow_size()
+            return
 
         for i, child in enumerate(self.participating_children_nodes):
             if all_growable_counter_axis or child.properties.align_self == "stretch" or \
@@ -206,7 +271,76 @@ class NodeContainer(Node, NodeContainerType):
         secondary_axis = "height" if is_row else "width"
 
         if not self.participating_children_nodes:
+            self.wrap_lines = None
             return
+
+        participating_children_nodes = self.participating_children_nodes
+
+        # Flex wrap: split children into lines based on available primary axis space
+        if self.is_flex_wrap and content_constraint_size:
+            available_primary = getattr(content_constraint_size, primary_axis)
+            if available_primary is not None:
+                fixed_gap = self.determine_intrinsic_fixed_gap()
+                lines = []
+                current_line = []
+                current_line_primary = 0
+
+                for child in participating_children_nodes:
+                    child.v2_constrain_size(content_constraint_size.copy())
+                    child_primary = getattr(child.box_model.margin_size, primary_axis)
+                    gap = fixed_gap if current_line else 0
+
+                    if current_line and current_line_primary + gap + child_primary > available_primary:
+                        lines.append(current_line)
+                        current_line = [child]
+                        current_line_primary = child_primary
+                    else:
+                        current_line_primary += gap + child_primary
+                        current_line.append(child)
+
+                if current_line:
+                    lines.append(current_line)
+
+                self.wrap_lines = lines
+
+                # Calculate per-line secondary sizes and totals
+                self.wrap_line_secondary_sizes = []
+                max_primary = 0
+                total_secondary = 0
+                for line in lines:
+                    line_primary = sum(getattr(c.box_model.margin_size, primary_axis) for c in line)
+                    line_primary += fixed_gap * max(0, len(line) - 1)
+                    max_primary = max(max_primary, line_primary)
+
+                    line_secondary = max(getattr(c.box_model.margin_size, secondary_axis) for c in line)
+                    self.wrap_line_secondary_sizes.append(line_secondary)
+                    total_secondary += line_secondary
+
+                if len(lines) > 1:
+                    total_secondary += fixed_gap * (len(lines) - 1)
+
+                # Grow container secondary axis if wrapped content is taller
+                current_secondary = getattr(self.box_model.content_children_size, secondary_axis)
+                if total_secondary > current_secondary:
+                    diff = total_secondary - current_secondary
+                    if is_row:
+                        self.box_model.margin_size.height += diff
+                        self.box_model.border_size.height += diff
+                        self.box_model.padding_size.height += diff
+                        self.box_model.content_size.height += diff
+                        self.box_model.grow_calculated_height_by(diff)
+                    else:
+                        self.box_model.margin_size.width += diff
+                        self.box_model.border_size.width += diff
+                        self.box_model.padding_size.width += diff
+                        self.box_model.content_size.width += diff
+                        self.box_model.grow_calculated_width_by(diff)
+
+                setattr(self.box_model.content_children_size, primary_axis, max_primary)
+                setattr(self.box_model.content_children_size, secondary_axis, total_secondary)
+                return
+
+        self.wrap_lines = None
 
         def accumulate(child: NodeType):
             # find the single item with the maximum length for secondary axis
@@ -225,8 +359,6 @@ class NodeContainer(Node, NodeContainerType):
                 primary_axis,
                 getattr(children_accumulated_size, primary_axis) + getattr(child.box_model.margin_size, primary_axis)
             )
-
-        participating_children_nodes = self.participating_children_nodes
 
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
@@ -276,23 +408,53 @@ class NodeContainer(Node, NodeContainerType):
             self.box_model.adjust_scroll_y(scrollable.offset_y)
             self.box_model.adjust_scroll_x(scrollable.offset_x)
 
-        self.v2_move_cursor_to_align_axis_before_children_render(cursor)
-
         last_cursor = Point2d(cursor.x, cursor.y)
-        self.box_model.shift_relative_position(cursor)
-        fixed_gap = self.determine_layout_fixed_gap()
-        for i, child in enumerate(self.participating_children_nodes):
-            self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
 
-            child_last_cursor = Point2d(cursor.x, cursor.y)
-            size = child.v2_layout(cursor)
-            cursor.move_to(child_last_cursor.x, child_last_cursor.y)
+        if self.wrap_lines:
+            is_row = self.properties.flex_direction == "row"
+            gap = self.properties.gap or 0
+            line_x = self.box_model.content_pos.x
+            line_y = self.box_model.content_pos.y
 
-            if i == len(self.participating_children_nodes) - 1:
-                break
+            self.box_model.shift_relative_position(cursor)
 
-            gap = self.gap_between_elements(child, i, fixed_gap)
-            self.v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, size, gap)
+            for line_idx, line in enumerate(self.wrap_lines):
+                cursor.move_to(line_x, line_y)
+
+                for i, child in enumerate(line):
+                    child_cursor = Point2d(cursor.x, cursor.y)
+                    size = child.v2_layout(cursor)
+                    cursor.move_to(child_cursor.x, child_cursor.y)
+
+                    if i < len(line) - 1:
+                        if is_row:
+                            cursor.move_to(cursor.x + size.width + gap, cursor.y)
+                        else:
+                            cursor.move_to(cursor.x, cursor.y + size.height + gap)
+
+                if line_idx < len(self.wrap_lines) - 1:
+                    line_secondary = self.wrap_line_secondary_sizes[line_idx]
+                    if is_row:
+                        line_y += line_secondary + gap
+                    else:
+                        line_x += line_secondary + gap
+        else:
+            self.v2_move_cursor_to_align_axis_before_children_render(cursor)
+
+            self.box_model.shift_relative_position(cursor)
+            fixed_gap = self.determine_layout_fixed_gap()
+            for i, child in enumerate(self.participating_children_nodes):
+                self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
+
+                child_last_cursor = Point2d(cursor.x, cursor.y)
+                size = child.v2_layout(cursor)
+                cursor.move_to(child_last_cursor.x, child_last_cursor.y)
+
+                if i == len(self.participating_children_nodes) - 1:
+                    break
+
+                gap = self.gap_between_elements(child, i, fixed_gap)
+                self.v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, size, gap)
 
         cursor.move_to(last_cursor.x, last_cursor.y)
         return self.box_model.margin_size

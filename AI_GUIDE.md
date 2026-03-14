@@ -100,7 +100,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 | `align_items` | str | `"stretch"` | `"stretch"`, `"center"`, `"flex_start"`, `"flex_end"` |
 | `align_self` | str | None | `"stretch"`, `"center"`, `"flex_start"`, `"flex_end"` |
 | `flex` | int | None | e.g. `1` - fills available space |
-| `flex_wrap` | bool | False | `True` to wrap children |
+| `flex_wrap` | bool/str | False | `"wrap"` or `True` to wrap children. Requires explicit primary-axis size (e.g. `width` for row). |
 | `gap` | int/float | None | Space between children in pixels |
 
 ### Sizing
