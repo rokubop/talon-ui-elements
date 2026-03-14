@@ -2,7 +2,7 @@ import re
 from talon.skia import Path
 
 try:
-    from talon.skia import PathBuilder
+    from skia import PathBuilder
 except ImportError:
     PathBuilder = None
 from talon.skia.canvas import Canvas as SkiaCanvas
@@ -185,7 +185,8 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
         path = Path.from_svg(new_d)
         if PathBuilder:
             builder = PathBuilder()
-            builder.add_path_offset(path, dx=top_left_pos.x, dy=top_left_pos.y)
+            builder.add_path(path)
+            builder.offset(top_left_pos.x, top_left_pos.y)
             translated_path = builder.detach()
         else:
             translated_path = Path()

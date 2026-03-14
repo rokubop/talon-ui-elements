@@ -147,6 +147,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 | Property | Type | Default | Notes |
 |---|---|---|---|
 | `font_size` | int/float | `16` | |
+| `font_style` | str | `"normal"` | `"normal"`, `"italic"` |
 | `font_weight` | str | `"normal"` | `"normal"`, `"bold"` |
 | `font_family` | str | `""` | System font name |
 | `text_align` | str | `"left"` | `"left"`, `"center"`, `"right"` |

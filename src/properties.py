@@ -518,6 +518,7 @@ class NodeTextValidationProperties(ValidationProperties):
     text: str
     font_size: Union[int, float]
     font_family: str
+    font_style: str
     font_weight: str
     for_id: str
     stroke_color: str = None
@@ -537,6 +538,7 @@ class NodeTextProperties(Properties):
     id: str = None
     font_family: str = ""
     font_size: Union[int, float] = DEFAULT_FONT_SIZE
+    font_style: str = "normal"
     font_weight: str = "normal"
     for_id: str = None
     on_click: any = None

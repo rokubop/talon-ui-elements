@@ -143,6 +143,8 @@ class NodeText(Node):
                 paint.typeface = typeface
 
         paint.font.embolden = True if self.properties.font_weight == "bold" else False
+        if self.properties.font_style == "italic":
+            paint.font.skew_x = -0.25
 
         # Measure line height without embolden so all text at the same
         # font_size produces the same box height regardless of weight.

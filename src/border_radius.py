@@ -3,7 +3,7 @@ from talon.types import Rect
 from talon.skia import Path
 
 try:
-    from talon.skia import PathBuilder
+    from skia import PathBuilder
 except ImportError:
     PathBuilder = None
 

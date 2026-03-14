@@ -44,6 +44,8 @@ def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
             paint.typeface = typeface
     if properties.font_weight == "bold":
         paint.font.embolden = True
+    if getattr(properties, "font_style", "normal") == "italic":
+        paint.font.skew_x = -0.25
 
     if properties.stroke_color:
         paint.style = paint.Style.STROKE
@@ -185,11 +187,14 @@ def hex_color(color: str, property_name: str = None) -> str:
     # Check for common CSS values that aren't supported
     common_css_values = ['transparent', 'inherit', 'currentcolor', 'initial', 'unset']
     if color.lower() in common_css_values:
+        if color.lower() == 'transparent':
+            return "00000000"
         prop_msg = f" for property '{property_name}'" if property_name else ""
         raise ValueError(
             f"\nInvalid color{prop_msg}: '{color}'\n"
             f"CSS value '{color}' is not supported.\n"
             f"For transparency, use:\n"
+            f"  - 'transparent' for fully transparent\n"
             f"  - 8-character hex with alpha: 'FFFFFF66' (last 2 digits control opacity)\n"
             f"  - opacity property: opacity=0.5\n"
             f"  - Don't set background_color (buttons default to transparent background)\n"

@@ -10,6 +10,7 @@ import textwrap
 CONTROLS = [
     ("text", STRING, "Hello world"),
     ("font_size", INT, "16"),
+    ("font_style", SELECT, "normal", ["normal", "italic"]),
     ("font_weight", SELECT, "normal", ["normal", "bold"]),
     ("color", COLOR, ""),
     ("text_align", SELECT, "left", ["left", "center", "right"]),
@@ -66,6 +67,20 @@ def text_stories():
                         font_size=24,
                         font_weight="bold",
                         color="#3689E8",
+                    )""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Italic Text",
+                "example": text(
+                    "Italic text",
+                    font_style="italic",
+                    color="#AAAAAA",
+                ),
+                "code": textwrap.dedent("""\
+                    text(
+                        "Italic text",
+                        font_style="italic",
                     )""")
             }),
 
