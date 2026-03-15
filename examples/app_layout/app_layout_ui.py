@@ -13,7 +13,7 @@ def app_layout_ui():
     return screen(justify_content="center", align_items="center")[
         div(
             width="90%",
-            height=900,
+            height="90%",
             background_color="#1f2435",
             flex_direction="column",
         )[

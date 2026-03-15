@@ -237,14 +237,14 @@ class NodeContainer(Node, NodeContainerType):
                     if child.box_model.height_percent:
                         pct = float(child.box_model.height_percent.replace("%", "")) / 100
                         target = target * pct
-                    grow_content = child.properties.overflow.y == "visible"
+                    grow_content = not child.properties.overflow.scrollable_y
                     child.box_model.grow_calculated_height_to(target, grow_content)
                 elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
                     target = self.box_model.calculated_content_size.width
                     if child.box_model.width_percent:
                         pct = float(child.box_model.width_percent.replace("%", "")) / 100
                         target = target * pct
-                    grow_content = child.properties.overflow.x == "visible"
+                    grow_content = not child.properties.overflow.scrollable_x
                     child.box_model.grow_calculated_width_to(target, grow_content)
 
             # Consider: shouldn't this just grow content children to the growth we did above?

@@ -327,8 +327,8 @@ class BoxModelV2(BoxModelV2Type):
                 )
                 self.resolve_intrinsic_sizes_from_border_size(
                     Size2d(
-                        max(init_width, content_to_border_size.width),
-                        max(init_height, content_to_border_size.height)
+                        init_width if self.fixed_width else max(init_width, content_to_border_size.width),
+                        init_height if self.fixed_height else max(init_height, content_to_border_size.height)
                     )
                 )
             else:
