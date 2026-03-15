@@ -387,13 +387,19 @@ class NodeContainer(Node, NodeContainerType):
             new_available_size = content_constraint_size.copy()
 
             for child in participating_children_nodes:
-                child.v2_constrain_size(new_available_size)
-                if self.properties.flex_direction == "row" and new_available_size.width != None:
+                if child.properties.flex_shrink == 0:
+                    no_shrink_size = new_available_size.copy()
+                    if is_row:
+                        no_shrink_size.width = None
+                    else:
+                        no_shrink_size.height = None
+                    child.v2_constrain_size(no_shrink_size)
+                else:
+                    child.v2_constrain_size(new_available_size)
+                if is_row and new_available_size.width != None:
                     new_available_size.width = max(0, new_available_size.width - child.box_model.margin_size.width)
-                    # new_available_size.width = max(0, new_available_size.width - child.box_model.calculated_margin_size.width)
-                elif self.properties.flex_direction == "column" and new_available_size.height != None:
+                elif not is_row and new_available_size.height != None:
                     new_available_size.height = max(0, new_available_size.height - child.box_model.margin_size.height)
-                    # new_available_size.height = max(0, new_available_size.height - child.box_model.calculated_margin_size.height)
                 accumulate(child)
         else:
             for child in participating_children_nodes:

@@ -83,6 +83,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     drop_shadow: tuple[int, int, int, int, str] = None
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
+    flex_shrink: int = None
     flex_wrap: Union[bool, str] = False
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
@@ -510,6 +511,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     element_type: str
     flex_direction: str
     flex: int
+    flex_shrink: int
     flex_wrap: Union[bool, str]
     focus_outline_color: str
     focus_outline_width: int
