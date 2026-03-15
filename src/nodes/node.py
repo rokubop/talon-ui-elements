@@ -476,7 +476,7 @@ class Node(NodeType):
             c.paint.style = c.paint.Style.FILL
             c.paint.color = background_color
 
-            inner_rect = self.box_model.padding_rect
+            inner_rect = self.box_model.padding_with_scroll_bar_rect
 
             if transforms and transforms.offset:
                 inner_rect = Rect(

@@ -4,18 +4,19 @@ def show_app_layout():
     actions.user.ui_elements_show(app_layout_ui)
 
 def app_layout_ui():
-    screen, div, text = actions.user.ui_elements(
-        ["screen", "div", "text"]
+    screen, div, text, window, input_text = actions.user.ui_elements(
+        ["screen", "div", "text", "window", "input_text"]
     )
 
     long_content = "\n".join([f"line {i}: some_var = do_something(arg1, arg2, arg3)" for i in range(200)])
 
     return screen(justify_content="center", align_items="center")[
-        div(
-            width="90%",
-            height="90%",
+        window(
+            title="App Layout",
+            width="80%",
+            height="80%",
             background_color="#1f2435",
-            flex_direction="column",
+            title_bar_style={"background_color": "#151928"},
         )[
             # Main row
             div(flex_direction="row", flex=1, overflow="hidden")[
@@ -23,13 +24,13 @@ def app_layout_ui():
                 div(width=420, flex_shrink=0, padding=32, gap=6, overflow_y="auto",
                     background_color="#1f2435")[
                     text("FIELD 1", font_size=14, color="#8892aa"),
-                    div(background_color="#2c3348", padding=10, width="100%")[
-                        text("some value", color="#e4e8f0"),
-                    ],
+                    input_text(id="field_1", placeholder="some value",
+                               background_color="#2c3348", color="#e4e8f0",
+                               padding=10, width="100%"),
                     text("FIELD 2", font_size=14, color="#8892aa", margin_top=18),
-                    div(background_color="#2c3348", padding=10, width="100%")[
-                        text("another value", color="#e4e8f0"),
-                    ],
+                    input_text(id="field_2", placeholder="another value",
+                               background_color="#2c3348", color="#e4e8f0",
+                               padding=10, width="100%"),
                     text("LIST", font_size=14, color="#8892aa", margin_top=20),
                     div(background_color="#252b3e", flex=1, overflow_y="auto", padding=4)[
                         text("Item 1", font_size=15, color="#e4e8f0"),

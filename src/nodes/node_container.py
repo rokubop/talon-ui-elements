@@ -388,20 +388,59 @@ class NodeContainer(Node, NodeContainerType):
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
 
+            # Reserve space for non-flex children so flex children don't consume
+            # all available space. Without this, a flex child with large intrinsic
+            # content (e.g. scrollable text) would constrain to the full available
+            # height, leaving 0 for non-flex siblings like a bottom bar.
+            # Track remaining unprocessed non-flex intrinsic size so we don't
+            # double-subtract for non-flex children already consumed from available.
+            available_primary = getattr(new_available_size, primary_axis)
+            remaining_non_flex_intrinsic = 0
+            if available_primary is not None:
+                for child in participating_children_nodes:
+                    if not child.properties.flex:
+                        remaining_non_flex_intrinsic += getattr(
+                            child.box_model.intrinsic_margin_size, primary_axis
+                        )
+
             for child in participating_children_nodes:
+                child_available = new_available_size
+                # Resolve primary-axis percentage to a concrete constraint
+                pct_prop = child.properties.width if is_row else child.properties.height
+                if isinstance(pct_prop, str) and "%" in pct_prop:
+                    pct = float(pct_prop.replace("%", "")) / 100
+                    parent_primary = getattr(content_constraint_size, primary_axis)
+                    if parent_primary is not None:
+                        child_available = new_available_size.copy()
+                        setattr(child_available, primary_axis, int(parent_primary * pct))
+                elif child.properties.flex and available_primary is not None:
+                    # Cap flex child's available space to leave room for
+                    # not-yet-processed non-flex siblings
+                    current_available = getattr(new_available_size, primary_axis)
+                    if current_available is not None and remaining_non_flex_intrinsic > 0:
+                        flex_available = max(0, current_available - remaining_non_flex_intrinsic)
+                        child_available = new_available_size.copy()
+                        setattr(child_available, primary_axis, flex_available)
+
                 if child.properties.flex_shrink == 0:
-                    no_shrink_size = new_available_size.copy()
+                    no_shrink_size = child_available.copy()
                     if is_row:
                         no_shrink_size.width = None
                     else:
                         no_shrink_size.height = None
                     child.v2_constrain_size(no_shrink_size)
                 else:
-                    child.v2_constrain_size(new_available_size)
+                    child.v2_constrain_size(child_available)
                 if is_row and new_available_size.width != None:
                     new_available_size.width = max(0, new_available_size.width - child.box_model.margin_size.width)
                 elif not is_row and new_available_size.height != None:
                     new_available_size.height = max(0, new_available_size.height - child.box_model.margin_size.height)
+                # Decrement remaining reservation as non-flex children are processed
+                if not child.properties.flex and available_primary is not None:
+                    remaining_non_flex_intrinsic = max(0,
+                        remaining_non_flex_intrinsic - getattr(
+                            child.box_model.margin_size, primary_axis
+                        ))
                 accumulate(child)
         else:
             for child in participating_children_nodes:
