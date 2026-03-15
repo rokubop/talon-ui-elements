@@ -1003,7 +1003,7 @@ class Tree(TreeType):
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
-                if node.element_type in ["button", "input_text", "textarea", "link"] and not node.disabled:
+                if node.interactive:
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
 
     def refresh_decorator_canvas(self):
