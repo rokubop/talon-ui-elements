@@ -1,5 +1,6 @@
 from talon import actions
 from .alignment.alignment_ui import show_alignment
+from .app_layout.app_layout_ui import show_app_layout
 from .cheatsheet.cheatsheet_ui import show_cheatsheet, cheatsheet_mode_basic, cheatsheet_mode_advanced
 from .dashboard.dashboard_ui import show_dashboard
 from .game_keys.game_keys_actions import game_keys_show
@@ -33,8 +34,8 @@ def go_back_ui():
 
 def show_example(show_func):
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(go_back_ui)
     show_func()
+    actions.user.ui_elements_show(go_back_ui)
 
 def show_cheatsheet_example():
     actions.user.ui_elements_hide_all()
@@ -60,6 +61,7 @@ def show_inputs_example():
     actions.user.ui_elements_show(go_back_ui)
 
 button_col1_actions = {
+    "App Layout": lambda: show_example(show_app_layout),
     "Hello world": lambda: show_example(show_hello_world),
     "Alignment": lambda: show_example(show_alignment),
     "Cheatsheet": show_cheatsheet_example,

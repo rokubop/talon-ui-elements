@@ -382,21 +382,23 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
         )
 
-    def grow_calculated_height_to(self, height: int):
+    def grow_calculated_height_to(self, height: int, grow_content: bool = True):
         if height > self.calculated_margin_size.height:
             diff = height - self.calculated_margin_size.height
             self.calculated_margin_size.height += diff
             self.calculated_border_size.height += diff
             self.calculated_padding_size.height += diff
-            self.calculated_content_size.height += diff
+            if grow_content:
+                self.calculated_content_size.height += diff
 
-    def grow_calculated_width_to(self, width: int):
+    def grow_calculated_width_to(self, width: int, grow_content: bool = True):
         if width > self.calculated_margin_size.width:
             diff = width - self.calculated_margin_size.width
             self.calculated_margin_size.width += diff
             self.calculated_border_size.width += diff
             self.calculated_padding_size.width += diff
-            self.calculated_content_size.width += diff
+            if grow_content:
+                self.calculated_content_size.width += diff
 
     def grow_calculated_height_by(self, height: int):
         self.grow_calculated_height_to(self.calculated_margin_size.height + height)
