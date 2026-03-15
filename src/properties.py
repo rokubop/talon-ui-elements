@@ -46,6 +46,20 @@ SCALABLE_PROPERTIES = {
     'size'  # For SVG elements
 }
 
+_CORNER_RADIUS_KEYS = {
+    'border_top_left_radius': 'top_left',
+    'border_top_right_radius': 'top_right',
+    'border_bottom_right_radius': 'bottom_right',
+    'border_bottom_left_radius': 'bottom_left',
+}
+
+_BORDER_WIDTH_ALIASES = {
+    'border_top_width': 'border_top',
+    'border_right_width': 'border_right',
+    'border_bottom_width': 'border_bottom',
+    'border_left_width': 'border_left',
+}
+
 class Properties(PropertiesDimensionalType, PropertiesType):
     """
     These are base properties and not all inclusive.
@@ -333,6 +347,18 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 self.stroke = self._apply_opacity_to_color(self.stroke, opacity_hex)
 
     def update_property(self, key, value, explicitly_set=True):
+        if key in _BORDER_WIDTH_ALIASES:
+            key = _BORDER_WIDTH_ALIASES[key]
+        if key in _CORNER_RADIUS_KEYS:
+            if not isinstance(self.border_radius, BorderRadius):
+                self.border_radius = BorderRadius(self.border_radius)
+            scaled_val = scale_value(value) if isinstance(value, (int, float)) else value
+            setattr(self.border_radius, _CORNER_RADIUS_KEYS[key], float(scaled_val))
+            br = self.border_radius
+            br._has_radius = bool(br.top_left or br.top_right or br.bottom_right or br.bottom_left)
+            br._is_uniform = (br.top_left == br.top_right == br.bottom_right == br.bottom_left)
+            self._explicitly_set.add(key)
+            return
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value, property_name=key)
@@ -344,6 +370,12 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     scale = get_scale()
                     if scale != 1.0:
                         value = value.scale(scale)
+                # Preserve individually set corners
+                old = self.border_radius
+                if isinstance(old, BorderRadius):
+                    for corner_key, attr in _CORNER_RADIUS_KEYS.items():
+                        if corner_key in self._explicitly_set:
+                            setattr(value, attr, getattr(old, attr))
             # Apply scaling to dimensional properties only when explicitly set by user
             # Don't scale when inheriting from parent (already scaled values)
             elif explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
@@ -505,6 +537,10 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     transition: dict
     unmount_style: dict
     value: str
+    border_top_left_radius: Union[int, float]
+    border_top_right_radius: Union[int, float]
+    border_bottom_right_radius: Union[int, float]
+    border_bottom_left_radius: Union[int, float]
     cursor: str
     width: Union[int, str, float]
     z_index: int
@@ -1114,7 +1150,13 @@ def combine_props(props, additional_props):
         return props
     return {**props, **additional_props}
 
+def _resolve_aliases(props):
+    if any(k in _BORDER_WIDTH_ALIASES for k in props):
+        return {_BORDER_WIDTH_ALIASES.get(k, k): v for k, v in props.items()}
+    return props
+
 def validate_props(props, element_type):
+    props = _resolve_aliases(props)
     invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))
@@ -1143,5 +1185,5 @@ def validate_props(props, element_type):
 
 def validate_combined_props(props, additional_props, element_type):
     combined_props = combine_props(props, additional_props)
-    validate_props(combined_props, element_type)
+    combined_props = validate_props(combined_props, element_type)
     return combined_props

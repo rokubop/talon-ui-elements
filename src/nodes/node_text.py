@@ -6,6 +6,7 @@ from .node import Node
 from ..box_model import BoxModelV2
 from ..core.state_manager import state_manager
 from ..interfaces import Size2d, RenderTransforms
+from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
 from ..fonts import get_typeface
 from ..utils import draw_text_simple
@@ -188,7 +189,7 @@ class NodeText(Node):
 
         text_y = text_top_left.y + self.text_line_height
         self.cursor_pre_draw_text = (text_top_left.x, text_y)
-        color = self.resolve_render_property("color")
+        color = self.resolve_render_property("color") or self.properties.color or DEFAULT_COLOR
 
         if self.text_multiline:
             gap = self.properties.gap or 16

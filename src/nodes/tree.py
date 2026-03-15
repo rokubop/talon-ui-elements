@@ -601,9 +601,16 @@ class Tree(TreeType):
             self.cursor.reset()
             self.cursor_v2.reset()
 
-    def validate_root_node(self):
+    def auto_wrap_root_node(self):
         if self.root_node.element_type not in ["screen", "active_window"]:
-            raise Exception("Root node must be a screen or active_window element")
+            from .node_root import NodeRoot
+            from ..properties import NodeRootProperties
+            root = NodeRoot("screen", NodeRootProperties(
+                justify_content="center",
+                align_items="center",
+            ))
+            root.add_child(self.root_node)
+            self.root_node = root
 
     def get_cursor_position(self) -> Point2d:
         try:
@@ -669,7 +676,7 @@ class Tree(TreeType):
             self.fixed_nodes.clear()
             if not isinstance(self.root_node, NodeType):
                 raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
-            self.validate_root_node()
+            self.auto_wrap_root_node()
         finally:
             state_manager.set_processing_tree(None)
 
