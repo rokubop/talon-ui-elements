@@ -15,6 +15,10 @@ from ..utils import adjust_color_alpha
 class NodeContainer(Node, NodeContainerType):
     def __init__(self, element_type, properties: Properties = None):
         super().__init__(element_type=element_type, properties=properties)
+        if self.properties.on_click:
+            self.on_click = self.properties.on_click
+            self.interactive = True
+            self.is_hovering = False
         self.justify_between_gaps = None
         self.wrap_lines = None
         self.wrap_line_secondary_sizes = None

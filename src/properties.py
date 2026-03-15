@@ -505,11 +505,13 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     transition: dict
     unmount_style: dict
     value: str
+    cursor: str
     width: Union[int, str, float]
     z_index: int
 
 class NodeDivValidationProperties(ValidationProperties):
     drop_shadow: tuple
+    on_click: callable
 
 class NodeCursorValidationProperties(ValidationProperties):
     refresh_rate: int

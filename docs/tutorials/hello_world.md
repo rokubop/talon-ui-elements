@@ -1,4 +1,4 @@
-# 🚀 Your First UI in 5 Minutes
+# Your First UI in 5 Minutes
 
 Welcome to UI Elements! In this tutorial, you'll create your first voice-activated UI from scratch.
 

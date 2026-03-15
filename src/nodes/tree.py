@@ -2347,8 +2347,7 @@ class Tree(TreeType):
             if overrides := self.meta_state.get_ref_property_overrides(node.id):
                 node.properties.update_overrides(overrides)
 
-            if node.element_type == ELEMENT_ENUM_TYPE["button"] or \
-                    node.element_type == ELEMENT_ENUM_TYPE["link"]:
+            if getattr(node, 'on_click', None):
                 self.meta_state.add_button(node.id)
             elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 if node.properties.for_id:

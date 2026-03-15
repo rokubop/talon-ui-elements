@@ -1,4 +1,4 @@
-# 🎮 Game Key Overlay Tutorial
+# Game Key Overlay Tutorial
 
 In this tutorial, you'll build a visual game control overlay step by step, learning about reusable functions, flexbox grid layouts, and interactive highlighting along the way.
 
