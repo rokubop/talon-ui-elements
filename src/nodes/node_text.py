@@ -1,6 +1,7 @@
-import re
+from talon import clip
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
+from talon.types import Rect
 from typing import Literal
 from .node import Node
 from ..box_model import BoxModelV2
@@ -9,79 +10,8 @@ from ..interfaces import Size2d, RenderTransforms
 from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
 from ..fonts import get_typeface
+from ..text_utils import binary_search_cursor, wrap_lines
 from ..utils import draw_text_simple
-
-def split_lines(text, max_width, measure_text):
-    lines = []
-    line = []
-    line_width = 0
-    for word in text.split(" "):
-        word_width = measure_text(word)[1].width
-        if line_width + word_width > max_width:
-            lines.append(" ".join(line))
-            line = [word]
-            line_width = word_width
-        else:
-            line.append(word)
-            line_width += word_width
-    lines.append(" ".join(line))
-    return lines
-
-class TextBlock():
-    def __init__(self, value):
-        self.value = str(value)
-        self.value_cleansed = re.sub(r'\s{2,}', ' ', self.value)
-        self.value_multi_line = []
-        self.min_width = 0
-        self.max_width = 0
-        self.line_height = 0
-        self.body_height = 0
-
-    def measure_min_width(self, c):
-        for word in self.value.split(" "):
-            width = c.paint.measure_text(word)[1].width
-            if width > self.min_width:
-                self.min_width = width
-
-    def measure_max_width(self, c):
-        c.paint.measure_text(self.value)[1].width if self.value else 0
-
-    def measure_line_height(self, c):
-        c.paint.measure_text("X")[1].height if self.value else 0
-
-    def measure_body_height(self, c):
-        c.paint.measure_text("X")[1].height if self.value else 0
-
-    def update_value_simple(self, value):
-        self.value = str(value)
-        self.value_cleansed = re.sub(r'\s{2,}', ' ', self.value)
-
-    # def measure_and_account_for_multiline(self, c: SkiaCanvas, cursor: Cursor):
-    #     text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
-
-    #     # start/end spaces not counted by c.paint.measure_text, so fill them in
-    #     if self.text.startswith(" "):
-    #         text_cleansed = "x" + text_cleansed
-    #     if self.text.endswith(" "):
-    #         text_cleansed = "x" + text_cleansed
-    #     self.text_width = c.paint.measure_text(text_cleansed)[1].width
-    #     self.text_line_height = c.paint.measure_text("X")[1].height
-    #     self.text_body_height = self.text_line_height
-
-    #     if (self.properties.width or self.properties.max_width) and self.text_width > self.box_model.content_width:
-    #         self.text_multiline = split_lines(text_cleansed, self.box_model.content_width, c.paint.measure_text)
-    #         gap = self.properties.gap or 16
-    #         self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
-
-    def update_value_with_reevaluation(self, c, value):
-        self.update_value_simple(value)
-        self.measure_min_width(c)
-        self.measure_max_width(c)
-        self.measure_height(c)
-        self.measure_body_height(c)
-
-    def __str__(self):
-        return self.value
 
 ElementType = Literal['button', 'text', 'link']
 
@@ -91,14 +21,15 @@ class NodeText(Node):
             element_type=element_type,
             properties=properties
         )
-        # self.text = TextBlock(text)
         self.text = str(text)
         self.cursor_pre_draw_text = (0, 0)
-        self.white_space = "normal"
         self.text_multiline = None
         self.text_width = 0
         self.text_line_height = 0
         self.text_body_height = 0
+        self._sel_start = None
+        self._sel_end = None
+        self._selecting = False
 
         if element_type == "button" or element_type == "link":
             self.on_click = self.properties.on_click or (lambda: None)
@@ -109,52 +40,80 @@ class NodeText(Node):
     def own_id(self):
         return self.id and not self.properties.for_id
 
-    def v2_measure_and_account_for_multiline(self, paint: Paint):
-        # text_cleansed = re.sub(r'\s{2,}', ' ', self.text)
-        text_cleansed = re.sub(r"\s", "x", self.text)
+    @property
+    def selectable(self):
+        return getattr(self.properties, 'selectable', False)
 
-        # start/end spaces not counted by c.paint.measure_text, so fill them in
-        # if text_cleansed.startswith(" "):
-        #     text_cleansed = "x" + text_cleansed[1:]
-        # if text_cleansed.endswith(" "):
-        #     text_cleansed = text_cleansed[:-1] + "x"
-        self.text_width = paint.measure_text(text_cleansed)[1].width
-        self.text_body_height = self.text_line_height
-
-        if (self.properties.width or self.properties.max_width) and isinstance(self.properties.width, (int, float)) and self.text_width > self.properties.width:
-            self.text_multiline = split_lines(text_cleansed, self.text_width, paint.measure_text)
-            gap = self.properties.gap or 16
-            self.text_body_height = self.text_line_height * len(self.text_multiline) + gap * (len(self.text_multiline) - 1)
-
-    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
-        """
-        First step in the layout process. Calculates the intrinsic size.
-        Basically naturally how much width/height based on content or
-        user defined width/height it takes up.
-        """
-        # TODO: remove mutation from measure phase
-        if self.element_type == "text" and self.own_id:
-            self.text = str(state_manager.use_text_mutation(self))
-
+    def _make_paint(self):
         paint = Paint()
         paint.textsize = self.properties.font_size
         if self.properties.font_family:
             typeface = get_typeface(self.properties.font_family, self.properties.font_weight)
             if typeface:
                 paint.typeface = typeface
-
-        paint.font.embolden = True if self.properties.font_weight == "bold" else False
+        paint.font.embolden = self.properties.font_weight == "bold"
         if self.properties.font_style == "italic":
             paint.font.skew_x = -0.25
+        return paint
 
-        # Measure line height without embolden so all text at the same
-        # font_size produces the same box height regardless of weight.
+    def _measure_line_height(self, paint):
+        """Measure line height without embolden for consistent sizing."""
         was_bold = paint.font.embolden
         paint.font.embolden = False
-        self.text_line_height = paint.measure_text("X")[1].height
+        line_height = paint.measure_text("X")[1].height
         paint.font.embolden = was_bold
+        return line_height
 
-        self.v2_measure_and_account_for_multiline(paint)
+    def _get_line_gap(self):
+        if self.properties.gap is not None:
+            return self.properties.gap
+        return round(self.text_line_height * 1.0)
+
+    def _compute_lines(self, paint):
+        """Compute multiline layout. Sets text_multiline, text_width, text_body_height."""
+        text = self.text
+        gap = self._get_line_gap()
+        has_newlines = "\n" in text
+        container_width = self.properties.width or self.properties.max_width
+
+        if has_newlines and container_width and isinstance(container_width, (int, float)):
+            self.text_multiline = wrap_lines(text, container_width, paint.measure_text)
+        elif has_newlines:
+            raw_lines = text.split("\n")
+            lines = []
+            pos = 0
+            for line in raw_lines:
+                lines.append((line, pos))
+                pos += len(line) + 1
+            self.text_multiline = lines
+        elif container_width and isinstance(container_width, (int, float)):
+            single_width = paint.measure_text(text)[0] if text else 0
+            if single_width > container_width:
+                self.text_multiline = wrap_lines(text, container_width, paint.measure_text)
+            else:
+                self.text_multiline = None
+        else:
+            self.text_multiline = None
+
+        if self.text_multiline:
+            widths = [paint.measure_text(line or " ")[0] for line, _ in self.text_multiline]
+            self.text_width = max(widths) if widths else 0
+            num_lines = len(self.text_multiline)
+            self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
+        else:
+            # Single line - measure directly, replacing whitespace for width calc
+            measure_text = text.replace(" ", "x") if text else ""
+            self.text_width = paint.measure_text(measure_text)[0] if measure_text else 0
+            self.text_body_height = self.text_line_height
+
+    def v2_measure_intrinsic_size(self, c: SkiaCanvas):
+        if self.element_type == "text" and self.own_id and not self.selectable:
+            self.text = str(state_manager.use_text_mutation(self))
+
+        paint = self._make_paint()
+        self.text_line_height = self._measure_line_height(paint)
+        self._compute_lines(paint)
+
         self.box_model = BoxModelV2(
             self.properties,
             Size2d(self.text_width, self.text_body_height),
@@ -162,6 +121,72 @@ class NodeText(Node):
             self.relative_positional_node
         )
         return self.box_model.intrinsic_margin_size
+
+    def _get_text_top_left(self, transforms=None):
+        if transforms and transforms.offset:
+            top_left = self.box_model.content_children_pos.copy()
+            top_left.x += transforms.offset.x
+            top_left.y += transforms.offset.y
+        else:
+            top_left = self.box_model.content_children_pos
+
+        available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
+        if self.properties.text_align == "center":
+            top_left.x += available_width // 2
+        elif self.properties.text_align == "right":
+            top_left.x += available_width
+
+        return top_left
+
+    def _render_selection(self, c, paint, top_left):
+        if self._sel_start is None or self._sel_end is None:
+            return
+        sel_start = min(self._sel_start, self._sel_end)
+        sel_end = max(self._sel_start, self._sel_end)
+        if sel_start == sel_end:
+            return
+
+        sel_paint = Paint()
+        sel_paint.color = getattr(self.properties, 'selection_color', '4488FF88')
+        sel_paint.style = sel_paint.Style.FILL
+        gap = self._get_line_gap()
+
+        if self.text_multiline:
+            for i, (line_text, line_start) in enumerate(self.text_multiline):
+                line_end = line_start + len(line_text)
+                if sel_end <= line_start or sel_start >= line_end + 1:
+                    continue
+
+                local_start = max(0, sel_start - line_start)
+                local_end = min(len(line_text), sel_end - line_start)
+
+                x_start = top_left.x + (paint.measure_text(line_text[:local_start])[0] if local_start > 0 else 0)
+                sel_text = line_text[local_start:local_end]
+                sel_width = paint.measure_text(sel_text)[0] if sel_text else 0
+
+                if sel_end > line_end and local_end == len(line_text):
+                    content_width = self.box_model.content_size.width
+                    sel_width = content_width - (x_start - top_left.x)
+
+                y_pos = top_left.y + i * (self.text_line_height + gap)
+                c.draw_rect(Rect(x_start, y_pos, sel_width, self.text_line_height + 4), sel_paint)
+        else:
+            local_start = max(0, sel_start)
+            local_end = min(len(self.text), sel_end)
+            x_start = top_left.x + (paint.measure_text(self.text[:local_start])[0] if local_start > 0 else 0)
+            sel_text = self.text[local_start:local_end]
+            sel_width = paint.measure_text(sel_text)[0] if sel_text else 0
+            c.draw_rect(Rect(x_start, top_left.y, sel_width, self.text_line_height + 4), sel_paint)
+
+    def _draw_text_lines(self, c, color, top_left):
+        gap = self._get_line_gap()
+        if self.text_multiline:
+            for i, (line_text, _) in enumerate(self.text_multiline):
+                if line_text:
+                    y = top_left.y + (self.text_line_height + gap) * i + self.text_line_height
+                    draw_text_simple(c, line_text, color, self.properties, top_left.x, y)
+        else:
+            draw_text_simple(c, self.text, color, self.properties, top_left.x, top_left.y + self.text_line_height)
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render:
@@ -173,61 +198,115 @@ class NodeText(Node):
     def v2_render_decorator(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.v2_render_borders(c, transforms)
         self.v2_render_background(c, transforms)
-
-        # This should be in layout phase
-        text_top_left = self.box_model.content_children_pos.copy()
-        available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
-
-        if self.properties.text_align == "center":
-            text_top_left.x += available_width // 2
-        elif self.properties.text_align == "right":
-            text_top_left.x += available_width
-
-        if transforms and transforms.offset:
-            text_top_left.x += transforms.offset.x
-            text_top_left.y += transforms.offset.y
-
-        text_y = text_top_left.y + self.text_line_height
-        self.cursor_pre_draw_text = (text_top_left.x, text_y)
+        top_left = self._get_text_top_left(transforms)
+        self.cursor_pre_draw_text = (top_left.x, top_left.y + self.text_line_height)
         color = self.resolve_render_property("color") or self.properties.color or DEFAULT_COLOR
 
-        if self.text_multiline:
-            gap = self.properties.gap or 16
-            for i, line in enumerate(self.text_multiline):
-                draw_text_simple(c, line, color, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
-        else:
-            draw_text_simple(c, self.text, color, self.properties, text_top_left.x, text_y)
+        if self._sel_start is not None and self._sel_end is not None:
+            paint = self._make_paint()
+            self._render_selection(c, paint, top_left)
+
+        self._draw_text_lines(c, color, top_left)
 
     def v2_render(self, c, transforms: RenderTransforms = None):
         render_now = not self.uses_decoration_render
-        if self.own_id and self.element_type == "text":
+        if self.own_id and self.element_type == "text" and not self.selectable:
             render_now = False
 
         self.v2_render_borders(c, transforms)
         self.v2_render_background(c, transforms)
-
-        # This should be in layout phase
-
-        if transforms and transforms.offset:
-            text_top_left = self.box_model.content_children_pos.copy()
-            text_top_left.x += transforms.offset.x
-            text_top_left.y += transforms.offset.y
-        else:
-            text_top_left = self.box_model.content_children_pos
-
-        available_width = self.box_model.content_size.width - self.box_model.content_children_size.width
-        if self.properties.text_align == "center":
-            text_top_left.x += available_width // 2
-        elif self.properties.text_align == "right":
-            text_top_left.x += available_width
-
-        text_y = text_top_left.y + self.text_line_height
-        self.cursor_pre_draw_text = (text_top_left.x, text_y)
+        top_left = self._get_text_top_left(transforms)
+        self.cursor_pre_draw_text = (top_left.x, top_left.y + self.text_line_height)
 
         if render_now:
-            if self.text_multiline:
-                gap = self.properties.gap or 16
-                for i, line in enumerate(self.text_multiline):
-                    draw_text_simple(c, line, self.properties.color, self.properties, text_top_left.x, text_top_left.y + (self.text_line_height * (i + 1)) + (gap * i))
-            else:
-                draw_text_simple(c, self.text, self.properties.color, self.properties, text_top_left.x, text_y)
+            if self._sel_start is not None and self._sel_end is not None:
+                paint = self._make_paint()
+                self._render_selection(c, paint, top_left)
+            self._draw_text_lines(c, self.properties.color, top_left)
+
+    # --- Selection methods ---
+
+    def _get_char_index_from_pos(self, click_x, click_y):
+        """Convert mouse position to character index in self.text."""
+        if not self.box_model:
+            return 0
+
+        paint = self._make_paint()
+        top_left = self.box_model.content_children_pos
+        relative_y = click_y - top_left.y
+
+        if relative_y < 0:
+            return 0
+
+        if self.text_multiline:
+            gap = self._get_line_gap()
+            line_h = self.text_line_height + gap
+            total_h = line_h * len(self.text_multiline)
+            if relative_y >= total_h:
+                return len(self.text)
+            line_idx = int(relative_y / line_h)
+            line_idx = max(0, min(line_idx, len(self.text_multiline) - 1))
+            line_text, line_start = self.text_multiline[line_idx]
+            relative_x = click_x - top_left.x
+            return line_start + binary_search_cursor(line_text, relative_x, paint)
+        else:
+            if relative_y >= self.text_line_height:
+                return len(self.text)
+            relative_x = click_x - top_left.x
+            return binary_search_cursor(self.text, relative_x, paint)
+
+    def set_selection_from_click(self, click_x, click_y, click_count=1):
+        text = self.text
+        if click_count == 3:
+            self._sel_start = 0
+            self._sel_end = len(text)
+        elif click_count == 2:
+            pos = self._get_char_index_from_pos(click_x, click_y)
+            start = pos
+            while start > 0 and text[start - 1] not in (' ', '\n'):
+                start -= 1
+            end = pos
+            while end < len(text) and text[end] not in (' ', '\n'):
+                end += 1
+            self._sel_start = start
+            self._sel_end = end
+        else:
+            pos = self._get_char_index_from_pos(click_x, click_y)
+            self._sel_start = pos
+            self._sel_end = pos
+        self._selecting = True
+        self._trigger_selection_render()
+
+    def update_selection_from_drag(self, click_x, click_y=None):
+        if click_y is None:
+            click_y = self.box_model.content_children_pos.y if self.box_model else 0
+        self._sel_end = self._get_char_index_from_pos(click_x, click_y)
+        self._trigger_selection_render()
+
+    def finalize_selection(self):
+        self._selecting = False
+
+    def copy_selection(self):
+        if self._sel_start is not None and self._sel_end is not None:
+            sel_start = min(self._sel_start, self._sel_end)
+            sel_end = max(self._sel_start, self._sel_end)
+            if sel_start != sel_end:
+                try:
+                    clip.set_text(self.text[sel_start:sel_end])
+                except Exception:
+                    pass
+
+    def clear_selection(self):
+        if self._sel_start is not None or self._sel_end is not None:
+            self._sel_start = None
+            self._sel_end = None
+            if self.uses_decoration_render and self.tree:
+                self.uses_decoration_render = False
+                self.tree.render_manager.render()
+
+    def _trigger_selection_render(self):
+        if self.tree:
+            if not self.uses_decoration_render:
+                self.uses_decoration_render = True
+                self.tree.meta_state.add_decoration_render(self.id)
+            self.tree.refresh_decorator_canvas()

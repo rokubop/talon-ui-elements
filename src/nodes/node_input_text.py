@@ -9,30 +9,7 @@ from ..interfaces import RenderTransforms
 from ..properties import NodeInputTextProperties
 from ..fonts import get_typeface
 
-def _binary_search_cursor(text: str, relative_x: float, paint) -> int:
-    """Binary search for the character index closest to relative_x."""
-    if not text:
-        return 0
-    n = len(text)
-    lo, hi = 0, n
-    while lo < hi:
-        mid = (lo + hi) // 2
-        width = paint.measure_text(text[:mid + 1])[0]
-        if width < relative_x:
-            lo = mid + 1
-        else:
-            hi = mid
-    # lo is now the first index whose cumulative width >= relative_x
-    # Compare lo-1 and lo to find which is closer
-    if lo == 0:
-        width_at_lo = paint.measure_text(text[:1])[0]
-        return 0 if relative_x < width_at_lo / 2 else 1
-    if lo >= n:
-        width_at_prev = paint.measure_text(text[:n])[0]
-        return n if relative_x >= width_at_prev / 2 else n - 1
-    width_before = paint.measure_text(text[:lo])[0]
-    width_after = paint.measure_text(text[:lo + 1])[0]
-    return lo if abs(relative_x - width_before) <= abs(relative_x - width_after) else lo + 1
+from ..text_utils import binary_search_cursor as _binary_search_cursor
 
 class NodeInputText(Node):
     def __init__(self, properties: NodeInputTextProperties = None):

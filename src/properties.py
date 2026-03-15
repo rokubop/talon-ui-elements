@@ -559,9 +559,12 @@ class NodeTextValidationProperties(ValidationProperties):
     font_style: str
     font_weight: str
     for_id: str
+    selectable: bool
+    selection_color: str
     stroke_color: str = None
     stroke_width: Union[int, float] = None
     text_align: str
+    white_space: str
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
@@ -580,9 +583,12 @@ class NodeTextProperties(Properties):
     font_weight: str = "normal"
     for_id: str = None
     on_click: any = None
+    selectable: bool = False
+    selection_color: str = "4488FF88"
     stroke_width: Union[int, float] = None
     stroke_color: str = None
     text_align: str = "left"
+    white_space: str = "normal"
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE

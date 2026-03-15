@@ -284,11 +284,7 @@ def th(*args, **additional_props):
 
 def text(text_str: str = "", props=None, **additional_props):
     if isinstance(text_str, str):
-        lines = text_str.replace("\r\n", "\n").split("\n")
-        if len(lines) > 1:
-            return div()[
-                *[text(line, props=props, **additional_props) for line in lines]
-            ]
+        text_str = text_str.replace("\r\n", "\n")
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)

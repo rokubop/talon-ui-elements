@@ -85,6 +85,92 @@ def text_stories():
             }),
 
             component(example_with_code, props={
+                "title": "Multiline Text",
+                "example": text(
+                    "Line one\nLine two\nLine three",
+                    color=t.TEXT,
+                ),
+                "code": textwrap.dedent("""\
+                    text("Line one\\nLine two\\nLine three")""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Word Wrap (fixed width)",
+                "example": text(
+                    "This is a longer sentence that should automatically wrap when it exceeds the container width.",
+                    color=t.TEXT,
+                    width=250,
+                ),
+                "code": textwrap.dedent("""\
+                    text(
+                        "This is a longer sentence that should "
+                        "automatically wrap...",
+                        width=250,
+                    )""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Code Block",
+                "example": div(
+                    background_color=t.BG_CODE,
+                    border_radius=8,
+                    padding=16,
+                )[
+                    text(
+                        "def hello():\n    print('world')\n    return True",
+                        font_family="monospace",
+                        font_size=14,
+                        color=t.TEXT_CODE,
+                    ),
+                ],
+                "code": textwrap.dedent("""\
+                    text(
+                        "def hello():\\n    print('world')",
+                        font_family="monospace",
+                    )""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Selectable Text (drag to select, Ctrl+C to copy)",
+                "example": text(
+                    "Try selecting this text by clicking and dragging. "
+                    "Press Ctrl+C to copy the selection.",
+                    color=t.TEXT,
+                    selectable=True,
+                    width=350,
+                ),
+                "code": textwrap.dedent("""\
+                    text(
+                        "Try selecting this text...",
+                        selectable=True,
+                        width=350,
+                    )""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Selectable Code Block",
+                "example": div(
+                    background_color=t.BG_CODE,
+                    border_radius=8,
+                    padding=16,
+                )[
+                    text(
+                        'name = "world"\nprint(f"hello {name}")\n# output: hello world',
+                        font_family="monospace",
+                        font_size=14,
+                        color=t.TEXT_CODE,
+                        selectable=True,
+                    ),
+                ],
+                "code": textwrap.dedent("""\
+                    text(
+                        'name = "world"\\nprint(f"hello {name}")',
+                        font_family="monospace",
+                        selectable=True,
+                    )""")
+            }),
+
+            component(example_with_code, props={
                 "title": "Inline bold (row of text elements)",
                 "example": div(flex_direction="row")[
                     text("Press "),
@@ -112,6 +198,20 @@ def text_stories():
                         text("Center", text_align="center"),
                         text("Right", text_align="right"),
                     ]""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Custom Line Gap",
+                "example": text(
+                    "Tight spacing\nBetween these\nThree lines",
+                    color=t.TEXT,
+                    gap=4,
+                ),
+                "code": textwrap.dedent("""\
+                    text(
+                        "Tight spacing\\nBetween these\\nThree lines",
+                        gap=4,
+                    )""")
             }),
 
             component(example_with_code, props={

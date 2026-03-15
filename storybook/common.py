@@ -42,7 +42,7 @@ def code(code_str: str):
             font_size=14,
             position="relative",
         )[
-            text(code_str, font_family="monospace"),
+            text(code_str, font_family="monospace", selectable=True),
             div(position="absolute", right=0, top=0)[
                 component(copy_button, props={
                     "code": code_str

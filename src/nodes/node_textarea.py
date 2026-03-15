@@ -7,49 +7,7 @@ from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
 from ..interfaces import RenderTransforms
 from ..properties import NodeTextareaProperties
 from ..fonts import get_typeface
-from .node_input_text import _binary_search_cursor
-
-
-def wrap_lines(text, max_width, measure_text):
-    """Wrap text into visual lines that fit within max_width.
-    Returns list of (line_text, start_index) tuples where start_index
-    is the character offset in the original text."""
-    raw_lines = text.split("\n")
-    wrapped = []
-    abs_pos = 0
-
-    for raw_line in raw_lines:
-        if not raw_line:
-            wrapped.append(("", abs_pos))
-            abs_pos += 1  # skip past \n
-            continue
-
-        words = raw_line.split(" ")
-        buf = []
-        buf_start = abs_pos
-
-        for word in words:
-            candidate = " ".join(buf + [word])
-            width = measure_text(candidate)[0]
-
-            if buf and width > max_width:
-                wrapped.append((" ".join(buf), buf_start))
-                buf_start = abs_pos
-                buf = [word]
-            else:
-                buf.append(word)
-
-            abs_pos += len(word) + 1  # +1 for space or upcoming \n
-
-        # Last word over-counted by 1 (no trailing space), but abs_pos
-        # already accounts for the \n separator, so it works out.
-        if buf:
-            wrapped.append((" ".join(buf), buf_start))
-
-    # The last raw_line's \n was over-counted if text doesn't end with \n,
-    # but that's fine since abs_pos isn't used after the loop.
-
-    return wrapped
+from ..text_utils import binary_search_cursor as _binary_search_cursor, wrap_lines
 
 
 class NodeTextarea(Node):

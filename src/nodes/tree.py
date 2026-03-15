@@ -535,6 +535,7 @@ class Tree(TreeType):
         self._unmount_complete = False
         self.drag_end_phase = False
         self._text_selecting_node = None
+        self._text_selected_nodes = []
         self._input_click_count = 0
         self._input_last_click_time = 0
         self._input_last_click_x = 0
@@ -605,9 +606,14 @@ class Tree(TreeType):
         if self.root_node.element_type not in ["screen", "active_window"]:
             from .node_root import NodeRoot
             from ..properties import NodeRootProperties
+
+            child_props = self.root_node.properties
+            has_pct = (isinstance(child_props.width, str) and "%" in child_props.width) or \
+                      (isinstance(child_props.height, str) and "%" in child_props.height)
+
             root = NodeRoot("screen", NodeRootProperties(
                 justify_content="center",
-                align_items="center",
+                align_items="stretch" if has_pct else "center",
             ))
             root.add_child(self.root_node)
             self.root_node = root
@@ -967,14 +973,19 @@ class Tree(TreeType):
         x, y = node.cursor_pre_draw_text
         x += offset.x
         y += offset.y
-        draw_text_simple(
-            canvas,
-            self.meta_state.get_text_mutation(id),
-            node.properties.color,
-            node.properties,
-            x,
-            y
-        )
+        text_value = self.meta_state.get_text_mutation(id)
+
+        if node.text_multiline and "\n" not in str(text_value):
+            # set_text changed to single line, draw simple
+            draw_text_simple(canvas, text_value, node.properties.color, node.properties, x, y)
+        elif node.text_multiline:
+            gap = node.properties.gap or 0
+            line_h = node.text_line_height + gap
+            for i, (line_text, _) in enumerate(node.text_multiline):
+                if line_text:
+                    draw_text_simple(canvas, line_text, node.properties.color, node.properties, x, y + line_h * i)
+        else:
+            draw_text_simple(canvas, text_value, node.properties.color, node.properties, x, y)
 
         self.restore_clip_regions(canvas, clip_count)
 
@@ -1087,6 +1098,12 @@ class Tree(TreeType):
         key_string = e.key.lower() if e.key is not None else ""
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
+
+        # Copy selected text
+        if key_string == "ctrl-c" and e.down and self._text_selected_nodes:
+            for node in self._text_selected_nodes:
+                node.copy_selection()
+            return
 
         # Route to select dropdown (open or focused-closed)
         for node in self.interactive_node_list:
@@ -1712,6 +1729,17 @@ class Tree(TreeType):
                     return node.id
         return None
 
+    def _get_selectable_text_at(self, gpos):
+        for node in self.meta_state.id_to_node.values():
+            if node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+                    getattr(node, 'selectable', False) and node.box_model:
+                hit_rect = node.parent_node.box_model.padding_rect \
+                    if node.parent_node and node.parent_node.box_model \
+                    else node.box_model.padding_rect
+                if hit_rect.contains(gpos):
+                    return node
+        return None
+
     def on_mousemove(self, gpos):
         if self.meta_state.is_resize_dragging():
             self.handle_resize_drag_move(gpos)
@@ -1725,7 +1753,7 @@ class Tree(TreeType):
             return
 
         if self._text_selecting_node:
-            if self._text_selecting_node.element_type == ELEMENT_ENUM_TYPE["textarea"]:
+            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"]):
                 self._text_selecting_node.update_selection_from_drag(gpos.x, click_y=gpos.y)
             else:
                 self._text_selecting_node.update_selection_from_drag(gpos.x)
@@ -1850,6 +1878,34 @@ class Tree(TreeType):
                         self._text_selecting_node = node
                 return
 
+        selectable_node = self._get_selectable_text_at(gpos)
+        if selectable_node:
+            for node in self._text_selected_nodes:
+                if node is not selectable_node:
+                    node.clear_selection()
+            self._text_selected_nodes = [selectable_node]
+
+            import time
+            now = time.monotonic()
+            click_x, click_y = gpos.x, gpos.y
+            near_last = abs(click_x - self._input_last_click_x) < 20 and abs(click_y - self._input_last_click_y) < 20
+            if now - self._input_last_click_time < 0.4 and near_last:
+                self._input_click_count = min(self._input_click_count + 1, 3)
+            else:
+                self._input_click_count = 1
+            self._input_last_click_time = now
+            self._input_last_click_x = click_x
+            self._input_last_click_y = click_y
+            selectable_node.set_selection_from_click(gpos.x, gpos.y, self._input_click_count)
+            if self._input_click_count == 1:
+                self._text_selecting_node = selectable_node
+            return
+
+        # Clear any text selections when clicking elsewhere
+        for node in self._text_selected_nodes:
+            node.clear_selection()
+        self._text_selected_nodes = []
+
         if self.root_node.box_model:
             if self.root_node.box_model.content_children_rect.contains(gpos):
                 state_manager.blur(pos=gpos)
@@ -1877,6 +1933,8 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
+            if self._text_selecting_node and hasattr(self._text_selecting_node, 'finalize_selection'):
+                self._text_selecting_node.finalize_selection()
             self._text_selecting_node = None
 
             if self.meta_state.is_resize_dragging():
@@ -2342,6 +2400,8 @@ class Tree(TreeType):
             requires_id = True
         elif node.properties.transition:
             requires_id = True
+        elif getattr(node, 'selectable', False):
+            requires_id = True
 
         if requires_id and not node.id:
             node_index_path_str = "-".join(map(str, node_index_path)) # "1-2-0"
@@ -2359,6 +2419,8 @@ class Tree(TreeType):
             elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 if node.properties.for_id:
                     self.meta_state.add_text_with_for_id(node.id, node.properties.for_id)
+                elif getattr(node, 'selectable', False):
+                    pass
                 else:
                     self.meta_state.use_text_mutation(node.id, initial_text=node.text)
             elif node.element_type == ELEMENT_ENUM_TYPE["window"]:

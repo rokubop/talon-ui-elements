@@ -232,9 +232,17 @@ class NodeContainer(Node, NodeContainerType):
             for i, child in enumerate(growable_counter_axis):
                 # Consider: growable_counter_axis should only contain things that really should be stretched
                 if self.properties.flex_direction == "row" and not child.box_model.fixed_height:
-                    child.box_model.grow_calculated_height_to(self.box_model.calculated_content_size.height)
+                    target = self.box_model.calculated_content_size.height
+                    if child.box_model.height_percent:
+                        pct = float(child.box_model.height_percent.replace("%", "")) / 100
+                        target = target * pct
+                    child.box_model.grow_calculated_height_to(target)
                 elif self.properties.flex_direction == "column" and not child.box_model.fixed_width:
-                    child.box_model.grow_calculated_width_to(self.box_model.calculated_content_size.width)
+                    target = self.box_model.calculated_content_size.width
+                    if child.box_model.width_percent:
+                        pct = float(child.box_model.width_percent.replace("%", "")) / 100
+                        target = target * pct
+                    child.box_model.grow_calculated_width_to(target)
 
             # Consider: shouldn't this just grow content children to the growth we did above?
             # Regardless of stretch or not.
@@ -258,6 +266,15 @@ class NodeContainer(Node, NodeContainerType):
                 flex_weights = self.calculate_justify_flex_weights(growable_primary_axis_flex)
                 for i, child in enumerate(growable_primary_axis_flex):
                     additional_size = remaining * flex_weights[i]
+                    # Cap percentage-based children to their percentage of parent
+                    if child.flex_evaluated and not child.properties.flex and child.box_model and child.box_model.margin_size:
+                        pct_str = child.properties.height if flex_direction == "column" else child.properties.width
+                        if isinstance(pct_str, str) and "%" in pct_str:
+                            pct = float(pct_str.replace("%", "")) / 100
+                            parent_size = self.box_model.calculated_content_size.height if flex_direction == "column" else self.box_model.calculated_content_size.width
+                            current_size = child.box_model.margin_size.height if flex_direction == "column" else child.box_model.margin_size.width
+                            max_additional = parent_size * pct - current_size
+                            additional_size = min(additional_size, max(0, max_additional))
                     grow_function(child, additional_size)
                 if flex_direction == "row":
                     self.box_model.maximize_content_children_width()
