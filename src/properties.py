@@ -97,8 +97,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     key: str = None
     left: Union[int, str, float] = None
     margin: Margin = Margin(0, 0, 0, 0)
-    max_height: int = None
-    max_width: int = None
+    max_height: Union[int, str] = None
+    max_width: Union[int, str] = None
     min_height: int = None
     min_width: int = None
     on_change: callable = None
@@ -523,8 +523,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     mount_style: dict
     justify_content: str
     left: Union[int, str, float]
-    max_height: int
-    max_width: int
+    max_height: Union[int, str]
+    max_width: Union[int, str]
     min_height: int
     min_width: int
     opacity: Union[int, float]

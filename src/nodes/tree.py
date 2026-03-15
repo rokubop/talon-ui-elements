@@ -1811,8 +1811,8 @@ class Tree(TreeType):
                     self.meta_state.resize_original_constraints[node_id] = {
                         'min_width': getattr(node.properties, 'min_width', None),
                         'min_height': getattr(node.properties, 'min_height', None),
-                        'max_width': getattr(node.properties, 'max_width', None),
-                        'max_height': getattr(node.properties, 'max_height', None),
+                        'max_width': node.box_model.max_width if node.box_model else getattr(node.properties, 'max_width', None),
+                        'max_height': node.box_model.max_height if node.box_model else getattr(node.properties, 'max_height', None),
                     }
                 self.meta_state.start_resize_drag(node_id, edge, gpos, start_rect)
                 self.render_manager.pause()

@@ -208,6 +208,7 @@ class NodeContainer(Node, NodeContainerType):
         # Children keep their intrinsic sizes; constraint phase handles line-breaking.
         if self.is_flex_wrap:
             for child in self.participating_children_nodes:
+                child.box_model.resolve_max_percent(self.box_model.calculated_content_size)
                 child.v2_grow_size()
             return
 
@@ -282,6 +283,7 @@ class NodeContainer(Node, NodeContainerType):
                     self.box_model.maximize_content_children_height()
 
         for child in self.participating_children_nodes:
+            child.box_model.resolve_max_percent(self.box_model.calculated_content_size)
             child.v2_grow_size()
 
     def v2_constrain_size(self, available_size: Size2d = None) -> bool:

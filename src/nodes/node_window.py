@@ -123,10 +123,12 @@ class NodeWindow(NodeContainer):
             screen_index = getattr(processing_tree.root_node.properties, 'screen', None)
         screen_rect = get_screen(screen_index).rect
         for dim, screen_size in [("width", screen_rect.width), ("height", screen_rect.height)]:
-            val = resolved_window_props.get(dim)
-            if isinstance(val, str) and "%" in val:
-                pct = float(val.replace("%", "")) / 100
-                resolved_window_props[dim] = int(screen_size * pct)
+            max_dim = f"max_{dim}"
+            for key in [dim, max_dim]:
+                val = resolved_window_props.get(key)
+                if isinstance(val, str) and "%" in val:
+                    pct = float(val.replace("%", "")) / 100
+                    resolved_window_props[key] = int(screen_size * pct)
 
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["window"],
