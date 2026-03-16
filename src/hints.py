@@ -68,15 +68,18 @@ class HintGenerator:
         if node.id in store.id_to_hint:
             return store.id_to_hint[node.id]
 
-        if node.element_type in self.char_map:
-            first_char, second_char_list = self.char_map[node.element_type]
-            first_char_ascii, index = self.state[node.element_type]
+        element_type = "input_text" if node.element_type == "textarea" else node.element_type
+        if element_type not in self.char_map:
+            element_type = "button"
+        if element_type in self.char_map:
+            first_char, second_char_list = self.char_map[element_type]
+            first_char_ascii, index = self.state[element_type]
 
             if index < len(second_char_list):
                 # increment second char
                 second_char = second_char_list[index]
                 hint = f"{chr(first_char_ascii)}{second_char}"
-                self.state[node.element_type] = (first_char_ascii, index + 1)
+                self.state[element_type] = (first_char_ascii, index + 1)
             else:
                 # increment first char
                 index = 0
@@ -85,7 +88,7 @@ class HintGenerator:
                     first_char_ascii = ord("a")
                 second_char = second_char_list[index]
                 hint = f"{chr(first_char_ascii)}{second_char}"
-                self.state[node.element_type] = (first_char_ascii, index + 1)
+                self.state[element_type] = (first_char_ascii, index + 1)
 
             store.id_to_hint[node.id] = hint
             return hint
@@ -97,7 +100,7 @@ def trigger_hint_click(hint_trigger: str):
         if hint == hint_trigger:
             node = store.id_to_node.get(id)
             if node:
-                if node.element_type == "button" or node.element_type == "link":
+                if node.on_click:
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
@@ -128,14 +131,14 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransf
         apply_clip = True
         clip_rect = node.box_model.clip_rect
 
-    if node.element_type == "button" or node.element_type == "link":
-        box_model = node.box_model.content_rect
-        offset_x = -hint_padding_width
-        offset_y = -hint_padding_height
-    else:
+    if node.element_type in ("input_text", "textarea"):
         box_model = node.box_model.padding_rect
         offset_x = -10
         offset_y = -4
+    else:
+        box_model = node.box_model.content_rect
+        offset_x = -hint_padding_width
+        offset_y = -hint_padding_height
 
     hint_padding_rect = Rect(
         box_model.x + offset_x,

@@ -2,6 +2,11 @@ from dataclasses import dataclass
 from talon.types import Rect
 from talon.skia import Path
 
+try:
+    from skia import PathBuilder
+except ImportError:
+    PathBuilder = None
+
 
 @dataclass
 class BorderRadius:
@@ -50,13 +55,10 @@ class BorderRadius:
         ))
 
 
-def draw_manual_rounded_rect_path(rect: Rect, border_radius: BorderRadius) -> Path:
-    """Special helper in absence of native per-corner rounded rect support."""
-    path = Path()
+def _build_rounded_rect(builder, rect: Rect, border_radius: BorderRadius):
+    """Build rounded rect path commands on a Path or PathBuilder."""
     x, y, w, h = rect.x, rect.y, rect.width, rect.height
 
-    # Clamp radii to prevent overlaps
-    # Each corner radius cannot exceed half the width or height
     max_radius_x = w / 2
     max_radius_y = h / 2
 
@@ -65,56 +67,55 @@ def draw_manual_rounded_rect_path(rect: Rect, border_radius: BorderRadius) -> Pa
     br = min(border_radius.bottom_right, max_radius_x, max_radius_y)
     bl = min(border_radius.bottom_left, max_radius_x, max_radius_y)
 
-    # Magic number for circular arcs
-    # https://grida.co/docs/math/kappa
     kappa = 0.5522847498
 
-    # Start from top-left corner (after the arc)
-    path.move_to(x + tl, y)
+    builder.move_to(x + tl, y)
+    builder.line_to(x + w - tr, y)
 
-    # Top edge
-    path.line_to(x + w - tr, y)
-
-    # Top-right corner
     if tr > 0:
-        path.cubic_to(
+        builder.cubic_to(
             x + w - tr + (tr * kappa), y,
             x + w, y + tr - (tr * kappa),
             x + w, y + tr
         )
 
-    # Right edge
-    path.line_to(x + w, y + h - br)
+    builder.line_to(x + w, y + h - br)
 
-    # Bottom-right corner
     if br > 0:
-        path.cubic_to(
+        builder.cubic_to(
             x + w, y + h - br + (br * kappa),
             x + w - br + (br * kappa), y + h,
             x + w - br, y + h
         )
 
-    # Bottom edge
-    path.line_to(x + bl, y + h)
+    builder.line_to(x + bl, y + h)
 
-    # Bottom-left corner
     if bl > 0:
-        path.cubic_to(
+        builder.cubic_to(
             x + bl - (bl * kappa), y + h,
             x, y + h - bl + (bl * kappa),
             x, y + h - bl
         )
 
-    # Left edge
-    path.line_to(x, y + tl)
+    builder.line_to(x, y + tl)
 
-    # Top-left corner
     if tl > 0:
-        path.cubic_to(
+        builder.cubic_to(
             x, y + tl - (tl * kappa),
             x + tl - (tl * kappa), y,
             x + tl, y
         )
 
-    path.close()
-    return path
+    builder.close()
+
+
+def draw_manual_rounded_rect_path(rect: Rect, border_radius: BorderRadius) -> Path:
+    """Special helper in absence of native per-corner rounded rect support."""
+    if PathBuilder:
+        builder = PathBuilder()
+        _build_rounded_rect(builder, rect, border_radius)
+        return builder.detach()
+    else:
+        path = Path()
+        _build_rounded_rect(path, rect, border_radius)
+        return path

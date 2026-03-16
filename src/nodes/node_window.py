@@ -114,6 +114,22 @@ class NodeWindow(NodeContainer):
             if saved_h is not None:
                 resolved_window_props["height"] = saved_h
 
+        # Resolve percentage width/height to pixels from screen
+        from ..utils import get_screen
+        from ..core.state_manager import state_manager
+        screen_index = None
+        processing_tree = state_manager.get_processing_tree()
+        if processing_tree and processing_tree.root_node:
+            screen_index = getattr(processing_tree.root_node.properties, 'screen', None)
+        screen_rect = get_screen(screen_index).rect
+        for dim, screen_size in [("width", screen_rect.width), ("height", screen_rect.height)]:
+            max_dim = f"max_{dim}"
+            for key in [dim, max_dim]:
+                val = resolved_window_props.get(key)
+                if isinstance(val, str) and "%" in val:
+                    pct = float(val.replace("%", "")) / 100
+                    resolved_window_props[key] = int(screen_size * pct)
+
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["window"],
             properties=NodeWindowProperties(**resolved_window_props)
@@ -195,7 +211,7 @@ class NodeWindow(NodeContainer):
                 ],
             ],
 
-        self.body = div(**body_properties)
+        self.body = div(flex=1, **body_properties)
         if window_properties.get("show_title_bar", True):
             self.add_child(title_bar())
         if window_properties.get("minimized_body", None) and self.is_minimized:

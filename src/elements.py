@@ -10,6 +10,8 @@ from .nodes.node import Node
 from .nodes.node_container import NodeContainer
 from .nodes.node_cursor import NodeCursor
 from .nodes.node_input_text import NodeInputText
+from .nodes.node_select import NodeSelect
+from .nodes.node_textarea import NodeTextarea
 from .nodes.node_root import NodeRoot
 from .nodes.node_svg import (
     NodeSvg,
@@ -27,6 +29,8 @@ from .nodes.node_window import NodeWindow
 from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
+    NodeSelectProperties,
+    NodeTextareaProperties,
     NodeRootProperties,
     NodeDivProperties,
     NodeCursorProperties,
@@ -280,11 +284,7 @@ def th(*args, **additional_props):
 
 def text(text_str: str = "", props=None, **additional_props):
     if isinstance(text_str, str):
-        lines = text_str.replace("\r\n", "\n").split("\n")
-        if len(lines) > 1:
-            return div()[
-                *[text(line, props=props, **additional_props) for line in lines]
-            ]
+        text_str = text_str.replace("\r\n", "\n")
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["text"])
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
@@ -325,6 +325,24 @@ def input_text(props=None, **additional_props):
     if not input_properties.id:
         raise ValueError("input_text must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
     return NodeInputText(input_properties)
+
+def textarea(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["textarea"])
+    textarea_properties = NodeTextareaProperties(**properties)
+    if not textarea_properties.id:
+        raise ValueError("textarea must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
+    return NodeTextarea(textarea_properties)
+
+def select(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["select"])
+    if "position" not in properties:
+        properties["position"] = "relative"
+    select_properties = NodeSelectProperties(**properties)
+    if not select_properties.id:
+        raise ValueError("select must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
+    if not select_properties.options:
+        raise ValueError("select must have an options prop with a list of options")
+    return NodeSelect(select_properties)
 
 def window(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["window"])
@@ -503,6 +521,8 @@ div = UIElementsContainerNoTextProxy(div)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
+select = UIElementsLeafProxy(select)
+textarea = UIElementsInputTextProxy(textarea)
 modal = UIElementsContainerNoTextProxy(modal)
 ref = Ref
 screen = UIElementsContainerNoTextProxy(screen)
@@ -578,6 +598,7 @@ element_collection: Dict[str, callable] = {
     'icon': icon,
     'input_text': input_text,
     'link': link,
+    'select': select,
     # 'modal': modal, # experimental
     'ref': ref,
     'screen': screen,
@@ -586,6 +607,7 @@ element_collection: Dict[str, callable] = {
     'table': table,
     'td': td,
     'text': text,
+    'textarea': textarea,
     'th': th,
     'tr': tr,
     # 'switch': switch, # experimental

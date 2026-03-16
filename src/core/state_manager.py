@@ -337,16 +337,12 @@ class StateManager:
     def use_text_mutation(self, node: NodeType):
         if node.tree.meta_state.text_mutations.get(node.id):
             return node.tree.meta_state.text_mutations[node.id]
-        node.tree.meta_state.text_mutations[id] = node.text
+        node.tree.meta_state.text_mutations[node.id] = node.text
         return node.text
 
     def get_input_value(self, id):
-        node = store.id_to_node.get(id)
-        if node:
-            input_data = node.tree.meta_state.inputs.get(id)
-            if input_data:
-                return input_data.value
-        return ""
+        from ..platform.custom_input import custom_input_manager
+        return custom_input_manager.get_value(id)
 
     def is_focused(self, id):
         return store.focused_id == id
@@ -366,6 +362,15 @@ class StateManager:
         if node.interactive and node.properties.autofocus:
             store.focused_id = node.id
             store.focused_tree = node.tree
+            store.focused_visible = True
+            if node.element_type in ("input_text", "textarea"):
+                focus_method = self.focus_textarea if node.element_type == "textarea" else self.focus_input
+                def delayed_focus():
+                    focus_method(node.id)
+                    if node.tree.canvas_decorator:
+                        node.tree.canvas_decorator.focused = True
+                        node.tree.render_decorator_canvas()
+                cron.after("100ms", delayed_focus)
 
     def set_ref_property_override(self, id, property_name, new_value):
         node = store.id_to_node.get(id)
@@ -395,15 +400,23 @@ class StateManager:
         if node:
             node.tree.highlight_briefly(id, color)
 
-    def blur(self):
+    def blur(self, pos=None):
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input:
+            custom_input_manager.blur()
         store.focused_id = None
+        store.blur_pos = pos
 
         if store.focused_tree and store.focused_tree.canvas_decorator:
             store.focused_tree.canvas_decorator.focused = True
             store.focused_tree.render_decorator_canvas()
 
-    def blur_all(self):
+    def blur_all(self, pos=None):
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input:
+            custom_input_manager.blur()
         store.focused_id = None
+        store.blur_pos = pos
 
         if store.focused_tree and store.focused_tree.canvas_decorator:
             store.focused_tree.canvas_decorator.focused = False
@@ -411,29 +424,60 @@ class StateManager:
         store.focused_tree = None
 
     def focus_input(self, id):
-        node = store.id_to_node.get(id)
-        if node and node.input:
-            # workaround for focus
-            node.input.hide()
-            node.input.show()
+        from ..platform.custom_input import custom_input_manager
+        custom_input_manager.focus(id)
+
+    def focus_textarea(self, id):
+        from ..platform.custom_input import custom_input_manager
+        custom_input_manager.focus(id)
 
     def focus_node(self, node: NodeType, visible=True):
         blur_tree = None
         if node.tree != store.focused_tree:
             blur_tree = store.focused_tree
 
+        # Blur custom input when focus moves away from it
+        is_custom_input_node = node.element_type in ("input_text", "textarea")
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input and \
+                (not is_custom_input_node or custom_input_manager.focused_id != node.id):
+            custom_input_manager.blur()
+
         store.focused_id = node.id
         store.focused_tree = node.tree
         store.focused_visible = visible
+        store.blur_pos = None
 
-        if node.element_type == "input_text":
+        if node.element_type == "textarea":
+            self.focus_textarea(node.id)
+            if node.tree.canvas_decorator:
+                node.tree.canvas_decorator.focused = True
+        elif node.element_type == "input_text":
             self.focus_input(node.id)
+            if node.tree.canvas_decorator:
+                node.tree.canvas_decorator.focused = True
         elif node.tree.canvas_decorator and not node.tree.canvas_decorator.focused:
             node.tree.canvas_decorator.focused = True
 
         if blur_tree:
             blur_tree.render_decorator_canvas()
         node.tree.render_decorator_canvas()
+
+    def _find_nearest_node(self, nodes, pos):
+        """Find the nearest interactive node to a position based on distance to node center."""
+        nearest = None
+        nearest_dist = float('inf')
+        for node in nodes:
+            if not getattr(node, 'box_model', None) or not node.box_model.border_rect:
+                continue
+            rect = node.box_model.border_rect
+            cx = rect.x + rect.width / 2
+            cy = rect.y + rect.height / 2
+            dist = (pos.x - cx) ** 2 + (pos.y - cy) ** 2
+            if dist < nearest_dist:
+                nearest_dist = dist
+                nearest = node
+        return nearest
 
     def focus_next(self):
         interactive_nodes = []
@@ -454,12 +498,15 @@ class StateManager:
             current_index = interactive_nodes.index(current_node)
             next_index = current_index + 1 if current_index < len(interactive_nodes) - 1 else 0
             next_node = interactive_nodes[next_index]
+        elif store.blur_pos and interactive_nodes:
+            next_node = self._find_nearest_node(interactive_nodes, store.blur_pos)
         elif store.focused_tree:
             next_node = store.focused_tree.interactive_node_list[0]
         else:
             next_node = interactive_nodes[0]
 
         if next_node:
+            store.blur_pos = None
             self.focus_node(next_node)
 
     def focus_previous(self):
@@ -481,12 +528,15 @@ class StateManager:
             current_index = interactive_nodes.index(current_node)
             previous_index = current_index - 1 if current_index > 0 else len(interactive_nodes) - 1
             previous_node = interactive_nodes[previous_index]
+        elif store.blur_pos and interactive_nodes:
+            previous_node = self._find_nearest_node(interactive_nodes, store.blur_pos)
         elif store.focused_tree:
             previous_node = store.focused_tree.interactive_node_list[-1]
         else:
             previous_node = interactive_nodes[-1]
 
         if previous_node:
+            store.blur_pos = None
             self.focus_node(previous_node)
 
     def scroll_to(self, id: str, x: int, y: int):
@@ -538,6 +588,10 @@ class StateManager:
         store.mouse_state['disable_events'] = False
 
     def clear_state_for_tree(self, tree: TreeType):
+        from ..platform.custom_input import custom_input_manager
+        for node in tree.interactive_node_list:
+            if node.element_type in ("input_text", "textarea"):
+                custom_input_manager.remove_input(node.id)
         for state_key in tree.meta_state.states:
             if state_key in store.reactive_state:
                 del store.reactive_state[state_key]
@@ -562,6 +616,8 @@ class StateManager:
 
     def clear_all(self):
         from .. import fonts
+        from ..platform.custom_input import custom_input_manager
+        custom_input_manager.remove_all()
         store.clear()
         state_coordinator.reset()
         fonts.reset_font_state()

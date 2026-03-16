@@ -7,6 +7,7 @@ from .state_vs_refs.state_vs_refs_ui import state_vs_refs_ui
 from .cheatsheet.cheatsheet_ui import cheatsheet_ui
 from .inputs.inputs_ui import inputs_ui
 from .dashboard.dashboard_ui import show_dashboard
+from .app_layout.app_layout_ui import app_layout_ui
 from .examples_main import examples_ui
 
 mod = Module()
@@ -33,6 +34,10 @@ def test_dashboard_ui():
 # @test_module
 def test_cheatsheet_ui():
     actions.user.ui_elements_show(cheatsheet_ui)
+
+# @test_module
+def test_app_layout_ui():
+    actions.user.ui_elements_show(app_layout_ui)
 
 # @test_module
 def test_inputs_ui():

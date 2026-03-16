@@ -72,6 +72,7 @@ class ElementEnumType(TypedDict):
     icon: str
     input_text: str
     link: str
+    select: str
     modal: str
     screen: str
     svg_circle: str
@@ -84,6 +85,7 @@ class ElementEnumType(TypedDict):
     table: str
     td: str
     text: str
+    textarea: str
     th: str
     tr: str
     window: str
@@ -97,6 +99,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "icon": "icon",
     "input_text": "input_text",
     "link": "link",
+    "select": "select",
     "modal": "modal",
     "screen": "screen",
     "svg_circle": "svg_circle",
@@ -110,6 +113,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "table": "table",
     "td": "td",
     "text": "text",
+    "textarea": "textarea",
     "th": "th",
     "tr": "tr",
     "window": "window",
@@ -137,6 +141,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["link"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["select"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["modal"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["screen"]: NODE_ENUM_TYPE["root"],
     ELEMENT_ENUM_TYPE["svg_circle"]: NODE_ENUM_TYPE["leaf"],
@@ -150,6 +155,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["table"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["td"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["text"]: NODE_ENUM_TYPE["leaf"],
+    ELEMENT_ENUM_TYPE["textarea"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["th"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["tr"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["window"]: NODE_ENUM_TYPE["node"],

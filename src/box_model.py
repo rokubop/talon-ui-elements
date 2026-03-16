@@ -104,8 +104,14 @@ class BoxModelV2(BoxModelV2Type):
         self.max_height =  properties.max_height
         self.width_percent = properties.width if isinstance(properties.width, str) and "%" in properties.width else None
         self.height_percent = properties.height if isinstance(properties.height, str) and "%" in properties.height else None
-        self.fixed_width = bool(properties.width)
-        self.fixed_height = bool(properties.height)
+        self.max_width_percent = properties.max_width if isinstance(properties.max_width, str) and "%" in properties.max_width else None
+        self.max_height_percent = properties.max_height if isinstance(properties.max_height, str) and "%" in properties.max_height else None
+        if self.max_width_percent:
+            self.max_width = None
+        if self.max_height_percent:
+            self.max_height = None
+        self.fixed_width = bool(properties.width) and not self.width_percent
+        self.fixed_height = bool(properties.height) and not self.height_percent
         self.overflow = properties.overflow
         self.overflow_size = Size2d(0, 0)
         self.position = properties.position
@@ -215,6 +221,12 @@ class BoxModelV2(BoxModelV2Type):
             return int(total * percent)
         return value
 
+    def resolve_max_percent(self, parent_content_size: Size2d):
+        if self.max_width_percent and parent_content_size.width:
+            self.max_width = BoxModelV2._resolve_percent(self.max_width_percent, parent_content_size.width)
+        if self.max_height_percent and parent_content_size.height:
+            self.max_height = BoxModelV2._resolve_percent(self.max_height_percent, parent_content_size.height)
+
     @property
     def position_left(self):
         return BoxModelV2._resolve_percent(self._position_left, self.border_size.width)
@@ -288,6 +300,10 @@ class BoxModelV2(BoxModelV2Type):
                     init_width = BoxModelV2._resolve_percent(self.width_percent, container_width)
                 if self.height_percent:
                     init_height = BoxModelV2._resolve_percent(self.height_percent, container_height)
+                if self.max_width_percent:
+                    self.max_width = BoxModelV2._resolve_percent(self.max_width_percent, container_width)
+                if self.max_height_percent:
+                    self.max_height = BoxModelV2._resolve_percent(self.max_height_percent, container_height)
 
                 left = BoxModelV2._resolve_percent(self._position_left, container_width)
                 right = BoxModelV2._resolve_percent(self._position_right, container_width)
@@ -311,8 +327,8 @@ class BoxModelV2(BoxModelV2Type):
                 )
                 self.resolve_intrinsic_sizes_from_border_size(
                     Size2d(
-                        max(init_width, content_to_border_size.width),
-                        max(init_height, content_to_border_size.height)
+                        init_width if self.fixed_width else max(init_width, content_to_border_size.width),
+                        init_height if self.fixed_height else max(init_height, content_to_border_size.height)
                     )
                 )
             else:
@@ -343,8 +359,8 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
         )
         self.intrinsic_padding_size = Size2d(
-            border_size.width - self.border_spacing.left - self.border_spacing.right,
-            border_size.height - self.border_spacing.top - self.border_spacing.bottom
+            border_size.width - self.border_spacing.left - self.border_spacing.right - self.conditional_scroll_bar_y_width,
+            border_size.height - self.border_spacing.top - self.border_spacing.bottom - self.conditional_scroll_bar_x_height
         )
         self.intrinsic_content_size = Size2d(
             self.intrinsic_padding_size.width - self.padding_spacing.left - self.padding_spacing.right,
@@ -366,21 +382,23 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
         )
 
-    def grow_calculated_height_to(self, height: int):
+    def grow_calculated_height_to(self, height: int, grow_content: bool = True):
         if height > self.calculated_margin_size.height:
             diff = height - self.calculated_margin_size.height
             self.calculated_margin_size.height += diff
             self.calculated_border_size.height += diff
             self.calculated_padding_size.height += diff
-            self.calculated_content_size.height += diff
+            if grow_content:
+                self.calculated_content_size.height += diff
 
-    def grow_calculated_width_to(self, width: int):
+    def grow_calculated_width_to(self, width: int, grow_content: bool = True):
         if width > self.calculated_margin_size.width:
             diff = width - self.calculated_margin_size.width
             self.calculated_margin_size.width += diff
             self.calculated_border_size.width += diff
             self.calculated_padding_size.width += diff
-            self.calculated_content_size.width += diff
+            if grow_content:
+                self.calculated_content_size.width += diff
 
     def grow_calculated_height_by(self, height: int):
         self.grow_calculated_height_to(self.calculated_margin_size.height + height)

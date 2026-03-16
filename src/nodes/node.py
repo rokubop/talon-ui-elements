@@ -153,7 +153,7 @@ class Node(NodeType):
             for clip_ref in self.clip_nodes:
                 clip_node = clip_ref()
                 if clip_node and clip_node.box_model:
-                    rect = clip_node.box_model.padding_rect
+                    rect = clip_node.box_model.padding_with_scroll_bar_rect if clip_node.properties.overflow.scrollable else clip_node.box_model.padding_rect
                     border_radius = clip_node.properties.get_border_radius() if clip_node.properties.has_border_radius() else None
                     clip_regions.append((rect, border_radius))
 
@@ -168,7 +168,7 @@ class Node(NodeType):
             )
 
             if needs_self_clip:
-                rect = self.box_model.padding_rect
+                rect = self.box_model.padding_with_scroll_bar_rect if self.properties.overflow.scrollable else self.box_model.padding_rect
                 border_radius = self.properties.get_border_radius() if self.properties.has_border_radius() else None
                 clip_regions.append((rect, border_radius))
 
@@ -287,7 +287,7 @@ class Node(NodeType):
                             self.properties.update_property(prop, {
                                 "color": parent_node.properties.highlight_style.get("color", None),
                             })
-                    else:
+                    elif hasattr(self.properties, prop):
                         self.properties.update_property(
                             prop,
                             getattr(parent_node.properties, prop),
@@ -476,7 +476,7 @@ class Node(NodeType):
             c.paint.style = c.paint.Style.FILL
             c.paint.color = background_color
 
-            inner_rect = self.box_model.padding_rect
+            inner_rect = self.box_model.padding_with_scroll_bar_rect
 
             if transforms and transforms.offset:
                 inner_rect = Rect(

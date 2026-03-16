@@ -44,6 +44,8 @@ def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
             paint.typeface = typeface
     if properties.font_weight == "bold":
         paint.font.embolden = True
+    if getattr(properties, "font_style", "normal") == "italic":
+        paint.font.skew_x = -0.25
 
     if properties.stroke_color:
         paint.style = paint.Style.STROKE
@@ -98,8 +100,18 @@ def safe_callback(callback: Callable[[E], None], event: E) -> None:
 def get_center(rect: Rect) -> tuple[int, int]:
     return rect.x + rect.width // 2, rect.y + rect.height // 2
 
+def _expand_shorthand_hex(color: str) -> str:
+    """Expand 3-char hex to 6-char, 4-char to 8-char. Strips '#'."""
+    color = color.lstrip("#")
+    if len(color) == 3:
+        color = color[0] * 2 + color[1] * 2 + color[2] * 2
+    elif len(color) == 4:
+        color = color[0] * 2 + color[1] * 2 + color[2] * 2 + color[3] * 2
+    return color
+
 def get_active_color_from_highlight_color(highlight_color: str) -> str:
     """If highlightcolor is "FFFFFF66", return "FFFFFF88"."""
+    highlight_color = _expand_shorthand_hex(highlight_color)
     base_color = highlight_color[:-2]  # "FFFFFF"
     alpha = highlight_color[-2:]       # "66"
 
@@ -118,6 +130,7 @@ def adjust_color_alpha(color: str, adjustment: int) -> str:
     Returns:
         Color with adjusted alpha (e.g., "FFFFFF44" + 15 -> "FFFFFF53")
     """
+    color = _expand_shorthand_hex(color)
     base_color = color[:-2]
     alpha = int(color[-2:], 16)
     new_alpha = max(0, min(255, alpha + adjustment))
@@ -174,11 +187,14 @@ def hex_color(color: str, property_name: str = None) -> str:
     # Check for common CSS values that aren't supported
     common_css_values = ['transparent', 'inherit', 'currentcolor', 'initial', 'unset']
     if color.lower() in common_css_values:
+        if color.lower() == 'transparent':
+            return "00000000"
         prop_msg = f" for property '{property_name}'" if property_name else ""
         raise ValueError(
             f"\nInvalid color{prop_msg}: '{color}'\n"
             f"CSS value '{color}' is not supported.\n"
             f"For transparency, use:\n"
+            f"  - 'transparent' for fully transparent\n"
             f"  - 8-character hex with alpha: 'FFFFFF66' (last 2 digits control opacity)\n"
             f"  - opacity property: opacity=0.5\n"
             f"  - Don't set background_color (buttons default to transparent background)\n"

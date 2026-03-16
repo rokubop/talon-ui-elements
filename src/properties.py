@@ -29,7 +29,7 @@ from .constants import (
     DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE,
 )
-from .utils import hex_color, scale_value, get_scale
+from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
@@ -44,6 +44,20 @@ SCALABLE_PROPERTIES = {
     'border_top', 'border_right', 'border_bottom', 'border_left',
     'left', 'right', 'top', 'bottom',
     'size'  # For SVG elements
+}
+
+_CORNER_RADIUS_KEYS = {
+    'border_top_left_radius': 'top_left',
+    'border_top_right_radius': 'top_right',
+    'border_bottom_right_radius': 'bottom_right',
+    'border_bottom_left_radius': 'bottom_left',
+}
+
+_BORDER_WIDTH_ALIASES = {
+    'border_top_width': 'border_top',
+    'border_right_width': 'border_right',
+    'border_bottom_width': 'border_bottom',
+    'border_left_width': 'border_left',
 }
 
 class Properties(PropertiesDimensionalType, PropertiesType):
@@ -69,7 +83,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     drop_shadow: tuple[int, int, int, int, str] = None
     flex_direction: str = DEFAULT_FLEX_DIRECTION
     flex: int = None
-    flex_wrap: bool = False
+    flex_shrink: int = None
+    flex_wrap: Union[bool, str] = False
     focus_outline_color: str = DEFAULT_FOCUS_OUTLINE_COLOR
     focus_outline_width: int = DEFAULT_FOCUS_OUTLINE_WIDTH
     font_size: Union[int, float] = DEFAULT_FONT_SIZE
@@ -83,8 +98,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     key: str = None
     left: Union[int, str, float] = None
     margin: Margin = Margin(0, 0, 0, 0)
-    max_height: int = None
-    max_width: int = None
+    max_height: Union[int, str] = None
+    max_width: Union[int, str] = None
     min_height: int = None
     min_width: int = None
     on_change: callable = None
@@ -119,7 +134,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             self.font_size = scale_value(DEFAULT_FONT_SIZE)
 
         if not self.highlight_color:
-            self.highlight_color = f"{self.color}33"
+            self.highlight_color = _expand_shorthand_hex(self.color) + "33"
 
         self.validate_properties(kwargs)
         self.update_colors_with_opacity()
@@ -304,47 +319,47 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             setattr(self, key, value)
             self._explicitly_set.add(key)
 
+    @staticmethod
+    def _apply_opacity_to_color(color: str, opacity_hex: str) -> str:
+        """Expand shorthand, strip existing alpha, append opacity."""
+        color = _expand_shorthand_hex(color)
+        if len(color) > 6:
+            color = color[:6]
+        return color + opacity_hex
+
     def update_colors_with_opacity(self):
         if self.opacity is not None:
             # convert float to 2 digit hex e.g. 00, 44, 88, AA, FF
             opacity_hex = format(int(round(self.opacity * 255)), '02X')
 
             if self.background_color:
-                if self.background_color.startswith("#"):
-                    self.background_color = self.background_color[1:]
-                if len(self.background_color) > 6:
-                    self.background_color = self.background_color[:6]
-                self.background_color = self.background_color + opacity_hex
+                self.background_color = self._apply_opacity_to_color(self.background_color, opacity_hex)
 
             if self.border_color:
-                if self.border_color.startswith("#"):
-                    self.border_color = self.border_color[1:]
-                if len(self.border_color) > 6:
-                    self.border_color = self.border_color[:6]
-                self.border_color = self.border_color + opacity_hex
+                self.border_color = self._apply_opacity_to_color(self.border_color, opacity_hex)
 
             if self.color:
-                if self.color.startswith("#"):
-                    self.color = self.color[1:]
-                if len(self.color) > 6:
-                    self.color = self.color[:6]
-                self.color = self.color + opacity_hex
+                self.color = self._apply_opacity_to_color(self.color, opacity_hex)
 
             if getattr(self, 'fill', None):
-                if self.fill.startswith("#"):
-                    self.fill = self.fill[1:]
-                if len(self.fill) > 6:
-                    self.fill = self.fill[:6]
-                self.fill = self.fill + opacity_hex
+                self.fill = self._apply_opacity_to_color(self.fill, opacity_hex)
 
             if getattr(self, 'stroke', None):
-                if self.stroke.startswith("#"):
-                    self.stroke = self.stroke[1:]
-                if len(self.stroke) > 6:
-                    self.stroke = self.stroke[:6]
-                self.stroke = self.stroke + opacity_hex
+                self.stroke = self._apply_opacity_to_color(self.stroke, opacity_hex)
 
     def update_property(self, key, value, explicitly_set=True):
+        if key in _BORDER_WIDTH_ALIASES:
+            key = _BORDER_WIDTH_ALIASES[key]
+        if key in _CORNER_RADIUS_KEYS:
+            if not isinstance(self.border_radius, BorderRadius):
+                self.border_radius = BorderRadius(self.border_radius)
+            scaled_val = scale_value(value) if isinstance(value, (int, float)) else value
+            setattr(self.border_radius, _CORNER_RADIUS_KEYS[key], float(scaled_val))
+            br = self.border_radius
+            br._has_radius = bool(br.top_left or br.top_right or br.bottom_right or br.bottom_left)
+            br._is_uniform = (br.top_left == br.top_right == br.bottom_right == br.bottom_left)
+            self._explicitly_set.add(key)
+            return
         if hasattr(self, key):
             if key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value, property_name=key)
@@ -356,6 +371,12 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     scale = get_scale()
                     if scale != 1.0:
                         value = value.scale(scale)
+                # Preserve individually set corners
+                old = self.border_radius
+                if isinstance(old, BorderRadius):
+                    for corner_key, attr in _CORNER_RADIUS_KEYS.items():
+                        if corner_key in self._explicitly_set:
+                            setattr(value, attr, getattr(old, attr))
             # Apply scaling to dimensional properties only when explicitly set by user
             # Don't scale when inheriting from parent (already scaled values)
             elif explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
@@ -490,7 +511,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     element_type: str
     flex_direction: str
     flex: int
-    flex_wrap: bool
+    flex_shrink: int
+    flex_wrap: Union[bool, str]
     focus_outline_color: str
     focus_outline_width: int
     font_family: str
@@ -503,8 +525,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     mount_style: dict
     justify_content: str
     left: Union[int, str, float]
-    max_height: int
-    max_width: int
+    max_height: Union[int, str]
+    max_width: Union[int, str]
     min_height: int
     min_width: int
     opacity: Union[int, float]
@@ -517,11 +539,17 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     transition: dict
     unmount_style: dict
     value: str
+    border_top_left_radius: Union[int, float]
+    border_top_right_radius: Union[int, float]
+    border_bottom_right_radius: Union[int, float]
+    border_bottom_left_radius: Union[int, float]
+    cursor: str
     width: Union[int, str, float]
     z_index: int
 
 class NodeDivValidationProperties(ValidationProperties):
     drop_shadow: tuple
+    on_click: callable
 
 class NodeCursorValidationProperties(ValidationProperties):
     refresh_rate: int
@@ -530,11 +558,15 @@ class NodeTextValidationProperties(ValidationProperties):
     text: str
     font_size: Union[int, float]
     font_family: str
+    font_style: str
     font_weight: str
     for_id: str
+    selectable: bool
+    selection_color: str
     stroke_color: str = None
     stroke_width: Union[int, float] = None
     text_align: str
+    white_space: str
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
@@ -549,12 +581,16 @@ class NodeTextProperties(Properties):
     id: str = None
     font_family: str = ""
     font_size: Union[int, float] = DEFAULT_FONT_SIZE
+    font_style: str = "normal"
     font_weight: str = "normal"
     for_id: str = None
     on_click: any = None
+    selectable: bool = False
+    selection_color: str = "4488FF88"
     stroke_width: Union[int, float] = None
     stroke_color: str = None
     text_align: str = "left"
+    white_space: str = "normal"
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -585,6 +621,7 @@ class NodeRootValidationProperties(ValidationProperties):
 @dataclass
 class NodeDivProperties(Properties):
     drop_shadow: tuple
+    font_family: str = ""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -859,6 +896,10 @@ class NodeInputTextProperties(Properties):
     stroke_color: str = None
     value = ""
     on_change: callable = None
+    placeholder: str = ""
+    placeholder_color: str = "FFFFFF55"
+    selection_color: str = "4488FF88"
+    cursor_color: str = None
 
     def __init__(self, **kwargs):
         self.font_size = DEFAULT_FONT_SIZE
@@ -868,25 +909,108 @@ class NodeInputTextProperties(Properties):
             # Talon TextArea for mac defaults to a text that looks like code,
             # so change it to something that looks more like normal prose
             self.font_family = "helvetica"
-        kwargs['padding_left'] = max(
-            kwargs.get('padding_left', 0),
-            kwargs.get('padding', 0)
-        ) + max(8, kwargs.get('border_radius', 0))
-        kwargs['padding_right'] = max(
-            kwargs.get('padding_right', 0),
-            kwargs.get('padding', 0)
-        ) + max(8, kwargs.get('border_radius', 0))
+        has_padding = any(
+            k in kwargs
+            for k in ('padding', 'padding_left', 'padding_right')
+        )
+        if not has_padding:
+            default_pad_x = max(8, kwargs.get('border_radius', 0))
+            kwargs['padding_left'] = default_pad_x
+            kwargs['padding_right'] = default_pad_x
         super().__init__(**kwargs)
 
     def gc(self):
         if self.on_change:
             self.on_change = None
 
+@dataclass
+class NodeSelectProperties(Properties):
+    id: str = None
+    font_family: str = ""
+    font_size: int = DEFAULT_FONT_SIZE
+    options: list = None
+    value = ""
+    on_change: callable = None
+    placeholder: str = "Select..."
+    placeholder_color: str = "FFFFFF55"
+
+    def __init__(self, **kwargs):
+        self.font_size = DEFAULT_FONT_SIZE
+        if app.platform == "mac":
+            self.font_family = "helvetica"
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
+
+class NodeSelectValidationProperties(ValidationProperties):
+    id: str
+    font_size: int
+    font_family: str
+    options: list
+    value: Union[str, int, float]
+    on_change: callable
+    placeholder: str
+    placeholder_color: str
+
 class NodeInputTextValidationProperties(ValidationProperties):
     id: str
     font_size: int
     value: Union[str, int, float] = None
     on_change: callable
+    placeholder: str
+    placeholder_color: str
+    selection_color: str
+    cursor_color: str
+
+@dataclass
+class NodeTextareaProperties(Properties):
+    id: str = None
+    font_family: str = ""
+    font_size: int = DEFAULT_FONT_SIZE
+    stroke_width: int = None
+    stroke_color: str = None
+    value = ""
+    on_change: callable = None
+    placeholder: str = ""
+    placeholder_color: str = "FFFFFF55"
+    selection_color: str = "4488FF88"
+    cursor_color: str = None
+    rows: int = 3
+
+    def __init__(self, **kwargs):
+        self.font_size = DEFAULT_FONT_SIZE
+        if kwargs.get('value'):
+            kwargs['value'] = str(kwargs['value'])
+        if app.platform == "mac":
+            self.font_family = "helvetica"
+        has_padding = any(
+            k in kwargs
+            for k in ('padding', 'padding_left', 'padding_right', 'padding_top', 'padding_bottom')
+        )
+        if not has_padding:
+            default_pad_x = max(8, kwargs.get('border_radius', 0))
+            kwargs['padding_left'] = default_pad_x
+            kwargs['padding_right'] = default_pad_x
+            kwargs['padding_top'] = 8
+            kwargs['padding_bottom'] = 8
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_change:
+            self.on_change = None
+
+class NodeTextareaValidationProperties(ValidationProperties):
+    id: str
+    font_size: int
+    value: Union[str, int, float] = None
+    on_change: callable
+    placeholder: str
+    placeholder_color: str
+    selection_color: str
+    cursor_color: str
+    rows: int
 
 @dataclass
 class NodeWindowProperties(Properties):
@@ -1007,6 +1131,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["select"]: NodeSelectValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["modal"]: NodeModalValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["screen"]: NodeScreenValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["svg_circle"]: NodeSvgCircleValidationProperties.__annotations__,
@@ -1020,6 +1145,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["table"]: NodeTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["td"]: NodeTableDataValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["text"]: NodeTextValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["textarea"]: NodeTextareaValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["th"]: NodeTableHeaderValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["tr"]: NodeTableRowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["window"]: NodeWindowValidationProperties.__annotations__,
@@ -1032,7 +1158,13 @@ def combine_props(props, additional_props):
         return props
     return {**props, **additional_props}
 
+def _resolve_aliases(props):
+    if any(k in _BORDER_WIDTH_ALIASES for k in props):
+        return {_BORDER_WIDTH_ALIASES.get(k, k): v for k, v in props.items()}
+    return props
+
 def validate_props(props, element_type):
+    props = _resolve_aliases(props)
     invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))
@@ -1061,5 +1193,5 @@ def validate_props(props, element_type):
 
 def validate_combined_props(props, additional_props, element_type):
     combined_props = combine_props(props, additional_props)
-    validate_props(combined_props, element_type)
+    combined_props = validate_props(combined_props, element_type)
     return combined_props

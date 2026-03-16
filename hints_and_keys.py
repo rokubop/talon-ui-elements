@@ -14,6 +14,8 @@ from .src.hints import (
     show_scale_notification,
 )
 from .src.core.entity_manager import entity_manager
+from .src.core.store import store
+from .src.constants import ELEMENT_ENUM_TYPE
 
 # Pass ctx to src/hints so it can enable/disable tags. Context objects must stay here (not src/)
 # because user reloads trigger import chain reloading of src files, but this file isn't imported
@@ -44,6 +46,16 @@ class Actions:
 
     def ui_elements_key_action(action: str, key_down: bool = None):
         """Trigger ui_elements specific key action"""
+        # Route up/down to open select dropdown instead of focus navigation
+        if action in ("focus_next", "focus_previous"):
+            for tree in store.trees:
+                for node in tree.interactive_node_list:
+                    if node.element_type == ELEMENT_ENUM_TYPE["select"] and getattr(node, 'is_open', False):
+                        if key_down:
+                            key = "down" if action == "focus_next" else "up"
+                            node.on_key(key, True)
+                        return
+
         if action == "focus_next":
             focus_next.execute(key_down)
         elif action == "focus_previous":

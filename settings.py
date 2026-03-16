@@ -1,6 +1,7 @@
 from talon import Module
 
 mod = Module()
+mod.tag("ui_elements_typing", desc="Active when typing in a custom canvas text input")
 
 mod.setting("ui_elements_scale", type=float, default=1.0, desc="Global UI scale multiplier")
 mod.setting("ui_elements_hints_show", type=bool, default=True)

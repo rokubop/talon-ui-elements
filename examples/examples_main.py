@@ -1,5 +1,6 @@
 from talon import actions
 from .alignment.alignment_ui import show_alignment
+from .app_layout.app_layout_ui import show_app_layout
 from .cheatsheet.cheatsheet_ui import show_cheatsheet, cheatsheet_mode_basic, cheatsheet_mode_advanced
 from .dashboard.dashboard_ui import show_dashboard
 from .game_keys.game_keys_actions import game_keys_show
@@ -20,21 +21,30 @@ def go_back():
     actions.user.ui_elements_hide_all()
     actions.user.ui_elements_show(examples_ui)
 
-def go_back_ui():
-    div, text, screen, button = actions.user.ui_elements(["div", "text", "screen", "button"])
+def go_back_ui(centered=False):
+    def ui():
+        div, text, screen, button = actions.user.ui_elements(["div", "text", "screen", "button"])
 
-    return screen()[
-        div(draggable=True, margin_left=80, margin_top=100, background_color="272727", border_radius=16, border_width=1)[
-            text("talon-ui-elements", font_size=14, padding=16, color="FFCC00"),
-            button("Go back", on_click=go_back, padding=16, background_color="272727"),
-            button("Exit", on_click=actions.user.ui_elements_hide_all, padding=16, margin_bottom=8, background_color="272727"),
+        if centered:
+            screen_props = dict(justify_content="center")
+            div_props = dict(draggable=True, margin_left=80, background_color="272727", border_radius=16, border_width=1)
+        else:
+            screen_props = {}
+            div_props = dict(draggable=True, margin_left=80, margin_top=100, background_color="272727", border_radius=16, border_width=1)
+
+        return screen(**screen_props)[
+            div(**div_props)[
+                text("talon-ui-elements", font_size=14, padding=16, color="FFCC00"),
+                button("Go back", on_click=go_back, padding=16, background_color="272727"),
+                button("Exit", on_click=actions.user.ui_elements_hide_all, padding=16, margin_bottom=8, background_color="272727"),
+            ]
         ]
-    ]
+    return ui
 
-def show_example(show_func):
+def show_example(show_func, centered=False):
     actions.user.ui_elements_hide_all()
-    actions.user.ui_elements_show(go_back_ui)
     show_func()
+    actions.user.ui_elements_show(go_back_ui(centered))
 
 def show_cheatsheet_example():
     actions.user.ui_elements_hide_all()
@@ -47,23 +57,24 @@ def show_cheatsheet_example():
     }])
     show_cheatsheet()
     show_actions_ui()
-    actions.user.ui_elements_show(go_back_ui)
+    actions.user.ui_elements_show(go_back_ui())
 
 def show_game_keys_example():
     actions.user.ui_elements_hide_all()
     game_keys_show()
-    actions.user.ui_elements_show(go_back_ui)
+    actions.user.ui_elements_show(go_back_ui())
 
 def show_inputs_example():
     actions.user.ui_elements_hide_all()
     show_inputs(on_submitted=go_back)
-    actions.user.ui_elements_show(go_back_ui)
+    actions.user.ui_elements_show(go_back_ui())
 
 button_col1_actions = {
+    "App Layout": lambda: show_example(show_app_layout, centered=True),
     "Hello world": lambda: show_example(show_hello_world),
     "Alignment": lambda: show_example(show_alignment),
     "Cheatsheet": show_cheatsheet_example,
-    "Dashboard": lambda: show_example(show_dashboard),
+    "Dashboard": lambda: show_example(show_dashboard, centered=True),
     "Game keys": show_game_keys_example,
 }
 button_col2_actions = {
@@ -75,13 +86,13 @@ button_col2_actions = {
     "Transitions": lambda: show_example(show_transitions),
 }
 tools = {
-    "Storybook": lambda: show_example(show_storybook),
+    "Storybook": lambda: show_example(show_storybook, centered=True),
     "Test Runner": lambda: show_example(show_test_runner),
     "Dev Tools": lambda: actions.user.ui_elements_toggle(DevTools),
     "Simulate Error": lambda: (
         actions.user.ui_elements_hide_all(),
         simulate_error(),
-        actions.user.ui_elements_show(go_back_ui)
+        actions.user.ui_elements_show(go_back_ui())
     )
 }
 

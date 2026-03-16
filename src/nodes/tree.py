@@ -290,7 +290,7 @@ class MetaState(MetaStateType):
             self._highlighted[id] = color
 
     def set_unhighlighted(self, id):
-        if id in self._id_to_node and id in self._highlighted:
+        if id in self._highlighted:
             self._highlighted.pop(id)
 
     def scroll_y_increment(self, id, y):
@@ -534,6 +534,12 @@ class Tree(TreeType):
         self.unmounting = False
         self._unmount_complete = False
         self.drag_end_phase = False
+        self._text_selecting_node = None
+        self._text_selected_nodes = []
+        self._input_click_count = 0
+        self._input_last_click_time = 0
+        self._input_last_click_x = 0
+        self._input_last_click_y = 0
         self.draggable_node = False
         self.draggable_node_delta_pos = None
         self.drag_handle_node = None
@@ -596,9 +602,21 @@ class Tree(TreeType):
             self.cursor.reset()
             self.cursor_v2.reset()
 
-    def validate_root_node(self):
+    def auto_wrap_root_node(self):
         if self.root_node.element_type not in ["screen", "active_window"]:
-            raise Exception("Root node must be a screen or active_window element")
+            from .node_root import NodeRoot
+            from ..properties import NodeRootProperties
+
+            child_props = self.root_node.properties
+            has_pct = (isinstance(child_props.width, str) and "%" in child_props.width) or \
+                      (isinstance(child_props.height, str) and "%" in child_props.height)
+
+            root = NodeRoot("screen", NodeRootProperties(
+                justify_content="center",
+                align_items="stretch" if has_pct else "center",
+            ))
+            root.add_child(self.root_node)
+            self.root_node = root
 
     def get_cursor_position(self) -> Point2d:
         try:
@@ -664,7 +682,7 @@ class Tree(TreeType):
             self.fixed_nodes.clear()
             if not isinstance(self.root_node, NodeType):
                 raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
-            self.validate_root_node()
+            self.auto_wrap_root_node()
         finally:
             state_manager.set_processing_tree(None)
 
@@ -955,14 +973,19 @@ class Tree(TreeType):
         x, y = node.cursor_pre_draw_text
         x += offset.x
         y += offset.y
-        draw_text_simple(
-            canvas,
-            self.meta_state.get_text_mutation(id),
-            node.properties.color,
-            node.properties,
-            x,
-            y
-        )
+        text_value = self.meta_state.get_text_mutation(id)
+
+        if node.text_multiline and "\n" not in str(text_value):
+            # set_text changed to single line, draw simple
+            draw_text_simple(canvas, text_value, node.properties.color, node.properties, x, y)
+        elif node.text_multiline:
+            gap = node.properties.gap or 0
+            line_h = node.text_line_height + gap
+            for i, (line_text, _) in enumerate(node.text_multiline):
+                if line_text:
+                    draw_text_simple(canvas, line_text, node.properties.color, node.properties, x, y + line_h * i)
+        else:
+            draw_text_simple(canvas, text_value, node.properties.color, node.properties, x, y)
 
         self.restore_clip_regions(canvas, clip_count)
 
@@ -976,11 +999,11 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def draw_hints(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.meta_state.inputs or self.meta_state.buttons:
+        if self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list:
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
-                if node.element_type in ["button", "input_text", "link"] and not node.disabled:
+                if node.interactive:
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
 
     def refresh_decorator_canvas(self):
@@ -1076,6 +1099,30 @@ class Tree(TreeType):
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
 
+        # Copy selected text
+        if key_string == "ctrl-c" and e.down and self._text_selected_nodes:
+            for node in self._text_selected_nodes:
+                node.copy_selection()
+            return
+
+        # Route to select dropdown (open or focused-closed)
+        for node in self.interactive_node_list:
+            if node.element_type == ELEMENT_ENUM_TYPE["select"]:
+                if getattr(node, 'is_open', False):
+                    if node.on_key(key_string, e.down):
+                        return
+                elif e.down:
+                    focused_node = state_manager.get_focused_node()
+                    if focused_node == node:
+                        if node.on_key(key_string, e.down):
+                            return
+
+        # Route to custom input when focused
+        from ..platform.custom_input import custom_input_manager
+        if custom_input_manager.has_focused_input:
+            custom_input_manager.handle_canvas_key(e)
+            return
+
         if key_string == "space" or key_string == "enter" or key_string == "return":
             focused_node = state_manager.get_focused_node()
             if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
@@ -1133,6 +1180,7 @@ class Tree(TreeType):
         if not self.is_key_controls_init and self.canvas_decorator:
             self.is_key_controls_init = True
             self.canvas_decorator.register("key", self.on_key)
+            self.canvas_decorator.register("scroll", self.on_scroll)
 
     def _is_draggable_ui(self):
         # Just check 1 level deep
@@ -1166,13 +1214,7 @@ class Tree(TreeType):
             if self.interactive_node_list:
                 focused_tree = state_manager.get_focused_tree()
                 if focused_tree == self:
-                    focus_canvas = True
-                    node = state_manager.get_focused_node()
-                    if node and node.tree == self and node.element_type == "input_text":
-                        # input text has its own focus managed by Talon
-                        focus_canvas = False
-                    if focus_canvas:
-                        self.canvas_decorator.focused = True
+                    self.canvas_decorator.focused = True
                 elif not focused_tree:
                     self.canvas_decorator.focused = True
 
@@ -1195,6 +1237,7 @@ class Tree(TreeType):
             if self.is_mounted:
                 self.on_state_change_effect_cleanups()
                 self.meta_state.clear_nodes()
+                self.interactive_node_list.clear()
                 self.init_tree_constructor()
 
             if on_mount or on_unmount:
@@ -1674,9 +1717,27 @@ class Tree(TreeType):
             self.destroy()
 
     def get_mouse_hovered_input_id(self, gpos):
-        for id, input_data in list(self.meta_state.inputs.items()):
-            if input_data.input and input_data.input.rect.contains(gpos):
-                return id
+        # Check textarea nodes (always custom-rendered)
+        for node in self.interactive_node_list:
+            if node.element_type == ELEMENT_ENUM_TYPE["textarea"] and node.box_model:
+                if node.box_model.border_rect.contains(gpos):
+                    return node.id
+
+        for node in self.interactive_node_list:
+            if node.element_type == ELEMENT_ENUM_TYPE["input_text"] and node.box_model:
+                if node.box_model.border_rect.contains(gpos):
+                    return node.id
+        return None
+
+    def _get_selectable_text_at(self, gpos):
+        for node in self.meta_state.id_to_node.values():
+            if node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+                    getattr(node, 'selectable', False) and node.box_model:
+                hit_rect = node.parent_node.box_model.padding_rect \
+                    if node.parent_node and node.parent_node.box_model \
+                    else node.box_model.padding_rect
+                if hit_rect.contains(gpos):
+                    return node
         return None
 
     def on_mousemove(self, gpos):
@@ -1689,6 +1750,13 @@ class Tree(TreeType):
             return
 
         if self.is_drag_end():
+            return
+
+        if self._text_selecting_node:
+            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"]):
+                self._text_selecting_node.update_selection_from_drag(gpos.x, click_y=gpos.y)
+            else:
+                self._text_selecting_node.update_selection_from_drag(gpos.x)
             return
 
         start_pos = state_manager.get_mousedown_start_pos()
@@ -1743,8 +1811,8 @@ class Tree(TreeType):
                     self.meta_state.resize_original_constraints[node_id] = {
                         'min_width': getattr(node.properties, 'min_width', None),
                         'min_height': getattr(node.properties, 'min_height', None),
-                        'max_width': getattr(node.properties, 'max_width', None),
-                        'max_height': getattr(node.properties, 'max_height', None),
+                        'max_width': node.box_model.max_width if node.box_model else getattr(node.properties, 'max_width', None),
+                        'max_height': node.box_model.max_height if node.box_model else getattr(node.properties, 'max_height', None),
                     }
                 self.meta_state.start_resize_drag(node_id, edge, gpos, start_rect)
                 self.render_manager.pause()
@@ -1755,6 +1823,14 @@ class Tree(TreeType):
 
         hovered_id = state_manager.get_hovered_id()
         state_manager.set_mousedown_start_pos(gpos)
+
+        # Close open selects if click is outside the select's own elements
+        hovered_node = self.meta_state.id_to_node.get(hovered_id) if hovered_id else None
+        hovered_interactive_id = getattr(hovered_node, 'interactive_id', None) if hovered_node else None
+        for node in self.interactive_node_list:
+            if node.element_type == ELEMENT_ENUM_TYPE["select"] and getattr(node, 'is_open', False):
+                if hovered_interactive_id != node.id:
+                    node._close()
 
         if self.draggable_node and self.drag_handle_node and self.draggable_node.box_model:
             draggable_top_left_pos = self.draggable_node.box_model.margin_pos
@@ -1780,14 +1856,61 @@ class Tree(TreeType):
         if input_id:
             node = self.meta_state.id_to_node.get(input_id)
             if node:
-                state_manager.focus_node(node, visible=False)
+                is_textarea = node.element_type == ELEMENT_ENUM_TYPE["textarea"]
+                state_manager.focus_node(node, visible=True)
+                if hasattr(node, 'set_cursor_from_click'):
+                    import time
+                    now = time.monotonic()
+                    click_x, click_y = gpos.x, gpos.y
+                    near_last = abs(click_x - self._input_last_click_x) < 20 and abs(click_y - self._input_last_click_y) < 20
+                    if now - self._input_last_click_time < 0.4 and near_last:
+                        self._input_click_count = min(self._input_click_count + 1, 3)
+                    else:
+                        self._input_click_count = 1
+                    self._input_last_click_time = now
+                    self._input_last_click_x = click_x
+                    self._input_last_click_y = click_y
+                    if is_textarea:
+                        node.set_cursor_from_click(gpos.x, click_y=gpos.y, click_count=self._input_click_count)
+                    else:
+                        node.set_cursor_from_click(gpos.x, self._input_click_count)
+                    if self._input_click_count == 1:
+                        self._text_selecting_node = node
                 return
+
+        selectable_node = self._get_selectable_text_at(gpos)
+        if selectable_node:
+            for node in self._text_selected_nodes:
+                if node is not selectable_node:
+                    node.clear_selection()
+            self._text_selected_nodes = [selectable_node]
+
+            import time
+            now = time.monotonic()
+            click_x, click_y = gpos.x, gpos.y
+            near_last = abs(click_x - self._input_last_click_x) < 20 and abs(click_y - self._input_last_click_y) < 20
+            if now - self._input_last_click_time < 0.4 and near_last:
+                self._input_click_count = min(self._input_click_count + 1, 3)
+            else:
+                self._input_click_count = 1
+            self._input_last_click_time = now
+            self._input_last_click_x = click_x
+            self._input_last_click_y = click_y
+            selectable_node.set_selection_from_click(gpos.x, gpos.y, self._input_click_count)
+            if self._input_click_count == 1:
+                self._text_selecting_node = selectable_node
+            return
+
+        # Clear any text selections when clicking elsewhere
+        for node in self._text_selected_nodes:
+            node.clear_selection()
+        self._text_selected_nodes = []
 
         if self.root_node.box_model:
             if self.root_node.box_model.content_children_rect.contains(gpos):
-                state_manager.blur()
+                state_manager.blur(pos=gpos)
             else:
-                state_manager.blur_all()
+                state_manager.blur_all(pos=gpos)
 
     def click_node(self, node: NodeType):
         if node and getattr(node, 'on_click', None):
@@ -1810,6 +1933,10 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
+            if self._text_selecting_node and hasattr(self._text_selecting_node, 'finalize_selection'):
+                self._text_selecting_node.finalize_selection()
+            self._text_selecting_node = None
+
             if self.meta_state.is_resize_dragging():
                 self.handle_resize_mouseup(gpos)
                 return
@@ -1957,71 +2084,137 @@ class Tree(TreeType):
             elif e.event == "mouseup":
                 self.on_mouseup(e.gpos)
 
+    def _try_scroll_node(self, node, e):
+        """Try to scroll a node. Returns True if the node actually scrolled."""
+        scrollable_data = self.meta_state.scrollable[node.id]
+        did_scroll = False
+
+        # Vertical scroll
+        max_height = node.box_model.content_children_with_padding_size.height
+        view_height = node.box_model.padding_size.height
+
+        if max_height > view_height:
+            offset_y = 0
+            # mouse wheel
+            if abs(e.degrees.y) > 1e-5:
+                offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
+            # touchpad
+            elif abs(e.pixels.y) > 1e-5:
+                offset_y = e.pixels.y
+
+            if offset_y:
+                new_offset_y = scrollable_data.offset_y + offset_y
+                new_offset_y = max(view_height - max_height, min(0, new_offset_y))
+                if new_offset_y != scrollable_data.offset_y:
+                    scrollable_data.offset_y = new_offset_y
+                    scrollable_data.view_height = view_height
+                    scrollable_data.max_height = max_height
+                    did_scroll = True
+
+        # Horizontal scroll
+        max_width = node.box_model.content_children_with_padding_size.width
+        view_width = node.box_model.padding_size.width
+
+        if max_width > view_width:
+            offset_x = 0
+            degrees_x = getattr(e.degrees, 'x', 0) if hasattr(e.degrees, 'x') else 0
+            pixels_x = getattr(e.pixels, 'x', 0) if hasattr(e.pixels, 'x') else 0
+
+            # mouse wheel
+            if abs(degrees_x) > 1e-5:
+                offset_x = self.scroll_amount_per_tick if degrees_x > 0 else -self.scroll_amount_per_tick
+            # touchpad
+            elif abs(pixels_x) > 1e-5:
+                offset_x = pixels_x
+
+            if offset_x:
+                new_offset_x = scrollable_data.offset_x + offset_x
+                new_offset_x = max(view_width - max_width, min(0, new_offset_x))
+                if new_offset_x != scrollable_data.offset_x:
+                    scrollable_data.offset_x = new_offset_x
+                    scrollable_data.view_width = view_width
+                    scrollable_data.max_width = max_width
+                    did_scroll = True
+
+        return did_scroll
+
+    def _try_scroll_textarea(self, e) -> bool:
+        """Handle mouse wheel scrolling for textarea nodes."""
+        from ..platform.custom_input import custom_input_manager
+
+        # Find textarea to scroll: prefer focused, fall back to hovered
+        node = None
+        focused_node = state_manager.get_focused_node()
+        if focused_node and focused_node.tree == self \
+                and focused_node.element_type == ELEMENT_ENUM_TYPE["textarea"]:
+            node = focused_node
+        else:
+            for n in self.interactive_node_list:
+                if n.element_type != ELEMENT_ENUM_TYPE["textarea"]:
+                    continue
+                if getattr(n, 'box_model', None) and n.box_model.border_rect.contains(e.gpos):
+                    node = n
+                    break
+
+        if not node or not getattr(node, 'box_model', None):
+            return False
+
+        state = custom_input_manager.get_state(node.id)
+        if not state:
+            return False
+
+        paint = node._make_paint()
+        line_h = node._get_line_height(paint)
+        content_width = node.box_model.content_size.width
+        content_height = node.box_model.content_size.height
+
+        text = state.text or ""
+        lines = node._get_wrapped_lines(text, content_width, paint) if text else [("", 0)]
+        total_height = len(lines) * line_h
+
+        if total_height <= content_height:
+            return False
+
+        offset_y = 0
+        if abs(e.degrees.y) > 1e-5:
+            offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
+        elif abs(e.pixels.y) > 1e-5:
+            offset_y = e.pixels.y
+
+        if not offset_y:
+            return True
+
+        max_scroll = total_height - content_height
+        new_offset = state.scroll_offset - offset_y
+        new_offset = max(0, min(max_scroll, new_offset))
+
+        if new_offset != state.scroll_offset:
+            state.scroll_offset = new_offset
+            self.render_decorator_canvas()
+
+        # Always consume scroll when over a textarea with overflow
+        return True
+
     def on_scroll_tick(self, e):
+        if self._try_scroll_textarea(e):
+            return
+
         if self.meta_state.scrollable:
-            smallest_node = None
+            # Collect all scrollable containers under the cursor, sorted smallest first
+            candidates = []
             for id, data in list(self.meta_state.scrollable.items()):
                 node = self.meta_state.id_to_node.get(id)
                 if getattr(node, 'box_model', None) and node.box_model.padding_rect.contains(e.gpos):
-                    if not smallest_node:
-                        smallest_node = node
-                    else:
-                        node_area = node.box_model.padding_rect.width * node.box_model.padding_rect.height
-                        smallest_area = smallest_node.box_model.padding_rect.width * smallest_node.box_model.padding_rect.height
-                        if node_area < smallest_area:
-                            smallest_node = node
+                    area = node.box_model.padding_rect.width * node.box_model.padding_rect.height
+                    candidates.append((area, node))
 
-            if smallest_node:
-                scrollable_data = self.meta_state.scrollable[smallest_node.id]
-                did_scroll = False
+            candidates.sort(key=lambda x: x[0])
 
-                # Vertical scroll
-                max_height = smallest_node.box_model.content_children_with_padding_size.height
-                view_height = smallest_node.box_model.padding_size.height
-
-                if max_height > view_height:
-                    offset_y = 0
-                    # mouse wheel
-                    if abs(e.degrees.y) > 1e-5:
-                        offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
-                    # touchpad
-                    elif abs(e.pixels.y) > 1e-5:
-                        offset_y = e.pixels.y
-
-                    if offset_y:
-                        new_offset_y = scrollable_data.offset_y + offset_y
-                        new_offset_y = max(view_height - max_height, min(0, new_offset_y))
-                        scrollable_data.offset_y = new_offset_y
-                        scrollable_data.view_height = view_height
-                        scrollable_data.max_height = max_height
-                        did_scroll = True
-
-                # Horizontal scroll
-                max_width = smallest_node.box_model.content_children_with_padding_size.width
-                view_width = smallest_node.box_model.padding_size.width
-
-                if max_width > view_width:
-                    offset_x = 0
-                    degrees_x = getattr(e.degrees, 'x', 0) if hasattr(e.degrees, 'x') else 0
-                    pixels_x = getattr(e.pixels, 'x', 0) if hasattr(e.pixels, 'x') else 0
-
-                    # mouse wheel
-                    if abs(degrees_x) > 1e-5:
-                        offset_x = self.scroll_amount_per_tick if degrees_x > 0 else -self.scroll_amount_per_tick
-                    # touchpad
-                    elif abs(pixels_x) > 1e-5:
-                        offset_x = pixels_x
-
-                    if offset_x:
-                        new_offset_x = scrollable_data.offset_x + offset_x
-                        new_offset_x = max(view_width - max_width, min(0, new_offset_x))
-                        scrollable_data.offset_x = new_offset_x
-                        scrollable_data.view_width = view_width
-                        scrollable_data.max_width = max_width
-                        did_scroll = True
-
-                if did_scroll:
+            # Try each candidate from smallest to largest, bubble up if can't scroll
+            for _, node in candidates:
+                if self._try_scroll_node(node, e):
                     self.render_manager.render_scroll()
+                    return
 
     def on_scroll(self, e):
         if self.unmounting:
@@ -2079,7 +2272,7 @@ class Tree(TreeType):
         self.transition_manager.start_unmount(on_complete=self._finish_unmount)
 
     def _finish_unmount(self):
-        """Called when all exit animations complete — do actual destruction"""
+        """Called when all exit animations complete - do actual destruction"""
         self._unmount_complete = True
         self.destroy()
 
@@ -2090,7 +2283,7 @@ class Tree(TreeType):
                 self._start_unmount()
                 return
             if self.unmounting and not self._unmount_complete:
-                # Already playing unmount animations — ignore duplicate destroy calls.
+                # Already playing unmount animations - ignore duplicate destroy calls.
                 # _finish_unmount will call destroy() when animations complete.
                 return
             self.destroying = True
@@ -2135,12 +2328,17 @@ class Tree(TreeType):
             if self.canvas_decorator:
                 if self.is_key_controls_init:
                     self.canvas_decorator.unregister("key", self.on_key)
+                    self.canvas_decorator.unregister("scroll", self.on_scroll)
                     self.is_key_controls_init = False
                 self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
                 self.canvas_decorator.close()
                 self.canvas_decorator = None
 
             self.destroy_blockable_canvas()
+
+            from ..platform.custom_input import custom_input_manager
+            if custom_input_manager.has_focused_input:
+                custom_input_manager.blur()
 
             self._tree_constructor = None
             self.current_base_canvas = None
@@ -2191,6 +2389,9 @@ class Tree(TreeType):
         if node.interactive:
             self.interactive_node_list.append(node)
             requires_id = True
+        elif node.element_type in (ELEMENT_ENUM_TYPE["button"], ELEMENT_ENUM_TYPE["link"]) \
+                and getattr(node, 'on_click', None):
+            requires_id = True
         elif node.properties.is_scrollable() or getattr(node.properties, "draggable", False):
             requires_id = True
         elif node.element_type == ELEMENT_ENUM_TYPE["window"]:
@@ -2198,6 +2399,8 @@ class Tree(TreeType):
         elif getattr(node.properties, "for_id", False):
             requires_id = True
         elif node.properties.transition:
+            requires_id = True
+        elif getattr(node, 'selectable', False):
             requires_id = True
 
         if requires_id and not node.id:
@@ -2211,12 +2414,13 @@ class Tree(TreeType):
             if overrides := self.meta_state.get_ref_property_overrides(node.id):
                 node.properties.update_overrides(overrides)
 
-            if node.element_type == ELEMENT_ENUM_TYPE["button"] or \
-                    node.element_type == ELEMENT_ENUM_TYPE["link"]:
+            if getattr(node, 'on_click', None):
                 self.meta_state.add_button(node.id)
             elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
                 if node.properties.for_id:
                     self.meta_state.add_text_with_for_id(node.id, node.properties.for_id)
+                elif getattr(node, 'selectable', False):
+                    pass
                 else:
                     self.meta_state.use_text_mutation(node.id, initial_text=node.text)
             elif node.element_type == ELEMENT_ENUM_TYPE["window"]:
@@ -2461,7 +2665,7 @@ class Tree(TreeType):
         """
         blockable_rects = []
 
-        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node:
+        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node or self.interactive_node_list or self.meta_state.scrollable:
             full_rect = self.draggable_node.box_model.border_rect \
                 if getattr(self.draggable_node, 'box_model', None) \
                 else self.root_node.box_model.content_children_rect

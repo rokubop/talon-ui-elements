@@ -1,4 +1,4 @@
-# 📜 Command Cheatsheet Tutorial
+# Command Cheatsheet Tutorial
 
 In this tutorial, you'll build a stateful command cheatsheet UI step by step, learning core concepts along the way.
 

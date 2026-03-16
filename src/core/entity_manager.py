@@ -1,6 +1,4 @@
-from talon.experimental.textarea import DarkThemeLabels, TextArea
 from dataclasses import dataclass
-from talon.skia.typeface import Typeface
 from talon import storage, settings
 from typing import Union
 from ..interfaces import NodeType, TreeType, Point2d
@@ -34,60 +32,6 @@ class EntityManager:
             flattened.extend(self.get_node_tree_flattened(tree.root_node))
 
         return flattened
-
-    def get_input_data(self, id: str):
-        node = store.id_to_node.get(id)
-        if node:
-            return node.tree.meta_state.inputs.get(id)
-
-    def create_input(self, node: NodeType):
-        if not self.get_input_data(node.id):
-            text_area_input = TextArea()
-            args = {
-                "title_size": 0,
-                "padding": 0,
-                "text_size": node.properties.font_size,
-                "title_bg": node.properties.background_color,
-                "line_spacing": -8,
-                "bg": node.properties.background_color,
-                "fg": node.properties.color,
-            }
-            if node.properties.font_family:
-                args["typeface"] = Typeface.from_name(node.properties.font_family)
-
-            text_area_input.theme = DarkThemeLabels(**args)
-            text_area_input.value = node.properties.value or ""
-
-            def on_change(new_value):
-                input_data = self.get_input_data(node.id)
-                if not input_data or new_value == input_data.value:
-                    return
-
-                previous_value = input_data.value
-                input_data.previous_value = input_data.value
-                input_data.value = new_value
-                if node.properties.on_change:
-                    node.properties.on_change(
-                        ChangeEvent(
-                            value=new_value,
-                            id=node.id,
-                            previous_value=previous_value
-                        )
-                    )
-
-            node.tree.meta_state.add_input(node.id, text_area_input, node.properties.value, on_change)
-
-    def update_input_rect(self, id, rect, top_offset=0):
-        input_data = self.get_input_data(id)
-        if input_data:
-            input_data.rect = rect # this can be the reference when using offset for moving
-            input_data.input.rect = rect
-            input_data.input.scroll = top_offset
-
-    # def move_input(self, id, offset: Point2d):
-    #     input_data = self.get_input_data(id)
-    #     if input_data:
-    #         input_data.input.rect = input_data.input.rect.move(offset.x, offset.y)
 
     def does_tree_exist(self, tree_constructor: callable) -> bool:
         """Check if a tree exists based on the tree_constructor"""

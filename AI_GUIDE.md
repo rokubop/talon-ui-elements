@@ -51,7 +51,7 @@ window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
 **All available elements:**
-`div`, `text`, `screen`, `button`, `input_text`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+`div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
 
 **SVG elements** (separate function):
 ```python
@@ -68,7 +68,7 @@ svg, path = actions.user.ui_elements_svg(["svg", "path"])
 - The root of every UI must be `screen()` (or `active_window()`).
 - Children are declared with bracket syntax: `parent()[child1, child2]`
 - **Container elements** (can have children): `div`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
-- **Leaf elements** (cannot have children): `text`, `icon`, `checkbox`, `input_text`, `link`
+- **Leaf elements** (cannot have children): `text`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `link`
 - **`button`**: leaf when given a label `button("Click")`, but can wrap children when no label: `button(on_click=fn)[icon("check")]`
 - Use splat unpacking for dynamic lists: `div()[*[text(item) for item in items]]`
 
@@ -100,7 +100,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 | `align_items` | str | `"stretch"` | `"stretch"`, `"center"`, `"flex_start"`, `"flex_end"` |
 | `align_self` | str | None | `"stretch"`, `"center"`, `"flex_start"`, `"flex_end"` |
 | `flex` | int | None | e.g. `1` - fills available space |
-| `flex_wrap` | bool | False | `True` to wrap children |
+| `flex_wrap` | bool/str | False | `"wrap"` or `True` to wrap children. Requires explicit primary-axis size (e.g. `width` for row). |
 | `gap` | int/float | None | Space between children in pixels |
 
 ### Sizing
@@ -147,6 +147,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 | Property | Type | Default | Notes |
 |---|---|---|---|
 | `font_size` | int/float | `16` | |
+| `font_style` | str | `"normal"` | `"normal"`, `"italic"` |
 | `font_weight` | str | `"normal"` | `"normal"`, `"bold"` |
 | `font_family` | str | `""` | System font name |
 | `text_align` | str | `"left"` | `"left"`, `"center"`, `"right"` |
@@ -179,13 +180,13 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 | Property | Type | Notes |
 |---|---|---|
 | `on_click` | callable | Click handler. Receives `ClickEvent` if handler accepts a parameter. |
-| `on_change` | callable | For `input_text` and `checkbox`. Receives `ChangeEvent`. |
+| `on_change` | callable | For `input_text`, `textarea`, `select`, and `checkbox`. Receives `ChangeEvent`. |
 | `highlight_style` | dict | Hover style: `{"background_color": "444444"}`. Keys: `background_color`, `border_color`, `color`, `fill`, `stroke` |
 | `disabled` | bool | Disables interactivity |
 | `disabled_style` | dict | Style when disabled |
 | `draggable` | bool | Makes element draggable |
 | `drag_handle` | bool | Makes this element the drag handle for a draggable ancestor |
-| `autofocus` | bool | Auto-focus `input_text` on mount |
+| `autofocus` | bool | Auto-focus `input_text` or `textarea` on mount |
 
 ### Animation
 
@@ -199,7 +200,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 
 | Property | Type | Notes |
 |---|---|---|
-| `id` | str | Unique identifier. Required for `input_text`. Used by refs, imperative actions. |
+| `id` | str | Unique identifier. Required for `input_text`, `textarea`, and `select`. Used by refs, imperative actions. |
 | `key` | str | Reconciliation key for dynamic lists |
 | `class_name` | str | For style block matching |
 | `z_index` | int | Stacking order (default: `0`) |
@@ -460,7 +461,7 @@ button("Click", on_click=handle_click)
 
 ## Input Text
 
-Text input field. **Requires `id` prop.**
+Text input field. **Requires `id` prop.** Custom canvas-rendered input with full keyboard support (Ctrl+A/C/V/X, Ctrl+arrow word nav, Shift+arrow selection, Home/End, etc.) and mouse interaction (click to position cursor, drag to select, double-click to select word, triple-click to select all).
 
 ```python
 input_text, ref = actions.user.ui_elements(["input_text", "ref"])
@@ -470,13 +471,21 @@ my_input = ref("my_input")
 # In the UI tree:
 input_text(id="my_input", autofocus=True, background_color="222222", border_radius=4, width=200)
 
+# With placeholder and custom colors:
+input_text(
+    id="search",
+    placeholder="Search...",
+    placeholder_color="FFFFFF55",
+    selection_color="4488FF88",
+    cursor_color="FF8800",
+    on_change=handle_change,
+)
+
 # on_change callback receives ChangeEvent:
 def handle_change(e):
     print(e.value)           # Current value
     print(e.previous_value)  # Previous value
     print(e.id)              # Element id
-
-input_text(id="search", on_change=handle_change)
 
 # Read value via ref:
 current_value = my_input.value
@@ -485,6 +494,101 @@ current_value = my_input.value
 my_input.clear()
 my_input.focus()
 ```
+
+**Input-specific properties:**
+
+| Property | Type | Default | Notes |
+|---|---|---|---|
+| `placeholder` | str | `""` | Hint text shown when empty and unfocused |
+| `placeholder_color` | str | `"FFFFFF55"` | Color of placeholder text |
+| `selection_color` | str | `"4488FF88"` | Selection highlight color |
+| `cursor_color` | str | None | Cursor color (falls back to `color`) |
+
+---
+
+## Textarea
+
+Multi-line text input with word wrap and scrolling. **Requires `id` prop.** Canvas-rendered with full keyboard support (same as `input_text` plus Enter for newlines, Up/Down arrow line navigation) and mouse interaction (click, drag-select, double-click word select, triple-click select all, scroll wheel).
+
+```python
+textarea = actions.user.ui_elements("textarea")
+
+# Basic textarea:
+textarea(id="notes", rows=5, placeholder="Enter notes...")
+
+# With all options:
+textarea(
+    id="editor",
+    value="Initial text",
+    rows=8,
+    placeholder="Start typing...",
+    selection_color="4488FF88",
+    cursor_color="FF8800",
+    on_change=handle_change,
+    autofocus=True,
+    width=400,
+)
+
+# on_change callback receives ChangeEvent (same as input_text):
+def handle_change(e):
+    print(e.value)           # Current value
+    print(e.previous_value)  # Previous value
+    print(e.id)              # Element id
+
+# Read value:
+value = actions.user.ui_elements_get_input_value("editor")
+```
+
+**Textarea-specific properties:**
+
+| Property | Type | Default | Notes |
+|---|---|---|---|
+| `rows` | int | `3` | Number of visible text rows (determines height) |
+| `placeholder` | str | `""` | Hint text shown when empty and unfocused |
+| `placeholder_color` | str | `"FFFFFF55"` | Color of placeholder text |
+| `selection_color` | str | `"4488FF88"` | Selection highlight color |
+| `cursor_color` | str | None | Cursor color (falls back to `color`) |
+
+---
+
+## Select
+
+Dropdown select element with keyboard navigation. **Requires `id` prop.** Opens a dropdown with options, supports Up/Down/Home/End/Enter/Escape keys, highlights on hover, auto-flips upward when near the bottom of the UI.
+
+```python
+select = actions.user.ui_elements("select")
+
+# Simple string options:
+select(id="color", options=["Red", "Green", "Blue"], on_change=handle_change)
+
+# With label/value dicts:
+select(
+    id="size",
+    options=[
+        {"label": "Small", "value": "sm"},
+        {"label": "Medium", "value": "md"},
+        {"label": "Large", "value": "lg"},
+    ],
+    value="md",
+    placeholder="Choose size...",
+    on_change=handle_change,
+)
+
+# on_change callback receives ChangeEvent:
+def handle_change(e):
+    print(e.value)           # Selected value
+    print(e.previous_value)  # Previous value
+    print(e.id)              # Element id
+```
+
+**Select-specific properties:**
+
+| Property | Type | Default | Notes |
+|---|---|---|---|
+| `options` | list | Required | Strings or `{"label": "...", "value": "..."}` dicts |
+| `value` | str | `""` | Currently selected value |
+| `placeholder` | str | `"Select..."` | Hint text when no value selected |
+| `placeholder_color` | str | `"FFFFFF55"` | Placeholder text color |
 
 ---
 
@@ -1321,7 +1425,7 @@ def toggle_transitions():
    div(top=10, position="relative")[...]
    ```
 
-3. **`input_text` requires `id`:**
+3. **`input_text`, `textarea`, and `select` require `id`:**
    ```python
    # WRONG - raises error
    input_text()

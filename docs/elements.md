@@ -6,6 +6,7 @@ Examples:
 ```py
 screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
 button, checkbox, link = actions.user.ui_elements(["button", "checkbox", "link"])
+textarea, select = actions.user.ui_elements(["textarea", "select"])
 table, tr, th, td = actions.user.ui_elements(["table", "tr", "th", "td"])
 ```
 
@@ -21,7 +22,9 @@ Pass a list of element names to get the elements you need. You can request any c
 | `window` | Layout | Draggable window with title bar, close button, and drop shadow - must be first element after screen | `screen(justify_content="center", align_items="center")[window(title="My App")[...]]` |
 | `cursor` | Layout | Container that follows the mouse cursor position | `cursor()[text("Status")]` |
 | `text` | Content | Display text content | `text("Hello world", font_size=16)` |
-| `input_text` | Content | Text input field | `input_text(id="my_input", on_change=handler)` |
+| `input_text` | Content | Text input field with keyboard/mouse support | `input_text(id="my_input", placeholder="Search...", on_change=handler)` |
+| `textarea` | Content | Multi-line text input with word wrap and scrolling | `textarea(id="notes", rows=5, placeholder="Enter notes...", on_change=handler)` |
+| `select` | Interactive | Dropdown select with keyboard navigation | `select(id="color", options=["Red", "Green", "Blue"], on_change=handler)` |
 | `icon` | Content | Built-in icons (see [icons.md](icons.md)) | `icon("microphone", size=24)` |
 | `button` | Interactive | Interactive button with click handler | `button(text="Click me", on_click=handler)` |
 | `checkbox` | Interactive | Checkbox input with change handler | `checkbox(checked=True, on_change=handler)` |
