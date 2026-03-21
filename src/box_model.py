@@ -4,6 +4,7 @@ from talon.types import Rect, Point2d
 from .interfaces import (
     BoxModelSpacing,
     BoxModelV2Type,
+    Margin,
     NodeType,
     OverflowType,
     PropertiesDimensionalType,
@@ -34,24 +35,34 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
     model_name = model_type.__name__.lower()
     model_name_x = f'{model_name}_x'
     model_name_y = f'{model_name}_y'
+    is_margin = model_type is Margin
 
     if "border_width" in kwargs:
         value = scale_value(kwargs["border_width"]) if isinstance(kwargs["border_width"], (int, float)) else kwargs["border_width"]
         model.top = model.right = model.bottom = model.left = value
     elif model_name in kwargs:
         all_sides_value = kwargs[model_name]
-        if isinstance(all_sides_value, (int, float)):
+        if is_margin and all_sides_value == "auto":
+            model.auto_top = model.auto_right = model.auto_bottom = model.auto_left = True
+            all_sides_value = 0
+        elif isinstance(all_sides_value, (int, float)):
             all_sides_value = scale_value(all_sides_value)
         model.top = model.right = model.bottom = model.left = all_sides_value
 
     if model_name_x in kwargs:
         value = kwargs[model_name_x]
-        if isinstance(value, (int, float)):
+        if is_margin and value == "auto":
+            model.auto_left = model.auto_right = True
+            value = 0
+        elif isinstance(value, (int, float)):
             value = scale_value(value)
         model.left = model.right = value
     if model_name_y in kwargs:
         value = kwargs[model_name_y]
-        if isinstance(value, (int, float)):
+        if is_margin and value == "auto":
+            model.auto_top = model.auto_bottom = True
+            value = 0
+        elif isinstance(value, (int, float)):
             value = scale_value(value)
         model.top = model.bottom = value
 
@@ -59,9 +70,13 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
         side_key = f'{model_name}_{side}'
         if side_key in kwargs:
             value = kwargs[side_key]
-            if isinstance(value, (int, float)):
-                value = scale_value(value)
-            setattr(model, side, value)
+            if is_margin and value == "auto":
+                setattr(model, f'auto_{side}', True)
+                setattr(model, side, 0)
+            elif isinstance(value, (int, float)):
+                setattr(model, side, scale_value(value))
+            else:
+                setattr(model, side, value)
 
     return model
 

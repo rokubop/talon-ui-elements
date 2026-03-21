@@ -53,11 +53,13 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
-| margin | int | 0 | Uniform margin width |
-| margin_bottom | int | 0 | Bottom margin |
-| margin_left | int | 0 | Left margin |
-| margin_right | int | 0 | Right margin |
-| margin_top | int | 0 | Top margin |
+| margin | int \| "auto" | 0 | Uniform margin width. "auto" absorbs remaining space in flex containers |
+| margin_bottom | int \| "auto" | 0 | Bottom margin |
+| margin_left | int \| "auto" | 0 | Left margin |
+| margin_right | int \| "auto" | 0 | Right margin |
+| margin_top | int \| "auto" | 0 | Top margin |
+| margin_x | int \| "auto" | 0 | Left and right margin shorthand |
+| margin_y | int \| "auto" | 0 | Top and bottom margin shorthand |
 | padding | int | 0 | Uniform padding width |
 | padding_bottom | int | 0 | Bottom padding |
 | padding_left | int | 0 | Left padding |

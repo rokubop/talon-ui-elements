@@ -25,7 +25,14 @@ class BoxModelSpacing:
 
 @dataclass
 class Margin(BoxModelSpacing):
-    pass
+    auto_top: bool = False
+    auto_right: bool = False
+    auto_bottom: bool = False
+    auto_left: bool = False
+
+    @property
+    def has_auto(self):
+        return self.auto_top or self.auto_right or self.auto_bottom or self.auto_left
 
 @dataclass
 class Padding(BoxModelSpacing):

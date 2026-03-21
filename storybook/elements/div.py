@@ -243,6 +243,72 @@ def div_stories():
                     ]"""),
             }),
 
+            # margin auto
+            component(example_with_code, props={
+                "title": "margin: \"auto\"",
+                "example": div(gap=16)[
+                    div(gap=4)[
+                        text("margin=\"auto\" (center both axes)", font_size=12, color=t.TEXT_MUTED),
+                        div(padding=12, border_width=1, border_color=t.BORDER, border_radius=8, width=300, height=80)[
+                            _box("A", width=50, height=30, bg="3689E8"),
+                            div(margin="auto")[
+                                _box("B", width=50, height=30, bg="E24A70"),
+                            ],
+                        ],
+                    ],
+                    div(gap=4)[
+                        text("margin_left=\"auto\" (push right)", font_size=12, color=t.TEXT_MUTED),
+                        div(flex_direction="row", padding=12, border_width=1, border_color=t.BORDER, border_radius=8, width=300)[
+                            _box("A", width=50, bg="3689E8"),
+                            div(margin_left="auto")[
+                                _box("B", width=50, bg="E24A70"),
+                            ],
+                        ],
+                    ],
+                    div(gap=4)[
+                        text("margin_x=\"auto\" (center horizontally in row)", font_size=12, color=t.TEXT_MUTED),
+                        div(flex_direction="row", padding=12, border_width=1, border_color=t.BORDER, border_radius=8, width=300)[
+                            div(margin_x="auto")[
+                                _box("A", width=50, bg="22AA66"),
+                            ],
+                        ],
+                    ],
+                    div(gap=4)[
+                        text("space-between via auto margins", font_size=12, color=t.TEXT_MUTED),
+                        div(flex_direction="row", padding=12, border_width=1, border_color=t.BORDER, border_radius=8, width=300)[
+                            _box("A", width=50, bg="3689E8"),
+                            div(margin_left="auto", margin_right="auto")[
+                                _box("B", width=50, bg="E24A70"),
+                            ],
+                            _box("C", width=50, bg="22AA66"),
+                        ],
+                    ],
+                ],
+                "code": textwrap.dedent("""\
+                    # Center on both axes
+                    div(width=300, height=80)[
+                        div(margin="auto")[text("centered")]
+                    ]
+
+                    # Push element to the right
+                    div(flex_direction="row", width=300)[
+                        text("A"),
+                        div(margin_left="auto")[text("B")]
+                    ]
+
+                    # Center horizontally
+                    div(flex_direction="row", width=300)[
+                        div(margin_x="auto")[text("A")]
+                    ]
+
+                    # Space between effect
+                    div(flex_direction="row", width=300)[
+                        text("A"),
+                        div(margin_left="auto", margin_right="auto")[text("B")],
+                        text("C"),
+                    ]"""),
+            }),
+
             # nesting
             component(example_with_code, props={
                 "title": "Nesting",

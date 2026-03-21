@@ -481,11 +481,13 @@ class BoxModelValidationProperties(TypedDict):
     border_right: int
     border_top: int
     border: int
-    margin_bottom: int
-    margin_left: int
-    margin_right: int
-    margin_top: int
-    margin: int
+    margin_bottom: Union[int, str]
+    margin_left: Union[int, str]
+    margin_right: Union[int, str]
+    margin_top: Union[int, str]
+    margin: Union[int, str]
+    margin_x: Union[int, str]
+    margin_y: Union[int, str]
     padding_bottom: int
     padding_left: int
     padding_right: int
@@ -1174,6 +1176,8 @@ def validate_props(props, element_type):
             f"{valid_props_message}"
         )
 
+    _MARGIN_KEYS = {"margin", "margin_top", "margin_right", "margin_bottom", "margin_left", "margin_x", "margin_y"}
+
     type_errors = []
     for key, value in props.items():
         expected_type = VALID_ELEMENT_PROP_TYPES[element_type][key]
@@ -1182,6 +1186,8 @@ def validate_props(props, element_type):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
         elif not isinstance(value, expected_type) and value is not None:
             type_errors.append(f"{key}: expected {expected_type.__name__}, got {type(value).__name__} {value}")
+        elif key in _MARGIN_KEYS and isinstance(value, str) and value != "auto":
+            type_errors.append(f"{key}: string value must be \"auto\", got \"{value}\"")
 
     if type_errors:
         raise ValueError(
