@@ -37,27 +37,26 @@ USER_LIST = [
 
 
 def body():
-    div, text, style = actions.user.ui_elements(["div", "text", "style"])
-    table, tr, td = actions.user.ui_elements(["table", "tr", "td"])
+    div, text, data_table = actions.user.ui_elements(["div", "text", "data_table"])
     state = actions.user.ui_elements(["state"])
 
     current_user_list = state.get("current_user_list", USER_LIST[0])
     key_vals = get_user_list(current_user_list)
 
-    style({
-        "td": {
-            "padding": 8,
-        }
-    })
+    data = [{"key": k, "value": v} for k, v in key_vals.items()]
 
-    return div(padding=24, gap=8, overflow_y="scroll", width="100%", height="100%")[
+    return div(padding=24, gap=8, width="100%", height="100%")[
         text(current_user_list, font_size=20, margin_bottom=12),
-        table()[
-            *[tr()[
-                td(key),
-                td(value)
-            ] for key, value in key_vals.items()]
-        ],
+        data_table(
+            id="dashboard_table",
+            columns=[
+                {"key": "key", "label": "Key", "sortable": True, "width": 250},
+                {"key": "value", "label": "Value", "sortable": True},
+            ],
+            data=data,
+            sort_key="key",
+            body_height="100%",
+        ),
     ]
 
 

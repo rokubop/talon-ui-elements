@@ -51,7 +51,7 @@ window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
 **All available elements:**
-`div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+`div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
 
 **SVG elements** (separate function):
 ```python
@@ -68,7 +68,7 @@ svg, path = actions.user.ui_elements_svg(["svg", "path"])
 - The root of every UI must be `screen()` (or `active_window()`).
 - Children are declared with bracket syntax: `parent()[child1, child2]`
 - **Container elements** (can have children): `div`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
-- **Leaf elements** (cannot have children): `text`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `link`
+- **Leaf elements** (cannot have children): `text`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `data_table`, `link`
 - **`button`**: leaf when given a label `button("Click")`, but can wrap children when no label: `button(on_click=fn)[icon("check")]`
 - Use splat unpacking for dynamic lists: `div()[*[text(item) for item in items]]`
 

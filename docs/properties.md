@@ -18,6 +18,7 @@ Properties mostly match standard CSS properties.
   - [Identification Properties](#identification-properties)
   - [Window-Specific Properties](#window-specific-properties)
   - [Textarea-Specific Properties](#textarea-specific-properties)
+  - [Data Table-Specific Properties](#data-table-specific-properties)
   - [Select-Specific Properties](#select-specific-properties)
   - [Checkbox-Specific Properties](#checkbox-specific-properties)
   - [Link-Specific Properties](#link-specific-properties)
@@ -183,6 +184,28 @@ Properties mostly match standard CSS properties.
 | cursor_color | str | None | Cursor (caret) color. Falls back to `color` |
 | on_change | callable | None | Callback when text changes. Receives `ChangeEvent` |
 | autofocus | bool | False | Auto-focus on mount |
+
+## Data Table-Specific Properties
+
+| Property | Type | Default | Description |
+| -- | -- | -- | -- |
+| id | str | Required | Unique identifier for the data table |
+| columns | list | Required | List of column defs: `{"key": str, "label": str, "sortable": bool, "width": int, "align": str, "render": callable}` |
+| data | list | [] | List of row dicts |
+| on_select | callable | None | Callback when a row is clicked. Receives `DataTableSelectEvent(row, index, id)` |
+| on_change | callable | None | Callback when multi-select selection changes. Receives `DataTableChangeEvent(selected_rows, id)` |
+| multi_select | bool | False | Enable checkbox multi-select mode |
+| row_key | str | None | Unique key field in row dicts for tracking selection (falls back to index) |
+| searchable | bool | True | Show search input above the table |
+| search_placeholder | str | "Search..." | Placeholder text for search input |
+| sort_key | str | None | Initial sort column key |
+| sort_direction | str | "asc" | Initial sort direction ("asc" or "desc") |
+| body_height | int \| str | None | Fixed height for the scrollable body |
+| header_background_color | str | "222222" | Header row background color |
+| header_color | str | "BBBBBB" | Header text color |
+| row_background_color | str | "00000000" | Default row background color |
+| stripe_background_color | str | "FFFFFF08" | Alternating row stripe color |
+| selected_background_color | str | "67A4FF22" | Background color for selected rows (multi-select) |
 
 ## Select-Specific Properties
 

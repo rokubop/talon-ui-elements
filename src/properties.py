@@ -926,6 +926,57 @@ class NodeInputTextProperties(Properties):
             self.on_change = None
 
 @dataclass
+class NodeDataTableProperties(Properties):
+    id: str = None
+    columns: list = None
+    data: list = None
+    on_select: callable = None
+    on_change: callable = None
+    multi_select: bool = False
+    row_key: str = None
+    searchable: bool = True
+    search_placeholder: str = "Search..."
+    sort_key: str = None
+    sort_direction: str = "asc"
+    sort_fn: callable = None
+    body_height: Union[int, str, float] = None
+    header_background_color: str = None
+    header_color: str = None
+    row_background_color: str = None
+    stripe_background_color: str = None
+    selected_background_color: str = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_select:
+            self.on_select = None
+        if self.on_change:
+            self.on_change = None
+
+
+class NodeDataTableValidationProperties(ValidationProperties):
+    id: str
+    columns: list
+    data: list
+    on_select: callable
+    on_change: callable
+    multi_select: bool
+    row_key: str
+    searchable: bool
+    search_placeholder: str
+    sort_key: str
+    sort_direction: str
+    sort_fn: callable
+    body_height: Union[int, str, float]
+    header_background_color: str
+    header_color: str
+    row_background_color: str
+    stripe_background_color: str
+    selected_background_color: str
+
+
 class NodeSelectProperties(Properties):
     id: str = None
     font_family: str = ""
@@ -1129,6 +1180,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["data_table"]: NodeDataTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,

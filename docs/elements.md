@@ -29,6 +29,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `button` | Interactive | Interactive button with click handler | `button(text="Click me", on_click=handler)` |
 | `checkbox` | Interactive | Checkbox input with change handler | `checkbox(checked=True, on_change=handler)` |
 | `link` | Interactive | Clickable link | `link(text="Visit", url="https://example.com")` |
+| `data_table` | Interactive | Sortable, searchable data table with optional multi-select | `data_table(id="t", columns=[...], data=[...], sort_key="name")` |
 | `table` | Table | Table container | `table()[tr()[...]]` |
 | `tr` | Table | Table row | `tr()[th("Name"), td("Value")]` |
 | `th` | Table | Table header cell | `th()[text("Header")]` |
