@@ -128,6 +128,7 @@ class RenderManager(RenderManagerType):
         self.tree = tree
         self._render_debounce_job = None
         self._render_throttle_job = None
+        self._pending_throttled_task = None
         self._destroying = False
 
     @property
@@ -199,6 +200,10 @@ class RenderManager(RenderManagerType):
 
     def clear_throttle(self):
         self._render_throttle_job = None
+        if self._pending_throttled_task:
+            task = self._pending_throttled_task
+            self._pending_throttled_task = None
+            self.queue_render(task)
 
     def _render_throttle(self, interval: str, render_task: RenderTask):
         if not self._render_debounce_job and not \
@@ -209,6 +214,8 @@ class RenderManager(RenderManagerType):
                 interval,
                 self.clear_throttle
             )
+        elif self._render_throttle_job:
+            self._pending_throttled_task = render_task
 
     def _queue_render_after_debounce_execute(self, render_task: RenderTask):
         self.queue_render(render_task)
@@ -382,6 +389,7 @@ class RenderManager(RenderManagerType):
             cron.cancel(self._render_throttle_job)
         self._render_debounce_job = None
         self._render_throttle_job = None
+        self._pending_throttled_task = None
         self.queue.clear()
         self.current_render_task = None
         self.tree = None
