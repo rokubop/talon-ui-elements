@@ -87,6 +87,8 @@ class Scrollable(ScrollableType):
         self.id = id
         self.offset_x = 0
         self.offset_y = 0
+        self.target_offset_x = 0
+        self.target_offset_y = 0
         self.view_height = 0
         self.max_height = 0
         self.view_width = 0
@@ -108,6 +110,8 @@ class Scrollable(ScrollableType):
             min_offset_x = min(0, view_width - max_width)
             self.offset_y = max(min_offset_y, min(0, self.offset_y))
             self.offset_x = max(min_offset_x, min(0, self.offset_x))
+            self.target_offset_y = max(min_offset_y, min(0, self.target_offset_y))
+            self.target_offset_x = max(min_offset_x, min(0, self.target_offset_x))
 
 @dataclass
 class DraggableOffset:
@@ -569,6 +573,13 @@ class Tree(TreeType):
         self.redistribute_box_model = False
         self.root_node = None
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
+        self._scroll_anim_job = None
+        smooth_duration = settings.get("user.ui_elements_smooth_scroll_duration", 80)
+        if smooth_duration > 0:
+            n = smooth_duration / 16.0
+            self._smooth_scroll_factor = 1.0 - (0.01 ** (1.0 / n))
+        else:
+            self._smooth_scroll_factor = 0
         self.show_hints = False
         self.style: Style = None
         self.transition_manager = TransitionManager(self)
@@ -1366,6 +1377,7 @@ class Tree(TreeType):
                 new_offset_x = self.meta_state.scrollbar_drag_start_offset_x + scroll_delta
                 new_offset_x = max(view_width - max_width, min(0, new_offset_x))
                 scrollable_data.offset_x = new_offset_x
+                scrollable_data.target_offset_x = new_offset_x
                 self.render_manager.render_scrollbar_dragging()
         else:
             mouse_delta_y = gpos.y - self.meta_state.scrollbar_drag_start_y
@@ -1382,6 +1394,7 @@ class Tree(TreeType):
                 new_offset_y = self.meta_state.scrollbar_drag_start_offset_y + scroll_delta
                 new_offset_y = max(view_height - max_height, min(0, new_offset_y))
                 scrollable_data.offset_y = new_offset_y
+                scrollable_data.target_offset_y = new_offset_y
                 self.render_manager.render_scrollbar_dragging()
 
     def handle_scrollbar_mousedown(self, gpos):
@@ -2088,6 +2101,7 @@ class Tree(TreeType):
         """Try to scroll a node. Returns True if the node actually scrolled."""
         scrollable_data = self.meta_state.scrollable[node.id]
         did_scroll = False
+        smooth = self._smooth_scroll_factor > 0
 
         # Vertical scroll
         max_height = node.box_model.content_children_with_padding_size.height
@@ -2095,21 +2109,35 @@ class Tree(TreeType):
 
         if max_height > view_height:
             offset_y = 0
+            is_wheel_y = abs(e.degrees.y) > 1e-5
+            is_touchpad_y = abs(e.pixels.y) > 1e-5
+
             # mouse wheel
-            if abs(e.degrees.y) > 1e-5:
+            if is_wheel_y:
                 offset_y = self.scroll_amount_per_tick if e.degrees.y > 0 else -self.scroll_amount_per_tick
             # touchpad
-            elif abs(e.pixels.y) > 1e-5:
+            elif is_touchpad_y:
                 offset_y = e.pixels.y
 
             if offset_y:
-                new_offset_y = scrollable_data.offset_y + offset_y
-                new_offset_y = max(view_height - max_height, min(0, new_offset_y))
-                if new_offset_y != scrollable_data.offset_y:
-                    scrollable_data.offset_y = new_offset_y
-                    scrollable_data.view_height = view_height
-                    scrollable_data.max_height = max_height
-                    did_scroll = True
+                min_y = view_height - max_height
+                if smooth and is_wheel_y:
+                    new_target = scrollable_data.target_offset_y + offset_y
+                    new_target = max(min_y, min(0, new_target))
+                    if new_target != scrollable_data.target_offset_y:
+                        scrollable_data.target_offset_y = new_target
+                        scrollable_data.view_height = view_height
+                        scrollable_data.max_height = max_height
+                        did_scroll = True
+                else:
+                    new_offset_y = scrollable_data.offset_y + offset_y
+                    new_offset_y = max(min_y, min(0, new_offset_y))
+                    if new_offset_y != scrollable_data.offset_y:
+                        scrollable_data.offset_y = new_offset_y
+                        scrollable_data.target_offset_y = new_offset_y
+                        scrollable_data.view_height = view_height
+                        scrollable_data.max_height = max_height
+                        did_scroll = True
 
         # Horizontal scroll
         max_width = node.box_model.content_children_with_padding_size.width
@@ -2119,22 +2147,35 @@ class Tree(TreeType):
             offset_x = 0
             degrees_x = getattr(e.degrees, 'x', 0) if hasattr(e.degrees, 'x') else 0
             pixels_x = getattr(e.pixels, 'x', 0) if hasattr(e.pixels, 'x') else 0
+            is_wheel_x = abs(degrees_x) > 1e-5
+            is_touchpad_x = abs(pixels_x) > 1e-5
 
             # mouse wheel
-            if abs(degrees_x) > 1e-5:
+            if is_wheel_x:
                 offset_x = self.scroll_amount_per_tick if degrees_x > 0 else -self.scroll_amount_per_tick
             # touchpad
-            elif abs(pixels_x) > 1e-5:
+            elif is_touchpad_x:
                 offset_x = pixels_x
 
             if offset_x:
-                new_offset_x = scrollable_data.offset_x + offset_x
-                new_offset_x = max(view_width - max_width, min(0, new_offset_x))
-                if new_offset_x != scrollable_data.offset_x:
-                    scrollable_data.offset_x = new_offset_x
-                    scrollable_data.view_width = view_width
-                    scrollable_data.max_width = max_width
-                    did_scroll = True
+                min_x = view_width - max_width
+                if smooth and is_wheel_x:
+                    new_target = scrollable_data.target_offset_x + offset_x
+                    new_target = max(min_x, min(0, new_target))
+                    if new_target != scrollable_data.target_offset_x:
+                        scrollable_data.target_offset_x = new_target
+                        scrollable_data.view_width = view_width
+                        scrollable_data.max_width = max_width
+                        did_scroll = True
+                else:
+                    new_offset_x = scrollable_data.offset_x + offset_x
+                    new_offset_x = max(min_x, min(0, new_offset_x))
+                    if new_offset_x != scrollable_data.offset_x:
+                        scrollable_data.offset_x = new_offset_x
+                        scrollable_data.target_offset_x = new_offset_x
+                        scrollable_data.view_width = view_width
+                        scrollable_data.max_width = max_width
+                        did_scroll = True
 
         return did_scroll
 
@@ -2213,13 +2254,59 @@ class Tree(TreeType):
             # Try each candidate from smallest to largest, bubble up if can't scroll
             for _, node in candidates:
                 if self._try_scroll_node(node, e):
-                    self.render_manager.render_scroll()
+                    degrees_x = getattr(e.degrees, 'x', 0) if hasattr(e.degrees, 'x') else 0
+                    is_wheel = abs(e.degrees.y) > 1e-5 or abs(degrees_x) > 1e-5
+                    if self._smooth_scroll_factor > 0 and is_wheel:
+                        self._start_scroll_anim()
+                    else:
+                        self.render_manager.render_scroll()
                     return
 
     def on_scroll(self, e):
         if self.unmounting:
             return
         self.on_scroll_tick(e)
+
+    def _scroll_anim_tick(self):
+        if self.destroying:
+            self._stop_scroll_anim()
+            return
+
+        any_animating = False
+        factor = self._smooth_scroll_factor
+
+        for data in self.meta_state.scrollable.values():
+            dy = data.target_offset_y - data.offset_y
+            if abs(dy) > 0.5:
+                data.offset_y += dy * factor
+                if abs(data.target_offset_y - data.offset_y) <= 0.5:
+                    data.offset_y = data.target_offset_y
+                any_animating = True
+            elif data.offset_y != data.target_offset_y:
+                data.offset_y = data.target_offset_y
+
+            dx = data.target_offset_x - data.offset_x
+            if abs(dx) > 0.5:
+                data.offset_x += dx * factor
+                if abs(data.target_offset_x - data.offset_x) <= 0.5:
+                    data.offset_x = data.target_offset_x
+                any_animating = True
+            elif data.offset_x != data.target_offset_x:
+                data.offset_x = data.target_offset_x
+
+        if any_animating:
+            self.render_manager.render_scroll()
+        else:
+            self._stop_scroll_anim()
+
+    def _start_scroll_anim(self):
+        if not self._scroll_anim_job:
+            self._scroll_anim_job = cron.interval("16ms", self._scroll_anim_tick)
+
+    def _stop_scroll_anim(self):
+        if self._scroll_anim_job:
+            cron.cancel(self._scroll_anim_job)
+            self._scroll_anim_job = None
 
     def is_drag_end(self):
         return self.drag_end_phase or self.render_manager.is_drag_end()
@@ -2310,6 +2397,8 @@ class Tree(TreeType):
             if self.render_debounce_job:
                 cron.cancel(self.render_debounce_job)
                 self.render_debounce_job = None
+
+            self._stop_scroll_anim()
 
             self.stop_cursor_refresh_cycle()
             if self.hover_validation_job:
