@@ -708,10 +708,10 @@ class NodeSvgPolygonValidationProperties(NodeSvgPolylineValidationProperties):
     pass
 
 class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
-    x1: int
-    y1: int
-    x2: int
-    y2: int
+    x1: Union[int, float]
+    y1: Union[int, float]
+    x2: Union[int, float]
+    y2: Union[int, float]
     stroke_linecap: str
     stroke_linejoin: str
     stroke_width: Union[int, float]
@@ -870,10 +870,10 @@ class NodeSvgPolygonProperties(NodeSvgPolylineProperties):
 
 @dataclass
 class NodeSvgLineProperties(Properties):
-    x1: int = 0
-    y1: int = 0
-    x2: int = 0
-    y2: int = 0
+    x1: Union[int, float] = 0
+    y1: Union[int, float] = 0
+    x2: Union[int, float] = 0
+    y2: Union[int, float] = 0
     stroke_linecap: str = None
     stroke_linejoin: str = None
     stroke_width: int = None
