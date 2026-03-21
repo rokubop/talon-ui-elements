@@ -248,11 +248,10 @@ def div_stories():
                 "title": "margin: \"auto\"",
                 "example": div(gap=16)[
                     div(gap=4)[
-                        text("margin=\"auto\" (center both axes)", font_size=12, color=t.TEXT_MUTED),
-                        div(padding=12, border_width=1, border_color=t.BORDER, border_radius=8, width=300, height=80)[
-                            _box("A", width=50, height=30, bg="3689E8"),
+                        text("margin=\"auto\" (center both axes in column)", font_size=12, color=t.TEXT_MUTED),
+                        div(padding=12, border_width=1, border_color=t.BORDER, border_radius=8, width=300, height=100)[
                             div(margin="auto")[
-                                _box("B", width=50, height=30, bg="E24A70"),
+                                _box("A", width=50, height=30, bg="3689E8"),
                             ],
                         ],
                     ],
@@ -285,8 +284,8 @@ def div_stories():
                     ],
                 ],
                 "code": textwrap.dedent("""\
-                    # Center on both axes
-                    div(width=300, height=80)[
+                    # Center on both axes (column is default)
+                    div(width=300, height=100)[
                         div(margin="auto")[text("centered")]
                     ]
 

@@ -213,7 +213,7 @@ class NodeContainer(Node, NodeContainerType):
             return
 
         for i, child in enumerate(self.participating_children_nodes):
-            if all_growable_counter_axis or child.properties.align_self == "stretch" or \
+            if (all_growable_counter_axis and not self._child_has_cross_axis_auto_margin(child)) or child.properties.align_self == "stretch" or \
                     (self.properties.flex_direction == "row" and \
                     isinstance(child.properties.height, str) and "%" in child.properties.height) or \
                     (self.properties.flex_direction == "column" and \

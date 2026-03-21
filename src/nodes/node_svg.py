@@ -202,7 +202,8 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
             fill = self.resolve_render_property("fill")
         elif self.parent_node.properties.is_user_set('fill'):
             fill = self.parent_node.resolve_render_property("fill")
-        c.paint.color = stroke
+        if stroke:
+            c.paint.color = stroke
 
         assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
