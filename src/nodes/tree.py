@@ -1822,8 +1822,8 @@ class Tree(TreeType):
                 # Save original user constraints on first resize
                 if node_id not in self.meta_state.resize_original_constraints:
                     self.meta_state.resize_original_constraints[node_id] = {
-                        'min_width': getattr(node.properties, 'min_width', None),
-                        'min_height': getattr(node.properties, 'min_height', None),
+                        'min_width': node.box_model.min_width if node.box_model else getattr(node.properties, 'min_width', None),
+                        'min_height': node.box_model.min_height if node.box_model else getattr(node.properties, 'min_height', None),
                         'max_width': node.box_model.max_width if node.box_model else getattr(node.properties, 'max_width', None),
                         'max_height': node.box_model.max_height if node.box_model else getattr(node.properties, 'max_height', None),
                     }

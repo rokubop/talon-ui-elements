@@ -334,6 +334,11 @@ class BoxModelV2(BoxModelV2Type):
                 if self.min_height_percent:
                     self.min_height = BoxModelV2._resolve_percent(self.min_height_percent, container_height)
 
+                if not init_width and self.min_width:
+                    init_width = self.min_width
+                if not init_height and self.min_height:
+                    init_height = self.min_height
+
                 left = BoxModelV2._resolve_percent(self._position_left, container_width)
                 right = BoxModelV2._resolve_percent(self._position_right, container_width)
                 top = BoxModelV2._resolve_percent(self._position_top, container_height)
