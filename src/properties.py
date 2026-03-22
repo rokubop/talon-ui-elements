@@ -100,8 +100,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     margin: Margin = Margin(0, 0, 0, 0)
     max_height: Union[int, str] = None
     max_width: Union[int, str] = None
-    min_height: int = None
-    min_width: int = None
+    min_height: Union[int, str] = None
+    min_width: Union[int, str] = None
     on_change: callable = None
     on_click: callable = None
     on_drag_end: callable = None
@@ -529,8 +529,8 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     left: Union[int, str, float]
     max_height: Union[int, str]
     max_width: Union[int, str]
-    min_height: int
-    min_width: int
+    min_height: Union[int, str]
+    min_width: Union[int, str]
     opacity: Union[int, float]
     overflow_x: str
     overflow_y: str

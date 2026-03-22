@@ -62,8 +62,8 @@ class PropertiesDimensionalType(ABC):
     margin: Margin
     max_height: Union[int, str]
     max_width: Union[int, str]
-    min_height: int
-    min_width: int
+    min_height: Union[int, str]
+    min_width: Union[int, str]
     overflow: OverflowType
     padding: Padding
     position: str

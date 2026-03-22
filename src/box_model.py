@@ -121,10 +121,16 @@ class BoxModelV2(BoxModelV2Type):
         self.height_percent = properties.height if isinstance(properties.height, str) and "%" in properties.height else None
         self.max_width_percent = properties.max_width if isinstance(properties.max_width, str) and "%" in properties.max_width else None
         self.max_height_percent = properties.max_height if isinstance(properties.max_height, str) and "%" in properties.max_height else None
+        self.min_width_percent = properties.min_width if isinstance(properties.min_width, str) and "%" in properties.min_width else None
+        self.min_height_percent = properties.min_height if isinstance(properties.min_height, str) and "%" in properties.min_height else None
         if self.max_width_percent:
             self.max_width = None
         if self.max_height_percent:
             self.max_height = None
+        if self.min_width_percent:
+            self.min_width = None
+        if self.min_height_percent:
+            self.min_height = None
         self.fixed_width = bool(properties.width) and not self.width_percent
         self.fixed_height = bool(properties.height) and not self.height_percent
         self.overflow = properties.overflow
@@ -241,6 +247,10 @@ class BoxModelV2(BoxModelV2Type):
             self.max_width = BoxModelV2._resolve_percent(self.max_width_percent, parent_content_size.width)
         if self.max_height_percent and parent_content_size.height:
             self.max_height = BoxModelV2._resolve_percent(self.max_height_percent, parent_content_size.height)
+        if self.min_width_percent and parent_content_size.width:
+            self.min_width = BoxModelV2._resolve_percent(self.min_width_percent, parent_content_size.width)
+        if self.min_height_percent and parent_content_size.height:
+            self.min_height = BoxModelV2._resolve_percent(self.min_height_percent, parent_content_size.height)
 
     @property
     def position_left(self):
@@ -319,6 +329,10 @@ class BoxModelV2(BoxModelV2Type):
                     self.max_width = BoxModelV2._resolve_percent(self.max_width_percent, container_width)
                 if self.max_height_percent:
                     self.max_height = BoxModelV2._resolve_percent(self.max_height_percent, container_height)
+                if self.min_width_percent:
+                    self.min_width = BoxModelV2._resolve_percent(self.min_width_percent, container_width)
+                if self.min_height_percent:
+                    self.min_height = BoxModelV2._resolve_percent(self.min_height_percent, container_height)
 
                 left = BoxModelV2._resolve_percent(self._position_left, container_width)
                 right = BoxModelV2._resolve_percent(self._position_right, container_width)
