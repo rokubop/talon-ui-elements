@@ -903,6 +903,7 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_default(self, canvas: SkiaCanvas):
         try:
+            self.meta_state.clear_nodes()
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
             self.transition_manager.apply_pending_mount_values()
@@ -1247,7 +1248,6 @@ class Tree(TreeType):
 
             if self.is_mounted:
                 self.on_state_change_effect_cleanups()
-                self.meta_state.clear_nodes()
                 self.interactive_node_list.clear()
                 self.init_tree_constructor()
 
