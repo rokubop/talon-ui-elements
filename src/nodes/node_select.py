@@ -167,7 +167,30 @@ class NodeSelect(NodeContainer):
                 option_btn.interactive = False
                 dropdown.add_child(option_btn)
 
+            # Render dropdown only on decorator layer so it paints on top of
+            # input text decorations (e.g. cursor, selection).
+            # Only the container needs the flag - children are skipped
+            # automatically since the container's v2_build_render_list
+            # won't iterate them.
+            dropdown.uses_decoration_render = True
             self.add_child(dropdown)
+
+    def _render_subtree(self, c, node, transforms=None):
+        """Render a node subtree using the full draw pipeline."""
+        if hasattr(node, 'draw_end'):
+            node.draw_start(c, transforms)
+            for child in node.get_children_nodes():
+                self._render_subtree(c, child, transforms)
+            node.draw_end(c, transforms)
+        elif hasattr(node, 'v2_render'):
+            node.v2_render(c, transforms)
+
+    def v2_render_decorator(self, c, transforms=None):
+        if self._is_open:
+            for child in self.get_children_nodes():
+                if child.uses_decoration_render:
+                    self._render_subtree(c, child, transforms)
+                    break
 
     def _toggle_open(self):
         new_open = not self._is_open

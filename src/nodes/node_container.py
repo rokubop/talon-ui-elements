@@ -558,7 +558,7 @@ class NodeContainer(Node, NodeContainerType):
         self.render_scroll_bar(c, transforms)
 
     def v2_build_render_list(self):
-        if not self.uses_decoration_render:
+        if not self.uses_decoration_render and self.tree:
             self.tree.append_to_render_list(
                 node=self,
                 draw=self.draw_start

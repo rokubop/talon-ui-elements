@@ -2546,6 +2546,10 @@ class Tree(TreeType):
                 for child_node in target_node.get_children_nodes():
                     child_node.uses_decoration_render = True
 
+        if node.element_type == ELEMENT_ENUM_TYPE["select"] \
+                and getattr(node, 'is_open', False) and node.id:
+            self.meta_state.add_decoration_render(node.id)
+
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
         if node.properties.width is not None or \
                 node.properties.max_width is not None or \
