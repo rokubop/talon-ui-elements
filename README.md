@@ -92,6 +92,21 @@ class Actions:
 
 - Recommend using "Andreas Talon" VSCode extension + its dependency pokey command server, so you can get autocomplete for talon user actions, and hover over hint documentation on things like `actions.user.ui_elements()` or `actions.user.ui_elements_show()`.
 
+## AI Agent Setup
+
+This package includes agent-optimized guidance in `.agents/skills/ui-elements/`.
+
+**Cursor / Copilot:** Automatically discovered from the `.agents/` directory.
+
+**Claude Code:** Symlink the skill into your skills directory:
+```sh
+# mac and linux
+ln -s /path/to/talon-ui-elements/.agents/skills/ui-elements ~/.claude/skills/ui-elements
+
+# windows
+mklink /D "%USERPROFILE%\.claude\skills\ui-elements" "\path\to\talon-ui-elements\.agents\skills\ui-elements"
+```
+
 ## Under the hood
 Uses Talon's `Canvas` and Skia canvas integration under the hood.
 

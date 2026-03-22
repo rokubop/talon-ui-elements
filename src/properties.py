@@ -1217,7 +1217,10 @@ def _resolve_aliases(props):
         return {_BORDER_WIDTH_ALIASES.get(k, k): v for k, v in props.items()}
     return props
 
+_IGNORED_PROPS = {"key"}
+
 def validate_props(props, element_type):
+    props = {k: v for k, v in props.items() if k not in _IGNORED_PROPS}
     props = _resolve_aliases(props)
     invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
