@@ -548,6 +548,51 @@ class StateManager:
                 scroll_data.offset_x = x
                 node.tree.render()
 
+    def scroll_to_id(self, target_id: str, focus: bool = True):
+        """Scroll the nearest scrollable ancestor so that the target element is visible, and optionally focus it."""
+        target_node = store.id_to_node.get(target_id)
+        if not target_node or not target_node.box_model:
+            return
+
+        # Walk up to find nearest scrollable ancestor
+        scrollable_node = target_node.parent_node
+        scroll_data = None
+        while scrollable_node:
+            if scrollable_node.properties.is_scrollable() and scrollable_node.id:
+                scroll_data = scrollable_node.tree.meta_state.scrollable.get(scrollable_node.id)
+                if scroll_data:
+                    break
+            scrollable_node = scrollable_node.parent_node
+
+        if not scrollable_node or not scroll_data:
+            # No scrollable ancestor, but still focus if requested
+            if focus and target_node.interactive:
+                self.focus_node(target_node)
+            return
+
+        # Child's position relative to scrollable content (undo current scroll offset)
+        child_y = target_node.box_model.margin_pos.y - scrollable_node.box_model.padding_pos.y - scroll_data.offset_y
+        child_height = target_node.box_model.margin_size.height
+
+        # Check if already fully visible
+        visible_top = -scroll_data.offset_y
+        visible_bottom = visible_top + scroll_data.view_height
+        already_visible = child_y >= visible_top and child_y + child_height <= visible_bottom
+
+        if not already_visible:
+            # Scroll so child is near the top with a small margin
+            new_offset_y = -child_y + 8
+            min_offset_y = min(0, scroll_data.view_height - scroll_data.max_height)
+            new_offset_y = max(min_offset_y, min(0, new_offset_y))
+
+            if scroll_data.offset_y != new_offset_y:
+                scroll_data.offset_y = new_offset_y
+                scroll_data.target_offset_y = new_offset_y
+                scrollable_node.tree.render()
+
+        if focus and target_node.interactive:
+            self.focus_node(target_node)
+
     def increment_ref_count_nodes(self):
         store.ref_count_nodes += 1
 
