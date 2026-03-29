@@ -546,6 +546,7 @@ class StateManager:
             if scroll_data and (scroll_data.offset_x != x or scroll_data.offset_y != y):
                 scroll_data.offset_y = y
                 scroll_data.offset_x = x
+                node.tree._scrollbar_show(id)
                 node.tree.render()
 
     def scroll_to_id(self, target_id: str, focus: bool = True):
@@ -588,6 +589,7 @@ class StateManager:
             if scroll_data.offset_y != new_offset_y:
                 scroll_data.offset_y = new_offset_y
                 scroll_data.target_offset_y = new_offset_y
+                scrollable_node.tree._scrollbar_show(scrollable_node.id)
                 scrollable_node.tree.render()
 
         if focus and target_node.interactive:

@@ -21,14 +21,16 @@ class Overflow(OverflowType):
     scrollable_x: bool = False
     scrollable_y: bool = False
     is_boundary: bool = False
+    scroll_bar: str = "overlay"
 
-    def __init__(self, overflow: str = "visible", overflow_x: str = None, overflow_y: str = None):
+    def __init__(self, overflow: str = "visible", overflow_x: str = None, overflow_y: str = None, scroll_bar: str = None):
         self.x = overflow_x or overflow or "visible"
         self.y = overflow_y or overflow or "visible"
         self.scrollable_x = self.x == "scroll" or self.x == "auto"
         self.scrollable_y = self.y == "scroll" or self.y == "auto"
         self.scrollable = self.scrollable_x or self.scrollable_y
         self.is_boundary = self.x != "visible" or self.y != "visible"
+        self.scroll_bar = scroll_bar or "overlay"
 
 def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
     model = model_type()
@@ -229,11 +231,15 @@ class BoxModelV2(BoxModelV2Type):
 
     @property
     def conditional_scroll_bar_y_width(self):
-        return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_y() else 0
+        if self.overflow.scroll_bar == "visible" and self.has_scroll_bar_y():
+            return scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        return 0
 
     @property
     def conditional_scroll_bar_x_height(self):
-        return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_x() else 0
+        if self.overflow.scroll_bar == "visible" and self.has_scroll_bar_x():
+            return scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        return 0
 
     @classmethod
     def _resolve_percent(self, value, total):
@@ -657,14 +663,19 @@ class BoxModelV2(BoxModelV2Type):
     def resolve_scroll_bar_rects(self, offset_y):
         view_height = self.padding_size.height
         total_scrollable_height = self.content_children_with_padding_size.height
+        bar_width = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        is_overlay = self.overflow.scroll_bar != "visible"
 
         if view_height and total_scrollable_height and total_scrollable_height > view_height:
+            bar_x = self.padding_pos.x + self.padding_size.width - bar_width if is_overlay \
+                else self.padding_pos.x + self.padding_size.width
+
             self.scroll_bar_track_rect = Rect(
-                self.padding_pos.x + self.padding_size.width,
+                bar_x,
                 self.padding_pos.y,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH),
+                bar_width,
                 self.padding_size.height
-)
+            )
 
             thumb_height = view_height * (view_height / total_scrollable_height)
             thumb_pos_y = self.padding_pos.y + \
@@ -672,9 +683,9 @@ class BoxModelV2(BoxModelV2Type):
                 * (self.padding_size.height - thumb_height)
 
             self.scroll_bar_thumb_rect = Rect(
-                self.padding_pos.x + self.padding_size.width,
+                bar_x,
                 thumb_pos_y,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH),
+                bar_width,
                 thumb_height
             )
 
@@ -685,13 +696,18 @@ class BoxModelV2(BoxModelV2Type):
     def resolve_scroll_bar_x_rects(self, offset_x):
         view_width = self.padding_size.width
         total_scrollable_width = self.content_children_with_padding_size.width
+        bar_height = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        is_overlay = self.overflow.scroll_bar != "visible"
 
         if view_width and total_scrollable_width and total_scrollable_width > view_width:
+            bar_y = self.padding_pos.y + self.padding_size.height - bar_height if is_overlay \
+                else self.padding_pos.y + self.padding_size.height
+
             self.scroll_bar_x_track_rect = Rect(
                 self.padding_pos.x,
-                self.padding_pos.y + self.padding_size.height,
+                bar_y,
                 self.padding_size.width,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+                bar_height
             )
 
             thumb_width = view_width * (view_width / total_scrollable_width)
@@ -701,9 +717,9 @@ class BoxModelV2(BoxModelV2Type):
 
             self.scroll_bar_x_thumb_rect = Rect(
                 thumb_pos_x,
-                self.padding_pos.y + self.padding_size.height,
+                bar_y,
                 thumb_width,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+                bar_height
             )
 
     def adjust_scroll_x(self, offset_x: int):

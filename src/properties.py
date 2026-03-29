@@ -274,7 +274,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
-        self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'))
+        self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'), kwargs.get('scroll_bar'))
 
     def inherit_kwarg_properties(self, kwargs: dict):
         """Inherit properties from kwargs dictionary."""
@@ -535,6 +535,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow_x: str
     overflow_y: str
     overflow: str
+    scroll_bar: str
     position: str
     right: Union[int, str, float]
     top: Union[int, str, float]

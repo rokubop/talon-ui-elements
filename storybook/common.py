@@ -215,6 +215,7 @@ def render_controls_panel(controls_spec, controls_state, prefix):
             )))
 
     return div(
+        id="storybook_controls",
         min_width=300,
         border_left=1,
         border_color=t.BORDER,

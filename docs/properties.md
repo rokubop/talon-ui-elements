@@ -106,6 +106,7 @@ Properties mostly match standard CSS properties.
 | overflow | "visible", "hidden", "scroll", "auto" | "visible" | Behavior of content that exceeds bounds |
 | overflow_x | "visible", "hidden", "scroll", "auto" | "visible" | Behavior of content that exceeds bounds in x direction |
 | overflow_y | "visible", "hidden", "scroll", "auto" | "visible" | Behavior of content that exceeds bounds in y direction |
+| scroll_bar | "overlay", "visible" | "overlay" | Scrollbar display mode. `"overlay"` floats over content and auto-hides after idle. `"visible"` always shows and reserves layout space. |
 
 ## Text & Font Properties
 

@@ -33,6 +33,7 @@ def sidebar():
     page, set_page = state.use("page", "button")
 
     return div(
+        id="storybook_sidebar",
         min_width=180,
         background_color=t.BG,
         color=t.TEXT,
@@ -67,7 +68,7 @@ def main_content():
     page = state.get("page")
 
     page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color=t.TEXT_MUTED)])
-    return div(height="100%", overflow_y="scroll", width="100%", background_color=t.BG_CONTENT)[
+    return div(id="storybook_main_content", height="100%", overflow_y="scroll", scroll_bar="visible", width="100%", background_color=t.BG_CONTENT)[
         page_fn()
     ]
 

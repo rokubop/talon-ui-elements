@@ -17,6 +17,9 @@ from ..constants import (
     ELEMENT_ENUM_TYPE,
     DRAG_INIT_THRESHOLD,
     DEFAULT_CURSOR_REFRESH_RATE,
+    DEFAULT_SCROLL_BAR_FADE_IN_MS,
+    DEFAULT_SCROLL_BAR_FADE_OUT_MS,
+    DEFAULT_SCROLL_BAR_IDLE_MS,
     RESIZE_EDGE_THRESHOLD,
     RESIZE_GHOST_COLOR,
     RESIZE_GHOST_STROKE_WIDTH,
@@ -150,6 +153,9 @@ class MetaState(MetaStateType):
         self.scrollbar_drag_start_offset_y = None
         self.scrollbar_drag_start_x = None
         self.scrollbar_drag_start_offset_x = None
+        self.scrollbar_opacity = {}
+        self.scrollbar_fade_jobs = {}
+        self.scrollbar_idle_jobs = {}
         self.resize_edge_hovered = None
         self.resize_original_constraints = {}
         self.resize_dragging_id = None
@@ -392,6 +398,22 @@ class MetaState(MetaStateType):
             return self.scrollbar_dragging_id == node_id
         return self.scrollbar_dragging_id is not None
 
+    def get_scrollbar_opacity(self, node_id):
+        return self.scrollbar_opacity.get(node_id, 0.0)
+
+    def set_scrollbar_opacity(self, node_id, opacity):
+        self.scrollbar_opacity[node_id] = max(0.0, min(1.0, opacity))
+
+    def clear_scrollbar_fade_job(self, node_id):
+        job = self.scrollbar_fade_jobs.pop(node_id, None)
+        if job:
+            cron.cancel(job)
+
+    def clear_scrollbar_idle_job(self, node_id):
+        job = self.scrollbar_idle_jobs.pop(node_id, None)
+        if job:
+            cron.cancel(job)
+
     # Resize interaction state management
     def start_resize_drag(self, node_id, edge, mouse_pos, start_rect):
         self.resize_dragging_id = node_id
@@ -446,6 +468,15 @@ class MetaState(MetaStateType):
         self._inputs.clear()
         self._scroll_regions.clear()
         self._scrollable.clear()
+        for job in list(self.scrollbar_fade_jobs.values()):
+            if job:
+                cron.cancel(job)
+        for job in list(self.scrollbar_idle_jobs.values()):
+            if job:
+                cron.cancel(job)
+        self.scrollbar_fade_jobs.clear()
+        self.scrollbar_idle_jobs.clear()
+        self.scrollbar_opacity.clear()
         self._states.clear()
         self._style_mutations.clear()
         self._text_mutations.clear()
@@ -1404,11 +1435,13 @@ class Tree(TreeType):
             if node and node.box_model:
                 if node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos):
                     self.meta_state.start_scrollbar_drag(node_id, gpos.y, scrollable_data.offset_y, axis="y")
+                    self._scrollbar_show(node_id)
                     self.render_manager.pause()
                     self.render_base_canvas()
                     return True
                 if node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos):
                     self.meta_state.start_scrollbar_drag(node_id, gpos.x, scrollable_data.offset_x, axis="x")
+                    self._scrollbar_show(node_id)
                     self.render_manager.pause()
                     self.render_base_canvas()
                     return True
@@ -1416,10 +1449,13 @@ class Tree(TreeType):
 
     def handle_scrollbar_mouseup(self, gpos):
         """Handle scrollbar drag end and restore hover state."""
+        dragging_id = self.meta_state.scrollbar_dragging_id
         self.render_manager.resume()
         self.meta_state.clear_scrollbar_drag()
         self.render_base_canvas()
         self.check_scrollbar_hover(gpos)
+        if dragging_id:
+            self._scrollbar_schedule_idle_hide(dragging_id)
 
     def check_scrollbar_hover(self, gpos):
         """Check if mouse is hovering over any scrollbar thumb and update visual state."""
@@ -1446,8 +1482,11 @@ class Tree(TreeType):
         if new_hovered_id != prev_hovered_id or new_hovered_axis != prev_hovered_axis:
             if new_hovered_id:
                 self.meta_state.set_scrollbar_hover(new_hovered_id, new_hovered_axis)
+                self._scrollbar_show(new_hovered_id)
             else:
                 self.meta_state.clear_scrollbar_hover()
+                if prev_hovered_id:
+                    self._scrollbar_schedule_idle_hide(prev_hovered_id)
             self.render_base_canvas()
 
     def detect_resize_edge(self, gpos):
@@ -2254,6 +2293,7 @@ class Tree(TreeType):
             # Try each candidate from smallest to largest, bubble up if can't scroll
             for _, node in candidates:
                 if self._try_scroll_node(node, e):
+                    self._scrollbar_show(node.id)
                     degrees_x = getattr(e.degrees, 'x', 0) if hasattr(e.degrees, 'x') else 0
                     is_wheel = abs(e.degrees.y) > 1e-5 or abs(degrees_x) > 1e-5
                     if self._smooth_scroll_factor > 0 and is_wheel:
@@ -2307,6 +2347,77 @@ class Tree(TreeType):
         if self._scroll_anim_job:
             cron.cancel(self._scroll_anim_job)
             self._scroll_anim_job = None
+
+    def _scrollbar_show(self, node_id):
+        """Show scrollbar with fade-in, cancel any pending fade-out."""
+        self.meta_state.clear_scrollbar_fade_job(node_id)
+        self.meta_state.clear_scrollbar_idle_job(node_id)
+        opacity = self.meta_state.get_scrollbar_opacity(node_id)
+        if opacity < 1.0:
+            self._scrollbar_fade_in(node_id)
+        self._scrollbar_schedule_idle_hide(node_id)
+
+    def _scrollbar_fade_in(self, node_id):
+        """Animate scrollbar opacity from current to 1.0."""
+        start_opacity = self.meta_state.get_scrollbar_opacity(node_id)
+        if start_opacity >= 1.0:
+            return
+        remaining_ratio = 1.0 - start_opacity
+        duration_ms = DEFAULT_SCROLL_BAR_FADE_IN_MS * remaining_ratio
+        start_time = time.monotonic()
+
+        def tick():
+            if self.destroying:
+                self.meta_state.clear_scrollbar_fade_job(node_id)
+                return
+            elapsed = (time.monotonic() - start_time) * 1000
+            t = min(1.0, elapsed / duration_ms) if duration_ms > 0 else 1.0
+            new_opacity = start_opacity + (1.0 - start_opacity) * t
+            self.meta_state.set_scrollbar_opacity(node_id, new_opacity)
+            self.render_manager.render_scroll()
+            if t >= 1.0:
+                self.meta_state.clear_scrollbar_fade_job(node_id)
+
+        self.meta_state.clear_scrollbar_fade_job(node_id)
+        self.meta_state.scrollbar_fade_jobs[node_id] = cron.interval("16ms", tick)
+
+    def _scrollbar_fade_out(self, node_id):
+        """Animate scrollbar opacity from current to 0.0."""
+        if self.meta_state.is_scrollbar_hovered(node_id) or \
+                self.meta_state.is_scrollbar_dragging(node_id):
+            return
+        start_opacity = self.meta_state.get_scrollbar_opacity(node_id)
+        if start_opacity <= 0.0:
+            return
+        duration_ms = DEFAULT_SCROLL_BAR_FADE_OUT_MS * start_opacity
+        start_time = time.monotonic()
+
+        def tick():
+            if self.destroying:
+                self.meta_state.clear_scrollbar_fade_job(node_id)
+                return
+            elapsed = (time.monotonic() - start_time) * 1000
+            t = min(1.0, elapsed / duration_ms) if duration_ms > 0 else 1.0
+            new_opacity = start_opacity * (1.0 - t)
+            self.meta_state.set_scrollbar_opacity(node_id, new_opacity)
+            self.render_manager.render_scroll()
+            if t >= 1.0:
+                self.meta_state.clear_scrollbar_fade_job(node_id)
+
+        self.meta_state.clear_scrollbar_fade_job(node_id)
+        self.meta_state.scrollbar_fade_jobs[node_id] = cron.interval("16ms", tick)
+
+    def _scrollbar_schedule_idle_hide(self, node_id):
+        """Schedule fade-out after idle period."""
+        self.meta_state.clear_scrollbar_idle_job(node_id)
+
+        def start_fade_out():
+            self.meta_state.scrollbar_idle_jobs.pop(node_id, None)
+            self._scrollbar_fade_out(node_id)
+
+        self.meta_state.scrollbar_idle_jobs[node_id] = cron.after(
+            f"{DEFAULT_SCROLL_BAR_IDLE_MS}ms", start_fade_out
+        )
 
     def is_drag_end(self):
         return self.drag_end_phase or self.render_manager.is_drag_end()

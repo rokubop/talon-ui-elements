@@ -49,6 +49,7 @@ class OverflowType(ABC):
     scrollable_x: bool
     scrollable_y: bool
     is_boundary: bool
+    scroll_bar: str
 
 class PropertiesDimensionalType(ABC):
     align_items: str

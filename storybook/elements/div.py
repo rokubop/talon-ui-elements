@@ -226,21 +226,38 @@ def div_stories():
                     ]"""),
             }),
 
-            # overflow scroll
+            # overflow scroll + scroll_bar modes
             component(example_with_code, props={
-                "title": "overflow_y=\"scroll\"",
-                "example": div(
-                    height=120, overflow_y="scroll", padding=8, gap=8,
-                    border_width=1, border_color=t.BORDER, border_radius=8, width=200,
-                )[
-                    *[_box(f"Item {i+1}", bg="3689E8" if i % 2 == 0 else "E24A70", width=160) for i in range(8)],
+                "title": "overflow_y=\"scroll\" + scroll_bar",
+                "example": div(flex_direction="row", gap=24)[
+                    div(gap=4)[
+                        text("overlay (default)", font_size=12, color=t.TEXT_MUTED),
+                        div(
+                            height=120, overflow_y="scroll", scroll_bar="overlay",
+                            padding=8, gap=8,
+                            border_width=1, border_color=t.BORDER, border_radius=8, width=200,
+                        )[
+                            *[_box(f"Item {i+1}", bg="3689E8" if i % 2 == 0 else "E24A70", width=160) for i in range(8)],
+                        ],
+                    ],
+                    div(gap=4)[
+                        text("visible", font_size=12, color=t.TEXT_MUTED),
+                        div(
+                            height=120, overflow_y="scroll", scroll_bar="visible",
+                            padding=8, gap=8,
+                            border_width=1, border_color=t.BORDER, border_radius=8, width=200,
+                        )[
+                            *[_box(f"Item {i+1}", bg="3689E8" if i % 2 == 0 else "E24A70", width=160) for i in range(8)],
+                        ],
+                    ],
                 ],
                 "code": textwrap.dedent("""\
-                    div(height=120, overflow_y="scroll", gap=8)[
-                        text("Item 1"),
-                        text("Item 2"),
-                        # ...more items
-                    ]"""),
+                    # Overlay: floats over content, auto-hides
+                    div(height=120, overflow_y="scroll")[...]
+
+                    # Visible: always shown, reserves space
+                    div(height=120, overflow_y="scroll",
+                        scroll_bar="visible")[...]"""),
             }),
 
             # margin auto

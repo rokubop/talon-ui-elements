@@ -7,6 +7,7 @@ from .node import Node
 from ..border_radius import draw_manual_rounded_rect_path
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
+from ..core.animations import parse_hex_channels, channels_to_hex
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
@@ -31,10 +32,28 @@ class NodeContainer(Node, NodeContainerType):
         fw = self.properties.flex_wrap
         return fw is True or fw == "wrap"
 
+    def _apply_scrollbar_opacity(self, color: str, opacity: float) -> str:
+        """Scale a hex color's alpha channel by the scrollbar fade opacity."""
+        if opacity >= 1.0:
+            return color
+        channels = parse_hex_channels(color)
+        if not channels:
+            return color
+        r, g, b, a = channels
+        a = int(a * opacity)
+        return channels_to_hex(r, g, b, a)
+
     def render_scroll_bar(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
         if not scrollable:
             return
+
+        is_overlay = self.properties.overflow.scroll_bar != "visible"
+        fade_opacity = 1.0
+        if is_overlay:
+            fade_opacity = self.tree.meta_state.get_scrollbar_opacity(self.id)
+            if fade_opacity <= 0.0:
+                return
 
         # Y scrollbar
         if self.box_model.scroll_bar_thumb_rect:
@@ -48,7 +67,7 @@ class NodeContainer(Node, NodeContainerType):
                 scroll_bar_thumb_rect.y += transforms.offset.y
 
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.paint.color = self._apply_scrollbar_opacity(DEFAULT_SCROLL_BAR_TRACK_COLOR, fade_opacity)
             c.draw_rect(scroll_bar_track_rect)
 
             thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
@@ -57,7 +76,7 @@ class NodeContainer(Node, NodeContainerType):
             elif self.tree.meta_state.is_scrollbar_hovered(self.id, axis="y"):
                 thumb_color = adjust_color_alpha(thumb_color, 15)
 
-            c.paint.color = thumb_color
+            c.paint.color = self._apply_scrollbar_opacity(thumb_color, fade_opacity)
             c.draw_rect(scroll_bar_thumb_rect)
 
         # X scrollbar
@@ -72,7 +91,7 @@ class NodeContainer(Node, NodeContainerType):
                 scroll_bar_x_thumb_rect.y += transforms.offset.y
 
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.paint.color = self._apply_scrollbar_opacity(DEFAULT_SCROLL_BAR_TRACK_COLOR, fade_opacity)
             c.draw_rect(scroll_bar_x_track_rect)
 
             thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
@@ -81,7 +100,7 @@ class NodeContainer(Node, NodeContainerType):
             elif self.tree.meta_state.is_scrollbar_hovered(self.id, axis="x"):
                 thumb_color = adjust_color_alpha(thumb_color, 15)
 
-            c.paint.color = thumb_color
+            c.paint.color = self._apply_scrollbar_opacity(thumb_color, fade_opacity)
             c.draw_rect(scroll_bar_x_thumb_rect)
 
     def v2_measure_children_intrinsic_size(self, c: SkiaCanvas) -> Size2d:
@@ -411,8 +430,12 @@ class NodeContainer(Node, NodeContainerType):
                     pct = float(pct_prop.replace("%", "")) / 100
                     parent_primary = getattr(content_constraint_size, primary_axis)
                     if parent_primary is not None:
+                        pct_value = int(parent_primary * pct)
+                        remaining = getattr(new_available_size, primary_axis)
+                        if remaining is not None:
+                            pct_value = min(pct_value, max(0, remaining))
                         child_available = new_available_size.copy()
-                        setattr(child_available, primary_axis, int(parent_primary * pct))
+                        setattr(child_available, primary_axis, pct_value)
                 elif child.properties.flex and available_primary is not None:
                     # Cap flex child's available space to leave room for
                     # not-yet-processed non-flex siblings
