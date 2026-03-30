@@ -488,12 +488,17 @@ class NodeContainer(Node, NodeContainerType):
         if accumulated_height > current_height:
             delta = accumulated_height - current_height
             self.box_model.content_children_size.height = accumulated_height
-            # Grow container outer sizes only if height is auto (not fixed)
+            # Grow container outer sizes only if height is unconstrained
             if not self.properties.height and not self.properties.max_height:
-                self.box_model.content_size.height += delta
-                self.box_model.padding_size.height += delta
-                self.box_model.border_size.height += delta
-                self.box_model.margin_size.height += delta
+                max_margin = self.box_model.margin_size.height + delta
+                if available_size and available_size.height is not None:
+                    max_margin = min(max_margin, available_size.height)
+                capped_delta = max_margin - self.box_model.margin_size.height
+                if capped_delta > 0:
+                    self.box_model.content_size.height += capped_delta
+                    self.box_model.padding_size.height += capped_delta
+                    self.box_model.border_size.height += capped_delta
+                    self.box_model.margin_size.height += capped_delta
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         if self.participates_in_layout:
