@@ -114,11 +114,15 @@ Properties mostly match standard CSS properties.
 | -- | -- | -- | -- |
 | font_family | str | "" | Font family |
 | font_size | Union[int, float] | 16 | Font size |
+| font_style | "normal", "italic" | "normal" | Font style |
 | font_weight | "normal", "bold" | "normal" | Font weight |
 | for_id | str | None | Associates a label with an input (for `text` element) |
+| selectable | bool | False | Enable text selection by click-and-drag (for `text` element) |
+| selection_color | str | "4488FF88" | Highlight color for selected text (for `text` element) |
 | stroke_color | str | None | Text stroke/outline color (for `text` element) |
 | stroke_width | Union[int, float] | None | Text stroke/outline width (for `text` element) |
 | text_align | "left", "center", "right" | "left" | Text alignment |
+| white_space | "normal", "nowrap" | "normal" | `"normal"` wraps text to container width. `"nowrap"` prevents wrapping. |
 
 ## Interaction Properties
 

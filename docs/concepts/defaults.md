@@ -12,6 +12,9 @@ If you specify `flex_direction: row`, the `align_items` will default to `flex_st
 ## Box model
 The box model is based on `box-sizing: border-box`, meaning if you define width or height, the border and padding are included in the size, not added in addition to the size.
 
+## Text wrapping
+Text wraps to its container width by default (`white_space: "normal"`), similar to web browsers. Use `white_space: "nowrap"` to prevent wrapping.
+
 ## Gap
 `gap` is `0` by default, but if two text elements are vertically aligned, the default gap is `16`.
 

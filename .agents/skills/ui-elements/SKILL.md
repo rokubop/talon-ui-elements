@@ -79,7 +79,7 @@ All properties are kwargs: `div(background_color="333333", padding=16)`.
 - **Spacing:** `padding`, `margin` — plus `_top`, `_right`, `_bottom`, `_left` variants
 - **Position:** `position` ("static"/"relative"/"absolute"/"fixed"), `top`, `left`, `right`, `bottom`
 - **Colors:** `background_color`, `color`, `border_color` — hex strings (`"FF0000"`, `"#FF0000"`, `"FF000080"`) or named colors
-- **Font:** `font_size` (default 16), `font_weight` ("normal"/"bold"), `font_family`, `text_align` ("left"/"center"/"right")
+- **Font:** `font_size` (default 16), `font_weight` ("normal"/"bold"), `font_family`, `text_align` ("left"/"center"/"right"), `white_space` ("normal"/"nowrap")
 - **Border:** `border_width`, `border_radius`, `border_color` — plus individual sides (`border_top`, etc.)
 - **Interactivity:** `on_click`, `on_change`, `highlight_style`, `disabled`, `draggable`, `drag_handle`, `autofocus`
 - **Animation:** `transition`, `mount_style`, `unmount_style`

@@ -46,6 +46,7 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 - `font_weight`: str = "normal" — "normal", "bold"
 - `font_family`: str = "" — system font name
 - `text_align`: str = "left" — "left", "center", "right"
+- `white_space`: str = "normal" — "normal" (wraps to container), "nowrap" (no wrapping)
 
 ## Border
 
