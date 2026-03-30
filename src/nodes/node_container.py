@@ -482,6 +482,19 @@ class NodeContainer(Node, NodeContainerType):
 
         self.box_model.shrink_content_children_size(children_accumulated_size)
 
+        # Grow if children grew during constrain (e.g. text word-wrap)
+        accumulated_height = children_accumulated_size.height
+        current_height = self.box_model.content_children_size.height
+        if accumulated_height > current_height:
+            delta = accumulated_height - current_height
+            self.box_model.content_children_size.height = accumulated_height
+            # Grow container outer sizes only if height is auto (not fixed)
+            if not self.properties.height and not self.properties.max_height:
+                self.box_model.content_size.height += delta
+                self.box_model.padding_size.height += delta
+                self.box_model.border_size.height += delta
+                self.box_model.margin_size.height += delta
+
     def v2_layout(self, cursor: Cursor) -> Size2d:
         if self.participates_in_layout:
             self.v2_drag_offset(cursor)

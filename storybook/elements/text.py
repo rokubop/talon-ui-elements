@@ -215,6 +215,41 @@ def text_stories():
             }),
 
             component(example_with_code, props={
+                "title": "Word Wrap (auto)",
+                "example": div(width=300, background_color=t.BG_CODE, border_radius=8, padding=16)[
+                    text(
+                        "This text has no explicit width but will automatically wrap to fit within its parent container boundaries, just like in a web browser.",
+                        color=t.TEXT,
+                    ),
+                ],
+                "code": textwrap.dedent("""\
+                    div(width=300, padding=16)[
+                        text(
+                            "This text has no explicit width "
+                            "but will automatically wrap...",
+                        ),
+                    ]""")
+            }),
+
+            component(example_with_code, props={
+                "title": "No Wrap (white_space)",
+                "example": div(width=300, background_color=t.BG_CODE, border_radius=8, padding=16, overflow_x="scroll")[
+                    text(
+                        "This text will not wrap because white_space is set to nowrap. It overflows instead.",
+                        color=t.TEXT,
+                        white_space="nowrap",
+                    ),
+                ],
+                "code": textwrap.dedent("""\
+                    div(width=300, overflow_x="scroll")[
+                        text(
+                            "This text will not wrap...",
+                            white_space="nowrap",
+                        ),
+                    ]""")
+            }),
+
+            component(example_with_code, props={
                 "title": "With Label (for_id)",
                 "example": text("Links to checkbox via for_id", color=t.TEXT_SECONDARY),
                 "code": textwrap.dedent("""\
