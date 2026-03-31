@@ -101,9 +101,13 @@ class NodeText(Node):
             num_lines = len(self.text_multiline)
             self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
         else:
-            # Single line - measure directly, replacing whitespace for width calc
-            measure_text = text.replace(" ", "x") if text else ""
-            self.text_width = paint.measure_text(measure_text)[0] if measure_text else 0
+            # Single line - append sentinel to accurately measure leading/trailing spaces
+            if text:
+                width_with_sentinel = paint.measure_text(text + "|")[0]
+                sentinel_width = paint.measure_text("|")[0]
+                self.text_width = width_with_sentinel - sentinel_width
+            else:
+                self.text_width = 0
             self.text_body_height = self.text_line_height
 
     def v2_constrain_size(self, available_size=None):
