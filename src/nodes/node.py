@@ -199,6 +199,8 @@ class Node(NodeType):
                 t = self.tree.transition_manager.get_highlight_t(node_id, property_name, self.properties.transition)
                 if t is not None:
                     override = self.properties.highlight_style[property_name]
+                    if override is None:
+                        return base
                     if t >= 1.0:
                         return override
                     if t <= 0.0:
@@ -222,6 +224,8 @@ class Node(NodeType):
             return base
 
         override = style[property_name]
+        if override is None:
+            return base
         return override
 
 

@@ -202,7 +202,8 @@ class NodeSvgPath(Node, NodeType, NodeRenderOnly):
             fill = self.resolve_render_property("fill")
         elif self.parent_node.properties.is_user_set('fill'):
             fill = self.parent_node.resolve_render_property("fill")
-        c.paint.color = stroke
+        if stroke:
+            c.paint.color = stroke
 
         assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
@@ -335,7 +336,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
     def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
 
-        raw_points = self.properties.points.split(" ")
+        raw_points = re.split(r"[,\s]+", self.properties.points.strip())
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if transforms and transforms.offset:

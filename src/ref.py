@@ -130,3 +130,7 @@ class Ref:
 
     def scroll_to(self, x: int, y: int):
         state_manager.scroll_to(self._get("id"), x, y)
+
+    def scroll_into_view(self, focus: bool = True):
+        """Scroll the nearest scrollable ancestor so this element is visible, and optionally focus it."""
+        state_manager.scroll_to_id(self._get("id"), focus=focus)

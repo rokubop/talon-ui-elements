@@ -7,6 +7,7 @@ from .node import Node
 from ..border_radius import draw_manual_rounded_rect_path
 from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_SCROLL_BAR_TRACK_COLOR, DEFAULT_SCROLL_BAR_THUMB_COLOR
+from ..core.animations import parse_hex_channels, channels_to_hex
 from ..cursor import Cursor
 from ..interfaces import NodeContainerType, Size2d, NodeType, RenderItem, RenderTransforms
 from ..properties import Properties
@@ -31,10 +32,28 @@ class NodeContainer(Node, NodeContainerType):
         fw = self.properties.flex_wrap
         return fw is True or fw == "wrap"
 
+    def _apply_scrollbar_opacity(self, color: str, opacity: float) -> str:
+        """Scale a hex color's alpha channel by the scrollbar fade opacity."""
+        if opacity >= 1.0:
+            return color
+        channels = parse_hex_channels(color)
+        if not channels:
+            return color
+        r, g, b, a = channels
+        a = int(a * opacity)
+        return channels_to_hex(r, g, b, a)
+
     def render_scroll_bar(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None)
         if not scrollable:
             return
+
+        is_overlay = self.properties.overflow.scroll_bar != "visible"
+        fade_opacity = 1.0
+        if is_overlay:
+            fade_opacity = self.tree.meta_state.get_scrollbar_opacity(self.id)
+            if fade_opacity <= 0.0:
+                return
 
         # Y scrollbar
         if self.box_model.scroll_bar_thumb_rect:
@@ -48,7 +67,7 @@ class NodeContainer(Node, NodeContainerType):
                 scroll_bar_thumb_rect.y += transforms.offset.y
 
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.paint.color = self._apply_scrollbar_opacity(DEFAULT_SCROLL_BAR_TRACK_COLOR, fade_opacity)
             c.draw_rect(scroll_bar_track_rect)
 
             thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
@@ -57,7 +76,7 @@ class NodeContainer(Node, NodeContainerType):
             elif self.tree.meta_state.is_scrollbar_hovered(self.id, axis="y"):
                 thumb_color = adjust_color_alpha(thumb_color, 15)
 
-            c.paint.color = thumb_color
+            c.paint.color = self._apply_scrollbar_opacity(thumb_color, fade_opacity)
             c.draw_rect(scroll_bar_thumb_rect)
 
         # X scrollbar
@@ -72,7 +91,7 @@ class NodeContainer(Node, NodeContainerType):
                 scroll_bar_x_thumb_rect.y += transforms.offset.y
 
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = DEFAULT_SCROLL_BAR_TRACK_COLOR
+            c.paint.color = self._apply_scrollbar_opacity(DEFAULT_SCROLL_BAR_TRACK_COLOR, fade_opacity)
             c.draw_rect(scroll_bar_x_track_rect)
 
             thumb_color = DEFAULT_SCROLL_BAR_THUMB_COLOR
@@ -81,7 +100,7 @@ class NodeContainer(Node, NodeContainerType):
             elif self.tree.meta_state.is_scrollbar_hovered(self.id, axis="x"):
                 thumb_color = adjust_color_alpha(thumb_color, 15)
 
-            c.paint.color = thumb_color
+            c.paint.color = self._apply_scrollbar_opacity(thumb_color, fade_opacity)
             c.draw_rect(scroll_bar_x_thumb_rect)
 
     def v2_measure_children_intrinsic_size(self, c: SkiaCanvas) -> Size2d:
@@ -213,7 +232,7 @@ class NodeContainer(Node, NodeContainerType):
             return
 
         for i, child in enumerate(self.participating_children_nodes):
-            if all_growable_counter_axis or child.properties.align_self == "stretch" or \
+            if (all_growable_counter_axis and not self._child_has_cross_axis_auto_margin(child)) or child.properties.align_self == "stretch" or \
                     (self.properties.flex_direction == "row" and \
                     isinstance(child.properties.height, str) and "%" in child.properties.height) or \
                     (self.properties.flex_direction == "column" and \
@@ -411,8 +430,12 @@ class NodeContainer(Node, NodeContainerType):
                     pct = float(pct_prop.replace("%", "")) / 100
                     parent_primary = getattr(content_constraint_size, primary_axis)
                     if parent_primary is not None:
+                        pct_value = int(parent_primary * pct)
+                        remaining = getattr(new_available_size, primary_axis)
+                        if remaining is not None:
+                            pct_value = min(pct_value, max(0, remaining))
                         child_available = new_available_size.copy()
-                        setattr(child_available, primary_axis, int(parent_primary * pct))
+                        setattr(child_available, primary_axis, pct_value)
                 elif child.properties.flex and available_primary is not None:
                     # Cap flex child's available space to leave room for
                     # not-yet-processed non-flex siblings
@@ -458,6 +481,24 @@ class NodeContainer(Node, NodeContainerType):
                 )
 
         self.box_model.shrink_content_children_size(children_accumulated_size)
+
+        # Grow if children grew during constrain (e.g. text word-wrap)
+        accumulated_height = children_accumulated_size.height
+        current_height = self.box_model.content_children_size.height
+        if accumulated_height > current_height:
+            delta = accumulated_height - current_height
+            self.box_model.content_children_size.height = accumulated_height
+            # Grow container outer sizes only if height is unconstrained
+            if not self.properties.height and not self.properties.max_height:
+                max_margin = self.box_model.margin_size.height + delta
+                if available_size and available_size.height is not None:
+                    max_margin = min(max_margin, available_size.height)
+                capped_delta = max_margin - self.box_model.margin_size.height
+                if capped_delta > 0:
+                    self.box_model.content_size.height += capped_delta
+                    self.box_model.padding_size.height += capped_delta
+                    self.box_model.border_size.height += capped_delta
+                    self.box_model.margin_size.height += capped_delta
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         if self.participates_in_layout:
@@ -512,9 +553,19 @@ class NodeContainer(Node, NodeContainerType):
             self.v2_move_cursor_to_align_axis_before_children_render(cursor)
 
             self.box_model.shift_relative_position(cursor)
+            auto_margin_offsets = self._resolve_auto_margins()
             fixed_gap = self.determine_layout_fixed_gap()
+            is_row = self.properties.flex_direction == "row"
             for i, child in enumerate(self.participating_children_nodes):
                 self.v2_move_cursor_to_top_left_child_based_on_align_axis(cursor, child)
+
+                # Apply auto margin offsets before positioning
+                if auto_margin_offsets and i in auto_margin_offsets:
+                    main_offset, cross_offset, _ = auto_margin_offsets[i]
+                    if is_row:
+                        cursor.move_to(cursor.x + main_offset, cursor.y + cross_offset)
+                    else:
+                        cursor.move_to(cursor.x + cross_offset, cursor.y + main_offset)
 
                 child_last_cursor = Point2d(cursor.x, cursor.y)
                 size = child.v2_layout(cursor)
@@ -522,6 +573,14 @@ class NodeContainer(Node, NodeContainerType):
 
                 if i == len(self.participating_children_nodes) - 1:
                     break
+
+                # Apply auto margin advance after positioning (for auto_right/auto_bottom)
+                if auto_margin_offsets and i in auto_margin_offsets:
+                    _, _, main_advance = auto_margin_offsets[i]
+                    if is_row:
+                        cursor.move_to(cursor.x + main_advance, cursor.y)
+                    else:
+                        cursor.move_to(cursor.x, cursor.y + main_advance)
 
                 gap = self.gap_between_elements(child, i, fixed_gap)
                 self.v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(cursor, child, size, gap)
@@ -540,7 +599,7 @@ class NodeContainer(Node, NodeContainerType):
         self.render_scroll_bar(c, transforms)
 
     def v2_build_render_list(self):
-        if not self.uses_decoration_render:
+        if not self.uses_decoration_render and self.tree:
             self.tree.append_to_render_list(
                 node=self,
                 draw=self.draw_start
@@ -692,7 +751,26 @@ class NodeContainer(Node, NodeContainerType):
             elif self.properties.align_items == "flex_end":
                 cursor.move_to(cursor.x + self.box_model.content_children_size.width, cursor.y)
 
+    def _child_has_cross_axis_auto_margin(self, child):
+        """Check if child has auto margin on the cross axis."""
+        margin = child.properties.margin
+        if not margin.has_auto:
+            return False
+        if self.properties.flex_direction == "row":
+            return margin.auto_top or margin.auto_bottom
+        return margin.auto_left or margin.auto_right
+
     def v2_move_cursor_to_top_left_child_based_on_align_axis(self, cursor: Cursor, child):
+        # Skip align_items adjustment for children with cross-axis auto margins.
+        # Reset cursor to content_pos on the cross axis so auto margins resolve
+        # relative to the full content area, not the aligned content_children area.
+        if self._child_has_cross_axis_auto_margin(child):
+            if self.properties.flex_direction == "row":
+                cursor.move_to(cursor.x, self.box_model.content_pos.y)
+            elif self.properties.flex_direction == "column":
+                cursor.move_to(self.box_model.content_pos.x, cursor.y)
+            return
+
         if self.properties.flex_direction == "row":
             if self.properties.align_items == "center":
                 cursor.move_to(cursor.x, cursor.y - child.box_model.margin_size.height // 2)
@@ -705,6 +783,26 @@ class NodeContainer(Node, NodeContainerType):
                 cursor.move_to(cursor.x - child.box_model.margin_size.width, cursor.y)
 
     def v2_move_cursor_from_top_left_child_to_next_child_along_align_axis(self, cursor: Cursor, child, size: Rect, gap = 0):
+        if self._child_has_cross_axis_auto_margin(child):
+            # Restore cursor to aligned position for next sibling
+            align = self.properties.align_items
+            if self.properties.flex_direction == "row":
+                # Reset cross axis to aligned base position
+                base_y = self.box_model.content_children_pos.y
+                if align == "center":
+                    base_y += self.box_model.content_children_size.height // 2
+                elif align == "flex_end":
+                    base_y += self.box_model.content_children_size.height
+                cursor.move_to(cursor.x + size.width + gap, base_y)
+            else:
+                base_x = self.box_model.content_children_pos.x
+                if align == "center":
+                    base_x += self.box_model.content_children_size.width // 2
+                elif align == "flex_end":
+                    base_x += self.box_model.content_children_size.width
+                cursor.move_to(base_x, cursor.y + size.height + gap)
+            return
+
         if self.properties.flex_direction == "row":
             if self.properties.align_items == "center":
                 cursor.move_to(cursor.x, cursor.y + child.box_model.margin_size.height // 2)
@@ -732,6 +830,94 @@ class NodeContainer(Node, NodeContainerType):
                 gap = 16
 
         return gap
+
+    def _resolve_auto_margins(self):
+        """Resolve auto margins for children. Returns a dict of child index -> (main_offset, cross_offset)
+        or None if no children have auto margins."""
+        children = self.participating_children_nodes
+        if not children:
+            return None
+
+        has_any_auto = False
+        for child in children:
+            if child.properties.margin.has_auto:
+                has_any_auto = True
+                break
+        if not has_any_auto:
+            return None
+
+        is_row = self.properties.flex_direction == "row"
+        content_main = self.box_model.content_size.width if is_row else self.box_model.content_size.height
+        content_cross = self.box_model.content_size.height if is_row else self.box_model.content_size.width
+
+        # Calculate total consumed main-axis space (children + gaps)
+        fixed_gap = self.determine_layout_fixed_gap()
+        total_children_main = 0
+        total_main_auto_count = 0
+        for i, child in enumerate(children):
+            total_children_main += child.box_model.margin_size.width if is_row else child.box_model.margin_size.height
+            if i < len(children) - 1:
+                total_children_main += self.gap_between_elements(child, i, fixed_gap)
+            margin = child.properties.margin
+            if is_row:
+                if margin.auto_left:
+                    total_main_auto_count += 1
+                if margin.auto_right:
+                    total_main_auto_count += 1
+            else:
+                if margin.auto_top:
+                    total_main_auto_count += 1
+                if margin.auto_bottom:
+                    total_main_auto_count += 1
+
+        remaining_main = max(0, content_main - total_children_main)
+        per_main_auto = remaining_main / total_main_auto_count if total_main_auto_count > 0 else 0
+
+        offsets = {}
+        for i, child in enumerate(children):
+            margin = child.properties.margin
+            if not margin.has_auto:
+                continue
+
+            main_offset = 0
+            cross_offset = 0
+
+            # Main axis auto margins
+            if is_row:
+                if margin.auto_left:
+                    main_offset += per_main_auto
+                # auto_right shifts subsequent children, not this one's position
+                # but we need to track it for cursor advancement
+            else:
+                if margin.auto_top:
+                    main_offset += per_main_auto
+
+            # Cross axis auto margins
+            child_cross = child.box_model.margin_size.height if is_row else child.box_model.margin_size.width
+            remaining_cross = max(0, content_cross - child_cross)
+            if is_row:
+                if margin.auto_top and margin.auto_bottom:
+                    cross_offset = remaining_cross / 2
+                elif margin.auto_top:
+                    cross_offset = remaining_cross
+                # auto_bottom only: no offset needed (already at top)
+            else:
+                if margin.auto_left and margin.auto_right:
+                    cross_offset = remaining_cross / 2
+                elif margin.auto_left:
+                    cross_offset = remaining_cross
+                # auto_right only: no offset needed (already at left)
+
+            # Calculate total main advance extra (for cursor movement after this child)
+            main_advance = 0
+            if is_row and margin.auto_right:
+                main_advance = per_main_auto
+            elif not is_row and margin.auto_bottom:
+                main_advance = per_main_auto
+
+            offsets[i] = (int(main_offset), int(cross_offset), int(main_advance))
+
+        return offsets
 
     def determine_intrinsic_fixed_gap(self):
         return self.properties.gap or 0

@@ -100,8 +100,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     margin: Margin = Margin(0, 0, 0, 0)
     max_height: Union[int, str] = None
     max_width: Union[int, str] = None
-    min_height: int = None
-    min_width: int = None
+    min_height: Union[int, str] = None
+    min_width: Union[int, str] = None
     on_change: callable = None
     on_click: callable = None
     on_drag_end: callable = None
@@ -274,7 +274,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.padding = parse_box_model(Padding, **{k: v for k, v in kwargs.items() if 'padding' in k})
         self.margin = parse_box_model(Margin, **{k: v for k, v in kwargs.items() if 'margin' in k})
         self.border = parse_box_model(Border, **{k: v for k, v in kwargs.items() if 'border' in k})
-        self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'))
+        self.overflow = Overflow(kwargs.get('overflow'), kwargs.get('overflow_x'), kwargs.get('overflow_y'), kwargs.get('scroll_bar'))
 
     def inherit_kwarg_properties(self, kwargs: dict):
         """Inherit properties from kwargs dictionary."""
@@ -481,11 +481,13 @@ class BoxModelValidationProperties(TypedDict):
     border_right: int
     border_top: int
     border: int
-    margin_bottom: int
-    margin_left: int
-    margin_right: int
-    margin_top: int
-    margin: int
+    margin_bottom: Union[int, str]
+    margin_left: Union[int, str]
+    margin_right: Union[int, str]
+    margin_top: Union[int, str]
+    margin: Union[int, str]
+    margin_x: Union[int, str]
+    margin_y: Union[int, str]
     padding_bottom: int
     padding_left: int
     padding_right: int
@@ -527,12 +529,13 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     left: Union[int, str, float]
     max_height: Union[int, str]
     max_width: Union[int, str]
-    min_height: int
-    min_width: int
+    min_height: Union[int, str]
+    min_width: Union[int, str]
     opacity: Union[int, float]
     overflow_x: str
     overflow_y: str
     overflow: str
+    scroll_bar: str
     position: str
     right: Union[int, str, float]
     top: Union[int, str, float]
@@ -706,10 +709,10 @@ class NodeSvgPolygonValidationProperties(NodeSvgPolylineValidationProperties):
     pass
 
 class NodeSvgLineValidationProperties(NodeSvgValidationProperties):
-    x1: int
-    y1: int
-    x2: int
-    y2: int
+    x1: Union[int, float]
+    y1: Union[int, float]
+    x2: Union[int, float]
+    y2: Union[int, float]
     stroke_linecap: str
     stroke_linejoin: str
     stroke_width: Union[int, float]
@@ -868,10 +871,10 @@ class NodeSvgPolygonProperties(NodeSvgPolylineProperties):
 
 @dataclass
 class NodeSvgLineProperties(Properties):
-    x1: int = 0
-    y1: int = 0
-    x2: int = 0
-    y2: int = 0
+    x1: Union[int, float] = 0
+    y1: Union[int, float] = 0
+    x2: Union[int, float] = 0
+    y2: Union[int, float] = 0
     stroke_linecap: str = None
     stroke_linejoin: str = None
     stroke_width: int = None
@@ -924,6 +927,57 @@ class NodeInputTextProperties(Properties):
             self.on_change = None
 
 @dataclass
+class NodeDataTableProperties(Properties):
+    id: str = None
+    columns: list = None
+    data: list = None
+    on_select: callable = None
+    on_change: callable = None
+    multi_select: bool = False
+    row_key: str = None
+    searchable: bool = True
+    search_placeholder: str = "Search..."
+    sort_key: str = None
+    sort_direction: str = "asc"
+    sort_fn: callable = None
+    body_height: Union[int, str, float] = None
+    header_background_color: str = None
+    header_color: str = None
+    row_background_color: str = None
+    stripe_background_color: str = None
+    selected_background_color: str = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_select:
+            self.on_select = None
+        if self.on_change:
+            self.on_change = None
+
+
+class NodeDataTableValidationProperties(ValidationProperties):
+    id: str
+    columns: list
+    data: list
+    on_select: callable
+    on_change: callable
+    multi_select: bool
+    row_key: str
+    searchable: bool
+    search_placeholder: str
+    sort_key: str
+    sort_direction: str
+    sort_fn: callable
+    body_height: Union[int, str, float]
+    header_background_color: str
+    header_color: str
+    row_background_color: str
+    stripe_background_color: str
+    selected_background_color: str
+
+
 class NodeSelectProperties(Properties):
     id: str = None
     font_family: str = ""
@@ -1127,6 +1181,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["data_table"]: NodeDataTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,
@@ -1163,7 +1218,10 @@ def _resolve_aliases(props):
         return {_BORDER_WIDTH_ALIASES.get(k, k): v for k, v in props.items()}
     return props
 
+_IGNORED_PROPS = {"key"}
+
 def validate_props(props, element_type):
+    props = {k: v for k, v in props.items() if k not in _IGNORED_PROPS}
     props = _resolve_aliases(props)
     invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
@@ -1174,6 +1232,8 @@ def validate_props(props, element_type):
             f"{valid_props_message}"
         )
 
+    _MARGIN_KEYS = {"margin", "margin_top", "margin_right", "margin_bottom", "margin_left", "margin_x", "margin_y"}
+
     type_errors = []
     for key, value in props.items():
         expected_type = VALID_ELEMENT_PROP_TYPES[element_type][key]
@@ -1182,6 +1242,8 @@ def validate_props(props, element_type):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
         elif not isinstance(value, expected_type) and value is not None:
             type_errors.append(f"{key}: expected {expected_type.__name__}, got {type(value).__name__} {value}")
+        elif key in _MARGIN_KEYS and isinstance(value, str) and value != "auto":
+            type_errors.append(f"{key}: string value must be \"auto\", got \"{value}\"")
 
     if type_errors:
         raise ValueError(

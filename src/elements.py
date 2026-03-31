@@ -10,6 +10,7 @@ from .nodes.node import Node
 from .nodes.node_container import NodeContainer
 from .nodes.node_cursor import NodeCursor
 from .nodes.node_input_text import NodeInputText
+from .nodes.node_data_table import NodeDataTable
 from .nodes.node_select import NodeSelect
 from .nodes.node_textarea import NodeTextarea
 from .nodes.node_root import NodeRoot
@@ -29,6 +30,7 @@ from .nodes.node_window import NodeWindow
 from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
+    NodeDataTableProperties,
     NodeSelectProperties,
     NodeTextareaProperties,
     NodeRootProperties,
@@ -333,6 +335,16 @@ def textarea(props=None, **additional_props):
         raise ValueError("textarea must have an id prop so that it can be targeted with actions.user.ui_elements_get_value(id)")
     return NodeTextarea(textarea_properties)
 
+def data_table(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["data_table"])
+    dt_properties = NodeDataTableProperties(**properties)
+    if not dt_properties.id:
+        raise ValueError("data_table must have an id prop")
+    if not dt_properties.columns:
+        raise ValueError("data_table must have a columns prop")
+    return NodeDataTable(dt_properties)
+
+
 def select(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["select"])
     if "position" not in properties:
@@ -517,6 +529,7 @@ active_window = UIElementsContainerNoTextProxy(active_window)
 button = UIElementsLeafProxy(button)
 checkbox = UIElementsLeafProxy(checkbox)
 cursor = UIElementsContainerNoTextProxy(cursor)
+data_table = UIElementsLeafProxy(data_table)
 div = UIElementsContainerNoTextProxy(div)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
@@ -593,6 +606,7 @@ element_collection: Dict[str, callable] = {
     'checkbox': checkbox,
     'component': Component,
     'cursor': cursor,
+    'data_table': data_table,
     'div': div,
     'effect': effect,
     'icon': icon,

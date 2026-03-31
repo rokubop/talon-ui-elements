@@ -1,5 +1,6 @@
 from talon import actions
 from .elements.button import button_stories
+from .elements.data_table import data_table_stories
 from .elements.div import div_stories
 from .elements.link import link_stories
 from .elements.table import table_stories
@@ -13,6 +14,7 @@ from . import theme as t
 storybook_pages = {
     "button": button_stories,
     "checkbox": checkbox_stories,
+    "data_table": data_table_stories,
     "div": div_stories,
     "input_text": input_text_stories,
     "link": link_stories,
@@ -31,6 +33,7 @@ def sidebar():
     page, set_page = state.use("page", "button")
 
     return div(
+        id="storybook_sidebar",
         min_width=180,
         background_color=t.BG,
         color=t.TEXT,
@@ -65,7 +68,7 @@ def main_content():
     page = state.get("page")
 
     page_fn = storybook_pages.get(page, lambda: div(padding=32)[text(f"No story for {page}", color=t.TEXT_MUTED)])
-    return div(height="100%", overflow_y="scroll", width="100%", background_color=t.BG_CONTENT)[
+    return div(id="storybook_main_content", height="100%", overflow_y="scroll", scroll_bar="visible", width="100%", background_color=t.BG_CONTENT)[
         page_fn()
     ]
 

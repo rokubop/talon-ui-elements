@@ -100,10 +100,11 @@ def trigger_hint_click(hint_trigger: str):
         if hint == hint_trigger:
             node = store.id_to_node.get(id)
             if node:
-                if node.on_click:
+                on_click = getattr(node, 'on_click', None)
+                if on_click:
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
-                    cron.after("50ms", lambda: safe_callback(node.on_click, ClickEvent(id=id, cause="hint")))
+                    cron.after("50ms", lambda: safe_callback(on_click, ClickEvent(id=id, cause="hint")))
                 state_manager.focus_node(node)
             break
 

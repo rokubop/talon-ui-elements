@@ -4,6 +4,7 @@ from talon.types import Rect, Point2d
 from .interfaces import (
     BoxModelSpacing,
     BoxModelV2Type,
+    Margin,
     NodeType,
     OverflowType,
     PropertiesDimensionalType,
@@ -20,38 +21,50 @@ class Overflow(OverflowType):
     scrollable_x: bool = False
     scrollable_y: bool = False
     is_boundary: bool = False
+    scroll_bar: str = "overlay"
 
-    def __init__(self, overflow: str = "visible", overflow_x: str = None, overflow_y: str = None):
+    def __init__(self, overflow: str = "visible", overflow_x: str = None, overflow_y: str = None, scroll_bar: str = None):
         self.x = overflow_x or overflow or "visible"
         self.y = overflow_y or overflow or "visible"
         self.scrollable_x = self.x == "scroll" or self.x == "auto"
         self.scrollable_y = self.y == "scroll" or self.y == "auto"
         self.scrollable = self.scrollable_x or self.scrollable_y
         self.is_boundary = self.x != "visible" or self.y != "visible"
+        self.scroll_bar = scroll_bar or "overlay"
 
 def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
     model = model_type()
     model_name = model_type.__name__.lower()
     model_name_x = f'{model_name}_x'
     model_name_y = f'{model_name}_y'
+    is_margin = model_type is Margin
 
     if "border_width" in kwargs:
         value = scale_value(kwargs["border_width"]) if isinstance(kwargs["border_width"], (int, float)) else kwargs["border_width"]
         model.top = model.right = model.bottom = model.left = value
     elif model_name in kwargs:
         all_sides_value = kwargs[model_name]
-        if isinstance(all_sides_value, (int, float)):
+        if is_margin and all_sides_value == "auto":
+            model.auto_top = model.auto_right = model.auto_bottom = model.auto_left = True
+            all_sides_value = 0
+        elif isinstance(all_sides_value, (int, float)):
             all_sides_value = scale_value(all_sides_value)
         model.top = model.right = model.bottom = model.left = all_sides_value
 
     if model_name_x in kwargs:
         value = kwargs[model_name_x]
-        if isinstance(value, (int, float)):
+        if is_margin and value == "auto":
+            model.auto_left = model.auto_right = True
+            value = 0
+        elif isinstance(value, (int, float)):
             value = scale_value(value)
         model.left = model.right = value
     if model_name_y in kwargs:
         value = kwargs[model_name_y]
-        if isinstance(value, (int, float)):
+        if is_margin and value == "auto":
+            model.auto_top = model.auto_bottom = True
+            value = 0
+        elif isinstance(value, (int, float)):
             value = scale_value(value)
         model.top = model.bottom = value
 
@@ -59,9 +72,13 @@ def parse_box_model(model_type: BoxModelSpacing, **kwargs) -> BoxModelSpacing:
         side_key = f'{model_name}_{side}'
         if side_key in kwargs:
             value = kwargs[side_key]
-            if isinstance(value, (int, float)):
-                value = scale_value(value)
-            setattr(model, side, value)
+            if is_margin and value == "auto":
+                setattr(model, f'auto_{side}', True)
+                setattr(model, side, 0)
+            elif isinstance(value, (int, float)):
+                setattr(model, side, scale_value(value))
+            else:
+                setattr(model, side, value)
 
     return model
 
@@ -106,10 +123,16 @@ class BoxModelV2(BoxModelV2Type):
         self.height_percent = properties.height if isinstance(properties.height, str) and "%" in properties.height else None
         self.max_width_percent = properties.max_width if isinstance(properties.max_width, str) and "%" in properties.max_width else None
         self.max_height_percent = properties.max_height if isinstance(properties.max_height, str) and "%" in properties.max_height else None
+        self.min_width_percent = properties.min_width if isinstance(properties.min_width, str) and "%" in properties.min_width else None
+        self.min_height_percent = properties.min_height if isinstance(properties.min_height, str) and "%" in properties.min_height else None
         if self.max_width_percent:
             self.max_width = None
         if self.max_height_percent:
             self.max_height = None
+        if self.min_width_percent:
+            self.min_width = None
+        if self.min_height_percent:
+            self.min_height = None
         self.fixed_width = bool(properties.width) and not self.width_percent
         self.fixed_height = bool(properties.height) and not self.height_percent
         self.overflow = properties.overflow
@@ -208,11 +231,15 @@ class BoxModelV2(BoxModelV2Type):
 
     @property
     def conditional_scroll_bar_y_width(self):
-        return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_y() else 0
+        if self.overflow.scroll_bar == "visible" and self.has_scroll_bar_y():
+            return scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        return 0
 
     @property
     def conditional_scroll_bar_x_height(self):
-        return scale_value(DEFAULT_SCROLL_BAR_WIDTH) if self.has_scroll_bar_x() else 0
+        if self.overflow.scroll_bar == "visible" and self.has_scroll_bar_x():
+            return scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        return 0
 
     @classmethod
     def _resolve_percent(self, value, total):
@@ -226,6 +253,10 @@ class BoxModelV2(BoxModelV2Type):
             self.max_width = BoxModelV2._resolve_percent(self.max_width_percent, parent_content_size.width)
         if self.max_height_percent and parent_content_size.height:
             self.max_height = BoxModelV2._resolve_percent(self.max_height_percent, parent_content_size.height)
+        if self.min_width_percent and parent_content_size.width:
+            self.min_width = BoxModelV2._resolve_percent(self.min_width_percent, parent_content_size.width)
+        if self.min_height_percent and parent_content_size.height:
+            self.min_height = BoxModelV2._resolve_percent(self.min_height_percent, parent_content_size.height)
 
     @property
     def position_left(self):
@@ -304,6 +335,15 @@ class BoxModelV2(BoxModelV2Type):
                     self.max_width = BoxModelV2._resolve_percent(self.max_width_percent, container_width)
                 if self.max_height_percent:
                     self.max_height = BoxModelV2._resolve_percent(self.max_height_percent, container_height)
+                if self.min_width_percent:
+                    self.min_width = BoxModelV2._resolve_percent(self.min_width_percent, container_width)
+                if self.min_height_percent:
+                    self.min_height = BoxModelV2._resolve_percent(self.min_height_percent, container_height)
+
+                if not init_width and self.min_width:
+                    init_width = self.min_width
+                if not init_height and self.min_height:
+                    init_height = self.min_height
 
                 left = BoxModelV2._resolve_percent(self._position_left, container_width)
                 right = BoxModelV2._resolve_percent(self._position_right, container_width)
@@ -623,14 +663,19 @@ class BoxModelV2(BoxModelV2Type):
     def resolve_scroll_bar_rects(self, offset_y):
         view_height = self.padding_size.height
         total_scrollable_height = self.content_children_with_padding_size.height
+        bar_width = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        is_overlay = self.overflow.scroll_bar != "visible"
 
         if view_height and total_scrollable_height and total_scrollable_height > view_height:
+            bar_x = self.padding_pos.x + self.padding_size.width - bar_width if is_overlay \
+                else self.padding_pos.x + self.padding_size.width
+
             self.scroll_bar_track_rect = Rect(
-                self.padding_pos.x + self.padding_size.width,
+                bar_x,
                 self.padding_pos.y,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH),
+                bar_width,
                 self.padding_size.height
-)
+            )
 
             thumb_height = view_height * (view_height / total_scrollable_height)
             thumb_pos_y = self.padding_pos.y + \
@@ -638,9 +683,9 @@ class BoxModelV2(BoxModelV2Type):
                 * (self.padding_size.height - thumb_height)
 
             self.scroll_bar_thumb_rect = Rect(
-                self.padding_pos.x + self.padding_size.width,
+                bar_x,
                 thumb_pos_y,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH),
+                bar_width,
                 thumb_height
             )
 
@@ -651,13 +696,18 @@ class BoxModelV2(BoxModelV2Type):
     def resolve_scroll_bar_x_rects(self, offset_x):
         view_width = self.padding_size.width
         total_scrollable_width = self.content_children_with_padding_size.width
+        bar_height = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+        is_overlay = self.overflow.scroll_bar != "visible"
 
         if view_width and total_scrollable_width and total_scrollable_width > view_width:
+            bar_y = self.padding_pos.y + self.padding_size.height - bar_height if is_overlay \
+                else self.padding_pos.y + self.padding_size.height
+
             self.scroll_bar_x_track_rect = Rect(
                 self.padding_pos.x,
-                self.padding_pos.y + self.padding_size.height,
+                bar_y,
                 self.padding_size.width,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+                bar_height
             )
 
             thumb_width = view_width * (view_width / total_scrollable_width)
@@ -667,9 +717,9 @@ class BoxModelV2(BoxModelV2Type):
 
             self.scroll_bar_x_thumb_rect = Rect(
                 thumb_pos_x,
-                self.padding_pos.y + self.padding_size.height,
+                bar_y,
                 thumb_width,
-                scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+                bar_height
             )
 
     def adjust_scroll_x(self, offset_x: int):

@@ -101,10 +101,45 @@ class NodeText(Node):
             num_lines = len(self.text_multiline)
             self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
         else:
-            # Single line - measure directly, replacing whitespace for width calc
-            measure_text = text.replace(" ", "x") if text else ""
-            self.text_width = paint.measure_text(measure_text)[0] if measure_text else 0
+            # Single line - append sentinel to accurately measure leading/trailing spaces
+            if text:
+                width_with_sentinel = paint.measure_text(text + "|")[0]
+                sentinel_width = paint.measure_text("|")[0]
+                self.text_width = width_with_sentinel - sentinel_width
+            else:
+                self.text_width = 0
             self.text_body_height = self.text_line_height
+
+    def v2_constrain_size(self, available_size=None):
+        self.box_model.constrain_size(available_size, self.properties.overflow)
+
+        # Skip re-wrap if text already has explicit width or white_space is nowrap
+        if self.properties.width or self.properties.max_width:
+            return
+        if self.properties.white_space == "nowrap":
+            return
+
+        constrained_width = self.box_model.content_size.width
+        if constrained_width and constrained_width < self.text_width:
+            paint = self._make_paint()
+            old_height = self.text_body_height
+            gap = self._get_line_gap()
+
+            self.text_multiline = wrap_lines(self.text, constrained_width, paint.measure_text)
+
+            if self.text_multiline:
+                widths = [paint.measure_text(line or " ")[0] for line, _ in self.text_multiline]
+                self.text_width = max(widths) if widths else 0
+                num_lines = len(self.text_multiline)
+                self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
+
+            height_delta = self.text_body_height - old_height
+            if height_delta > 0:
+                self.box_model.content_children_size.height += height_delta
+                self.box_model.content_size.height += height_delta
+                self.box_model.padding_size.height += height_delta
+                self.box_model.border_size.height += height_delta
+                self.box_model.margin_size.height += height_delta
 
     def v2_measure_intrinsic_size(self, c: SkiaCanvas):
         if self.element_type == "text" and self.own_id and not self.selectable:

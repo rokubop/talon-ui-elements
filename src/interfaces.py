@@ -25,7 +25,14 @@ class BoxModelSpacing:
 
 @dataclass
 class Margin(BoxModelSpacing):
-    pass
+    auto_top: bool = False
+    auto_right: bool = False
+    auto_bottom: bool = False
+    auto_left: bool = False
+
+    @property
+    def has_auto(self):
+        return self.auto_top or self.auto_right or self.auto_bottom or self.auto_left
 
 @dataclass
 class Padding(BoxModelSpacing):
@@ -42,6 +49,7 @@ class OverflowType(ABC):
     scrollable_x: bool
     scrollable_y: bool
     is_boundary: bool
+    scroll_bar: str
 
 class PropertiesDimensionalType(ABC):
     align_items: str
@@ -55,8 +63,8 @@ class PropertiesDimensionalType(ABC):
     margin: Margin
     max_height: Union[int, str]
     max_width: Union[int, str]
-    min_height: int
-    min_width: int
+    min_height: Union[int, str]
+    min_width: Union[int, str]
     overflow: OverflowType
     padding: Padding
     position: str
@@ -172,6 +180,8 @@ class ScrollableType(ABC):
     id: str
     offset_x: Union[int, float]
     offset_y: Union[int, float]
+    target_offset_x: Union[int, float]
+    target_offset_y: Union[int, float]
     view_height: Union[int, float]
     max_height: Union[int, float]
     view_width: Union[int, float]
