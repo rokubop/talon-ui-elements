@@ -336,7 +336,7 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
     def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         scale = self.parent_node.size / 24
 
-        raw_points = self.properties.points.split(" ")
+        raw_points = re.split(r"[,\s]+", self.properties.points.strip())
         top_left_pos = self.parent_node.box_model.content_children_pos
 
         if transforms and transforms.offset:

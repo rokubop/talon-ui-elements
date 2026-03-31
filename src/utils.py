@@ -166,7 +166,7 @@ def adjust_color_brightness(color: str, adjustment: int = 5) -> str:
 def hex_color(color: str, property_name: str = None) -> str:
     """Resolve color to hex if it's a named color or validate hex format."""
 
-    if not color:
+    if not color or color.lower() == "none":
         return color
 
     # Strip leading # if present
