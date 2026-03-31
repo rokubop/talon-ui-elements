@@ -63,6 +63,15 @@ Interactive component explorer for testing elements and tweaking properties in r
 
 **More examples:** [Dashboard](examples/dashboard/dashboard_ui.py) · [Todo List](examples/todo_list/todo_list_ui.py) · [Inputs](examples/inputs/inputs_ui.py) · [Alignment](examples/alignment/alignment_ui.py)
 
+## AI Agent Skill
+
+This package includes an [agent skill](https://agentskills.io) in `skills/ui-elements/` that teaches AI coding agents how to use this library. Copy the folder into your agent's skills directory:
+
+```sh
+# Claude Code
+cp -r skills/ui-elements ~/.claude/skills/ui-elements
+```
+
 ## Development suggestions
 While developing, you might get into a state where the UI gets stuck on your screen and you need to restart Talon. For this reason, it's recommended to have a "talon restart" command.
 
@@ -91,21 +100,6 @@ class Actions:
 - Sometimes the UI may not refresh after saving the file. Try hiding the UI, saving the file again, and showing again.
 
 - Recommend using "Andreas Talon" VSCode extension + its dependency pokey command server, so you can get autocomplete for talon user actions, and hover over hint documentation on things like `actions.user.ui_elements()` or `actions.user.ui_elements_show()`.
-
-## AI Agent Setup
-
-This package includes agent-optimized guidance in `.agents/skills/ui-elements/`.
-
-**Cursor / Copilot:** Automatically discovered from the `.agents/` directory.
-
-**Claude Code:** Symlink the skill into your skills directory:
-```sh
-# mac and linux
-ln -s /path/to/talon-ui-elements/.agents/skills/ui-elements ~/.claude/skills/ui-elements
-
-# windows
-mklink /D "%USERPROFILE%\.claude\skills\ui-elements" "\path\to\talon-ui-elements\.agents\skills\ui-elements"
-```
 
 ## Under the hood
 Uses Talon's `Canvas` and Skia canvas integration under the hood.
