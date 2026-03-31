@@ -202,11 +202,19 @@ See: `docs/concepts/style.md`
 - `select(id="x", options=[...])` - Dropdown. Requires `id`. Options: strings or `{"label": "...", "value": "..."}` dicts.
 - `checkbox(checked=True, on_change=fn)` - Toggle. Uses `on_change` not `on_click`.
 - `link("text", url="...")` - Clickable URL. `close_on_click=True` to hide UI after click.
-- `icon("name", size=24)` - Built-in SVG icon. Names: `check`, `close`, `star`, `edit`, `trash`, `plus`, `minus`, `play`, `pause`, `settings`, etc.
+- `icon("name", size=24)` - Built-in SVG icon (Lucide-style, 24x24 viewbox). ~48 available names: `arrow_down`, `arrow_left`, `arrow_right`, `arrow_up`, `check`, `chevron_down`, `chevron_left`, `chevron_right`, `chevron_up`, `close`, `clock`, `copy`, `delta`, `diamond`, `download`, `edit`, `external_link`, `file`, `file_text`, `folder`, `home`, `maximize`, `menu`, `mic`, `minimize`, `minus`, `more_horizontal`, `more_vertical`, `multiply`, `pause`, `play`, `plus`, `rotate_left`, `settings`, `shrink`, `star`, `stop`, `trash`, `upload`.
 - `window(title="...")` - Draggable panel with title bar, minimize, close buttons.
 - `table()` / `tr()` / `th()` / `td()` - Table structure.
 - `component(fn, props)` - Reusable UI with local state (`state.use_local`). Only needed for local state or scoped styles.
-- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`.
+- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`. Icons use a 24x24 viewbox. To create a custom icon:
+```python
+svg, path, circle = actions.user.ui_elements_svg(["svg", "path", "circle"])
+# defaults: size=24, view_box="0 0 24 24", stroke_width=2, stroke_linecap/linejoin="round"
+svg()[
+    circle(cx=12, cy=12, r=10),
+    path(d="M12 6v6l4 2"),
+]
+```
 
 See: `docs/elements.md`
 
