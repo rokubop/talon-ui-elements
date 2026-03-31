@@ -33,6 +33,7 @@
     ],
     "actions": [
       "user.ui_elements",
+      "user.ui_elements_close_focused",
       "user.ui_elements_debug_gc",
       "user.ui_elements_dev_tools",
       "user.ui_elements_examples",
@@ -52,6 +53,9 @@
       "user.ui_elements_scale_decrease",
       "user.ui_elements_scale_increase",
       "user.ui_elements_scale_reset",
+      "user.ui_elements_scroll_down",
+      "user.ui_elements_scroll_to_id",
+      "user.ui_elements_scroll_up",
       "user.ui_elements_set_property",
       "user.ui_elements_set_state",
       "user.ui_elements_set_text",
