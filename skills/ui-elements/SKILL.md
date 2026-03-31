@@ -7,9 +7,9 @@ description: Trigger when building or modifying Talon UI, HUD, overlay, notifica
 
 Python canvas UI library for Talon voice control runtime.
 
-- NOT web/browser — renders on a Skia canvas. No HTML, CSS, DOM, or browser APIs.
+- NOT web/browser - renders on a Skia canvas. No HTML, CSS, DOM, or browser APIs.
 - Everything is flexbox. No `display: block/inline/grid`. Every container is a flex container.
-- `flex_direction` defaults to `"column"` — children stack vertically. Use `flex_direction="row"` for horizontal.
+- `flex_direction` defaults to `"column"` - children stack vertically. Use `flex_direction="row"` for horizontal.
 - `align_items` defaults to `"stretch"` on containers (divs), `"flex_start"` on screen.
 - Runs inside Talon's Python runtime (no pip, no virtualenv, no build step). Talon hot-reloads `.py` files on save.
 - React-inspired declarative API with CSS-like properties (flexbox layout, styling kwargs).
@@ -80,12 +80,12 @@ See [patterns.md](references/patterns.md) for common layout patterns, tab naviga
 All properties are kwargs: `div(background_color="333333", padding=16)`.
 
 - Layout: `flex_direction` ("column"/"row"), `justify_content`, `align_items`, `align_self`, `flex`, `gap`, `flex_wrap`
-- Sizing: `width`, `height`, `min_width`, `max_width`, `min_height`, `max_height` — pixels or `"100%"`
-- Spacing: `padding`, `margin` — plus `_top`, `_right`, `_bottom`, `_left` variants
+- Sizing: `width`, `height`, `min_width`, `max_width`, `min_height`, `max_height` - pixels or `"100%"`
+- Spacing: `padding`, `margin` - plus `_top`, `_right`, `_bottom`, `_left` variants
 - Position: `position` ("static"/"relative"/"absolute"/"fixed"), `top`, `left`, `right`, `bottom`
-- Colors: `background_color`, `color`, `border_color` — hex strings (`"FF0000"`, `"#FF0000"`, `"FF000080"`) or named colors
+- Colors: `background_color`, `color`, `border_color` - hex strings (`"FF0000"`, `"#FF0000"`, `"FF000080"`) or named colors
 - Font: `font_size` (default 16), `font_weight` ("normal"/"bold"), `font_family`, `text_align` ("left"/"center"/"right"), `white_space` ("normal"/"nowrap")
-- Border: `border_width`, `border_radius`, `border_color` — plus individual sides (`border_top`, etc.)
+- Border: `border_width`, `border_radius`, `border_color` - plus individual sides (`border_top`, etc.)
 - Interactivity: `on_click`, `on_change`, `highlight_style`, `disabled`, `draggable`, `drag_handle`, `autofocus`
 - Animation: `transition`, `mount_style`, `unmount_style`
 - Identity: `id`, `key`, `class_name`, `z_index`
@@ -98,7 +98,7 @@ See [properties.md](references/properties.md) for full tables with types and def
 
 ## State Management
 
-All state is global — any UI or voice command can read/write any key. State is shared across UIs, so one UI can react to state set by another UI or by a voice command.
+All state is global - any UI or voice command can read/write any key. State is shared across UIs, so one UI can react to state set by another UI or by a voice command.
 
 ```python
 state = actions.user.ui_elements("state")
@@ -193,20 +193,20 @@ See: `docs/concepts/style.md`
 
 ## Elements Quick Reference
 
-- `screen()` / `active_window()` — Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
-- `div()` — Generic container.
-- `text("content")` — Display text.
-- `button("label", on_click=fn)` — Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`.
-- `input_text(id="x")` — Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.
-- `textarea(id="x", rows=5)` — Multi-line input. Requires `id`.
-- `select(id="x", options=[...])` — Dropdown. Requires `id`. Options: strings or `{"label": "...", "value": "..."}` dicts.
-- `checkbox(checked=True, on_change=fn)` — Toggle. Uses `on_change` not `on_click`.
-- `link("text", url="...")` — Clickable URL. `close_on_click=True` to hide UI after click.
-- `icon("name", size=24)` — Built-in SVG icon. Names: `check`, `close`, `star`, `edit`, `trash`, `plus`, `minus`, `play`, `pause`, `settings`, etc.
-- `window(title="...")` — Draggable panel with title bar, minimize, close buttons.
-- `table()` / `tr()` / `th()` / `td()` — Table structure.
-- `component(fn, props)` — Reusable UI with local state (`state.use_local`). Only needed for local state or scoped styles.
-- `svg()` / `path()` / `rect()` / `circle()` / `line()` — Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`.
+- `screen()` / `active_window()` - Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
+- `div()` - Generic container.
+- `text("content")` - Display text.
+- `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`.
+- `input_text(id="x")` - Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.
+- `textarea(id="x", rows=5)` - Multi-line input. Requires `id`.
+- `select(id="x", options=[...])` - Dropdown. Requires `id`. Options: strings or `{"label": "...", "value": "..."}` dicts.
+- `checkbox(checked=True, on_change=fn)` - Toggle. Uses `on_change` not `on_click`.
+- `link("text", url="...")` - Clickable URL. `close_on_click=True` to hide UI after click.
+- `icon("name", size=24)` - Built-in SVG icon. Names: `check`, `close`, `star`, `edit`, `trash`, `plus`, `minus`, `play`, `pause`, `settings`, etc.
+- `window(title="...")` - Draggable panel with title bar, minimize, close buttons.
+- `table()` / `tr()` / `th()` / `td()` - Table structure.
+- `component(fn, props)` - Reusable UI with local state (`state.use_local`). Only needed for local state or scoped styles.
+- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`.
 
 See: `docs/elements.md`
 
@@ -227,7 +227,7 @@ actions.user.ui_elements_hide_all()                                     # Hide a
 actions.user.ui_elements_is_active(my_ui)                               # Check if showing
 ```
 
-Every interactive element (buttons, inputs, links, checkboxes) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default — pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).
+Every interactive element (buttons, inputs, links, checkboxes) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default - pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).
 
 See: `docs/actions.md`
 
@@ -253,10 +253,10 @@ actions.user.ui_elements_get_input_value("input_id")
 
 Choose your update strategy based on whether layout changes:
 
-- Reactive (`state.use`) — for forms, wizards, dashboards. Layout adds/removes/resizes elements. Re-renders on change. Use when interactions are human-speed (clicks, typing).
-- Decoration layer (`highlight`, `set_text`) — for game overlays, real-time HUDs. Layout renders once; only appearance changes (color, text content). No re-render, no layout recalc. Use when updates are rapid or performance-critical.
+- Reactive (`state.use`) - for forms, wizards, dashboards. Layout adds/removes/resizes elements. Re-renders on change. Use when interactions are human-speed (clicks, typing).
+- Decoration layer (`highlight`, `set_text`) - for game overlays, real-time HUDs. Layout renders once; only appearance changes (color, text content). No re-render, no layout recalc. Use when updates are rapid or performance-critical.
 
-The decoration layer paints on top of existing elements without touching layout. `highlight` changes an element's visual state (background, border, color). `set_text` swaps displayed text. Neither can add, remove, or reposition elements — use state for that.
+The decoration layer paints on top of existing elements without touching layout. `highlight` changes an element's visual state (background, border, color). `set_text` swaps displayed text. Neither can add, remove, or reposition elements - use state for that.
 
 ```python
 # Game overlay: render once, update via decoration layer
@@ -314,17 +314,17 @@ Cascaded (inherited by children): `color`, `font_family`, `font_size`, `highligh
 
 ## Further Reading
 
-- `references/properties.md` — Full property tables with types and values
-- `references/patterns.md` — Layout patterns, tab navigation, splitting files, complete examples
-- `references/paradigms.md` — Reactive state vs decoration layer: full examples of both approaches
-- `docs/elements.md` — All elements with detailed examples
-- `docs/actions.md` — All Talon actions
-- `docs/concepts/state.md` — State management deep dive
-- `docs/concepts/effect.md` — Lifecycle effects
-- `docs/concepts/ref.md` — Imperative ref system
-- `docs/concepts/components.md` — Reusable components
-- `docs/concepts/style.md` — CSS-like styling
-- `docs/concepts/transitions.md` — Animations
-- `docs/concepts/window.md` — Window element
-- `docs/concepts/svgs.md` — Custom SVG graphics
-- `docs/tutorials/` — Step-by-step tutorials (hello_world, cheatsheet, game_keys)
+- `references/properties.md` - Full property tables with types and values
+- `references/patterns.md` - Layout patterns, tab navigation, splitting files, complete examples
+- `references/paradigms.md` - Reactive state vs decoration layer: full examples of both approaches
+- `docs/elements.md` - All elements with detailed examples
+- `docs/actions.md` - All Talon actions
+- `docs/concepts/state.md` - State management deep dive
+- `docs/concepts/effect.md` - Lifecycle effects
+- `docs/concepts/ref.md` - Imperative ref system
+- `docs/concepts/components.md` - Reusable components
+- `docs/concepts/style.md` - CSS-like styling
+- `docs/concepts/transitions.md` - Animations
+- `docs/concepts/window.md` - Window element
+- `docs/concepts/svgs.md` - Custom SVG graphics
+- `docs/tutorials/` - Step-by-step tutorials (hello_world, cheatsheet, game_keys)

@@ -4,7 +4,7 @@ Two paradigms for updating UI. Choose based on whether the layout itself changes
 
 ## Decoration Layer (Game Overlay / Real-Time HUD)
 
-Layout renders once. Rapid updates go through `highlight`, `set_text`, and refs — these paint on top of existing elements without re-rendering or recalculating layout.
+Layout renders once. Rapid updates go through `highlight`, `set_text`, and refs - these paint on top of existing elements without re-rendering or recalculating layout.
 
 `highlight_style` defines what highlighting looks like on an element. `highlight()`/`unhighlight()` toggle that style on and off. `highlight_briefly()` flashes it.
 
@@ -74,13 +74,13 @@ class Actions:
 
 Key points:
 - Elements have `id` props so they can be targeted by `highlight()` and `set_text()`
-- `highlight_style` is defined on the element — it controls what the highlight looks like
+- `highlight_style` is defined on the element - it controls what the highlight looks like
 - Event handlers fire many times per second but never trigger a re-render
-- `set_text` can only change text content, `highlight` can only change visual style — neither adds/removes/repositions elements
+- `set_text` can only change text content, `highlight` can only change visual style - neither adds/removes/repositions elements
 
 ## Reactive State (Form / Wizard / Dashboard)
 
-Layout changes in response to user interaction — elements appear, disappear, resize, or get added to lists. Use `state.use()` for reactive re-renders.
+Layout changes in response to user interaction - elements appear, disappear, resize, or get added to lists. Use `state.use()` for reactive re-renders.
 
 ```python
 from talon import actions
@@ -152,10 +152,10 @@ def settings_panel():
 ```
 
 Key points:
-- `state.use()` returns a value and setter — changing it re-renders the UI
+- `state.use()` returns a value and setter - changing it re-renders the UI
 - Conditional rendering (`if tab == "general"`) swaps entire sections in/out
 - Form inputs (`input_text`, `select`, `checkbox`) use `on_change` handlers
-- Re-renders are fine here — interactions are human-speed button clicks
+- Re-renders are fine here - interactions are human-speed button clicks
 
 ## When to Mix Both
 

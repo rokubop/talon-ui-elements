@@ -84,7 +84,7 @@ def my_app():
     ]
 ```
 
-Helper functions that return elements are just regular Python functions — you don't need `component()`. Only use `component()` when you need `state.use_local` or scoped styles.
+Helper functions that return elements are just regular Python functions - you don't need `component()`. Only use `component()` when you need `state.use_local` or scoped styles.
 
 ## Updating UI from Voice Commands
 
