@@ -33,6 +33,14 @@ and tag: browser
 def ui_elements_hint_target(m) -> list[str]:
     return "".join(m.letter_list)
 
+def _has_overflow(node):
+    """Check if a scrollable node's content actually exceeds its view."""
+    if not node or not getattr(node, 'box_model', None):
+        return False
+    max_h = node.box_model.content_children_with_padding_size.height
+    view_h = node.box_model.padding_size.height
+    return max_h > view_h
+
 def _find_scroll_target(tree):
     """Find scrollable region: ancestor of focused/clicked node, or only scrollable region."""
     if not tree.meta_state.scrollable:
@@ -42,7 +50,7 @@ def _find_scroll_target(tree):
     if store.focused_id:
         node = tree.meta_state.id_to_node.get(store.focused_id)
         while node:
-            if node.id and node.id in tree.meta_state.scrollable:
+            if node.id and node.id in tree.meta_state.scrollable and _has_overflow(node):
                 data = tree.meta_state.scrollable[node.id]
                 return node, data
             node = node.parent_node
@@ -53,7 +61,7 @@ def _find_scroll_target(tree):
         best_area = float('inf')
         for id, data in tree.meta_state.scrollable.items():
             node = tree.meta_state.id_to_node.get(id)
-            if node and getattr(node, 'box_model', None) \
+            if node and _has_overflow(node) \
                     and node.box_model.padding_rect.contains(store.blur_pos):
                 area = node.box_model.padding_rect.width * node.box_model.padding_rect.height
                 if area < best_area:
@@ -65,11 +73,8 @@ def _find_scroll_target(tree):
     # Fall back to first scrollable region with overflow
     for id, data in tree.meta_state.scrollable.items():
         node = tree.meta_state.id_to_node.get(id)
-        if node and getattr(node, 'box_model', None):
-            max_h = node.box_model.content_children_with_padding_size.height
-            view_h = node.box_model.padding_size.height
-            if max_h > view_h:
-                return node, data
+        if _has_overflow(node):
+            return node, data
 
     return None, None
 
@@ -125,7 +130,10 @@ def _scroll_focused_tree(direction: int):
     max_height = node.box_model.content_children_with_padding_size.height
     view_height = node.box_model.padding_size.height
 
-    current_target = _voice_scroll_state["target"] if _voice_scroll_state and _voice_scroll_state["node_id"] == node.id else data.offset_y
+    prior = _voice_scroll_state if _voice_scroll_state and _voice_scroll_state["node_id"] == node.id else None
+    prior_direction = -1 if prior and prior["target"] < data.offset_y else 1 if prior and prior["target"] > data.offset_y else 0
+    changing_direction = prior and prior_direction != 0 and direction != prior_direction
+    current_target = data.offset_y if changing_direction else (prior["target"] if prior else data.offset_y)
     amount = view_height * 0.45 * direction
     min_y = view_height - max_height
     new_target = max(min_y, min(0, current_target + amount))
