@@ -554,6 +554,9 @@ class NodeDivValidationProperties(ValidationProperties):
     drop_shadow: tuple
     on_click: callable
 
+class NodeFormValidationProperties(ValidationProperties):
+    on_submit: callable
+
 class NodeCursorValidationProperties(ValidationProperties):
     refresh_rate: int
 
@@ -573,6 +576,7 @@ class NodeTextValidationProperties(ValidationProperties):
 
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
+    type: str
 
 class NodeLinkValidationProperties(NodeButtonValidationProperties):
     url: str
@@ -593,6 +597,7 @@ class NodeTextProperties(Properties):
     stroke_width: Union[int, float] = None
     stroke_color: str = None
     text_align: str = "left"
+    type: str = None
     white_space: str = "normal"
 
     def __init__(self, **kwargs):
@@ -628,6 +633,18 @@ class NodeDivProperties(Properties):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+@dataclass
+class NodeFormProperties(Properties):
+    on_submit: callable = None
+    font_family: str = ""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def gc(self):
+        if self.on_submit:
+            self.on_submit = None
 
 class NodeSvgValidationProperties(ValidationProperties):
     color: str
@@ -1183,6 +1200,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["data_table"]: NodeDataTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["form"]: NodeFormValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["icon"]: NodeIconValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["link"]: NodeLinkValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["input_text"]: NodeInputTextValidationProperties.__annotations__,

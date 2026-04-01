@@ -56,7 +56,7 @@ style, component = actions.user.ui_elements(["style", "component"])
 window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
-All elements: `div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+All elements: `div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
 
 SVG elements (separate function): `actions.user.ui_elements_svg(["svg", "path", "rect", "circle", "line", "polyline", "polygon"])`
 
@@ -66,7 +66,7 @@ SVG elements (separate function): `actions.user.ui_elements_svg(["svg", "path", 
 
 - Root must be `screen()` or `active_window()`
 - Children via bracket syntax: `parent()[child1, child2]`
-- Containers (can have children): `div`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
+- Containers (can have children): `div`, `form`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
 - Leaves (no children): `text`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `data_table`, `link`
 - `button`: leaf with label `button("Click")`, container without: `button(on_click=fn)[icon("check")]`
 - Dynamic lists: `div()[*[text(item) for item in items]]`
@@ -196,7 +196,8 @@ See: `docs/concepts/style.md`
 - `screen()` / `active_window()` - Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
 - `div()` - Generic container.
 - `text("content")` - Display text.
-- `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`.
+- `form(on_submit=fn)` - Form container. Enter in child `input_text` or clicking a child `button(type="submit")` triggers `on_submit`. Callback receives `SubmitEvent(data={"input_id": "value", ...})` with all child input values. Ctrl+Enter submits from `textarea`.
+- `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`. Use `type="submit"` inside a `form` to trigger the form's `on_submit`.
 - `input_text(id="x")` - Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.
 - `textarea(id="x", rows=5)` - Multi-line input. Requires `id`.
 - `select(id="x", options=[...])` - Dropdown. Requires `id`. Options: strings or `{"label": "...", "value": "..."}` dicts.

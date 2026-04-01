@@ -19,6 +19,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `screen` | Root | Full screen container - must be the root element wrapping everything | `screen(justify_content="center", align_items="center")[...]` |
 | `active_window` | Root | Container matching active window size - must be the root element wrapping everything | `active_window()[...]` |
 | `div` | Layout | Generic container | `div(padding=16)[...]` |
+| `form` | Layout | Form container. Enter in child `input_text` or clicking child `button(type="submit")` triggers `on_submit`. Ctrl+Enter submits from `textarea`. | `form(on_submit=handler)[input_text(id="name"), button("Submit", type="submit")]` |
 | `window` | Layout | Draggable window with title bar, close button, and drop shadow - must be first element after screen | `screen(justify_content="center", align_items="center")[window(title="My App")[...]]` |
 | `cursor` | Layout | Container that follows the mouse cursor position | `cursor()[text("Status")]` |
 | `text` | Content | Display text content | `text("Hello world", font_size=16)` |

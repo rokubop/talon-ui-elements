@@ -73,6 +73,7 @@ class ElementEnumType(TypedDict):
     cursor: str
     data_table: str
     div: str
+    form: str
     icon: str
     input_text: str
     link: str
@@ -101,6 +102,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "cursor": "cursor",
     "data_table": "data_table",
     "div": "div",
+    "form": "form",
     "icon": "icon",
     "input_text": "input_text",
     "link": "link",
@@ -144,6 +146,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["cursor"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["data_table"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["form"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["link"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],

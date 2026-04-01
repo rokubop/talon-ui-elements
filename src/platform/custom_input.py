@@ -60,9 +60,10 @@ class CustomInputManager:
         self._on_change_callbacks: dict[str, Callable] = {}
         self._on_submit_callbacks: dict[str, Callable] = {}
         self._render_callbacks: dict[str, Callable] = {}
+        self._trees: dict[str, object] = {}
         self._blink_job = None
 
-    def create_input(self, id: str, initial_value: str = "", on_change: Callable = None, on_submit: Callable = None, multiline: bool = False):
+    def create_input(self, id: str, initial_value: str = "", on_change: Callable = None, on_submit: Callable = None, multiline: bool = False, tree=None):
         if id not in self._inputs:
             self._inputs[id] = InputState(text=initial_value, cursor_pos=len(initial_value))
         if multiline:
@@ -71,6 +72,8 @@ class CustomInputManager:
             self._on_change_callbacks[id] = on_change
         if on_submit:
             self._on_submit_callbacks[id] = on_submit
+        if tree is not None:
+            self._trees[id] = tree
 
     def remove_input(self, id: str):
         self._inputs.pop(id, None)
@@ -78,6 +81,7 @@ class CustomInputManager:
         self._on_change_callbacks.pop(id, None)
         self._on_submit_callbacks.pop(id, None)
         self._render_callbacks.pop(id, None)
+        self._trees.pop(id, None)
         if self._focused_id == id:
             self._focused_id = None
             self._stop_blink()
@@ -89,6 +93,7 @@ class CustomInputManager:
         self._on_change_callbacks.clear()
         self._on_submit_callbacks.clear()
         self._render_callbacks.clear()
+        self._trees.clear()
         self._focused_id = None
         self._stop_blink()
         _ctx.tags = []
@@ -393,6 +398,9 @@ class CustomInputManager:
 
         if key == 'enter' or key == 'return':
             if self._is_multiline:
+                if ctrl:
+                    self._fire_form_submit(self._focused_id)
+                    return True
                 if state.has_selection:
                     state.delete_selection()
                 state.text = state.text[:state.cursor_pos] + "\n" + state.text[state.cursor_pos:]
@@ -402,6 +410,8 @@ class CustomInputManager:
             cb = self._on_submit_callbacks.get(self._focused_id)
             if cb:
                 cb(state.text)
+            else:
+                self._fire_form_submit(self._focused_id)
             return True
 
         if key == 'escape':
@@ -442,6 +452,16 @@ class CustomInputManager:
             return key
         return None
 
+    def _fire_form_submit(self, id: str):
+        """Find parent form of the input and call its on_submit."""
+        tree = self._trees.get(id)
+        node = tree.meta_state.id_to_node.get(id) if tree else None
+        if node:
+            from ..nodes.node_form import find_parent_form
+            form_node = find_parent_form(node)
+            if form_node:
+                form_node.fire_submit()
+
     def _fire_on_change(self, id: str, new_value: str, old_value: str):
         cb = self._on_change_callbacks.get(id)
         if cb:
@@ -460,6 +480,7 @@ def setup_custom_input(node, multiline: bool = False):
             initial_value=node.properties.value or "",
             on_change=node.properties.on_change,
             multiline=multiline,
+            tree=node.tree,
         )
 
         def make_render_cb(tree_ref):
