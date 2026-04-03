@@ -1938,6 +1938,8 @@ class Tree(TreeType):
 
         selectable_node = self._get_selectable_text_at(gpos)
         if selectable_node:
+            if self.canvas_decorator:
+                self.canvas_decorator.focused = True
             for node in self._text_selected_nodes:
                 if node is not selectable_node:
                     node.clear_selection()

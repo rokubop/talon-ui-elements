@@ -337,7 +337,8 @@ class NodeText(Node):
             self._sel_end = None
             if self.uses_decoration_render and self.tree:
                 self.uses_decoration_render = False
-                self.tree.render_manager.render()
+                self.tree.meta_state.decoration_renders.pop(self.id, None)
+                self.tree.refresh_decorator_canvas()
 
     def _trigger_selection_render(self):
         if self.tree:
