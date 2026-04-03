@@ -15,7 +15,7 @@ from .src.hints import (
 )
 from .src.core.entity_manager import entity_manager
 from .src.core.store import store
-from .src.constants import ELEMENT_ENUM_TYPE
+from .src.constants import ELEMENT_ENUM_TYPE, KEY_DOWN, KEY_UP
 
 # Pass ctx to src/hints so it can enable/disable tags. Context objects must stay here (not src/)
 # because user reloads trigger import chain reloading of src files, but this file isn't imported
@@ -173,7 +173,7 @@ class Actions:
                 for node in tree.interactive_node_list:
                     if node.element_type == ELEMENT_ENUM_TYPE["select"] and getattr(node, 'is_open', False):
                         if key_down:
-                            key = "down" if action == "focus_next" else "up"
+                            key = KEY_DOWN if action == "focus_next" else KEY_UP
                             node.on_key(key, True)
                         return
 

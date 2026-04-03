@@ -1,6 +1,9 @@
 from talon import actions
 from .node_container import NodeContainer
-from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
+from ..constants import (
+    ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR,
+    KEY_DOWN, KEY_UP, KEY_HOME, KEY_END, KEY_ENTER, KEY_RETURN, KEY_SPACE, KEY_ESCAPE,
+)
 from ..core.entity_manager import ChangeEvent
 from ..interfaces import Padding
 from ..properties import NodeSelectProperties
@@ -241,31 +244,31 @@ class NodeSelect(NodeContainer):
 
         # When closed: up/down/space/enter opens the dropdown
         if not self._is_open:
-            if key_string in ("down", "up", "space", "enter", "return"):
+            if key_string in (KEY_DOWN, KEY_UP, KEY_SPACE, KEY_ENTER, KEY_RETURN):
                 self._toggle_open()
                 return True
             return False
 
         # When open
-        if key_string == "down":
+        if key_string == KEY_DOWN:
             new_idx = (self._highlighted_index + 1) % num_options
             self._set_highlighted_index(new_idx)
             return True
-        elif key_string == "up":
+        elif key_string == KEY_UP:
             new_idx = (self._highlighted_index - 1) % num_options
             self._set_highlighted_index(new_idx)
             return True
-        elif key_string == "home":
+        elif key_string == KEY_HOME:
             self._set_highlighted_index(0)
             return True
-        elif key_string == "end":
+        elif key_string == KEY_END:
             self._set_highlighted_index(num_options - 1)
             return True
-        elif key_string in ("enter", "return", "space"):
+        elif key_string in (KEY_ENTER, KEY_RETURN, KEY_SPACE):
             if 0 <= self._highlighted_index < num_options:
                 self._select_option(self._normalized_options[self._highlighted_index]["value"])
             return True
-        elif key_string == "escape":
+        elif key_string == KEY_ESCAPE:
             self._close()
             return True
 

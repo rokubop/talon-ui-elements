@@ -25,6 +25,8 @@ from ..constants import (
     RESIZE_GHOST_STROKE_WIDTH,
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
+    PRIMARY_MOD,
+    KEY_SPACE, KEY_ENTER, KEY_RETURN,
 )
 from ..utils import draw_rect, get_scale, scale_value
 from ..canvas_wrapper import CanvasWeakRef
@@ -1143,7 +1145,7 @@ class Tree(TreeType):
             key_string = mod.lower() + "-" + key_string
 
         # Copy selected text
-        if key_string == "ctrl-c" and e.down and self._text_selected_nodes:
+        if key_string == f"{PRIMARY_MOD}-c" and e.down and self._text_selected_nodes:
             for node in self._text_selected_nodes:
                 node.copy_selection()
             return
@@ -1166,7 +1168,7 @@ class Tree(TreeType):
             custom_input_manager.handle_canvas_key(e)
             return
 
-        if key_string == "space" or key_string == "enter" or key_string == "return":
+        if key_string == KEY_SPACE or key_string == KEY_ENTER or key_string == KEY_RETURN:
             focused_node = state_manager.get_focused_node()
             is_clickable = getattr(focused_node, 'properties', None) and (
                 getattr(focused_node.properties, "on_click", None)

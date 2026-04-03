@@ -7,6 +7,11 @@ Uses Talon's canvas key events (not a Win32 hook).
 from talon import clip, Context, cron
 from dataclasses import dataclass
 from typing import Callable, Optional
+from ..constants import (
+    parse_mods, MODIFIER_KEYS,
+    KEY_ENTER, KEY_RETURN, KEY_ESCAPE, KEY_BACKSPACE, KEY_DELETE, KEY_TAB,
+    KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END,
+)
 
 _ctx = Context()
 
@@ -185,11 +190,7 @@ class CustomInputManager:
             return True  # Block key-up when focused
 
         key = e.key.lower() if e.key else ""
-        mods = [m.lower() for m in e.mods] if e.mods else []
-        print(f"[KEY DEBUG] key={key!r} mods={mods} raw_mods={e.mods}")
-        shift = "shift" in mods
-        ctrl = "ctrl" in mods or "control" in mods
-        alt = "alt" in mods
+        shift, ctrl, alt = parse_mods(e.mods)
 
         old_text = state.text
         handled = self._process_key(state, key, shift, ctrl, alt)
@@ -253,7 +254,7 @@ class CustomInputManager:
                     clip.set_text(state.text[start:end])
                     state.delete_selection()
                 return True
-            elif key == 'backspace':
+            elif key == KEY_BACKSPACE:
                 if state.has_selection:
                     state.delete_selection()
                 elif state.cursor_pos > 0:
@@ -266,7 +267,7 @@ class CustomInputManager:
                     state.cursor_pos = pos
                     state.selection_start = None
                 return True
-            elif key == 'delete':
+            elif key == KEY_DELETE:
                 if state.has_selection:
                     state.delete_selection()
                 elif state.cursor_pos < len(state.text):
@@ -278,7 +279,7 @@ class CustomInputManager:
                     state.text = state.text[:state.cursor_pos] + state.text[pos:]
                     state.selection_start = None
                 return True
-            elif key == 'left':
+            elif key == KEY_LEFT:
                 pos = state.cursor_pos - 1
                 while pos > 0 and state.text[pos - 1] == ' ':
                     pos -= 1
@@ -292,7 +293,7 @@ class CustomInputManager:
                     state.selection_start = None
                 state.cursor_pos = pos
                 return True
-            elif key == 'right':
+            elif key == KEY_RIGHT:
                 pos = state.cursor_pos
                 while pos < len(state.text) and state.text[pos] == ' ':
                     pos += 1
@@ -308,7 +309,7 @@ class CustomInputManager:
             return False
 
         # Navigation keys
-        if key == 'left':
+        if key == KEY_LEFT:
             if shift:
                 if state.selection_start is None:
                     state.selection_start = state.cursor_pos
@@ -320,7 +321,7 @@ class CustomInputManager:
                 state.cursor_pos = max(0, state.cursor_pos - 1)
             return True
 
-        if key == 'right':
+        if key == KEY_RIGHT:
             if shift:
                 if state.selection_start is None:
                     state.selection_start = state.cursor_pos
@@ -332,7 +333,7 @@ class CustomInputManager:
                 state.cursor_pos = min(len(state.text), state.cursor_pos + 1)
             return True
 
-        if key == 'home':
+        if key == KEY_HOME:
             if shift:
                 if state.selection_start is None:
                     state.selection_start = state.cursor_pos
@@ -345,7 +346,7 @@ class CustomInputManager:
                 state.cursor_pos = 0
             return True
 
-        if key == 'end':
+        if key == KEY_END:
             if shift:
                 if state.selection_start is None:
                     state.selection_start = state.cursor_pos
@@ -358,7 +359,7 @@ class CustomInputManager:
                 state.cursor_pos = len(state.text)
             return True
 
-        if key == 'up' and self._is_multiline:
+        if key == KEY_UP and self._is_multiline:
             line_idx, col, lines = self._get_line_info(state)
             if line_idx > 0:
                 if shift:
@@ -369,7 +370,7 @@ class CustomInputManager:
                 state.cursor_pos = self._line_col_to_pos(line_idx - 1, col, lines)
             return True
 
-        if key == 'down' and self._is_multiline:
+        if key == KEY_DOWN and self._is_multiline:
             line_idx, col, lines = self._get_line_info(state)
             if line_idx < len(lines) - 1:
                 if shift:
@@ -380,7 +381,7 @@ class CustomInputManager:
                 state.cursor_pos = self._line_col_to_pos(line_idx + 1, col, lines)
             return True
 
-        if key == 'backspace':
+        if key == KEY_BACKSPACE:
             if state.has_selection:
                 state.delete_selection()
             elif state.cursor_pos > 0:
@@ -389,7 +390,7 @@ class CustomInputManager:
                 state.selection_start = None
             return True
 
-        if key == 'delete':
+        if key == KEY_DELETE:
             if state.has_selection:
                 state.delete_selection()
             elif state.cursor_pos < len(state.text):
@@ -397,7 +398,7 @@ class CustomInputManager:
                 state.selection_start = None
             return True
 
-        if key == 'enter' or key == 'return':
+        if key == KEY_ENTER or key == KEY_RETURN:
             if self._is_multiline:
                 if ctrl:
                     self._fire_form_submit(self._focused_id)
@@ -415,17 +416,16 @@ class CustomInputManager:
                 self._fire_form_submit(self._focused_id)
             return True
 
-        if key == 'escape':
+        if key == KEY_ESCAPE:
             self.blur()
             self._render()
             return True
 
-        if key == 'tab':
+        if key == KEY_TAB:
             return False  # Let tab through for focus navigation
 
         # Skip modifier-only and function keys
-        if key in ('shift', 'ctrl', 'control', 'alt', 'win', 'super',
-                    'capslock', 'numlock', 'scrolllock', 'fn') \
+        if key in MODIFIER_KEYS \
                 or key.startswith('f') and key[1:].isdigit():
             return True  # Block but don't type
 
