@@ -186,6 +186,7 @@ class CustomInputManager:
 
         key = e.key.lower() if e.key else ""
         mods = [m.lower() for m in e.mods] if e.mods else []
+        print(f"[KEY DEBUG] key={key!r} mods={mods} raw_mods={e.mods}")
         shift = "shift" in mods
         ctrl = "ctrl" in mods or "control" in mods
         alt = "alt" in mods
