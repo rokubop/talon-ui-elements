@@ -24,7 +24,7 @@ from .nodes.node_svg import (
 )
 from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
-from .nodes.node_code import NodeCode
+from .nodes.code import code
 from .nodes.node_button import NodeButton
 from .nodes.node_form import NodeForm
 from .nodes.switch import switch
@@ -32,7 +32,6 @@ from .nodes.node_window import NodeWindow
 from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
-    NodeCodeProperties,
     NodeDataTableProperties,
     NodeSelectProperties,
     NodeTextareaProperties,
@@ -300,12 +299,7 @@ def text(text_str: str = "", props=None, **additional_props):
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
 
-def code(text_str: str = "", props=None, **additional_props):
-    if isinstance(text_str, str):
-        text_str = text_str.replace("\r\n", "\n")
-    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["code"])
-    code_properties = NodeCodeProperties(**properties)
-    return NodeCode(text_str, code_properties)
+# code() is imported from .nodes.code
 
 def button(*args, text=None, **additional_props):
     if args and isinstance(args[0], str):
