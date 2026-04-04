@@ -56,7 +56,7 @@ style, component = actions.user.ui_elements(["style", "component"])
 window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
-All elements: `div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+All elements: `div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
 
 SVG elements (separate function): `actions.user.ui_elements_svg(["svg", "path", "rect", "circle", "line", "polyline", "polygon"])`
 
@@ -66,7 +66,7 @@ SVG elements (separate function): `actions.user.ui_elements_svg(["svg", "path", 
 
 - Root must be `screen()` or `active_window()`
 - Children via bracket syntax: `parent()[child1, child2]`
-- Containers (can have children): `div`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
+- Containers (can have children): `div`, `form`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
 - Leaves (no children): `text`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `data_table`, `link`
 - `button`: leaf with label `button("Click")`, container without: `button(on_click=fn)[icon("check")]`
 - Dynamic lists: `div()[*[text(item) for item in items]]`
@@ -196,17 +196,26 @@ See: `docs/concepts/style.md`
 - `screen()` / `active_window()` - Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
 - `div()` - Generic container.
 - `text("content")` - Display text.
-- `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`.
+- `form(on_submit=fn)` - Form container. Enter in child `input_text` or clicking a child `button(type="submit")` triggers `on_submit`. Callback receives `SubmitEvent(data={"input_id": "value", ...})` with all child input values. Ctrl+Enter submits from `textarea`.
+- `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`. Use `type="submit"` inside a `form` to trigger the form's `on_submit`.
 - `input_text(id="x")` - Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.
 - `textarea(id="x", rows=5)` - Multi-line input. Requires `id`.
 - `select(id="x", options=[...])` - Dropdown. Requires `id`. Options: strings or `{"label": "...", "value": "..."}` dicts.
 - `checkbox(checked=True, on_change=fn)` - Toggle. Uses `on_change` not `on_click`.
 - `link("text", url="...")` - Clickable URL. `close_on_click=True` to hide UI after click.
-- `icon("name", size=24)` - Built-in SVG icon. Names: `check`, `close`, `star`, `edit`, `trash`, `plus`, `minus`, `play`, `pause`, `settings`, etc.
+- `icon("name", size=24)` - Built-in SVG icon (Lucide-style, 24x24 viewbox). ~48 available names: `arrow_down`, `arrow_left`, `arrow_right`, `arrow_up`, `check`, `chevron_down`, `chevron_left`, `chevron_right`, `chevron_up`, `close`, `clock`, `copy`, `delta`, `diamond`, `download`, `edit`, `external_link`, `file`, `file_text`, `folder`, `home`, `maximize`, `menu`, `mic`, `minimize`, `minus`, `more_horizontal`, `more_vertical`, `multiply`, `pause`, `play`, `plus`, `rotate_left`, `settings`, `shrink`, `star`, `stop`, `trash`, `upload`.
 - `window(title="...")` - Draggable panel with title bar, minimize, close buttons.
 - `table()` / `tr()` / `th()` / `td()` - Table structure.
 - `component(fn, props)` - Reusable UI with local state (`state.use_local`). Only needed for local state or scoped styles.
-- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`.
+- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`. Icons use a 24x24 viewbox. To create a custom icon:
+```python
+svg, path, circle = actions.user.ui_elements_svg(["svg", "path", "circle"])
+# defaults: size=24, view_box="0 0 24 24", stroke_width=2, stroke_linecap/linejoin="round"
+svg()[
+    circle(cx=12, cy=12, r=10),
+    path(d="M12 6v6l4 2"),
+]
+```
 
 See: `docs/elements.md`
 

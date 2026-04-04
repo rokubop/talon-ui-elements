@@ -144,14 +144,35 @@ div(position="relative")[
 ]
 ```
 
+## Form Submission
+
+Use `form(on_submit=fn)` to group inputs with a submit action. Enter in `input_text` or clicking `button(type="submit")` triggers `on_submit`. Ctrl+Enter submits from `textarea`.
+
+```python
+form, input_text, button, div, text = actions.user.ui_elements(
+    ["form", "input_text", "button", "div", "text"]
+)
+
+def on_submit(e):
+    print(e.data)  # {"name": "John", "email": "john@example.com"}
+
+form(on_submit=on_submit, gap=8)[
+    input_text(id="name", placeholder="Name"),
+    input_text(id="email", placeholder="Email"),
+    button("Submit", type="submit"),
+]
+```
+
+The `on_submit` handler can also take 0 args if you don't need the event data.
+
 ## Complete Example: Todo List
 
 ```python
 from talon import actions
 
 def todo_list_ui():
-    elements = ["div", "text", "button", "screen", "state", "input_text", "ref"]
-    div, text, button, screen, state, input_text, ref = actions.user.ui_elements(elements)
+    elements = ["div", "text", "button", "screen", "state", "input_text", "ref", "form"]
+    div, text, button, screen, state, input_text, ref, form = actions.user.ui_elements(elements)
 
     items, set_items = state.use('items', [])
     add_input = ref('add_input')
@@ -178,11 +199,11 @@ def todo_list_ui():
             div(gap=8, max_height=300, margin_top=8)[
                 *[item(item_name) for item_name in items]
             ],
-            div(border_top=1, margin_top=8, padding_top=16, gap=16)[
+            form(on_submit=add_item, border_top=1, margin_top=8, padding_top=16, gap=16)[
                 text("New Item", font_size=12, id="label"),
                 div(flex_direction="row", gap=8)[
                     input_text(id="add_input", autofocus=True, background_color="222222", border_radius=4, width=200),
-                    button("Add", on_click=add_item, background_color="42A5F5", border_radius=4, padding=12)
+                    button("Add", type="submit", background_color="42A5F5", border_radius=4, padding=12)
                 ]
             ]
         ]

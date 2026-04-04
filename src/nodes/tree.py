@@ -25,6 +25,8 @@ from ..constants import (
     RESIZE_GHOST_STROKE_WIDTH,
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
+    PRIMARY_MOD,
+    KEY_SPACE, KEY_ENTER, KEY_RETURN,
 )
 from ..utils import draw_rect, get_scale, scale_value
 from ..canvas_wrapper import CanvasWeakRef
@@ -1143,7 +1145,7 @@ class Tree(TreeType):
             key_string = mod.lower() + "-" + key_string
 
         # Copy selected text
-        if key_string == "ctrl-c" and e.down and self._text_selected_nodes:
+        if key_string == f"{PRIMARY_MOD}-c" and e.down and self._text_selected_nodes:
             for node in self._text_selected_nodes:
                 node.copy_selection()
             return
@@ -1166,9 +1168,13 @@ class Tree(TreeType):
             custom_input_manager.handle_canvas_key(e)
             return
 
-        if key_string == "space" or key_string == "enter" or key_string == "return":
+        if key_string == KEY_SPACE or key_string == KEY_ENTER or key_string == KEY_RETURN:
             focused_node = state_manager.get_focused_node()
-            if getattr(focused_node, 'properties', None) and getattr(focused_node.properties, "on_click", None):
+            is_clickable = getattr(focused_node, 'properties', None) and (
+                getattr(focused_node.properties, "on_click", None)
+                or getattr(focused_node.properties, 'type', None) == 'submit'
+            )
+            if is_clickable:
                 if e.down:
                     state_manager.highlight_briefly(focused_node.id)
                     self.click_node(focused_node)
@@ -1932,6 +1938,8 @@ class Tree(TreeType):
 
         selectable_node = self._get_selectable_text_at(gpos)
         if selectable_node:
+            if self.canvas_decorator:
+                self.canvas_decorator.focused = True
             for node in self._text_selected_nodes:
                 if node is not selectable_node:
                     node.clear_selection()
@@ -1965,6 +1973,17 @@ class Tree(TreeType):
                 state_manager.blur_all(pos=gpos)
 
     def click_node(self, node: NodeType):
+        if node and getattr(node, 'properties', None) and getattr(node.properties, 'type', None) == 'submit':
+            from .node_form import find_parent_form
+            form_node = find_parent_form(node)
+            if form_node and form_node.on_submit:
+                try:
+                    form_node.fire_submit()
+                except Exception as e:
+                    print(f"Error during form submit: {e}")
+                    log_trace()
+                    self.destroy()
+                return  # Form handled it
         if node and getattr(node, 'on_click', None):
             try:
                 sig = inspect.signature(node.on_click)
@@ -2576,7 +2595,7 @@ class Tree(TreeType):
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
-            if node.depth > 1 or node.element_type not in [ELEMENT_ENUM_TYPE["div"], ELEMENT_ENUM_TYPE["window"]]:
+            if node.depth > 1 or node.element_type not in [ELEMENT_ENUM_TYPE["div"], ELEMENT_ENUM_TYPE["form"], ELEMENT_ENUM_TYPE["window"]]:
                 raise Exception('Only top level divs can be draggable. Assign "draggable" property to the top level div (Not "screen" or "active_window").')
             self.draggable_node = node
             self.drag_handle_node = node

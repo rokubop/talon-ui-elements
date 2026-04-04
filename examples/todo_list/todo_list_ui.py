@@ -4,9 +4,9 @@ from talon import actions
 def todo_list_ui():
     elements = [
         "div", "text", "button", "screen", "state",
-        "input_text", "ref", "icon", "style", "checkbox", "window",
+        "input_text", "ref", "icon", "style", "checkbox", "window", "form",
     ]
-    div, text, button, screen, state, input_text, ref, icon, style, checkbox, window = (
+    div, text, button, screen, state, input_text, ref, icon, style, checkbox, window, form = (
         actions.user.ui_elements(elements)
     )
 
@@ -96,7 +96,7 @@ def todo_list_ui():
                         text_align="center",
                     ) if not items else None,
                 ],
-                div(flex_direction="row", gap=8, border_top=1, border_color="333333", padding_top=16)[
+                form(on_submit=add_item, flex_direction="row", gap=8, border_top=1, border_color="333333", padding_top=16)[
                     input_text(
                         id="add_input",
                         autofocus=True,
@@ -110,7 +110,7 @@ def todo_list_ui():
                         font_size=14,
                     ),
                     button(
-                        on_click=add_item,
+                        type="submit",
                         border_radius=6,
                         padding=8,
                         highlight_style={"background_color": "333333"},

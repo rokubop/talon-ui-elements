@@ -898,6 +898,10 @@ class ClickEvent:
     id: str
     cause: str = "click"
 
+@dataclass
+class SubmitEvent:
+    data: dict
+
 class StyleType(ABC):
     tags: dict[str, dict]
     ids: dict[str, dict]

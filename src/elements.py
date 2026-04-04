@@ -25,6 +25,7 @@ from .nodes.node_svg import (
 from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
 from .nodes.node_button import NodeButton
+from .nodes.node_form import NodeForm
 from .nodes.switch import switch
 from .nodes.node_window import NodeWindow
 from .nodes.node_modal import NodeModal
@@ -35,6 +36,7 @@ from .properties import (
     NodeTextareaProperties,
     NodeRootProperties,
     NodeDivProperties,
+    NodeFormProperties,
     NodeCursorProperties,
     NodeTableProperties,
     NodeTableDataProperties,
@@ -195,6 +197,11 @@ def div(props=None, **additional_props):
     div_properties = NodeDivProperties(**properties)
     return NodeContainer(ELEMENT_ENUM_TYPE["div"], div_properties)
 
+def form(props=None, **additional_props):
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["form"])
+    form_properties = NodeFormProperties(**properties)
+    return NodeForm(form_properties)
+
 def cursor(props=None, **additional_props):
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["cursor"])
 
@@ -308,7 +315,8 @@ def button(*args, text=None, **additional_props):
     )
 
     if text:
-        properties["type"] = "button"
+        if "type" not in properties:
+            properties["type"] = "button"
         text_properties = NodeTextProperties(**{
             "padding": 8,
             **properties
@@ -531,6 +539,7 @@ checkbox = UIElementsLeafProxy(checkbox)
 cursor = UIElementsContainerNoTextProxy(cursor)
 data_table = UIElementsLeafProxy(data_table)
 div = UIElementsContainerNoTextProxy(div)
+form = UIElementsContainerNoTextProxy(form)
 effect = use_effect
 icon = UIElementsLeafProxy(icon)
 input_text = UIElementsInputTextProxy(input_text)
@@ -609,6 +618,7 @@ element_collection: Dict[str, callable] = {
     'data_table': data_table,
     'div': div,
     'effect': effect,
+    'form': form,
     'icon': icon,
     'input_text': input_text,
     'link': link,

@@ -1,6 +1,6 @@
 # UI Elements
 
-![Version](https://img.shields.io/badge/version-0.17.0-blue)
+![Version](https://img.shields.io/badge/version-0.18.0-blue)
 ![Status](https://img.shields.io/badge/status-stable-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -9,8 +9,8 @@
 ![ui_elements](./examples/ui_elements_preview.png)
 
 ## Features
-- 20+ elements such as `div`, `text`, `button`, `table`, `icon`, `input_text`, `textarea`, `select`, `cursor`
-- 90+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
+- 30+ elements such as `div`, `text`, `button`, `form`, `table`, `icon`, `input_text`, `textarea`, `select`, `cursor`
+- 100+ CSS-like properties such as `width`, `background_color`, `margin`, `padding_left`, `flex_direction`
 - Reactive utilties `state`, `effect`, and `ref`
 - Dragging and scrolling
 - Talon actions for highlighting elements, changing state, setting text

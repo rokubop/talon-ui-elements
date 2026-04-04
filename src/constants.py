@@ -1,4 +1,40 @@
+import platform
 from typing import TypedDict, Union
+
+IS_MAC = platform.system() == "Darwin"
+
+# Platform-aware modifier and key constants
+# On macOS, Cmd (reported as "super") is the primary modifier.
+# On Windows/Linux, Ctrl (reported as "ctrl"/"control") is the primary modifier.
+PRIMARY_MOD = "super" if IS_MAC else "ctrl"
+
+KEY_ENTER = "enter"
+KEY_RETURN = "return"
+KEY_ESCAPE = "escape"
+KEY_SPACE = "space"
+KEY_BACKSPACE = "backspace"
+KEY_DELETE = "delete"
+KEY_TAB = "tab"
+KEY_LEFT = "left"
+KEY_RIGHT = "right"
+KEY_UP = "up"
+KEY_DOWN = "down"
+KEY_HOME = "home"
+KEY_END = "end"
+
+MODIFIER_KEYS = frozenset({
+    "shift", "ctrl", "control", "alt", "win", "super",
+    "capslock", "numlock", "scrolllock", "fn",
+})
+
+def parse_mods(mods: list) -> tuple:
+    """Parse raw Talon e.mods into (shift, ctrl, alt) booleans.
+    Maps the platform's primary modifier to ctrl."""
+    lowered = [m.lower() for m in mods] if mods else []
+    shift = "shift" in lowered
+    ctrl = PRIMARY_MOD in lowered
+    alt = "alt" in lowered
+    return shift, ctrl, alt
 
 # Don't make these a talon setting
 # Shared UI's should be consistent from user to user
@@ -73,6 +109,7 @@ class ElementEnumType(TypedDict):
     cursor: str
     data_table: str
     div: str
+    form: str
     icon: str
     input_text: str
     link: str
@@ -101,6 +138,7 @@ ELEMENT_ENUM_TYPE: ElementEnumType = {
     "cursor": "cursor",
     "data_table": "data_table",
     "div": "div",
+    "form": "form",
     "icon": "icon",
     "input_text": "input_text",
     "link": "link",
@@ -144,6 +182,7 @@ NODE_TYPE_MAP = {
     ELEMENT_ENUM_TYPE["cursor"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["data_table"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["div"]: NODE_ENUM_TYPE["node"],
+    ELEMENT_ENUM_TYPE["form"]: NODE_ENUM_TYPE["node"],
     ELEMENT_ENUM_TYPE["link"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["icon"]: NODE_ENUM_TYPE["leaf"],
     ELEMENT_ENUM_TYPE["input_text"]: NODE_ENUM_TYPE["leaf"],
