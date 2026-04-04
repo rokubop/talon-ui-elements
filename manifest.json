@@ -2,7 +2,7 @@
   "name": "talon-ui-elements",
   "title": "UI Elements",
   "description": "Create stateful canvas UIs using HTML/CSS/React-inspired syntax for python. For use with Talon.",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "status": "stable",
   "namespace": "user.ui_elements",
   "github": "https://github.com/rokubop/talon-ui-elements",
@@ -72,7 +72,7 @@
   "depends": {},
   "validateDependencies": true,
   "_generator": "talon-pack",
-  "_generatorVersion": "3.3.0",
+  "_generatorVersion": "3.3.1",
   "_generatorRequiresVersionAction": true,
   "_generatorStrictNamespace": true,
   "_generatorFrozenFields": []
