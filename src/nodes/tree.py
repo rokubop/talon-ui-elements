@@ -1789,7 +1789,7 @@ class Tree(TreeType):
 
     def _get_selectable_text_at(self, gpos):
         for node in self.meta_state.id_to_node.values():
-            if node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+            if node.element_type in (ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]) and \
                     getattr(node, 'selectable', False) and node.box_model:
                 hit_rect = node.parent_node.box_model.padding_rect \
                     if node.parent_node and node.parent_node.box_model \
@@ -1811,7 +1811,7 @@ class Tree(TreeType):
             return
 
         if self._text_selecting_node:
-            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"]):
+            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]):
                 self._text_selecting_node.update_selection_from_drag(gpos.x, click_y=gpos.y)
             else:
                 self._text_selecting_node.update_selection_from_drag(gpos.x)
@@ -2635,8 +2635,8 @@ class Tree(TreeType):
 
             if getattr(node, 'on_click', None):
                 self.meta_state.add_button(node.id)
-            elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
-                if node.properties.for_id:
+            elif node.element_type in (ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]):
+                if getattr(node.properties, 'for_id', None):
                     self.meta_state.add_text_with_for_id(node.id, node.properties.for_id)
                 elif getattr(node, 'selectable', False):
                     pass

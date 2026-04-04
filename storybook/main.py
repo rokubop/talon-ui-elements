@@ -1,5 +1,6 @@
 from talon import actions
 from .elements.button import button_stories
+from .elements.code import code_stories
 from .elements.data_table import data_table_stories
 from .elements.div import div_stories
 from .elements.link import link_stories
@@ -13,6 +14,7 @@ from . import theme as t
 
 storybook_pages = {
     "button": button_stories,
+    "code": code_stories,
     "checkbox": checkbox_stories,
     "data_table": data_table_stories,
     "div": div_stories,

@@ -56,9 +56,9 @@ style, component = actions.user.ui_elements(["style", "component"])
 window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
-All elements: `div`, `text`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+All elements: `div`, `text`, `code`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
 
-SVG elements (separate function): `actions.user.ui_elements_svg(["svg", "path", "rect", "circle", "line", "polyline", "polygon"])`
+SVG elements (must be used inside `svg()`): `svg`, `path`, `rect`, `circle`, `line`, `polyline`, `polygon`
 
 ---
 
@@ -67,7 +67,7 @@ SVG elements (separate function): `actions.user.ui_elements_svg(["svg", "path", 
 - Root must be `screen()` or `active_window()`
 - Children via bracket syntax: `parent()[child1, child2]`
 - Containers (can have children): `div`, `form`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
-- Leaves (no children): `text`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `data_table`, `link`
+- Leaves (no children): `text`, `code`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `data_table`, `link`
 - `button`: leaf with label `button("Click")`, container without: `button(on_click=fn)[icon("check")]`
 - Dynamic lists: `div()[*[text(item) for item in items]]`
 
@@ -196,6 +196,7 @@ See: `docs/concepts/style.md`
 - `screen()` / `active_window()` - Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
 - `div()` - Generic container.
 - `text("content")` - Display text.
+- `code("def hello():")` - Syntax-highlighted code. Props: `language` ("python"/"talon"), `theme` (string name or dict). Built-in themes: "monokai" (default), "vscode_dark", "dracula", "one_dark", "github_light". Defaults to monospace font and `white_space="nowrap"`.
 - `form(on_submit=fn)` - Form container. Enter in child `input_text` or clicking a child `button(type="submit")` triggers `on_submit`. Callback receives `SubmitEvent(data={"input_id": "value", ...})` with all child input values. Ctrl+Enter submits from `textarea`.
 - `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`. Use `type="submit"` inside a `form` to trigger the form's `on_submit`.
 - `input_text(id="x")` - Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.
@@ -207,9 +208,9 @@ See: `docs/concepts/style.md`
 - `window(title="...")` - Draggable panel with title bar, minimize, close buttons.
 - `table()` / `tr()` / `th()` / `td()` - Table structure.
 - `component(fn, props)` - Reusable UI with local state (`state.use_local`). Only needed for local state or scoped styles.
-- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG via `ui_elements_svg(...)`. Use `size` and `view_box`, not `width`/`height`/`viewBox`. Icons use a 24x24 viewbox. To create a custom icon:
+- `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG. Use `size` and `view_box`, not `width`/`height`/`viewBox`. Icons use a 24x24 viewbox. To create a custom icon:
 ```python
-svg, path, circle = actions.user.ui_elements_svg(["svg", "path", "circle"])
+svg, path, circle = actions.user.ui_elements(["svg", "path", "circle"])
 # defaults: size=24, view_box="0 0 24 24", stroke_width=2, stroke_linecap/linejoin="round"
 svg()[
     circle(cx=12, cy=12, r=10),
@@ -234,6 +235,12 @@ actions.user.ui_elements_hide("screen_id")                              # Hide b
 actions.user.ui_elements_toggle(my_ui)                                  # Toggle
 actions.user.ui_elements_hide_all()                                     # Hide all
 actions.user.ui_elements_is_active(my_ui)                               # Check if showing
+```
+
+**Register custom code themes/languages (from any repo):**
+```python
+actions.user.ui_elements_register_code_theme("nord", {"keyword": "81A1C1", "string": "A3BE8C", ...})
+actions.user.ui_elements_register_code_language("json", [("string", re.compile(r'...')), ...])
 ```
 
 Every interactive element (buttons, inputs, links, checkboxes) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default - pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).

@@ -24,6 +24,7 @@ from .nodes.node_svg import (
 )
 from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
+from .nodes.node_code import NodeCode
 from .nodes.node_button import NodeButton
 from .nodes.node_form import NodeForm
 from .nodes.switch import switch
@@ -31,6 +32,7 @@ from .nodes.node_window import NodeWindow
 from .nodes.node_modal import NodeModal
 from .properties import (
     NodeInputTextProperties,
+    NodeCodeProperties,
     NodeDataTableProperties,
     NodeSelectProperties,
     NodeTextareaProperties,
@@ -298,6 +300,13 @@ def text(text_str: str = "", props=None, **additional_props):
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
 
+def code(text_str: str = "", props=None, **additional_props):
+    if isinstance(text_str, str):
+        text_str = text_str.replace("\r\n", "\n")
+    properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["code"])
+    code_properties = NodeCodeProperties(**properties)
+    return NodeCode(text_str, code_properties)
+
 def button(*args, text=None, **additional_props):
     if args and isinstance(args[0], str):
         text = args[0]
@@ -535,6 +544,7 @@ use_effect_without_tree = use_effect_no_tree
 
 active_window = UIElementsContainerNoTextProxy(active_window)
 button = UIElementsLeafProxy(button)
+code = UIElementsLeafProxy(code)
 checkbox = UIElementsLeafProxy(checkbox)
 cursor = UIElementsContainerNoTextProxy(cursor)
 data_table = UIElementsLeafProxy(data_table)
@@ -613,6 +623,7 @@ element_collection: Dict[str, callable] = {
     'active_window': active_window,
     'button': button,
     'checkbox': checkbox,
+    'code': code,
     'component': Component,
     'cursor': cursor,
     'data_table': data_table,

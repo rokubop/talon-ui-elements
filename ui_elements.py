@@ -7,6 +7,7 @@ from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
+from .src.syntax import register_theme, register_language
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
 from .storybook.main import storybook_ui
@@ -26,7 +27,7 @@ class Actions:
         button, input_text, state = actions.user.ui_elements(["button", "input_text", "state"])
         ref, effect, icon = actions.user.ui_elements(["ref", "effect", "icon"])
         component, style = actions.user.ui_elements(["component", "style"])
-        checkbox, link, cursor = actions.user.ui_elements(["checkbox", "link", "cursor"])
+        checkbox, code, link, cursor = actions.user.ui_elements(["checkbox", "code", "link", "cursor"])
         table, th, tr, td = actions.user.ui_elements(["table", "th", "tr", "td"])
         svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
         circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
@@ -226,6 +227,45 @@ class Actions:
     def ui_elements_get_trees():
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
+
+    def ui_elements_register_code_theme(name: str, theme: dict):
+        """
+        Register a named code theme for use with the `code` element.
+
+        ```
+        actions.user.ui_elements_register_code_theme("nord", {
+            "keyword": "81A1C1",
+            "string": "A3BE8C",
+            "comment": "616E88",
+            "number": "B48EAD",
+            "function": "88C0D0",
+            "text": "D8DEE9",
+        })
+
+        # Then use it:
+        code("def hello():", theme="nord")
+        ```
+        """
+        register_theme(name, theme)
+
+    def ui_elements_register_code_language(name: str, patterns: list):
+        """
+        Register a custom language for syntax highlighting with the `code` element.
+
+        ```
+        import re
+        actions.user.ui_elements_register_code_language("json", [
+            ("string", re.compile(r'"(?:[^"\\\\\\\\]|\\\\\\\\.)*"')),
+            ("number", re.compile(r'-?\\b\\d+(?:\\.\\d+)?\\b')),
+            ("keyword", re.compile(r'\\b(?:true|false|null)\\b')),
+            ("punctuation", re.compile(r'[{}\\[\\]:,]')),
+        ])
+
+        # Then use it:
+        code('{"key": "value"}', language="json")
+        ```
+        """
+        register_language(name, patterns)
 
     def ui_elements_storybook_toggle():
         """Toggle the storybook UI"""

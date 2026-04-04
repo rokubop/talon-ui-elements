@@ -29,8 +29,9 @@ SMALL_INPUT_STYLE = {
 }
 
 def code(code_str: str):
-    div, text = actions.user.ui_elements(["div", "text"])
-    component = actions.user.ui_elements(["component"])
+    div = actions.user.ui_elements("div")
+    code_el = actions.user.ui_elements("code")
+    component = actions.user.ui_elements("component")
 
     return div(
             background_color=t.BG_CODE,
@@ -38,11 +39,10 @@ def code(code_str: str):
             border_width=1,
             border_color=t.BORDER_SUBTLE,
             padding=24,
-            color=t.TEXT_CODE,
             font_size=14,
             position="relative",
         )[
-            text(code_str, font_family="monospace", selectable=True),
+            code_el(code_str, selectable=True),
             div(position="absolute", right=0, top=0)[
                 component(copy_button, props={
                     "code": code_str

@@ -4,7 +4,7 @@ All actions are prefixed with `user.ui_elements_*`
 
 | Action | Parameters | Description |
 | -- | -- | -- |
-| `user.ui_elements()` | `elements: Union[str, List[str]]` | **Primary method for building UIs.** Get UI elements by name. Returns tuple or single element. Example: `div, text = actions.user.ui_elements(["div", "text"])`. See [Elements documentation](./elements.md)<br><br>**Root elements:** `screen`, `active_window`<br>**Standard elements:** `window`, `div`, `form`, `text`, `button`, `input_text`, `textarea`, `select`, `checkbox`, `link`, `icon`, `table`, `tr`, `th`, `td`, `cursor`<br>**SVG elements:** `svg`, `path`, `rect`, `circle`, `line`, `polyline`, `polygon`<br>**Utility elements:** `state`, `ref`, `effect`, `component`, `style` |
+| `user.ui_elements()` | `elements: Union[str, List[str]]` | **Primary method for building UIs.** Get UI elements by name. Returns tuple or single element. Example: `div, text = actions.user.ui_elements(["div", "text"])`. See [Elements documentation](./elements.md)<br><br>**Root elements:** `screen`, `active_window`<br>**Standard elements:** `window`, `div`, `form`, `text`, `code`, `button`, `input_text`, `textarea`, `select`, `checkbox`, `link`, `icon`, `table`, `tr`, `th`, `td`, `cursor`<br>**SVG elements:** `svg`, `path`, `rect`, `circle`, `line`, `polyline`, `polygon`<br>**Utility elements:** `state`, `ref`, `effect`, `component`, `style` |
 | `user.ui_elements_show()` | `renderer: Callable`<br>`props: dict = None`<br>`on_mount: Callable = None`<br>`on_unmount: Callable = None`<br>`show_hints: bool = None`<br>`initial_state: dict = None`<br>`min_version: str = None`<br>`duration: str = None`<br>`scale: float = None` | **Primary method for displaying UIs.** Render and show the UI. The `renderer` parameter (required) is a function that returns an element tree (typically starting with `screen()` or `active_window()`). All other parameters are optional. `on_mount` runs after visible, `on_unmount` runs before hidden. `duration` auto-hides (e.g., `"1s"`). `scale` overrides default scale |
 | `user.ui_elements_hide()` | `renderer_or_tree_id: Union[str, Callable]` | Destroy, garbage collect, and hide a specific UI by renderer function or tree ID |
 | `user.ui_elements_hide_all()` | None | Destroy, garbage collect, and hide all UIs |
@@ -26,6 +26,8 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_debug_gc()` | None | Print garbage collection debug info to log for troubleshooting memory issues |
 | `user.ui_elements_version()` | None | Get version object with `.major`, `.minor`, `.patch` attributes. Supports comparison: `version < "0.6.2"` |
 | `user.ui_elements_reset_all_scale_overrides()` | None | Clear all manual scale overrides (from Ctrl/Cmd +/-) and revert to default scale |
+| `user.ui_elements_register_code_theme()` | `name: str`<br>`theme: dict` | Register a named code theme for use with the `code` element. Theme is a dict mapping token types to hex colors. Built-in themes: monokai, vscode_dark, dracula, one_dark, github_light |
+| `user.ui_elements_register_code_language()` | `name: str`<br>`patterns: list` | Register a custom language for syntax highlighting. Patterns is a list of `(token_type, compiled_regex)` tuples. Built-in languages: python, talon |
 | `user.ui_elements_storybook_toggle()` | None | Toggle storybook UI for browsing component examples |
 | `user.ui_elements_examples()` | None | Toggle example UIs for demonstration and testing |
 | `user.ui_elements_test_runner()` | None | Toggle test runner UI for running and viewing tests |

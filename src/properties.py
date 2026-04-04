@@ -574,6 +574,20 @@ class NodeTextValidationProperties(ValidationProperties):
     text_align: str
     white_space: str
 
+class NodeCodeValidationProperties(ValidationProperties):
+    font_size: Union[int, float]
+    font_family: str
+    font_style: str
+    font_weight: str
+    language: str
+    theme: Union[str, dict]
+    selectable: bool
+    selection_color: str
+    stroke_color: str = None
+    stroke_width: Union[int, float] = None
+    text_align: str
+    white_space: str
+
 class NodeButtonValidationProperties(NodeTextValidationProperties):
     on_click: callable
     type: str
@@ -607,6 +621,29 @@ class NodeTextProperties(Properties):
     def gc(self):
         if self.on_click:
             self.on_click = None
+
+@dataclass
+class NodeCodeProperties(Properties):
+    id: str = None
+    font_family: str = "monospace"
+    font_size: Union[int, float] = DEFAULT_FONT_SIZE
+    font_style: str = "normal"
+    font_weight: str = "normal"
+    for_id: str = None
+    language: str = "python"
+    on_click: any = None
+    theme: Union[str, dict] = None
+    selectable: bool = False
+    selection_color: str = "4488FF88"
+    stroke_width: Union[int, float] = None
+    stroke_color: str = None
+    text_align: str = "left"
+    type: str = None
+    white_space: str = "nowrap"
+
+    def __init__(self, **kwargs):
+        self.font_size = DEFAULT_FONT_SIZE
+        super().__init__(**kwargs)
 
 class NodeScreenValidationProperties(ValidationProperties):
     screen: int
@@ -1197,6 +1234,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["code"]: NodeCodeValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["data_table"]: NodeDataTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
