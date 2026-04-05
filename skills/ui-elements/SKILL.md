@@ -196,7 +196,7 @@ See: `docs/concepts/style.md`
 - `screen()` / `active_window()` - Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
 - `div()` - Generic container.
 - `text("content")` - Display text.
-- `code("def hello():")` - Syntax-highlighted code. Props: `language` ("python"/"talon"), `theme` (string name or dict). Built-in themes: "monokai" (default), "vscode_dark", "dracula", "one_dark", "github_light". Defaults to monospace font and `white_space="nowrap"`.
+- `code("def hello():")` - Syntax-highlighted code. Props: `language` ("python"/"talon"), `theme` (string name or dict), `diff=True`. Built-in themes: "monokai" (default), "vscode_dark", "dracula", "one_dark", "github_light". Defaults to monospace font and `white_space="nowrap"`.
 - `form(on_submit=fn)` - Form container. Enter in child `input_text` or clicking a child `button(type="submit")` triggers `on_submit`. Callback receives `SubmitEvent(data={"input_id": "value", ...})` with all child input values. Ctrl+Enter submits from `textarea`.
 - `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`. Use `type="submit"` inside a `form` to trigger the form's `on_submit`.
 - `input_text(id="x")` - Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.

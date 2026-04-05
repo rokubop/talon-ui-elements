@@ -5,9 +5,16 @@ from .node_code import NodeCode
 from .component import Component
 
 CODE_ONLY_PROPS = {
-    "language", "theme", "selectable", "selection_color",
+    "language", "theme", "diff", "selectable", "selection_color",
     "font_family", "font_size", "font_style", "font_weight",
     "text_align", "white_space", "color", "stroke_width", "stroke_color",
+}
+
+OVERFLOW_PROPS = {"overflow", "overflow_x", "overflow_y"}
+
+PADDING_PROPS = {
+    "padding", "padding_top", "padding_bottom",
+    "padding_left", "padding_right", "padding_x", "padding_y",
 }
 
 
@@ -20,11 +27,17 @@ def code_copy_impl(props):
 
     code_props = {}
     container_props = {}
+    overflow_props = {}
+    padding_props = {}
     for k, v in props.items():
         if k in ("copyable", "id", "for_id", "type"):
             continue
         elif k in CODE_ONLY_PROPS:
             code_props[k] = v
+        elif k in OVERFLOW_PROPS:
+            overflow_props[k] = v
+        elif k in PADDING_PROPS:
+            padding_props[k] = v
         else:
             container_props[k] = v
 
@@ -33,8 +46,14 @@ def code_copy_impl(props):
         set_copied(True)
         cron.after("2s", lambda: set_copied(False))
 
+    code_content = code_el(text_str, **code_props)
+    if overflow_props:
+        code_content = div(**padding_props, **overflow_props)[code_content]
+    else:
+        container_props.update(padding_props)
+
     return div(position="relative", **container_props)[
-        code_el(text_str, **code_props),
+        code_content,
         div(position="absolute", right=0, top=0)[
             button(
                 on_click=on_copy,

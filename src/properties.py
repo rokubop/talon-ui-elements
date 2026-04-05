@@ -574,6 +574,7 @@ class NodeTextValidationProperties(ValidationProperties):
 
 class NodeCodeValidationProperties(ValidationProperties):
     copyable: bool
+    diff: bool
     font_size: Union[int, float]
     font_family: str
     font_style: str
@@ -631,9 +632,10 @@ class NodeCodeProperties(Properties):
     for_id: str = None
     language: str = "python"
     copyable: bool = True
+    diff: bool = False
     on_click: any = None
     theme: Union[str, dict] = None
-    selectable: bool = False
+    selectable: bool = True
     selection_color: str = "4488FF88"
     stroke_width: Union[int, float] = None
     stroke_color: str = None

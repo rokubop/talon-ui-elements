@@ -3,6 +3,23 @@ from ..common import code, example_with_code
 from .. import theme as t
 import textwrap
 
+DIFF_EXAMPLE = textwrap.dedent("""\
+    @@ -10,6 +10,8 @@
+     from talon import Module, actions
+
+     mod = Module()
+
+    -@mod.action_class
+    -class Actions:
+    -    def hello(name: str = "world"):
+    -        print(f"Hello {name}!")
+    +@mod.action_class
+    +class Actions:
+    +    def greet(name: str = "world"):
+    +        \"\"\"Say greeting\"\"\"
+    +        print(f"Hi there {name}!")
+    +        return True""")
+
 PYTHON_EXAMPLE = textwrap.dedent("""\
     from talon import Module, actions
 
@@ -83,6 +100,15 @@ def code_stories():
                         'name = "world"\\nresult = len(name)',
                         selectable=True,
                     )""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Diff Mode",
+                "example": div(background_color=t.BG_CODE, border_radius=8, padding=16)[
+                    code_el(DIFF_EXAMPLE, language="python", diff=True),
+                ],
+                "code": textwrap.dedent("""\
+                    code(diff_text, language="python", diff=True)""")
             }),
 
             # Themes
