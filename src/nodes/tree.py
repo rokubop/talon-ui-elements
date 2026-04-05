@@ -1451,7 +1451,51 @@ class Tree(TreeType):
                     self.render_manager.pause()
                     self.render_base_canvas()
                     return True
+                if node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos):
+                    self._scrollbar_track_jump(node_id, scrollable_data, node, gpos, axis="y")
+                    return True
+                if node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos):
+                    self._scrollbar_track_jump(node_id, scrollable_data, node, gpos, axis="x")
+                    return True
         return False
+
+    def _scrollbar_track_jump(self, node_id, scrollable_data, node, gpos, axis="y"):
+        """Jump scroll to click position on the track, then start drag."""
+        if axis == "y":
+            track_rect = node.box_model.scroll_bar_track_rect
+            thumb_rect = node.box_model.scroll_bar_thumb_rect
+            if not track_rect or not thumb_rect:
+                return
+            view_height = scrollable_data.view_height
+            max_height = scrollable_data.max_height
+            content_travel = max_height - view_height
+            thumb_center_y = gpos.y - thumb_rect.height / 2
+            ratio = (thumb_center_y - track_rect.y) / (track_rect.height - thumb_rect.height)
+            ratio = max(0, min(1, ratio))
+            new_offset = -ratio * content_travel
+            new_offset = max(view_height - max_height, min(0, new_offset))
+            scrollable_data.offset_y = new_offset
+            scrollable_data.target_offset_y = new_offset
+            self.meta_state.start_scrollbar_drag(node_id, gpos.y, new_offset, axis="y")
+        else:
+            track_rect = node.box_model.scroll_bar_x_track_rect
+            thumb_rect = node.box_model.scroll_bar_x_thumb_rect
+            if not track_rect or not thumb_rect:
+                return
+            view_width = scrollable_data.view_width
+            max_width = scrollable_data.max_width
+            content_travel = max_width - view_width
+            thumb_center_x = gpos.x - thumb_rect.width / 2
+            ratio = (thumb_center_x - track_rect.x) / (track_rect.width - thumb_rect.width)
+            ratio = max(0, min(1, ratio))
+            new_offset = -ratio * content_travel
+            new_offset = max(view_width - max_width, min(0, new_offset))
+            scrollable_data.offset_x = new_offset
+            scrollable_data.target_offset_x = new_offset
+            self.meta_state.start_scrollbar_drag(node_id, gpos.x, new_offset, axis="x")
+        self._scrollbar_show(node_id)
+        self.render_manager.pause()
+        self.render_base_canvas()
 
     def handle_scrollbar_mouseup(self, gpos):
         """Handle scrollbar drag end and restore hover state."""
@@ -1484,6 +1528,14 @@ class Tree(TreeType):
                     new_hovered_id = node_id
                     new_hovered_axis = "x"
                     break
+                if node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    new_hovered_axis = "y"
+                    break
+                if node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    new_hovered_axis = "x"
+                    break
 
         if new_hovered_id != prev_hovered_id or new_hovered_axis != prev_hovered_axis:
             if new_hovered_id:
@@ -1504,6 +1556,10 @@ class Tree(TreeType):
                 if (node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos)):
                     return (None, None)
                 if (node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos)):
+                    return (None, None)
+                if (node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos)):
+                    return (None, None)
+                if (node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos)):
                     return (None, None)
 
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
