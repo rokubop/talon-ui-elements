@@ -30,6 +30,14 @@ class NodeDataTable(NodeContainer):
         self._dt_properties = properties
 
         properties.padding = properties.padding.__class__(0, 0, 0, 0)
+        if not properties.overflow.is_boundary:
+            from ..box_model import Overflow
+            properties.overflow = Overflow(overflow="hidden")
+
+        # Auto-fill parent when body_height is percentage so flex works on body
+        if properties.body_height and isinstance(properties.body_height, str) and "%" in properties.body_height:
+            if not properties.flex and not properties.height:
+                properties.flex = 1
 
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["data_table"],
@@ -267,7 +275,10 @@ class NodeDataTable(NodeContainer):
         if props.max_height:
             body_props["max_height"] = props.max_height
         if props.body_height:
-            body_props["height"] = props.body_height
+            if props.body_height == "100%":
+                body_props["flex"] = 1
+            else:
+                body_props["height"] = props.body_height
 
         body = div(**body_props)
 
