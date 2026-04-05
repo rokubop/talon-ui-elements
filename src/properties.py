@@ -731,12 +731,12 @@ class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
     fill: Union[str, bool]
 
 class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
-    x: int
-    y: int
-    width: int
-    height: int
-    rx: int
-    ry: int
+    x: Union[int, float]
+    y: Union[int, float]
+    width: Union[int, float]
+    height: Union[int, float]
+    rx: Union[int, float]
+    ry: Union[int, float]
     stroke_linecap: str
     stroke_linejoin: str
     stroke_width: Union[int, float]
@@ -744,9 +744,9 @@ class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
     fill: Union[str, bool]
 
 class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
-    cx: int
-    cy: int
-    r: int
+    cx: Union[int, float]
+    cy: Union[int, float]
+    r: Union[int, float]
     stroke_linecap: str
     stroke_linejoin: str
     stroke_width: Union[int, float]
@@ -855,12 +855,12 @@ class NodeSvgPathProperties(Properties):
 
 @dataclass
 class NodeSvgRectProperties(Properties):
-    x: int = 0
-    y: int = 0
-    width: int = 0
-    height: int = 0
-    rx: int = 0
-    ry: int = 0
+    x: Union[int, float] = 0
+    y: Union[int, float] = 0
+    width: Union[int, float] = 0
+    height: Union[int, float] = 0
+    rx: Union[int, float] = 0
+    ry: Union[int, float] = 0
     stroke_linecap: str = None
     stroke_linejoin: str = None
     stroke_width: int = None
@@ -880,9 +880,9 @@ class NodeSvgRectProperties(Properties):
 
 @dataclass
 class NodeSvgCircleProperties(Properties):
-    cx: int = 0
-    cy: int = 0
-    r: int = 0
+    cx: Union[int, float] = 0
+    cy: Union[int, float] = 0
+    r: Union[int, float] = 0
     stroke_linecap: str = None
     stroke_linejoin: str = None
     stroke_width: int = None
@@ -1126,6 +1126,7 @@ class NodeTextareaValidationProperties(ValidationProperties):
 class NodeWindowProperties(Properties):
     drag_title_bar_only: bool = True
     drop_shadow: tuple[int, int, int, int, str] = None
+    icon: object = None
     minimized: bool = False
     minimized_style: dict = None
     minimized_body: callable = None
@@ -1154,6 +1155,7 @@ class NodeWindowProperties(Properties):
 
 class NodeWindowValidationProperties(ValidationProperties):
     drop_shadow: tuple[int, int, int, int, str]
+    icon: object
     minimized: bool
     minimized_style: dict
     minimized_body: callable

@@ -2,6 +2,7 @@ from talon import actions, cron
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
 from ..events import WindowCloseEvent
+from ..icons import VALID_ICON_NAMES
 from ..properties import Properties, NodeWindowProperties
 from ..utils import generate_hash, adjust_color_brightness
 from ..core.entity_manager import entity_manager
@@ -196,11 +197,61 @@ class NodeWindow(NodeContainer):
                     title_bar_style[key] = value
 
         drag_title_bar_only = window_properties.get("drag_title_bar_only", True)
+        window_icon = window_properties.get("icon", None)
+
+        if isinstance(window_icon, str):
+            if window_icon in VALID_ICON_NAMES:
+                window_icon = icon(window_icon)
+            else:
+                raise ValueError(
+                    f"Invalid window icon name: '{window_icon}'. "
+                    f"Valid icon names are: {VALID_ICON_NAMES}"
+                )
+        elif window_icon is not None:
+            svg_types = {"svg", "svg_path", "svg_rect", "svg_circle", "svg_line", "svg_polyline", "svg_polygon"}
+            element_type = getattr(window_icon, "element_type", None)
+            if element_type == "div":
+                pass  # div wrapping an svg (e.g. from icon()) is fine
+            elif element_type not in svg_types:
+                raise ValueError(
+                    f"window icon expects an SVG element or icon name string, "
+                    f"got element type '{element_type}'"
+                )
+
+        def _find_svg_node(node):
+            """Find the SVG node in an element tree for auto-scaling."""
+            if getattr(node, "element_type", None) == "svg":
+                return node
+            for child in getattr(node, "children_nodes", []):
+                result = _find_svg_node(child)
+                if result:
+                    return result
+            return None
+
+        def _auto_scale_icon(icon_element, target_size):
+            """Auto-scale the icon's SVG to match the title font size."""
+            svg_node = _find_svg_node(icon_element)
+            if svg_node:
+                svg_node.properties.size = target_size
 
         def title_bar():
             title_bar_props = {"drag_handle": True} if drag_title_bar_only else {}
+            if window_icon:
+                icon_size = int(title_style.get("font_size", 16))
+                _auto_scale_icon(window_icon, icon_size)
+                icon_title_style = {**title_style}
+                container_padding = {
+                    "padding_left": icon_title_style.pop("padding_left", 10),
+                    "padding": icon_title_style.pop("padding", 0),
+                }
+                title_left = div(flex_direction="row", align_items="center", gap=6, **container_padding)[
+                    window_icon,
+                    text(window_properties.get("title", ""), **icon_title_style),
+                ]
+            else:
+                title_left = text(window_properties.get("title", ""), **title_style)
             return div(title_bar_style, **title_bar_props, flex_direction="row", justify_content="space_between", align_items="center")[
-                text(window_properties.get("title", ""), **title_style),
+                title_left,
                 div(flex_direction="row")[
                     button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, **button_style)[
                         icon("minimize" if not self.is_minimized else "testing2", size=18, **icon_style),

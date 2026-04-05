@@ -164,6 +164,7 @@ Properties mostly match standard CSS properties.
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
 | drag_title_bar_only | bool | True | Whether window can only be dragged by title bar |
+| icon | Union[str, SVG element] | None | Window icon in the title bar. Pass a built-in icon name string or a custom SVG element. Auto-scales to match title font size |
 | minimized | bool | False | Whether window is minimized |
 | minimized_body | callable | None | Function that returns alternate body when minimized |
 | minimized_style | dict | None | Style overrides when minimized |

@@ -401,6 +401,7 @@ def window(props=None, **additional_props):
             "border_color",
             "drag_title_bar_only",
             "drop_shadow",
+            "icon",
             "on_minimize",
             "on_restore",
             "on_close",

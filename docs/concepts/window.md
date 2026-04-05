@@ -30,6 +30,37 @@ Windows are draggable by default. Click and drag the title bar to move them.
 
 **Note:** This isn't a true OS window - it's a canvas overlay that displays on top of everything. When you click minimize, it doesn't minimize to the taskbar. Instead, it collapses to just show the title bar. You'll usually want to either provide a custom `minimized_body` (shown below) or hide the minimize button with `show_minimize=False`.
 
+## Window Icon
+
+You can display an icon in the title bar. It auto-scales to match the title font size. Pass a built-in icon name or a custom SVG element.
+
+```python
+# Built-in icon name
+window(title="Settings", icon="settings")
+```
+
+```python
+# Custom SVG
+def my_window_ui():
+    screen, window, div, text = actions.user.ui_elements(
+        ["screen", "window", "div", "text"]
+    )
+    svg, path = actions.user.ui_elements_svg(["svg", "path"])
+
+    return screen(justify_content="center", align_items="center")[
+        window(
+            title="My Window",
+            icon=svg(fill="none", stroke="FF6600")[
+                path(d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5")
+            ]
+        )[
+            div(padding=16)[
+                text("Window with custom icon", color="#FFFFFF")
+            ]
+        ]
+    ]
+```
+
 ## Minimize and Restore
 
 You can show different content when the window is minimized:
