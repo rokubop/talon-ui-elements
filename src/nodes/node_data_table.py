@@ -205,7 +205,7 @@ class NodeDataTable(NodeContainer):
                 icon(check_icon, size=14, color=header_color, stroke_width=2) if check_icon else
                 div(width=14, height=14, border_width=1, border_color="666666", border_radius=2),
             ]
-            checkbox_header.interactive = False
+            checkbox_header.focusable = False
             header_cells.append(checkbox_header)
 
         for col in columns:
@@ -252,7 +252,7 @@ class NodeDataTable(NodeContainer):
                     text(col_label, font_size=props.font_size, font_weight="bold", color=header_color),
                     sort_icon,
                 ]
-                cell.interactive = False
+                cell.focusable = False
             else:
                 cell = div(**cell_props)[
                     text(col_label, font_size=props.font_size, font_weight="bold", color=header_color),
@@ -358,7 +358,7 @@ class NodeDataTable(NodeContainer):
                         border_bottom=1,
                         border_color=border_color,
                     )[*row_cells]
-                    row_div.interactive = False
+                    row_div.focusable = False
                 elif props.on_select:
                     row_div = button(
                         on_click=lambda e, r=row, idx=i: props.on_select(
@@ -370,7 +370,7 @@ class NodeDataTable(NodeContainer):
                         border_bottom=1,
                         border_color=border_color,
                     )[*row_cells]
-                    row_div.interactive = False
+                    row_div.focusable = False
                 else:
                     row_div = div(
                         flex_direction="row",

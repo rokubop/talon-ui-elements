@@ -483,7 +483,7 @@ class StateManager:
         interactive_nodes = []
 
         for tree in store.trees:
-            interactive_nodes.extend(tree.interactive_node_list)
+            interactive_nodes.extend(n for n in tree.interactive_node_list if n.focusable)
 
         if store.focused_id:
             current_node = store.id_to_node.get(store.focused_id)
@@ -501,9 +501,10 @@ class StateManager:
         elif store.blur_pos and interactive_nodes:
             next_node = self._find_nearest_node(interactive_nodes, store.blur_pos)
         elif store.focused_tree:
-            next_node = store.focused_tree.interactive_node_list[0]
+            focusable_in_tree = [n for n in store.focused_tree.interactive_node_list if n.focusable]
+            next_node = focusable_in_tree[0] if focusable_in_tree else None
         else:
-            next_node = interactive_nodes[0]
+            next_node = interactive_nodes[0] if interactive_nodes else None
 
         if next_node:
             store.blur_pos = None
@@ -513,7 +514,7 @@ class StateManager:
         interactive_nodes = []
 
         for tree in store.trees:
-            interactive_nodes.extend(tree.interactive_node_list)
+            interactive_nodes.extend(n for n in tree.interactive_node_list if n.focusable)
 
         if store.focused_id:
             current_node = store.id_to_node.get(store.focused_id)
@@ -531,9 +532,10 @@ class StateManager:
         elif store.blur_pos and interactive_nodes:
             previous_node = self._find_nearest_node(interactive_nodes, store.blur_pos)
         elif store.focused_tree:
-            previous_node = store.focused_tree.interactive_node_list[-1]
+            focusable_in_tree = [n for n in store.focused_tree.interactive_node_list if n.focusable]
+            previous_node = focusable_in_tree[-1] if focusable_in_tree else None
         else:
-            previous_node = interactive_nodes[-1]
+            previous_node = interactive_nodes[-1] if interactive_nodes else None
 
         if previous_node:
             store.blur_pos = None

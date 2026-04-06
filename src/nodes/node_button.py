@@ -8,3 +8,4 @@ class NodeButton(NodeContainer):
         self.is_hovering = False
         self.disabled = self.properties.disabled or False
         self.interactive = False if self.properties.disabled else True
+        self.focusable = self.interactive

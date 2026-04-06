@@ -63,6 +63,7 @@ class Node(NodeType):
         self.is_dirty: bool = False
         self.disabled: bool = self.properties.disabled or False
         self.interactive = False
+        self.focusable = True
         self.interactive_id: str = None
         self.is_svg: bool = False
         self.uses_decoration_render: bool = False
