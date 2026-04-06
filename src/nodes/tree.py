@@ -346,6 +346,8 @@ class MetaState(MetaStateType):
     def clear_nodes(self):
         self._id_to_node.clear()
         self._staged_id_to_node.clear()
+        self._buttons.clear()
+        self._text_with_for_ids.clear()
         entity_manager.synchronize_global_ids()
 
     def prepare_node_transition(self):
