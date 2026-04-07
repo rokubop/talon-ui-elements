@@ -84,6 +84,7 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
+| background | str | None | Background with gradient support. Plain color: `background="FF0000"`. Linear gradient: `background="linear_gradient(to_right, FF0000, 0000FF)"`. Directions: `to_right`, `to_left`, `to_bottom` (default), `to_top`, `to_bottom_right`, `to_bottom_left`, `to_top_right`, `to_top_left`, or angle like `45deg`. |
 | background_color | str | None | Background color. Use 6-char hex ("#FFFFFF") or 8-char with opacity ("#FFFFFFFF" for fully visible, "#FFFFFF00" for invisible). Also supports color names like "red", "blue", etc. |
 | color | str | "#FFFFFF" | Text color - Cascades to children. Use 6-char hex ("#FFFFFF") or 8-char with opacity ("#FFFFFFFF" for fully visible, "#FFFFFF00" for invisible) |
 | drop_shadow | tuple[int, int, int, int, str] | None | Drop shadow as `(x_offset, y_offset, blur_x, blur_y, color)` |

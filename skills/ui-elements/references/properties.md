@@ -33,6 +33,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 
 ## Colors
 
+- `background`: str = None - plain color or gradient: `"FF0000"`, `"linear_gradient(to_right, FF0000, 0000FF)"`. Directions: `to_right`, `to_left`, `to_bottom`, `to_top`, `to_bottom_right`, `to_top_left`, or `45deg`.
 - `background_color`: str = None - hex "FF0000", "#FF0000", "FF000080" (with alpha), or named color
 - `color`: str = "FFFFFF" - text/foreground color
 - `border_color`: str = "555555"
