@@ -325,6 +325,38 @@ def div_stories():
                     ]"""),
             }),
 
+            # gradients
+            component(example_with_code, props={
+                "title": "Gradients",
+                "example": div(gap=12)[
+                    div(flex_direction="row", gap=12)[
+                        div(background="linear_gradient(3689E8, 9B59B6)", border_radius=8, padding=16, width=120, height=60,
+                            align_items="center", justify_content="center")[
+                            text("to_bottom", font_size=11, color="FFFFFF"),
+                        ],
+                        div(background="linear_gradient(to_right, E24A70, E67E22)", border_radius=8, padding=16, width=120, height=60,
+                            align_items="center", justify_content="center")[
+                            text("to_right", font_size=11, color="FFFFFF"),
+                        ],
+                        div(background="linear_gradient(45deg, 22AA66, 1ABC9C)", border_radius=8, padding=16, width=120, height=60,
+                            align_items="center", justify_content="center")[
+                            text("45deg", font_size=11, color="FFFFFF"),
+                        ],
+                    ],
+                    div(flex_direction="row", gap=12)[
+                        div(background="linear_gradient(to_right, FF0000, FFFF00, 00FF00, 00FFFF, 0000FF, FF00FF, FF0000)",
+                            border_radius=8, width=384, height=24),
+                    ],
+                ],
+                "code": textwrap.dedent("""\
+                    div(background="linear_gradient(3689E8, 9B59B6)")
+                    div(background="linear_gradient(to_right, E24A70, E67E22)")
+                    div(background="linear_gradient(45deg, 22AA66, 1ABC9C)")
+
+                    # Multi-stop hue bar
+                    div(background="linear_gradient(to_right, FF0000, FFFF00, 00FF00, 00FFFF, 0000FF, FF00FF, FF0000)")"""),
+            }),
+
             # nesting
             component(example_with_code, props={
                 "title": "Nesting",

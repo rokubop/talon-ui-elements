@@ -6,7 +6,7 @@ from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.imagefilter import ImageFilter
 from .component import Component
-from ..utils import draw_rect
+from ..utils import draw_rect, render_gradient_shader
 from ..border_radius import BorderRadius
 from ..core.animations import (
     ANIMATABLE_COLOR_PROPERTIES,
@@ -476,10 +476,12 @@ class Node(NodeType):
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        background = self.properties.background
         background_color = self.resolve_render_property("background_color")
-        if background_color:
+        if not background_color and isinstance(background, str):
+            background_color = background
+        if background_color or isinstance(background, dict):
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = background_color
 
             inner_rect = self.box_model.padding_with_scroll_bar_rect
 
@@ -491,6 +493,15 @@ class Node(NodeType):
                     inner_rect.height
                 )
 
+            if isinstance(background, dict):
+                shader = render_gradient_shader(background, inner_rect)
+                if shader:
+                    c.paint.shader = shader
+                    draw_rect(c, inner_rect, self.properties.get_border_radius())
+                    c.paint.shader = None
+                    return
+
+            c.paint.color = background_color
             draw_rect(c, inner_rect, self.properties.get_border_radius())
 
     def draw_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):

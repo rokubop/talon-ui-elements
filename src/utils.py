@@ -5,6 +5,7 @@ from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
 from talon.skia import RoundRect
+from talon import skia
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
@@ -212,6 +213,76 @@ def hex_color(color: str, property_name: str = None) -> str:
         f"Use hex colors (e.g., 'FF0000', 'FFFFFF66') or named colors:\n"
         f"  {', '.join(list(NAMED_COLORS_TO_HEX.keys())[:10])}...\n"
     )
+
+GRADIENT_DIRECTIONS = {
+    "to_right":        (0.0, 0.5, 1.0, 0.5),
+    "to_left":         (1.0, 0.5, 0.0, 0.5),
+    "to_bottom":       (0.5, 0.0, 0.5, 1.0),
+    "to_top":          (0.5, 1.0, 0.5, 0.0),
+    "to_bottom_right": (0.0, 0.0, 1.0, 1.0),
+    "to_bottom_left":  (1.0, 0.0, 0.0, 1.0),
+    "to_top_right":    (0.0, 1.0, 1.0, 0.0),
+    "to_top_left":     (1.0, 1.0, 0.0, 0.0),
+}
+
+def parse_linear_gradient(value: str):
+    """Parse a linear_gradient(...) string into (direction_or_angle, colors).
+    Returns a dict with 'type', 'direction' (tuple of fractions), and 'colors' (list of hex strings).
+    """
+    inner = value[len("linear_gradient("):-1].strip()
+    parts = [p.strip() for p in inner.split(",")]
+    if not parts:
+        raise ValueError(f"\nlinear_gradient requires at least 2 colors.\n  Example: linear_gradient(FF0000, 0000FF)\n")
+
+    colors = []
+    direction = GRADIENT_DIRECTIONS["to_bottom"]  # CSS default
+
+    import math
+    start = 0
+    first = parts[0].strip()
+
+    if first in GRADIENT_DIRECTIONS:
+        direction = GRADIENT_DIRECTIONS[first]
+        start = 1
+    elif first.endswith("deg"):
+        try:
+            angle_deg = float(first[:-3])
+            angle_rad = math.radians(angle_deg)
+            # CSS gradient angle: 0deg = to top, 90deg = to right
+            dx = math.sin(angle_rad)
+            dy = -math.cos(angle_rad)
+            direction = (0.5 - dx * 0.5, 0.5 - dy * 0.5, 0.5 + dx * 0.5, 0.5 + dy * 0.5)
+            start = 1
+        except ValueError:
+            pass
+
+    for part in parts[start:]:
+        color = hex_color(part.strip(), property_name="background (linear_gradient)")
+        colors.append(color)
+
+    if len(colors) < 2:
+        raise ValueError(f"\nlinear_gradient requires at least 2 colors.\n  Example: linear_gradient(FF0000, 0000FF)\n")
+
+    return {
+        "type": "linear_gradient",
+        "direction": direction,
+        "colors": colors,
+    }
+
+def parse_background(value: str):
+    """Parse a background property value. Returns a gradient dict or None if it's a plain color."""
+    if value and isinstance(value, str) and value.startswith("linear_gradient(") and value.endswith(")"):
+        return parse_linear_gradient(value)
+    return None
+
+def render_gradient_shader(gradient: dict, rect: Rect):
+    """Create a Skia shader from a parsed gradient dict and a bounding rect."""
+    if gradient["type"] == "linear_gradient":
+        d = gradient["direction"]
+        start = (rect.x + d[0] * rect.width, rect.y + d[1] * rect.height)
+        end = (rect.x + d[2] * rect.width, rect.y + d[3] * rect.height)
+        return skia.Shader.linear_gradient(start, end, gradient["colors"])
+    return None
 
 def get_combined_screens_rect() -> Rect:
     screens = ui.screens()

@@ -29,7 +29,7 @@ from .constants import (
     DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE,
 )
-from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex
+from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex, parse_background
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
@@ -68,6 +68,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     align_items: str = DEFAULT_ALIGN_ITEMS
     align_self: str = None
     autofocus: bool = False
+    background: str = None
     background_color: str = None
     border_color: str = DEFAULT_BORDER_COLOR
     border_radius: Union[int, float, tuple, BorderRadius] = None
@@ -359,7 +360,13 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             self._explicitly_set.add(key)
             return
         if hasattr(self, key):
-            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
+            if key == "background" and isinstance(value, str):
+                gradient = parse_background(value)
+                if gradient:
+                    value = gradient
+                else:
+                    value = hex_color(value, property_name=key)
+            elif key in ["background_color", "border_color", "color", "fill", "stroke"]:
                 value = hex_color(value, property_name=key)
 
             if key == "border_radius" and value is not None:
@@ -496,6 +503,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     align_items: str
     align_self: str
     autofocus: bool
+    background: str
     background_color: str
     border_color: str
     border_radius: Union[int, float, tuple, BorderRadius]
