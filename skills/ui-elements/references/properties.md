@@ -67,7 +67,7 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 ## Interactivity
 
 - `on_click`: callable - receives ClickEvent if handler accepts a parameter
-- `on_change`: callable - for input_text, textarea, select, checkbox. Receives ChangeEvent.
+- `on_change`: callable - for input_text, textarea, select, checkbox, switch. Receives ChangeEvent (SwitchEvent for switch).
 - `on_submit`: callable - form only. Receives SubmitEvent(data={"input_id": "value", ...}) with all child input values. Also works with 0 args.
 - `type`: str - button only. Use `type="submit"` inside a form to trigger the form's `on_submit`.
 - `highlight_style`: dict - hover style e.g. {"background_color": "444444"}. Keys: background_color, border_color, color, fill, stroke

@@ -56,7 +56,7 @@ style, component = actions.user.ui_elements(["style", "component"])
 window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
-All elements: `div`, `text`, `code`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+All elements: `div`, `text`, `code`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `switch`, `table`, `tr`, `td`, `th`, `window`, `active_window`
 
 SVG elements (must be used inside `svg()`): `svg`, `path`, `rect`, `circle`, `line`, `polyline`, `polygon`
 
@@ -67,7 +67,7 @@ SVG elements (must be used inside `svg()`): `svg`, `path`, `rect`, `circle`, `li
 - Root must be `screen()` or `active_window()`
 - Children via bracket syntax: `parent()[child1, child2]`
 - Containers (can have children): `div`, `form`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
-- Leaves (no children): `text`, `code`, `icon`, `checkbox`, `input_text`, `textarea`, `select`, `data_table`, `link`
+- Leaves (no children): `text`, `code`, `icon`, `checkbox`, `switch`, `input_text`, `textarea`, `select`, `data_table`, `link`
 - `button`: leaf with label `button("Click")`, container without: `button(on_click=fn)[icon("check")]`
 - Dynamic lists: `div()[*[text(item) for item in items]]`
 
@@ -203,6 +203,7 @@ See: `docs/concepts/style.md`
 - `textarea(id="x", rows=5)` - Multi-line input. Requires `id`.
 - `select(id="x", options=[...])` - Dropdown. Requires `id`. Options: strings or `{"label": "...", "value": "..."}` dicts.
 - `checkbox(checked=True, on_change=fn)` - Toggle. Uses `on_change` not `on_click`.
+- `switch(checked=True, on_change=fn, animated=True)` - Toggle switch. Uses `on_change` not `on_click`. `animated` enables smooth transitions. `size` scales dimensions (default 14).
 - `link("text", url="...")` - Clickable URL. `close_on_click=True` to hide UI after click.
 - `icon("name", size=24)` - Built-in SVG icon (Lucide-style, 24x24 viewbox). ~48 available names: `arrow_down`, `arrow_left`, `arrow_right`, `arrow_up`, `check`, `chevron_down`, `chevron_left`, `chevron_right`, `chevron_up`, `close`, `clock`, `copy`, `delta`, `diamond`, `download`, `edit`, `external_link`, `file`, `file_text`, `folder`, `home`, `maximize`, `menu`, `mic`, `minimize`, `minus`, `more_horizontal`, `more_vertical`, `multiply`, `pause`, `play`, `plus`, `rotate_left`, `settings`, `shrink`, `star`, `stop`, `trash`, `upload`.
 - `window(title="...")` - Draggable panel with title bar, minimize, close buttons.
@@ -243,7 +244,7 @@ actions.user.ui_elements_register_code_theme("nord", {"keyword": "81A1C1", "stri
 actions.user.ui_elements_register_code_language("json", [("string", re.compile(r'...')), ...])
 ```
 
-Every interactive element (buttons, inputs, links, checkboxes) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default - pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).
+Every interactive element (buttons, inputs, links, checkboxes, switches) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default - pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).
 
 See: `docs/actions.md`
 
@@ -303,7 +304,7 @@ See [paradigms.md](references/paradigms.md) for complete examples of both approa
 9. Effect deps are string state key names: `effect(fn, ["count"])` not `effect(fn, [count])`.
 10. `effect()` must be called during render (inside UI function body), not outside or in a callback.
 11. `show()` twice is a no-op. To restart, hide first then show.
-12. `checkbox` uses `on_change`, not `on_click`. `on_click` will raise an error.
+12. `checkbox` and `switch` use `on_change`, not `on_click`. `on_click` will raise an error.
 13. `svg()` is not HTML `<svg>`. Use `size` and `view_box` (underscore), not `width`/`height`/`viewBox`/`xmlns`.
 
 ---

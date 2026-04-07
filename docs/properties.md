@@ -21,6 +21,7 @@ Properties mostly match standard CSS properties.
   - [Data Table-Specific Properties](#data-table-specific-properties)
   - [Select-Specific Properties](#select-specific-properties)
   - [Checkbox-Specific Properties](#checkbox-specific-properties)
+  - [Switch-Specific Properties](#switch-specific-properties)
   - [Link-Specific Properties](#link-specific-properties)
   - [Table-Specific Properties](#table-specific-properties)
   - [Icon-Specific Properties](#icon-specific-properties)
@@ -230,6 +231,15 @@ Properties mostly match standard CSS properties.
 | -- | -- | -- | -- |
 | checked | bool | False | Whether checkbox is checked |
 | on_change | callable | None | Callback when checked state changes |
+
+## Switch-Specific Properties
+
+| Property | Type | Default | Description |
+| -- | -- | -- | -- |
+| animated | bool | False | Enable smooth transition animation for thumb and track color |
+| checked | bool | False | Whether switch is on |
+| on_change | callable | None | Callback when switch state changes. Receives `SwitchEvent(checked, id)` |
+| size | int | 14 | Scale factor for switch dimensions |
 
 ## Link-Specific Properties
 

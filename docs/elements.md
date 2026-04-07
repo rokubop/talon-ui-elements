@@ -5,7 +5,7 @@ These are your building blocks for building UIs.
 Examples:
 ```py
 screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
-button, checkbox, link = actions.user.ui_elements(["button", "checkbox", "link"])
+button, checkbox, switch, link = actions.user.ui_elements(["button", "checkbox", "switch", "link"])
 textarea, select = actions.user.ui_elements(["textarea", "select"])
 table, tr, th, td = actions.user.ui_elements(["table", "tr", "th", "td"])
 ```
@@ -30,6 +30,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `icon` | Content | Built-in icons (see [icons.md](icons.md)) | `icon("microphone", size=24)` |
 | `button` | Interactive | Interactive button with click handler | `button(text="Click me", on_click=handler)` |
 | `checkbox` | Interactive | Checkbox input with change handler | `checkbox(checked=True, on_change=handler)` |
+| `switch` | Interactive | Toggle switch with change handler | `switch(checked=True, on_change=handler, animated=True)` |
 | `link` | Interactive | Clickable link | `link(text="Visit", url="https://example.com")` |
 | `data_table` | Interactive | Sortable, searchable data table with optional multi-select | `data_table(id="t", columns=[...], data=[...], sort_key="name")` |
 | `table` | Table | Table container | `table()[tr()[...]]` |
