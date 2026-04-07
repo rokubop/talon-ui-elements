@@ -640,7 +640,7 @@ element_collection: Dict[str, callable] = {
     'textarea': textarea,
     'th': th,
     'tr': tr,
-    # 'switch': switch, # experimental
+    'switch': switch,
     'window': window,
     **element_svg_collection_full,
 }

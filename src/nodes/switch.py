@@ -14,7 +14,7 @@ def split_switch_props(props):
     switch_props = {}
     button_props = {}
     for key, value in props.items():
-        if key in ["checked", "on_change", "size", "color"]:
+        if key in ["checked", "on_change", "size", "color", "animated"]:
             switch_props[key] = value
         else:
             button_props[key] = value
@@ -59,6 +59,44 @@ def switch_impl(props):
     track_color = button_props.get("background_color", "#444444" if not is_checked else "#2196f3")
     thumb_color = button_props.get("thumb_color", "#ffffff")
     border_radius = int(button_props.get("border_radius", track_height // 2))
+    animated = switch_props.get("animated", False)
+
+    thumb_transition = {"left": (150, "ease_in_out")} if animated else None
+
+    if animated:
+        track_bg_transition = {"background_color": (150, "ease_in_out")}
+        return button(
+            **button_props,
+            width=track_width,
+            height=track_height,
+            background_color="00000000",
+            border_radius=border_radius,
+            position="relative",
+            align_items="center",
+            on_click=on_trigger,
+            highlight_color="00000000",
+        )[
+            div(
+                width=track_width,
+                height=track_height,
+                background_color=track_color,
+                border_radius=border_radius,
+                position="absolute",
+                top=0,
+                left=0,
+                transition=track_bg_transition,
+            ),
+            div(
+                width=thumb_size,
+                height=thumb_size,
+                background_color=thumb_color,
+                border_radius=thumb_size // 2,
+                position="absolute",
+                top=(track_height - thumb_size) // 2,
+                left=(track_width - thumb_size - padding) if is_checked else padding,
+                transition=thumb_transition,
+            )
+        ]
 
     return button(
         **button_props,

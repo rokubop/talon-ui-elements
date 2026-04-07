@@ -9,6 +9,7 @@ from .elements.checkbox import checkbox_stories
 from .elements.input_text import input_text_stories
 from .elements.select import select_stories
 from .elements.text import text_stories
+from .elements.switch import switch_stories
 from .elements.textarea import textarea_stories
 from . import theme as t
 
@@ -21,6 +22,7 @@ storybook_pages = {
     "input_text": input_text_stories,
     "link": link_stories,
     "select": select_stories,
+    "switch": switch_stories,
     "table": table_stories,
     "text": text_stories,
     "textarea": textarea_stories,

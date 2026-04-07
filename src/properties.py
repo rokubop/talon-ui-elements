@@ -1198,6 +1198,7 @@ class NodeSwitchProperties(NodeSvgProperties):
             self.on_change = None
 
 class NodeSwitchValidationProperties(ValidationProperties, NodeSvgValidationProperties):
+    animated: bool
     checked: bool
     on_change: callable
 
