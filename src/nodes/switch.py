@@ -52,13 +52,15 @@ def switch_impl(props):
 
     # Extract styles from props
     size = int(switch_props.get("size", 14))  # Default size scaling factor is 14
-    track_width = int(button_props.get("width", 40) * size / 14)
-    track_height = int(button_props.get("height", 22) * size / 14)
-    thumb_size = int(button_props.get("thumb_size", 16) * size / 14)
-    padding = int(button_props.get("padding", 2) * size / 14)
-    track_color = button_props.get("background_color", "#444444" if not is_checked else "#2196f3")
-    thumb_color = button_props.get("thumb_color", "#ffffff")
-    border_radius = int(button_props.get("border_radius", track_height // 2))
+    track_width = int(button_props.pop("width", 40) * size / 14)
+    track_height = int(button_props.pop("height", 22) * size / 14)
+    thumb_size = int(button_props.pop("thumb_size", 16) * size / 14)
+    padding = int(button_props.pop("padding", 2) * size / 14)
+    custom_color = button_props.pop("background_color", None)
+    checked_color = custom_color or "#2196f3"
+    track_color = checked_color if is_checked else "#444444"
+    thumb_color = button_props.pop("thumb_color", "#ffffff")
+    border_radius = int(button_props.pop("border_radius", track_height // 2))
     animated = switch_props.get("animated", False)
 
     thumb_transition = {"left": (150, "ease_in_out")} if animated else None
