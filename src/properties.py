@@ -119,6 +119,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)
     position: str = 'static'
+    resizable: Union[bool, str, list] = False
     right: Union[int, str, float] = None
     top: Union[int, str, float] = None
     transition: dict = None
@@ -564,6 +565,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    resizable: Union[bool, str, list]
     right: Union[int, str, float]
     top: Union[int, str, float]
     transition: dict
@@ -1162,7 +1164,6 @@ class NodeWindowProperties(Properties):
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
-    resizable: bool = False
     show_close: bool = True
     show_minimize: bool = True
     show_title_bar: bool = True
@@ -1191,7 +1192,6 @@ class NodeWindowValidationProperties(ValidationProperties):
     on_close: callable
     on_minimize: callable
     on_restore: callable
-    resizable: bool
     show_close: bool
     show_minimize: bool
     show_title_bar: bool

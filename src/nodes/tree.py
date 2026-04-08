@@ -143,6 +143,7 @@ class MetaState(MetaStateType):
         self._style_mutations = {}
         self._text_mutations = {}
         self.windows = set()
+        self.resizable_nodes = set()
         self.ref_property_overrides = {}
         self.unhighlight_jobs = {}
         self.new_component_ids = set()
@@ -485,6 +486,7 @@ class MetaState(MetaStateType):
         self._style_mutations.clear()
         self._text_mutations.clear()
         self.windows.clear()
+        self.resizable_nodes.clear()
         self.unhighlight_jobs.clear()
         self.ref_property_overrides.clear()
         self.new_component_ids.clear()
@@ -1550,7 +1552,7 @@ class Tree(TreeType):
             self.render_base_canvas()
 
     def detect_resize_edge(self, gpos):
-        """Detect if mouse is near a resizable window's edge. Returns (node_id, edge_str) or (None, None)."""
+        """Detect if mouse is near a resizable element's edge. Returns (node_id, edge_str) or (None, None)."""
         # Scrollbar takes priority over resize edges
         for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
             node = self.meta_state.id_to_node.get(node_id)
@@ -1565,41 +1567,56 @@ class Tree(TreeType):
                     return (None, None)
 
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
-        for window_id in self.meta_state.windows:
-            node = self.meta_state.id_to_node.get(window_id)
-            if not node or not getattr(node.properties, 'resizable', False):
+        resizable_ids = self.meta_state.resizable_nodes | {
+            wid for wid in self.meta_state.windows
+            if self.meta_state.id_to_node.get(wid) and getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
+        }
+        for node_id in resizable_ids:
+            node = self.meta_state.id_to_node.get(node_id)
+            if not node:
                 continue
             if getattr(node, 'is_minimized', False):
                 continue
             if not node.box_model or not node.box_model.border_rect:
                 continue
 
+            # Determine allowed edges
+            resizable = node.properties.resizable
+            if resizable is True:
+                allowed_edges = {"top", "right", "bottom", "left"}
+            elif isinstance(resizable, str):
+                allowed_edges = {resizable}
+            elif isinstance(resizable, list):
+                allowed_edges = set(resizable)
+            else:
+                continue
+
             rect = node.box_model.border_rect
             x, y = gpos.x, gpos.y
 
-            near_top = abs(y - rect.y) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
-            near_bottom = abs(y - (rect.y + rect.height)) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
-            near_left = abs(x - rect.x) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
-            near_right = abs(x - (rect.x + rect.width)) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
+            near_top = "top" in allowed_edges and abs(y - rect.y) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
+            near_bottom = "bottom" in allowed_edges and abs(y - (rect.y + rect.height)) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
+            near_left = "left" in allowed_edges and abs(x - rect.x) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
+            near_right = "right" in allowed_edges and abs(x - (rect.x + rect.width)) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
 
-            # Corners first
+            # Corners (only if both edges are allowed)
             if near_top and near_left:
-                return (window_id, "top_left")
+                return (node_id, "top_left")
             if near_top and near_right:
-                return (window_id, "top_right")
+                return (node_id, "top_right")
             if near_bottom and near_left:
-                return (window_id, "bottom_left")
+                return (node_id, "bottom_left")
             if near_bottom and near_right:
-                return (window_id, "bottom_right")
+                return (node_id, "bottom_right")
             # Single edges
             if near_top:
-                return (window_id, "top")
+                return (node_id, "top")
             if near_bottom:
-                return (window_id, "bottom")
+                return (node_id, "bottom")
             if near_left:
-                return (window_id, "left")
+                return (node_id, "left")
             if near_right:
-                return (window_id, "right")
+                return (node_id, "right")
 
         return (None, None)
 
@@ -2709,6 +2726,9 @@ class Tree(TreeType):
             if node.properties.draggable:
                 self.meta_state.add_draggable(node.id)
 
+            if node.properties.resizable and node.id:
+                self.meta_state.resizable_nodes.add(node.id)
+
             if node.properties.transition:
                 self.transition_manager.detect_changes(node.id, node)
 
@@ -2952,7 +2972,7 @@ class Tree(TreeType):
                 else self.root_node.box_model.content_children_rect
 
             # Expand blockable area to cover resize edge detection zone
-            has_resizable = any(
+            has_resizable = bool(self.meta_state.resizable_nodes) or any(
                 self.meta_state.id_to_node.get(wid) and
                 getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
                 for wid in self.meta_state.windows

@@ -64,7 +64,8 @@ def body():
 def sidebar():
     div, button, state = actions.user.ui_elements(["div", "button", "state"])
 
-    return div(border_right=1, overflow_y="scroll", height="100%", padding=12)[
+    return div(id="sidebar", border_right=1, overflow_y="scroll", height="100%",
+                padding=12, resizable="right", min_width=100, max_width=400)[
         *[button(
             name,
             on_click=lambda e, name=name: state.set("current_user_list", name),
