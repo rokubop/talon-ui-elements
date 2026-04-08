@@ -596,7 +596,6 @@ class NodeContainer(Node, NodeContainerType):
 
     def draw_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.v2_crop_end(c, transforms)
-        self.render_scroll_bar(c, transforms)
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render and self.tree:

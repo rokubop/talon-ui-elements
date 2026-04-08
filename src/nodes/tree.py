@@ -835,6 +835,13 @@ class Tree(TreeType):
                 node.v2_render_decorator(canvas, transforms)
                 self.restore_clip_regions(canvas, clip_count)
 
+    def draw_scrollbars(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
+        for id in list(self.meta_state.scrollable.keys()):
+            if id in self.meta_state.id_to_node:
+                node = self.meta_state.id_to_node[id]
+                if hasattr(node, "render_scroll_bar"):
+                    node.render_scroll_bar(canvas, transforms)
+
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
             if not self.render_manager.is_destroying:
@@ -852,6 +859,7 @@ class Tree(TreeType):
                     ):
                         self.reconcile_mouse_highlight()
                     self.draw_decoration_renders(draw_canvas, transforms)
+                    self.draw_scrollbars(draw_canvas, transforms)
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
                     self.draw_resize_ghost(draw_canvas)

@@ -394,5 +394,47 @@ def div_stories():
                         ],
                     ]"""),
             }),
+
+            # transparent border test (decorator layer)
+            component(example_with_code, props={
+                "title": "border_left_color=\"transparent\" (with highlight_style)",
+                "example": div(flex_direction="row", gap=16)[
+                    div(gap=4)[
+                        text("transparent", font_size=12, color=t.TEXT_MUTED),
+                        div(
+                            on_click=lambda e: None,
+                            padding=12, border_left_width=3,
+                            border_left_color="transparent",
+                            background_color=t.BG_RAISED, border_radius=4,
+                            highlight_style={"background_color": "FFFFFF11"},
+                        )[text("Left border transparent", font_size=12, color=t.TEXT)],
+                    ],
+                    div(gap=4)[
+                        text("blue", font_size=12, color=t.TEXT_MUTED),
+                        div(
+                            on_click=lambda e: None,
+                            padding=12, border_left_width=3,
+                            border_left_color="3689E8",
+                            background_color=t.BG_RAISED, border_radius=4,
+                            highlight_style={"background_color": "FFFFFF11"},
+                        )[text("Left border blue", font_size=12, color=t.TEXT)],
+                    ],
+                    div(gap=4)[
+                        text("no border", font_size=12, color=t.TEXT_MUTED),
+                        div(
+                            on_click=lambda e: None,
+                            padding=12,
+                            background_color=t.BG_RAISED, border_radius=4,
+                            highlight_style={"background_color": "FFFFFF11"},
+                        )[text("No left border", font_size=12, color=t.TEXT)],
+                    ],
+                ],
+                "code": textwrap.dedent("""\
+                    div(border_left_width=3, border_left_color="transparent",
+                        highlight_style={...})[...]
+                    div(border_left_width=3, border_left_color="3689E8",
+                        highlight_style={...})[...]
+                    div(highlight_style={...})[...]"""),
+            }),
         ],
     ]
