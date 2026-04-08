@@ -370,12 +370,23 @@ class Node(NodeType):
         for child in self.get_children_nodes():
             child.v2_scroll_layout(node_offset)
 
+    def _resolve_side_border_color(self, side: str, fallback: str) -> str:
+        color = getattr(self.properties, f"border_{side}_color", None)
+        return color if color else fallback
+
+    def _has_per_side_border_colors(self) -> bool:
+        return any(
+            getattr(self.properties, attr, None)
+            for attr in ("border_top_color", "border_right_color", "border_bottom_color", "border_left_color")
+        )
+
     def v2_render_borders(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.is_uniform_border = True
         border_spacing = self.box_model.border_spacing
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
+            has_per_side_colors = self._has_per_side_border_colors()
 
             if transforms and transforms.offset:
                 inner_rect = self.box_model.padding_rect.copy()
@@ -389,7 +400,7 @@ class Node(NodeType):
                 inner_rect = self.box_model.padding_rect
 
             border_color = self.resolve_render_property("border_color")
-            if self.is_uniform_border:
+            if self.is_uniform_border and not has_per_side_colors:
                 border_width = border_spacing.left
                 c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
@@ -420,7 +431,6 @@ class Node(NodeType):
                 else:
                     c.draw_rect(bordered_rect)
             else:
-                c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
                 b_rect, p_rect = self.box_model.border_rect, inner_rect
 
@@ -433,18 +443,22 @@ class Node(NodeType):
                     )
 
                 if border_spacing.left:
+                    c.paint.color = self._resolve_side_border_color("left", border_color)
                     c.paint.stroke_width = border_spacing.left
                     half = border_spacing.left / 2
                     c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
                 if border_spacing.right:
+                    c.paint.color = self._resolve_side_border_color("right", border_color)
                     c.paint.stroke_width = border_spacing.right
                     half = border_spacing.right / 2
                     c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
                 if border_spacing.top:
+                    c.paint.color = self._resolve_side_border_color("top", border_color)
                     c.paint.stroke_width = border_spacing.top
                     half = border_spacing.top / 2
                     c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
                 if border_spacing.bottom:
+                    c.paint.color = self._resolve_side_border_color("bottom", border_color)
                     c.paint.stroke_width = border_spacing.bottom
                     half = border_spacing.bottom / 2
                     c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)

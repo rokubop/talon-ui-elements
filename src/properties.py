@@ -31,6 +31,11 @@ from .constants import (
 )
 from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex, parse_background
 
+COLOR_PROPERTIES = {
+    "background_color", "border_color", "color", "stroke", "fill",
+    "border_top_color", "border_right_color", "border_bottom_color", "border_left_color",
+}
+
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
     'font_size', 'gap', 'width', 'height',
@@ -71,6 +76,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     background: str = None
     background_color: str = None
     border_color: str = DEFAULT_BORDER_COLOR
+    border_top_color: str = None
+    border_right_color: str = None
+    border_bottom_color: str = None
+    border_left_color: str = None
     border_radius: Union[int, float, tuple, BorderRadius] = None
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
@@ -229,7 +238,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_highlight_style(self):
         if self.highlight_style:
-            VALID_VALUES = ['background_color', 'border_color', 'color', 'fill', 'stroke']
+            VALID_VALUES = [
+                'background_color', 'border_color', 'color', 'fill', 'stroke',
+                'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
+            ]
 
             if not isinstance(self.highlight_style, dict):
                 raise ValueError(
@@ -284,7 +296,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key, value in kwargs.items():
             if key in self._explicitly_set:
                 continue
-            if key in ["background_color", "border_color", "color", "stroke", "fill"]:
+            if key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
 
             # Apply scaling to dimensional properties from styles
@@ -311,7 +323,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         """Inherit properties from another Properties object."""
         for key in properties._explicitly_set:
             value = getattr(properties, key)
-            if key in ["background_color", "border_color", "color", "stroke", "fill"]:
+            if key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
             if key in ["padding", "margin", "border"]:
                 value = parse_box_model(type(getattr(self, key)), **value)
@@ -336,6 +348,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
             if self.border_color:
                 self.border_color = self._apply_opacity_to_color(self.border_color, opacity_hex)
+
+            for side in ("border_top_color", "border_right_color", "border_bottom_color", "border_left_color"):
+                val = getattr(self, side, None)
+                if val:
+                    setattr(self, side, self._apply_opacity_to_color(val, opacity_hex))
 
             if self.color:
                 self.color = self._apply_opacity_to_color(self.color, opacity_hex)
@@ -366,7 +383,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     value = gradient
                 else:
                     value = hex_color(value, property_name=key)
-            elif key in ["background_color", "border_color", "color", "fill", "stroke"]:
+            elif key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
 
             if key == "border_radius" and value is not None:
@@ -431,7 +448,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             variant = Properties.__new__(Properties)
             variant.__dict__ = self.__dict__.copy()
             variant.__dict__.update({
-                k: hex_color(v, property_name=k) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
+                k: hex_color(v, property_name=k) if k in COLOR_PROPERTIES else v
                 for k, v in self.highlight_style.items()
             })
             self._highlighted_variant = variant
@@ -506,6 +523,10 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     background: str
     background_color: str
     border_color: str
+    border_top_color: str
+    border_right_color: str
+    border_bottom_color: str
+    border_left_color: str
     border_radius: Union[int, float, tuple, BorderRadius]
     border_width: int
     bottom: Union[int, str, float]
