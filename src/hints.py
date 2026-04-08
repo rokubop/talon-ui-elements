@@ -132,7 +132,11 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransf
         apply_clip = True
         clip_rect = node.box_model.clip_rect
 
-    if node.element_type in ("input_text", "textarea"):
+    if node.properties.hint_offset:
+        box_model = node.box_model.padding_rect
+        offset_x = node.properties.hint_offset[0]
+        offset_y = node.properties.hint_offset[1]
+    elif node.element_type in ("input_text", "textarea"):
         box_model = node.box_model.padding_rect
         offset_x = -10
         offset_y = -4

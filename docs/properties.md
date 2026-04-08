@@ -152,6 +152,7 @@ Properties mostly match standard CSS properties.
 | focus_outline_width | Union[int, float] | 1.5 | Focus outline width - for keyboard accessibility and after you have interacted with an element. Cascades to children |
 | highlight_color | str | `{color}33` | Highlight color (on hover/interaction). Cascades to children. Defaults to text color with 20% opacity |
 | highlight_style | dict | None | Style overrides when highlighted. Valid keys: `background_color`, `border_color`, `color`, `fill`, `stroke`. Animates smoothly when `transition` is also set. Auto-generated for interactive nodes with `transition` + color properties |
+| hint_offset | tuple | None | Custom (x, y) offset for voice hint position relative to the element's padding rect. Overrides the default hint placement |
 
 ## Identification Properties
 
@@ -214,6 +215,7 @@ Properties mostly match standard CSS properties.
 | row_background_color | str | "00000000" | Default row background color |
 | stripe_background_color | str | "FFFFFF08" | Alternating row stripe color |
 | selected_background_color | str | "67A4FF22" | Background color for selected rows (multi-select) |
+| row_hint_offset | tuple | (4, 4) | Custom (x, y) offset for voice hint position on data table rows |
 
 ## Select-Specific Properties
 

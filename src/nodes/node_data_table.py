@@ -349,6 +349,8 @@ class NodeDataTable(NodeContainer):
 
                 bg = selected_bg if is_selected else (stripe_bg if i % 2 == 1 else row_bg)
 
+                row_hint_offset = props.row_hint_offset or (4, 4)
+
                 if multi:
                     row_div = button(
                         on_click=lambda e, r=row, rid_=rid: self._toggle_row_selected(rid_, r, data),
@@ -357,6 +359,7 @@ class NodeDataTable(NodeContainer):
                         highlight_color="FFFFFF11",
                         border_bottom=1,
                         border_color=border_color,
+                        hint_offset=row_hint_offset,
                     )[*row_cells]
                     row_div.focusable = False
                 elif props.on_select:
@@ -369,6 +372,7 @@ class NodeDataTable(NodeContainer):
                         highlight_color="FFFFFF11",
                         border_bottom=1,
                         border_color=border_color,
+                        hint_offset=row_hint_offset,
                     )[*row_cells]
                     row_div.focusable = False
                 else:

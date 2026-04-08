@@ -102,6 +102,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     height: Union[int, str, float] = 0
     highlight_style: dict = None
     highlight_color: str = None
+    hint_offset: tuple = None
     mount_style: dict = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
@@ -551,6 +552,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     height: Union[int, str, float]
     highlight_style: dict
     highlight_color: str
+    hint_offset: tuple
     id: str
     mount_style: dict
     justify_content: str
@@ -1033,6 +1035,7 @@ class NodeDataTableProperties(Properties):
     row_background_color: str = None
     stripe_background_color: str = None
     selected_background_color: str = None
+    row_hint_offset: tuple = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -1063,6 +1066,7 @@ class NodeDataTableValidationProperties(ValidationProperties):
     row_background_color: str
     stripe_background_color: str
     selected_background_color: str
+    row_hint_offset: tuple
 
 
 class NodeSelectProperties(Properties):
