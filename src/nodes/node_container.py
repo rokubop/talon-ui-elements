@@ -501,6 +501,9 @@ class NodeContainer(Node, NodeContainerType):
                     self.box_model.margin_size.height += capped_delta
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
+        if not self.box_model:
+            return
+
         if self.participates_in_layout:
             self.v2_drag_offset(cursor)
         else:
