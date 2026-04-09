@@ -94,6 +94,7 @@ class Scrollable(ScrollableType):
         self.offset_y = 0
         self.target_offset_x = 0
         self.target_offset_y = 0
+        self.rendered_offset_y = 0
         self.view_height = 0
         self.max_height = 0
         self.view_width = 0
@@ -126,7 +127,7 @@ class DraggableOffset:
 
 class MetaState(MetaStateType):
     def __init__(self):
-        self._buttons = set()
+        self._buttons = []
         self._components = {}
         self._staged_components = {}
         self.decoration_renders = {}
@@ -232,7 +233,8 @@ class MetaState(MetaStateType):
         self._inputs[id] = input_data
 
     def add_button(self, id):
-        self._buttons.add(id)
+        if id not in self._buttons:
+            self._buttons.append(id)
 
     def add_component(self, component):
         if component.id not in self._staged_components:
@@ -361,7 +363,7 @@ class MetaState(MetaStateType):
 
     def get_hover_links(self):
         return list(
-            (b, b) for b in self._buttons
+            (b, b) for b in reversed(self._buttons)
         ) + list(
             self._text_with_for_ids.items()
         )

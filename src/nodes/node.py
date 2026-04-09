@@ -359,10 +359,8 @@ class Node(NodeType):
     def v2_scroll_layout(self, offset: Point2d = None):
         node_offset = offset
         if self.properties.is_scrollable() and self.id in self.tree.meta_state.scrollable:
-            new_offset = Point2d(
-                self.tree.meta_state.scrollable[self.id].offset_x,
-                self.tree.meta_state.scrollable[self.id].offset_y
-            )
+            scrollable = self.tree.meta_state.scrollable[self.id]
+            new_offset = Point2d(scrollable.offset_x, scrollable.offset_y)
             node_offset = new_offset if not node_offset else node_offset + new_offset
             for child in self.get_children_nodes():
                 child.v2_reposition(node_offset)

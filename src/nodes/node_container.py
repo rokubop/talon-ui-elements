@@ -304,6 +304,8 @@ class NodeContainer(Node, NodeContainerType):
                     self.box_model.maximize_content_children_height()
 
         for child in self.participating_children_nodes:
+            if not child.box_model:
+                continue
             child.box_model.resolve_max_percent(self.box_model.calculated_content_size)
             child.v2_grow_size()
 
@@ -519,6 +521,7 @@ class NodeContainer(Node, NodeContainerType):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None) if self.tree else None
         if scrollable:
             scrollable.reevaluate(self)
+            scrollable.rendered_offset_y = scrollable.offset_y
             self.box_model.adjust_scroll_y(scrollable.offset_y)
             self.box_model.adjust_scroll_x(scrollable.offset_x)
 

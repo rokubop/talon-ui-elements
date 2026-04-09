@@ -8,6 +8,7 @@ from ..interfaces import (
     TreeType,
 )
 from .store import store
+from .render_manager import RenderTaskScrolling, RenderTask, RenderCause, on_base_canvas_change
 import gc
 
 class StateCoordinator:
@@ -541,37 +542,67 @@ class StateManager:
             store.blur_pos = None
             self.focus_node(previous_node)
 
+    def _get_scroll_data(self, node, id: str):
+        """Get scroll data for a node, checking body_node for data_tables."""
+        scroll_data = node.tree.meta_state.scrollable.get(id)
+        if scroll_data:
+            return scroll_data, id
+        body = getattr(node, '_body_node', None)
+        if body and body.id:
+            scroll_data = node.tree.meta_state.scrollable.get(body.id)
+            if scroll_data:
+                return scroll_data, body.id
+        return None, None
+
     def scroll_to_top(self, id: str):
         node = store.id_to_node.get(id)
         if node:
-            scroll_data = node.tree.meta_state.scrollable.get(id)
+            scroll_data, scroll_id = self._get_scroll_data(node, id)
             if scroll_data and scroll_data.offset_y != 0:
                 scroll_data.offset_y = 0
                 scroll_data.target_offset_y = 0
-                node.tree._scrollbar_show(id)
-                node.tree.render()
+                node.tree._scrollbar_show(scroll_id)
+                node.tree.render_manager.queue_render(RenderTaskScrolling)
 
     def scroll_to_bottom(self, id: str):
         node = store.id_to_node.get(id)
         if node:
-            scroll_data = node.tree.meta_state.scrollable.get(id)
-            if scroll_data:
-                bottom = min(0, scroll_data.view_height - scroll_data.max_height)
-                if scroll_data.offset_y != bottom:
-                    scroll_data.offset_y = bottom
-                    scroll_data.target_offset_y = bottom
-                    node.tree._scrollbar_show(id)
-                    node.tree.render()
+            tree = node.tree
+            scroll_id = id
+            body = getattr(node, '_body_node', None)
+            if body and body.id and tree.meta_state.scrollable.get(body.id):
+                scroll_id = body.id
+            def apply_scroll_to_bottom(tree):
+                scroll_data = tree.meta_state.scrollable.get(scroll_id)
+                if scroll_data:
+                    bottom = min(0, scroll_data.view_height - scroll_data.max_height)
+                    if scroll_data.offset_y != bottom:
+                        scroll_data.offset_y = bottom
+                        scroll_data.target_offset_y = bottom
+                        tree._scrollbar_show(scroll_id)
+                on_base_canvas_change(tree)
+            tree.render_manager.queue_render(RenderTask(
+                RenderCause.SCROLLING,
+                apply_scroll_to_bottom,
+            ))
 
     def scroll_to(self, id: str, x: int, y: int):
         node = store.id_to_node.get(id)
         if node:
-            scroll_data = node.tree.meta_state.scrollable.get(id)
+            scroll_data, scroll_id = self._get_scroll_data(node, id)
             if scroll_data and (scroll_data.offset_x != x or scroll_data.offset_y != y):
                 scroll_data.offset_y = y
                 scroll_data.offset_x = x
-                node.tree._scrollbar_show(id)
-                node.tree.render()
+                node.tree._scrollbar_show(scroll_id)
+                node.tree.render_manager.queue_render(RenderTaskScrolling)
+
+    def scroll_to_key(self, id: str, key: str):
+        """Scroll a data_table so the row with the given key is visible."""
+        node = store.id_to_node.get(id)
+        if not node or not hasattr(node, 'scroll_to_key'):
+            return
+        if node.scroll_to_key(key):
+            node.tree.render_manager.queue_render(RenderTaskScrolling)
 
     def scroll_to_id(self, target_id: str, focus: bool = True):
         """Scroll the nearest scrollable ancestor so that the target element is visible, and optionally focus it."""
@@ -595,12 +626,12 @@ class StateManager:
                 self.focus_node(target_node)
             return
 
-        # Child's position relative to scrollable content (undo current scroll offset)
-        child_y = target_node.box_model.margin_pos.y - scrollable_node.box_model.padding_pos.y - scroll_data.offset_y
+        # Child's position relative to scrollable content (undo rendered scroll offset)
+        child_y = target_node.box_model.margin_pos.y - scrollable_node.box_model.padding_pos.y - scroll_data.rendered_offset_y
         child_height = target_node.box_model.margin_size.height
 
         # Check if already fully visible
-        visible_top = -scroll_data.offset_y
+        visible_top = -scroll_data.rendered_offset_y
         visible_bottom = visible_top + scroll_data.view_height
         already_visible = child_y >= visible_top and child_y + child_height <= visible_bottom
 
@@ -614,7 +645,7 @@ class StateManager:
                 scroll_data.offset_y = new_offset_y
                 scroll_data.target_offset_y = new_offset_y
                 scrollable_node.tree._scrollbar_show(scrollable_node.id)
-                scrollable_node.tree.render()
+                scrollable_node.tree.render_manager.queue_render(RenderTaskScrolling)
 
         if focus and target_node.interactive:
             self.focus_node(target_node)
