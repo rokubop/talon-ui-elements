@@ -208,6 +208,14 @@ class Actions:
         """Scroll the nearest scrollable ancestor so that the target element is visible, and optionally focus it."""
         state_manager.scroll_to_id(target_id, focus=focus)
 
+    def ui_elements_scroll_to_top(id: str):
+        """Scroll a scrollable container to the top. id is the scrollable element's id."""
+        state_manager.scroll_to_top(id)
+
+    def ui_elements_scroll_to_bottom(id: str):
+        """Scroll a scrollable container to the bottom. id is the scrollable element's id."""
+        state_manager.scroll_to_bottom(id)
+
     def ui_elements_highlight(id: str, color: str = None):
         """Highlight element based on its id. Renders on a decoration layer."""
         state_manager.highlight(id, color)

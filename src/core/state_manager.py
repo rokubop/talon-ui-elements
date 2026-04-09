@@ -541,6 +541,28 @@ class StateManager:
             store.blur_pos = None
             self.focus_node(previous_node)
 
+    def scroll_to_top(self, id: str):
+        node = store.id_to_node.get(id)
+        if node:
+            scroll_data = node.tree.meta_state.scrollable.get(id)
+            if scroll_data and scroll_data.offset_y != 0:
+                scroll_data.offset_y = 0
+                scroll_data.target_offset_y = 0
+                node.tree._scrollbar_show(id)
+                node.tree.render()
+
+    def scroll_to_bottom(self, id: str):
+        node = store.id_to_node.get(id)
+        if node:
+            scroll_data = node.tree.meta_state.scrollable.get(id)
+            if scroll_data:
+                bottom = min(0, scroll_data.view_height - scroll_data.max_height)
+                if scroll_data.offset_y != bottom:
+                    scroll_data.offset_y = bottom
+                    scroll_data.target_offset_y = bottom
+                    node.tree._scrollbar_show(id)
+                    node.tree.render()
+
     def scroll_to(self, id: str, x: int, y: int):
         node = store.id_to_node.get(id)
         if node:
