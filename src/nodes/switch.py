@@ -40,7 +40,13 @@ default_svg_props = {
 def switch_impl(props):
     switch_props, button_props = split_switch_props(props)
     div, button, state = actions.user.ui_elements(["div", "button", "state"])
-    is_checked, set_is_checked = state.use_local("switch", switch_props.get("checked", False))
+    checked_prop = switch_props.get("checked", False)
+    is_checked, set_is_checked = state.use_local("switch", checked_prop)
+
+    # Sync with controlled prop
+    if checked_prop != is_checked:
+        set_is_checked(checked_prop)
+        is_checked = checked_prop
 
     def on_trigger(e):
         new_checked = not is_checked
