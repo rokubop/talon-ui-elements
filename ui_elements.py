@@ -216,6 +216,10 @@ class Actions:
         """Scroll a scrollable container to the bottom. id is the scrollable element's id."""
         state_manager.scroll_to_bottom(id)
 
+    def ui_elements_data_table_scroll_to_key(id: str, key: str):
+        """Scroll a data_table so the row with the given key is visible. id is the data_table's id."""
+        state_manager.scroll_to_key(id, key)
+
     def ui_elements_highlight(id: str, color: str = None):
         """Highlight element based on its id. Renders on a decoration layer."""
         state_manager.highlight(id, color)

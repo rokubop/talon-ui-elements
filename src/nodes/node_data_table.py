@@ -281,6 +281,8 @@ class NodeDataTable(NodeContainer):
                 body_props["height"] = props.body_height
 
         body = div(**body_props)
+        self._body_node = body
+        self._key_to_row_node = {}
 
         if not data:
             empty_msg = div(
@@ -383,13 +385,51 @@ class NodeDataTable(NodeContainer):
                         border_color=border_color,
                     )[*row_cells]
 
+                self._key_to_row_node[rid] = row_div
                 body.add_child(row_div)
 
         self.add_child(body)
+
+    def scroll_to_key(self, key):
+        """Scroll so the row with the given key is visible.
+        Sets scroll offset but does not queue a render - caller is responsible."""
+        row_node = self._key_to_row_node.get(key)
+        if not row_node:
+            return False
+        body = self._body_node
+        if not row_node.box_model or not body or not body.box_model or not body.id:
+            return False
+
+        scroll_data = self.tree.meta_state.scrollable.get(body.id)
+        if not scroll_data:
+            return False
+
+        # Use rendered_offset_y (the offset applied during last layout)
+        # not offset_y (which may have changed by a pending scroll not yet rendered)
+        child_y = row_node.box_model.margin_pos.y - body.box_model.padding_pos.y - scroll_data.rendered_offset_y
+        child_height = row_node.box_model.margin_size.height
+
+        visible_top = -scroll_data.rendered_offset_y
+        visible_bottom = visible_top + scroll_data.view_height
+        already_visible = child_y >= visible_top and child_y + child_height <= visible_bottom
+
+        if not already_visible:
+            new_offset_y = -child_y + 8
+            min_offset_y = min(0, scroll_data.view_height - scroll_data.max_height)
+            new_offset_y = max(min_offset_y, min(0, new_offset_y))
+
+            if scroll_data.offset_y != new_offset_y:
+                scroll_data.offset_y = new_offset_y
+                scroll_data.target_offset_y = new_offset_y
+                self.tree._scrollbar_show(body.id)
+                return True
+        return False
 
     def destroy(self):
         self._set_sort_key = None
         self._set_sort_dir = None
         self._set_search_text = None
         self._set_selected_set = None
+        self._key_to_row_node = None
+        self._body_node = None
         super().destroy()

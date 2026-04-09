@@ -137,6 +137,10 @@ class Ref:
     def scroll_to_bottom(self):
         state_manager.scroll_to_bottom(self._get("id"))
 
+    def scroll_to_key(self, key):
+        """Scroll a data_table so the row with the given key is visible."""
+        state_manager.scroll_to_key(self._get("id"), key)
+
     def scroll_into_view(self, focus: bool = True):
         """Scroll the nearest scrollable ancestor so this element is visible, and optionally focus it."""
         state_manager.scroll_to_id(self._get("id"), focus=focus)
