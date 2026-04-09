@@ -349,7 +349,7 @@ class NodeDataTable(NodeContainer):
 
                 bg = selected_bg if is_selected else (stripe_bg if i % 2 == 1 else row_bg)
 
-                row_hint_offset = props.row_hint_offset or (4, 4)
+                row_hint_offset = props.row_hint_offset or (-5, -5)
 
                 if multi:
                     row_div = button(
