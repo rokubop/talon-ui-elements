@@ -1194,14 +1194,61 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def draw_hints(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list or self.meta_state.scroll_button_overlays:
-            hint_tag_enable()
-            hint_generator = get_hint_generator()
-            for node in list(self.meta_state.id_to_node.values()):
+        if not (self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list or self.meta_state.scroll_button_overlays):
+            return
+        hint_tag_enable()
+        hint_generator = get_hint_generator()
+        nodes = list(self.meta_state.id_to_node.values())
+
+        # Scan once for open decoration-render subtrees (e.g. select dropdown).
+        decoration_rects = None
+        decoration_node_ids = None
+        for n in nodes:
+            if n.uses_decoration_render and n.box_model:
+                if decoration_rects is None:
+                    decoration_rects = []
+                    decoration_node_ids = set()
+                decoration_rects.append(n.box_model.padding_rect)
+                stack = [n]
+                while stack:
+                    cur = stack.pop()
+                    decoration_node_ids.add(id(cur))
+                    stack.extend(getattr(cur, 'children_nodes', None) or ())
+
+        # Fast path: no decoration render active — original draw-all behavior.
+        if decoration_rects is None:
+            for node in nodes:
                 if getattr(node, 'hintable', node.interactive):
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
             for overlay in list(self.meta_state.scroll_button_overlays.values()):
                 draw_scroll_button_hint(canvas, overlay, transforms=transforms)
+            return
+
+        # Decoration-aware path: hide hints that would land inside a decoration
+        # subtree's rect, and defer the subtree's own hints so they paint last.
+        deferred = []
+        for node in nodes:
+            if not getattr(node, 'hintable', node.interactive):
+                continue
+            if id(node) in decoration_node_ids:
+                deferred.append(node)
+                continue
+            bm = node.box_model
+            if bm:
+                r = bm.padding_rect
+                occluded = False
+                for d in decoration_rects:
+                    if not (r.x + r.width < d.x or d.x + d.width < r.x or
+                            r.y + r.height < d.y or d.y + d.height < r.y):
+                        occluded = True
+                        break
+                if occluded:
+                    continue
+            draw_hint(canvas, node, hint_generator(node), transforms=transforms)
+        for overlay in list(self.meta_state.scroll_button_overlays.values()):
+            draw_scroll_button_hint(canvas, overlay, transforms=transforms)
+        for node in deferred:
+            draw_hint(canvas, node, hint_generator(node), transforms=transforms)
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
