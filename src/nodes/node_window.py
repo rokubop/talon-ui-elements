@@ -35,6 +35,8 @@ class NodeWindow(NodeContainer):
 
         self.is_minimized = is_minimized
         minimized_style = window_properties.get("minimized_style", None)
+        if minimized_style is None:
+            minimized_style = {"position": "absolute", "top": 100, "right": 100}
 
         self.has_dock_behavior = minimized_style is not None and any(
             minimized_style.get(dir) is not None
@@ -250,13 +252,13 @@ class NodeWindow(NodeContainer):
                 ]
             else:
                 title_left = text(window_properties.get("title", ""), **title_style)
-            return div(title_bar_style, **title_bar_props, flex_direction="row", justify_content="space_between", align_items="center")[
-                title_left,
-                div(flex_direction="row")[
-                    button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, **button_style)[
+            return div(title_bar_style, **title_bar_props, flex_direction="row", justify_content="space_between", align_items="stretch")[
+                div(flex_direction="row", align_items="center")[title_left],
+                div(flex_direction="row", align_items="stretch")[
+                    button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, align_items="center", justify_content="center", **button_style)[
                         icon("minimize" if not self.is_minimized else "testing2", size=18, **icon_style),
                     ] if window_properties.get("show_minimize", True) else None,
-                    button(on_click=on_button_click_close, padding=8, padding_left=12, padding_right=12, **button_style)[
+                    button(on_click=on_button_click_close, padding=8, padding_left=12, padding_right=12, align_items="center", justify_content="center", **button_style)[
                         icon("close", size=20, **icon_style),
                     ] if window_properties.get("show_close", True) else None,
                 ],
@@ -265,8 +267,11 @@ class NodeWindow(NodeContainer):
         self.body = div(flex=1, **body_properties)
         if window_properties.get("show_title_bar", True):
             self.add_child(title_bar())
-        if window_properties.get("minimized_body", None) and self.is_minimized:
-            self.add_child(window_properties.get("minimized_body")())
+        if self.is_minimized:
+            minimized_body_fn = window_properties.get("minimized_body", None) or (
+                lambda: div(height=24, width=200)
+            )
+            self.add_child(minimized_body_fn())
         else:
             self.add_child(self.body)
 
