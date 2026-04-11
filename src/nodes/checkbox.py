@@ -2,6 +2,8 @@ from talon import actions
 from dataclasses import dataclass
 from ..constants import (
     ELEMENT_ENUM_TYPE,
+    DEFAULT_DISABLED_OPACITY,
+    DEFAULT_HIGHLIGHT_ALPHA,
     DEFAULT_INPUT_BACKGROUND_COLOR,
     DEFAULT_CHECKBOX_SIZE,
     DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
@@ -22,7 +24,7 @@ def split_checkbox_props(props):
         elif key in ["color", "stroke", "fill"]:
             if key == "color":
                 svg_props["stroke"] = value
-            button_props["highlight_color"] = _expand_shorthand_hex(value) + "33"
+            button_props["highlight_color"] = _expand_shorthand_hex(value) + DEFAULT_HIGHLIGHT_ALPHA
             button_props[key] = value
         else:
             button_props[key] = value
@@ -65,7 +67,7 @@ def checkbox_impl(props):
                 **default_button_props,
                 **button_props,
                 "disabled": True,
-                "opacity":0.5,
+                "opacity": DEFAULT_DISABLED_OPACITY,
             },
         )[
             div()[

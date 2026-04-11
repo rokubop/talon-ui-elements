@@ -221,7 +221,7 @@ class Actions:
         axis: "y" or "x". direction: 1 (up/left) or -1 (down/right)."""
         state_manager.smooth_scroll_node(id, axis, direction, fraction)
 
-    def ui_elements_data_table_scroll_to_key(id: str, key: str):
+    def ui_elements_scroll_to_key(id: str, key: str):
         """Scroll a data_table so the row with the given key is visible. id is the data_table's id."""
         state_manager.scroll_to_key(id, key)
 

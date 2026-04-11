@@ -107,7 +107,7 @@ def data_table_stories():
                     ),
                     div(flex_direction="row", gap=8, margin_top=8)[
                         button(
-                            on_click=lambda e: actions.user.ui_elements_data_table_scroll_to_key("story_dt_1", "zoom out"),
+                            on_click=lambda e: actions.user.ui_elements_scroll_to_key("story_dt_1", "zoom out"),
                             padding=8,
                             background_color="333333",
                             border_radius=4,

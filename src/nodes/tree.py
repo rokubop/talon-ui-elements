@@ -17,6 +17,7 @@ from ..constants import (
     ELEMENT_ENUM_TYPE,
     DRAG_INIT_THRESHOLD,
     DEFAULT_CURSOR_REFRESH_RATE,
+    DEFAULT_HIGHLIGHT_DURATION_MS,
     DEFAULT_SCROLL_BAR_FADE_IN_MS,
     DEFAULT_SCROLL_BAR_FADE_OUT_MS,
     DEFAULT_SCROLL_BAR_IDLE_MS,
@@ -995,9 +996,12 @@ class Tree(TreeType):
                     ):
                         self.reconcile_mouse_highlight()
                     self.draw_decoration_renders(draw_canvas, transforms)
-                    self.draw_scrollbars(draw_canvas, transforms)
-                    self.compute_scroll_button_overlays()
-                    self.draw_scroll_button_overlays(draw_canvas, transforms)
+                    if self.meta_state.scrollable:
+                        self.draw_scrollbars(draw_canvas, transforms)
+                        self.compute_scroll_button_overlays()
+                        self.draw_scroll_button_overlays(draw_canvas, transforms)
+                    elif self.meta_state.scroll_button_overlays:
+                        self.meta_state.scroll_button_overlays.clear()
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
                     self.draw_resize_ghost(draw_canvas)
@@ -1305,7 +1309,7 @@ class Tree(TreeType):
 
             self.canvas_decorator.freeze()
 
-    def highlight_briefly(self, id: str, color: str = None, duration: int = 150):
+    def highlight_briefly(self, id: str, color: str = None, duration: int = DEFAULT_HIGHLIGHT_DURATION_MS):
         if id in self.meta_state.unhighlight_jobs:
             job, _ = self.meta_state.unhighlight_jobs.pop(id)
             cron.cancel(job)

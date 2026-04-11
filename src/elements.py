@@ -1,6 +1,10 @@
 from talon import ctrl
 from typing import List, Dict, Any, Union
-from .constants import ELEMENT_ENUM_TYPE
+from .constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_DROP_SHADOW,
+    DEFAULT_WINDOW_BACKGROUND_COLOR,
+)
 from .core.state_manager import state_manager
 from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
@@ -454,9 +458,9 @@ def modal(title=None, open=False, on_close=None, draggable=False, show_title_bar
         "on_close": on_close,
         "draggable": draggable,
         "show_title_bar": show_title_bar,
-        "background_color": "222222",
+        "background_color": DEFAULT_WINDOW_BACKGROUND_COLOR,
         "border_width": 1,
-        "drop_shadow": (0, 20, 25, 25, "000000CC"),
+        "drop_shadow": DEFAULT_DROP_SHADOW,
         "backdrop": backdrop,
         "backdrop_color": backdrop_color,
         "backdrop_click_close": backdrop_click_close

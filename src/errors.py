@@ -1,4 +1,5 @@
 from talon import actions
+from .constants import DEFAULT_ERROR_COLOR, DEFAULT_ERROR_LINK_COLOR
 from .entry import render_ui
 
 def tuple_to_string(t) -> str:
@@ -55,7 +56,7 @@ def error_icon(**kwargs):
     div, svg, circle, path = actions.user.ui_elements(["div", "svg", "circle", "path"])
     return div(**kwargs)[
         svg(size=30)[
-            circle(cx=12, cy=12, r=10, fill="#bd2f3e"),
+            circle(cx=12, cy=12, r=10, fill=DEFAULT_ERROR_COLOR),
             path(d="M12 8v4m0 4h.01", stroke="#FFFFFF", stroke_width=2, stroke_linecap="round")
         ]
     ]
@@ -88,12 +89,12 @@ def generic_error_ui(props) -> None:
                         div(flex_direction="row", align_items="center")[
                             text("Get latest version: "),
                             link(
-                                color="#5F9FE3",
+                                color=DEFAULT_ERROR_LINK_COLOR,
                                 url="https://github.com/rokubop/talon-ui-elements",
                                 flex_direction="row", align_items="center"
                             )[
                                 text("talon-ui-elements GitHub", margin_right=4),
-                                icon("external_link", color="#5F9FE3", size=16),
+                                icon("external_link", color=DEFAULT_ERROR_LINK_COLOR, size=16),
                             ],
                         ],
                         div(flex_direction="row", justify_content="flex_end", margin_top=16)[

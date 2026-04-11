@@ -24,6 +24,7 @@ from .constants import (
     DEFAULT_COLOR,
     DEFAULT_FLEX_DIRECTION,
     DEFAULT_FONT_SIZE,
+    DEFAULT_HIGHLIGHT_ALPHA,
     DEFAULT_JUSTIFY_CONTENT,
     DEFAULT_FOCUS_OUTLINE_COLOR,
     DEFAULT_FOCUS_OUTLINE_WIDTH,
@@ -149,7 +150,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             self.font_size = scale_value(DEFAULT_FONT_SIZE)
 
         if not self.highlight_color:
-            self.highlight_color = _expand_shorthand_hex(self.color) + "33"
+            self.highlight_color = _expand_shorthand_hex(self.color) + DEFAULT_HIGHLIGHT_ALPHA
 
         self.validate_properties(kwargs)
         self.update_colors_with_opacity()
@@ -1240,6 +1241,9 @@ class NodeSwitchValidationProperties(ValidationProperties, NodeSvgValidationProp
     animated: bool
     checked: bool
     on_change: callable
+    track_color: str
+    thumb_color: str
+    disabled: bool
 
 @dataclass
 class NodeModalProperties(Properties):

@@ -10,8 +10,11 @@ import textwrap
 CONTROLS = [
     ("checked", BOOL, False),
     ("animated", BOOL, False),
-    ("size", INT, "14"),
+    ("disabled", BOOL, False),
+    ("size", INT, "22"),
     ("color", COLOR, ""),
+    ("track_color", COLOR, ""),
+    ("thumb_color", COLOR, ""),
 ]
 
 def switch_stories():
@@ -46,27 +49,27 @@ def switch_stories():
             component(example_with_code, props={
                 "title": "Sizes",
                 "example": div(flex_direction="row", align_items="center", gap=16)[
-                    switch(size=10),
-                    switch(size=14),
-                    switch(size=20),
+                    switch(size=16),
+                    switch(size=22),
+                    switch(size=32),
                 ],
                 "code": textwrap.dedent("""\
-                    switch(size=10)
-                    switch(size=14)
-                    switch(size=20)""")
+                    switch(size=16)
+                    switch(size=22)
+                    switch(size=32)""")
             }),
 
             component(example_with_code, props={
                 "title": "Custom Colors",
                 "example": div(flex_direction="row", align_items="center", gap=16)[
-                    switch(id="ex_green", background_color="4CAF50", checked=True),
-                    switch(id="ex_red", background_color="F44336", checked=True),
-                    switch(id="ex_purple", background_color="9C27B0", checked=True),
+                    switch(id="ex_green", color="4CAF50", checked=True),
+                    switch(id="ex_red", color="F44336", checked=True),
+                    switch(id="ex_purple", color="9C27B0", checked=True),
                 ],
                 "code": textwrap.dedent("""\
-                    switch(background_color="4CAF50", checked=True)
-                    switch(background_color="F44336", checked=True)
-                    switch(background_color="9C27B0", checked=True)""")
+                    switch(color="4CAF50", checked=True)
+                    switch(color="F44336", checked=True)
+                    switch(color="9C27B0", checked=True)""")
             }),
 
             component(example_with_code, props={
@@ -88,13 +91,13 @@ def switch_stories():
                 "title": "Animated",
                 "example": div(flex_direction="row", align_items="center", gap=16)[
                     switch(id="ex_anim1", animated=True),
-                    switch(id="ex_anim2", animated=True, size=20),
-                    switch(id="ex_anim3", animated=True, background_color="4CAF50", checked=True),
+                    switch(id="ex_anim2", animated=True, size=32),
+                    switch(id="ex_anim3", animated=True, color="4CAF50", checked=True),
                 ],
                 "code": textwrap.dedent("""\
                     switch(animated=True)
-                    switch(animated=True, size=20)
-                    switch(animated=True, background_color="4CAF50")""")
+                    switch(animated=True, size=32)
+                    switch(animated=True, color="4CAF50")""")
             }),
         ],
     ]

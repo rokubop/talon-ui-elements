@@ -1,6 +1,10 @@
 from talon import actions, cron
 from .node_container import NodeContainer
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_DROP_SHADOW,
+    DEFAULT_WINDOW_BACKGROUND_COLOR,
+)
 from ..events import WindowCloseEvent
 from ..icons import VALID_ICON_NAMES
 from ..properties import Properties, NodeWindowProperties
@@ -53,8 +57,8 @@ class NodeWindow(NodeContainer):
 
         resolved_window_props = {
             "draggable": True,
-            "background_color": "222222",
-            "drop_shadow": (0, 20, 25, 25, "000000CC"),
+            "background_color": DEFAULT_WINDOW_BACKGROUND_COLOR,
+            "drop_shadow": DEFAULT_DROP_SHADOW,
             "border_radius": 4,
             "border_width": 1,
             "overflow": "hidden",

@@ -2,7 +2,10 @@ from dataclasses import dataclass, field
 from typing import List, Set
 from talon import actions
 from .node_container import NodeContainer
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_WINDOW_BACKGROUND_COLOR,
+)
 from ..properties import NodeDataTableProperties
 
 
@@ -155,7 +158,7 @@ class NodeDataTable(NodeContainer):
         multi = props.multi_select
         row_key = props.row_key
 
-        header_bg = props.header_background_color or "222222"
+        header_bg = props.header_background_color or DEFAULT_WINDOW_BACKGROUND_COLOR
         row_bg = props.row_background_color or "00000000"
         stripe_bg = props.stripe_background_color or "FFFFFF08"
         border_color = props.border_color or "444444"
