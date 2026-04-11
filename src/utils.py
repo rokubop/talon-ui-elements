@@ -61,6 +61,21 @@ def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
 def get_screen(index: int = None) -> Screen:
     return ui.main_screen() if index is None else ui.screens()[index]
 
+def _stable_value_repr(value) -> str:
+    """Return a stable string for a value — avoids default object repr
+    (which includes memory addresses and changes every render)."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return str(value)
+    if isinstance(value, (tuple, list)):
+        return "[" + ",".join(_stable_value_repr(v) for v in value) + "]"
+    if isinstance(value, dict):
+        return "{" + ",".join(
+            f"{k}:{_stable_value_repr(v)}" for k, v in sorted(value.items())
+        ) + "}"
+    # Fallback: type name only, so custom node/element objects don't
+    # produce a new hash every render.
+    return f"<{type(value).__name__}>"
+
 def generate_hash(obj: Union[Callable, dict]) -> str:
     hasher = hashlib.sha256()
 
@@ -78,8 +93,7 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
                 func_name = f"{value.__module__}.{value.__qualname__}"
                 hasher.update(f"{key}:{func_name}".encode())
             else:
-                # For other types, use string representation
-                hasher.update(f"{key}:{str(value)}".encode())
+                hasher.update(f"{key}:{_stable_value_repr(value)}".encode())
     else:
         raise TypeError("Object must be a callable or a dictionary.")
 
