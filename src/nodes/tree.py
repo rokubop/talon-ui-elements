@@ -1198,7 +1198,7 @@ class Tree(TreeType):
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
-                if node.interactive:
+                if getattr(node, 'hintable', node.interactive):
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
             for overlay in list(self.meta_state.scroll_button_overlays.values()):
                 draw_scroll_button_hint(canvas, overlay, transforms=transforms)

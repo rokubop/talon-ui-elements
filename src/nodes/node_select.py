@@ -58,6 +58,8 @@ class NodeSelect(NodeContainer):
             properties=properties
         )
         self.interactive = True
+        # Don't hint the select wrapper itself; the trigger button carries the hint.
+        self.hintable = False
 
         # Use state for open/highlight - same pattern as NodeWindow
         div, button, text, icon, state = actions.user.ui_elements(["div", "button", "text", "icon", "state"])
@@ -114,6 +116,10 @@ class NodeSelect(NodeContainer):
             padding_right=pad_right,
             padding_top=pad_top,
             padding_bottom=pad_bottom,
+            # Anchor hint near the button's top-left corner since the
+            # select trigger is a fixed-height container and the default
+            # content_rect anchor ends up well above the visible text.
+            hint_offset=props.hint_offset if props.hint_offset is not None else (-5, -3),
         )[
             text(trigger_text, color=trigger_color, font_size=props.font_size,
                  font_family=props.font_family),
@@ -121,6 +127,7 @@ class NodeSelect(NodeContainer):
                  stroke_width=2),
         ]
         trigger.interactive = False
+        trigger.hintable = True
         self.add_child(trigger)
 
         if self._is_open:
@@ -161,6 +168,7 @@ class NodeSelect(NodeContainer):
                     padding_left=pad_left if has_pad else 10,
                     padding_right=pad_right if has_pad else 10,
                     border_radius=0,
+                    hint_style={"background_color": dropdown_bg},
                 )[
                     text(opt["label"],
                          color=props.color,
@@ -168,6 +176,7 @@ class NodeSelect(NodeContainer):
                          font_family=props.font_family),
                 ]
                 option_btn.interactive = False
+                option_btn.hintable = True
                 dropdown.add_child(option_btn)
 
             # Render dropdown only on decorator layer so it paints on top of
