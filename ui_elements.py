@@ -216,9 +216,10 @@ class Actions:
         """Scroll a scrollable container to the bottom. id is the scrollable element's id."""
         state_manager.scroll_to_bottom(id)
 
-    def ui_elements_scroll_by_view_fraction(id: str, axis: str, direction: int, fraction: float = 0.45):
-        """Scroll a scrollable container by a fraction of its view size. axis: "y" or "x". direction: -1 (up/left) or 1 (down/right)."""
-        state_manager.scroll_by_view_fraction(id, axis, direction, fraction)
+    def ui_elements_smooth_scroll(id: str, axis: str = "y", direction: int = -1, fraction: float = 0.45):
+        """Smoothly scroll a scrollable container by a fraction of its view size.
+        axis: "y" or "x". direction: 1 (up/left) or -1 (down/right)."""
+        state_manager.smooth_scroll_node(id, axis, direction, fraction)
 
     def ui_elements_data_table_scroll_to_key(id: str, key: str):
         """Scroll a data_table so the row with the given key is visible. id is the data_table's id."""

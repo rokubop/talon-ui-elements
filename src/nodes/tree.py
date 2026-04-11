@@ -140,6 +140,7 @@ class ScrollButtonOverlay:
     direction: int  # -1 | 1
     rect: Rect
     synthetic_id: str
+    style: dict = None
 
 
 class MetaState(MetaStateType):
@@ -867,7 +868,7 @@ class Tree(TreeType):
         """Walk scrollable containers and compute floating scroll button overlays
         for any direction with remaining scroll room."""
         self.meta_state.scroll_button_overlays.clear()
-        size = scale_value(DEFAULT_SCROLL_BUTTON_SIZE)
+        default_size = scale_value(DEFAULT_SCROLL_BUTTON_SIZE)
         inset = scale_value(DEFAULT_SCROLL_BUTTON_INSET)
         bar_width = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
 
@@ -875,6 +876,11 @@ class Tree(TreeType):
             node = self.meta_state.id_to_node.get(sid)
             if not node or not node.box_model:
                 continue
+            if getattr(node.properties, "scroll_buttons", True) is False:
+                continue
+            style = getattr(node.properties, "scroll_buttons_style", None) or {}
+            size = scale_value(style.get("size", DEFAULT_SCROLL_BUTTON_SIZE))
+
             sdata = self.meta_state.scrollable[sid]
             pad = node.box_model.padding_rect
 
@@ -884,11 +890,11 @@ class Tree(TreeType):
             if y_overflow:
                 x = pad.x + pad.width - size - inset - bar_width
                 if sdata.offset_y < 0:
-                    self._add_scroll_button_overlay(sid, "up", "y", -1,
-                        Rect(x, pad.y + inset, size, size))
+                    self._add_scroll_button_overlay(sid, "up", "y", 1,
+                        Rect(x, pad.y + inset, size, size), style)
                 if sdata.offset_y > (sdata.view_height - sdata.max_height):
-                    self._add_scroll_button_overlay(sid, "down", "y", 1,
-                        Rect(x, pad.y + pad.height - size - inset, size, size))
+                    self._add_scroll_button_overlay(sid, "down", "y", -1,
+                        Rect(x, pad.y + pad.height - size - inset, size, size), style)
 
             if x_overflow:
                 y = pad.y + pad.height - size - inset - bar_width
@@ -898,13 +904,13 @@ class Tree(TreeType):
                 if y_overflow:
                     right_x -= (size + inset)
                 if sdata.offset_x < 0:
-                    self._add_scroll_button_overlay(sid, "left", "x", -1,
-                        Rect(left_x, y, size, size))
+                    self._add_scroll_button_overlay(sid, "left", "x", 1,
+                        Rect(left_x, y, size, size), style)
                 if sdata.offset_x > (sdata.view_width - sdata.max_width):
-                    self._add_scroll_button_overlay(sid, "right", "x", 1,
-                        Rect(right_x, y, size, size))
+                    self._add_scroll_button_overlay(sid, "right", "x", -1,
+                        Rect(right_x, y, size, size), style)
 
-    def _add_scroll_button_overlay(self, container_id, role, axis, direction, rect):
+    def _add_scroll_button_overlay(self, container_id, role, axis, direction, rect, style=None):
         synthetic_id = f"__sb__{container_id}__{role}"
         self.meta_state.scroll_button_overlays[synthetic_id] = ScrollButtonOverlay(
             container_id=container_id,
@@ -913,6 +919,7 @@ class Tree(TreeType):
             direction=direction,
             rect=rect,
             synthetic_id=synthetic_id,
+            style=style,
         )
 
     def draw_scroll_button_overlays(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
@@ -920,6 +927,12 @@ class Tree(TreeType):
             return
         hovered = self.meta_state.scroll_button_hovered_id
         for overlay in list(self.meta_state.scroll_button_overlays.values()):
+            style = overlay.style or {}
+            background_color = style.get("background_color", DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR)
+            hover_background_color = style.get("hover_background_color", DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR)
+            border_color = style.get("border_color", DEFAULT_SCROLL_BUTTON_BORDER_COLOR)
+            icon_color = style.get("icon_color", DEFAULT_SCROLL_BUTTON_ICON_COLOR)
+
             r = overlay.rect.copy()
             if transforms and transforms.offset:
                 r.x += transforms.offset.x
@@ -930,21 +943,21 @@ class Tree(TreeType):
 
             canvas.paint.antialias = True
             canvas.paint.style = canvas.paint.Style.FILL
-            canvas.paint.color = (DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR
-                if overlay.synthetic_id == hovered else DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR)
+            canvas.paint.color = (hover_background_color
+                if overlay.synthetic_id == hovered else background_color)
             canvas.draw_circle(cx, cy, radius)
 
             canvas.paint.style = canvas.paint.Style.STROKE
             canvas.paint.stroke_width = scale_value(1)
-            canvas.paint.color = DEFAULT_SCROLL_BUTTON_BORDER_COLOR
+            canvas.paint.color = border_color
             canvas.draw_circle(cx, cy, radius)
 
             # Chevron
-            canvas.paint.color = DEFAULT_SCROLL_BUTTON_ICON_COLOR
+            canvas.paint.color = icon_color
             canvas.paint.stroke_width = scale_value(2)
             canvas.paint.style = canvas.paint.Style.STROKE
-            arm = scale_value(5)
-            depth = scale_value(3)
+            arm = radius * 0.36
+            depth = radius * 0.22
             if overlay.role == "up":
                 canvas.draw_line(cx - arm, cy + depth / 2, cx, cy - depth / 2)
                 canvas.draw_line(cx, cy - depth / 2, cx + arm, cy + depth / 2)
@@ -2098,7 +2111,7 @@ class Tree(TreeType):
 
         scroll_btn = self.scroll_button_overlay_at(gpos)
         if scroll_btn:
-            state_manager.scroll_by_view_fraction(
+            state_manager.smooth_scroll_node(
                 scroll_btn.container_id, scroll_btn.axis, scroll_btn.direction
             )
             return

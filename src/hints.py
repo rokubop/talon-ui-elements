@@ -104,7 +104,7 @@ def _dispatch_scroll_button_hint(synthetic_id: str) -> bool:
     for tree in store.trees:
         overlay = tree.meta_state.scroll_button_overlays.get(synthetic_id)
         if overlay:
-            state_manager.scroll_by_view_fraction(
+            state_manager.smooth_scroll_node(
                 overlay.container_id, overlay.axis, overlay.direction
             )
             return True
@@ -137,7 +137,8 @@ def trigger_hint_focus(hint_trigger: str):
             break
 
 def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransforms = None):
-    hint_size = settings.get("user.ui_elements_hints_size", 12)
+    hint_style = getattr(node.properties, "hint_style", None) or {}
+    hint_size = hint_style.get("font_size") or settings.get("user.ui_elements_hints_size", 12)
     c.paint.textsize = scale_value(hint_size)
 
     hint_text_width = c.paint.measure_text(text)[1].width
@@ -188,6 +189,10 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransf
         border_color = node.resolve_render_property("border_color") or border_color
         background_color = node.resolve_render_property("background_color") or background_color
         color = node.resolve_render_property("color") or color
+
+    border_color = hint_style.get("border_color", border_color)
+    background_color = hint_style.get("background_color", background_color)
+    color = hint_style.get("color", color)
 
     c.paint.antialias = True
 

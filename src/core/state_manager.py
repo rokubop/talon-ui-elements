@@ -166,6 +166,8 @@ class StateManager:
     def __init__(self):
         self.debounce_render_job = None
         self.ctx = Context()
+        self._smooth_scroll_job = None
+        self._smooth_scroll_state = None
 
     def get_hovered_id(self):
         return store.mouse_state['hovered_id']
@@ -596,34 +598,95 @@ class StateManager:
                 node.tree._scrollbar_show(scroll_id)
                 node.tree.render_manager.queue_render(RenderTaskScrolling)
 
-    def scroll_by_view_fraction(self, id: str, axis: str, direction: int, fraction: float = 0.45):
-        """Scroll a container by a fraction of its view size.
-        axis: "y" or "x". direction: -1 (up/left) or 1 (down/right).
-        Internal scroll offsets are negative as content moves further from origin."""
+    def smooth_scroll_node(self, id: str, axis: str = "y", direction: int = -1, fraction: float = 0.85):
+        """Smoothly scroll a specific scrollable container by a fraction of its view size.
+        axis: "y" or "x". direction: 1 = up/left, -1 = down/right.
+        Reuses an in-flight scroll easing job, supporting redirection mid-scroll.
+        Used by both the voice "scroll up/down" command and the floating scroll buttons."""
         node = store.id_to_node.get(id)
         if not node:
             return
         scroll_data, scroll_id = self._get_scroll_data(node, id)
         if not scroll_data:
             return
+        scroll_node = node.tree.meta_state.id_to_node.get(scroll_id) or node
+        if not scroll_node.box_model:
+            return
+
         if axis == "y":
-            min_y = min(0, scroll_data.view_height - scroll_data.max_height)
-            amount = -scroll_data.view_height * fraction * direction
-            new_y = max(min_y, min(0, scroll_data.offset_y + amount))
-            if new_y != scroll_data.offset_y:
-                scroll_data.offset_y = new_y
-                scroll_data.target_offset_y = new_y
-                node.tree._scrollbar_show(scroll_id)
-                node.tree.render_manager.queue_render(RenderTaskScrolling)
+            view = scroll_node.box_model.padding_size.height
+            content = scroll_node.box_model.content_children_with_padding_size.height
         else:
-            min_x = min(0, scroll_data.view_width - scroll_data.max_width)
-            amount = -scroll_data.view_width * fraction * direction
-            new_x = max(min_x, min(0, scroll_data.offset_x + amount))
-            if new_x != scroll_data.offset_x:
-                scroll_data.offset_x = new_x
-                scroll_data.target_offset_x = new_x
-                node.tree._scrollbar_show(scroll_id)
-                node.tree.render_manager.queue_render(RenderTaskScrolling)
+            view = scroll_node.box_model.padding_size.width
+            content = scroll_node.box_model.content_children_with_padding_size.width
+
+        offset_attr = "offset_y" if axis == "y" else "offset_x"
+        target_attr = "target_offset_y" if axis == "y" else "target_offset_x"
+        view_attr = "view_height" if axis == "y" else "view_width"
+        max_attr = "max_height" if axis == "y" else "max_width"
+
+        current_offset = getattr(scroll_data, offset_attr)
+        prior = self._smooth_scroll_state if (
+            self._smooth_scroll_state
+            and self._smooth_scroll_state["node_id"] == scroll_id
+            and self._smooth_scroll_state["axis"] == axis
+        ) else None
+        prior_target = prior["target"] if prior else current_offset
+        prior_direction = (
+            1 if prior and prior_target > current_offset
+            else -1 if prior and prior_target < current_offset
+            else 0
+        )
+        changing_direction = bool(prior) and prior_direction != 0 and direction != prior_direction
+        base_target = current_offset if changing_direction else prior_target
+
+        amount = view * fraction * direction
+        min_offset = view - content
+        new_target = max(min_offset, min(0, base_target + amount))
+
+        if new_target == base_target and not prior:
+            return
+
+        setattr(scroll_data, view_attr, view)
+        setattr(scroll_data, max_attr, content)
+        node.tree._scrollbar_show(scroll_id)
+
+        self._smooth_scroll_state = {
+            "tree": node.tree,
+            "data": scroll_data,
+            "node_id": scroll_id,
+            "axis": axis,
+            "target": new_target,
+        }
+        if not self._smooth_scroll_job:
+            self._smooth_scroll_job = cron.interval("16ms", self._smooth_scroll_tick)
+
+    def _smooth_scroll_tick(self):
+        s = self._smooth_scroll_state
+        if not s:
+            self._smooth_scroll_stop()
+            return
+        tree, data, node_id, axis = s["tree"], s["data"], s["node_id"], s["axis"]
+        if tree.destroying or node_id not in tree.meta_state.scrollable:
+            self._smooth_scroll_stop()
+            return
+
+        offset_attr = "offset_y" if axis == "y" else "offset_x"
+        current = getattr(data, offset_attr)
+        delta = s["target"] - current
+        if abs(delta) <= 1.0:
+            setattr(data, offset_attr, s["target"])
+            tree.render_manager.render_scroll()
+            self._smooth_scroll_stop()
+            return
+        setattr(data, offset_attr, current + delta * 0.25)
+        tree.render_manager.render_scroll()
+
+    def _smooth_scroll_stop(self):
+        if self._smooth_scroll_job:
+            cron.cancel(self._smooth_scroll_job)
+            self._smooth_scroll_job = None
+        self._smooth_scroll_state = None
 
     def scroll_to_key(self, id: str, key: str):
         """Scroll a data_table so the row with the given key is visible."""

@@ -103,7 +103,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     highlight_style: dict = None
     highlight_color: str = None
     hint_offset: tuple = None
+    hint_style: dict = None
     mount_style: dict = None
+    scroll_buttons: bool = True
+    scroll_buttons_style: dict = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
@@ -553,8 +556,11 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     highlight_style: dict
     highlight_color: str
     hint_offset: tuple
+    hint_style: dict
     id: str
     mount_style: dict
+    scroll_buttons: bool
+    scroll_buttons_style: dict
     justify_content: str
     left: Union[int, str, float]
     max_height: Union[int, str]
