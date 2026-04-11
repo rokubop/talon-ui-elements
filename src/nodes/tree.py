@@ -1970,6 +1970,16 @@ class Tree(TreeType):
                 if hovered_overlay_id != self.meta_state.scroll_button_hovered_id:
                     self.meta_state.scroll_button_hovered_id = hovered_overlay_id
                     self.render_manager.render_mouse_highlight()
+                if hovered_overlay_id:
+                    # Suppress button hover when over a scroll button overlay
+                    prev_hovered_id = state_manager.get_hovered_id()
+                    if prev_hovered_id:
+                        self.unhighlight_no_render(prev_hovered_id)
+                        state_manager.set_hovered_id(None)
+                        self.render_manager.render_mouse_highlight()
+                    if not self.hover_validation_job:
+                        self.schedule_hover_validation()
+                    return
 
                 changed = False
                 new_hovered_id = None

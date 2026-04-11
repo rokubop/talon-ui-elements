@@ -15,6 +15,8 @@ key(down:up): user.ui_elements_key_action("focus_next", false)
 key(escape): user.ui_elements_key_action("close")
 scroll down: user.ui_elements_scroll_down()
 scroll up: user.ui_elements_scroll_up()
+scroll top: user.ui_elements_scroll_top()
+scroll bottom: user.ui_elements_scroll_bottom()
 window close: user.ui_elements_close_focused()
 
 # other key code in /nodes/tree.py in on_key

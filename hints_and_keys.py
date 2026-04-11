@@ -80,22 +80,26 @@ def _find_scroll_target(tree):
 
     return None, None
 
-def _scroll_focused_tree(direction: int):
-    """Scroll the focused tree. direction: 1=up, -1=down."""
+def _resolve_focused_scroll_target():
+    """Resolve (tree, node) for a scrollable region in the focused tree, or None."""
     tree = store.focused_tree
     if not tree:
-        # Fall back to any tree with a scrollable region
         for t in store.trees:
             if t.meta_state.scrollable:
                 tree = t
                 break
     if not tree:
-        return
-
+        return None, None
     node, data = _find_scroll_target(tree)
     if not node or not data:
-        return
+        return None, None
+    return tree, node
 
+def _scroll_focused_tree(direction: int):
+    """Scroll the focused tree. direction: 1=up, -1=down."""
+    tree, node = _resolve_focused_scroll_target()
+    if not node:
+        return
     state_manager.smooth_scroll_node(node.id, "y", direction)
 
 @mod.action_class
@@ -151,6 +155,18 @@ class Actions:
     def ui_elements_scroll_up():
         """Scroll up in the focused UI elements window"""
         _scroll_focused_tree(1)
+
+    def ui_elements_scroll_top():
+        """Jump to the top of the focused UI elements scrollable region"""
+        _, node = _resolve_focused_scroll_target()
+        if node:
+            state_manager.scroll_to_top(node.id)
+
+    def ui_elements_scroll_bottom():
+        """Jump to the bottom of the focused UI elements scrollable region"""
+        _, node = _resolve_focused_scroll_target()
+        if node:
+            state_manager.scroll_to_bottom(node.id)
 
     def ui_elements_close_focused():
         """Close the focused UI elements window"""
