@@ -20,6 +20,13 @@ from ..constants import (
     DEFAULT_SCROLL_BAR_FADE_IN_MS,
     DEFAULT_SCROLL_BAR_FADE_OUT_MS,
     DEFAULT_SCROLL_BAR_IDLE_MS,
+    DEFAULT_SCROLL_BAR_WIDTH,
+    DEFAULT_SCROLL_BUTTON_SIZE,
+    DEFAULT_SCROLL_BUTTON_INSET,
+    DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR,
+    DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR,
+    DEFAULT_SCROLL_BUTTON_BORDER_COLOR,
+    DEFAULT_SCROLL_BUTTON_ICON_COLOR,
     RESIZE_EDGE_THRESHOLD,
     RESIZE_GHOST_COLOR,
     RESIZE_GHOST_STROKE_WIDTH,
@@ -53,7 +60,7 @@ from ..interfaces import (
     ScrollRegionType,
     ScrollableType,
 )
-from ..hints import draw_hint, get_hint_generator, hint_clear_state, hint_tag_enable
+from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable
 from ..style import Style
 from ..utils import (
     draw_text_simple,
@@ -125,6 +132,16 @@ class DraggableOffset:
     y: int
 
 
+@dataclass
+class ScrollButtonOverlay:
+    container_id: str
+    role: str       # "up" | "down" | "left" | "right"
+    axis: str       # "y" | "x"
+    direction: int  # -1 | 1
+    rect: Rect
+    synthetic_id: str
+
+
 class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = []
@@ -160,6 +177,8 @@ class MetaState(MetaStateType):
         self.scrollbar_opacity = {}
         self.scrollbar_fade_jobs = {}
         self.scrollbar_idle_jobs = {}
+        self.scroll_button_overlays: dict[str, ScrollButtonOverlay] = {}
+        self.scroll_button_hovered_id: str = None
         self.resize_edge_hovered = None
         self.resize_original_constraints = {}
         self.resize_dragging_id = None
@@ -844,6 +863,108 @@ class Tree(TreeType):
                 if hasattr(node, "render_scroll_bar"):
                     node.render_scroll_bar(canvas, transforms)
 
+    def compute_scroll_button_overlays(self):
+        """Walk scrollable containers and compute floating scroll button overlays
+        for any direction with remaining scroll room."""
+        self.meta_state.scroll_button_overlays.clear()
+        size = scale_value(DEFAULT_SCROLL_BUTTON_SIZE)
+        inset = scale_value(DEFAULT_SCROLL_BUTTON_INSET)
+        bar_width = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+
+        for sid in list(self.meta_state.scrollable.keys()):
+            node = self.meta_state.id_to_node.get(sid)
+            if not node or not node.box_model:
+                continue
+            sdata = self.meta_state.scrollable[sid]
+            pad = node.box_model.padding_rect
+
+            y_overflow = sdata.max_height > sdata.view_height
+            x_overflow = sdata.max_width > sdata.view_width
+
+            if y_overflow:
+                x = pad.x + pad.width - size - inset - bar_width
+                if sdata.offset_y < 0:
+                    self._add_scroll_button_overlay(sid, "up", "y", -1,
+                        Rect(x, pad.y + inset, size, size))
+                if sdata.offset_y > (sdata.view_height - sdata.max_height):
+                    self._add_scroll_button_overlay(sid, "down", "y", 1,
+                        Rect(x, pad.y + pad.height - size - inset, size, size))
+
+            if x_overflow:
+                y = pad.y + pad.height - size - inset - bar_width
+                left_x = pad.x + inset
+                right_x = pad.x + pad.width - size - inset
+                # Avoid colliding with the down button when both axes scroll
+                if y_overflow:
+                    right_x -= (size + inset)
+                if sdata.offset_x < 0:
+                    self._add_scroll_button_overlay(sid, "left", "x", -1,
+                        Rect(left_x, y, size, size))
+                if sdata.offset_x > (sdata.view_width - sdata.max_width):
+                    self._add_scroll_button_overlay(sid, "right", "x", 1,
+                        Rect(right_x, y, size, size))
+
+    def _add_scroll_button_overlay(self, container_id, role, axis, direction, rect):
+        synthetic_id = f"__sb__{container_id}__{role}"
+        self.meta_state.scroll_button_overlays[synthetic_id] = ScrollButtonOverlay(
+            container_id=container_id,
+            role=role,
+            axis=axis,
+            direction=direction,
+            rect=rect,
+            synthetic_id=synthetic_id,
+        )
+
+    def draw_scroll_button_overlays(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
+        if not self.meta_state.scroll_button_overlays:
+            return
+        hovered = self.meta_state.scroll_button_hovered_id
+        for overlay in list(self.meta_state.scroll_button_overlays.values()):
+            r = overlay.rect.copy()
+            if transforms and transforms.offset:
+                r.x += transforms.offset.x
+                r.y += transforms.offset.y
+            cx = r.x + r.width / 2
+            cy = r.y + r.height / 2
+            radius = r.width / 2
+
+            canvas.paint.antialias = True
+            canvas.paint.style = canvas.paint.Style.FILL
+            canvas.paint.color = (DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR
+                if overlay.synthetic_id == hovered else DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR)
+            canvas.draw_circle(cx, cy, radius)
+
+            canvas.paint.style = canvas.paint.Style.STROKE
+            canvas.paint.stroke_width = scale_value(1)
+            canvas.paint.color = DEFAULT_SCROLL_BUTTON_BORDER_COLOR
+            canvas.draw_circle(cx, cy, radius)
+
+            # Chevron
+            canvas.paint.color = DEFAULT_SCROLL_BUTTON_ICON_COLOR
+            canvas.paint.stroke_width = scale_value(2)
+            canvas.paint.style = canvas.paint.Style.STROKE
+            arm = scale_value(5)
+            depth = scale_value(3)
+            if overlay.role == "up":
+                canvas.draw_line(cx - arm, cy + depth / 2, cx, cy - depth / 2)
+                canvas.draw_line(cx, cy - depth / 2, cx + arm, cy + depth / 2)
+            elif overlay.role == "down":
+                canvas.draw_line(cx - arm, cy - depth / 2, cx, cy + depth / 2)
+                canvas.draw_line(cx, cy + depth / 2, cx + arm, cy - depth / 2)
+            elif overlay.role == "left":
+                canvas.draw_line(cx + depth / 2, cy - arm, cx - depth / 2, cy)
+                canvas.draw_line(cx - depth / 2, cy, cx + depth / 2, cy + arm)
+            elif overlay.role == "right":
+                canvas.draw_line(cx - depth / 2, cy - arm, cx + depth / 2, cy)
+                canvas.draw_line(cx + depth / 2, cy, cx - depth / 2, cy + arm)
+
+    def scroll_button_overlay_at(self, gpos):
+        """Return the scroll button overlay at the given position, or None."""
+        for overlay in self.meta_state.scroll_button_overlays.values():
+            if overlay.rect.contains(gpos):
+                return overlay
+        return None
+
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
             if not self.render_manager.is_destroying:
@@ -862,6 +983,8 @@ class Tree(TreeType):
                         self.reconcile_mouse_highlight()
                     self.draw_decoration_renders(draw_canvas, transforms)
                     self.draw_scrollbars(draw_canvas, transforms)
+                    self.compute_scroll_button_overlays()
+                    self.draw_scroll_button_overlays(draw_canvas, transforms)
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
                     self.draw_resize_ghost(draw_canvas)
@@ -1058,12 +1181,14 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def draw_hints(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list:
+        if self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list or self.meta_state.scroll_button_overlays:
             hint_tag_enable()
             hint_generator = get_hint_generator()
             for node in list(self.meta_state.id_to_node.values()):
                 if node.interactive:
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
+            for overlay in list(self.meta_state.scroll_button_overlays.values()):
+                draw_scroll_button_hint(canvas, overlay, transforms=transforms)
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
@@ -1826,6 +1951,13 @@ class Tree(TreeType):
                     self.meta_state.clear_resize_edge_hover()
                     self.render_manager.render_mouse_highlight()
 
+                # Scroll button hover
+                hovered_overlay = self.scroll_button_overlay_at(gpos)
+                hovered_overlay_id = hovered_overlay.synthetic_id if hovered_overlay else None
+                if hovered_overlay_id != self.meta_state.scroll_button_hovered_id:
+                    self.meta_state.scroll_button_hovered_id = hovered_overlay_id
+                    self.render_manager.render_mouse_highlight()
+
                 changed = False
                 new_hovered_id = None
                 prev_hovered_id = state_manager.get_hovered_id()
@@ -1962,6 +2094,13 @@ class Tree(TreeType):
                 return
 
         if self.handle_scrollbar_mousedown(gpos):
+            return
+
+        scroll_btn = self.scroll_button_overlay_at(gpos)
+        if scroll_btn:
+            state_manager.scroll_by_view_fraction(
+                scroll_btn.container_id, scroll_btn.axis, scroll_btn.direction
+            )
             return
 
         hovered_id = state_manager.get_hovered_id()
@@ -2905,6 +3044,10 @@ class Tree(TreeType):
         self._setup_nonlayout_nodes(current_node)
         self._check_deprecated_ui(current_node)
         self._apply_justify_content_if_space_evenly(current_node)
+
+        inject = getattr(current_node, "_maybe_inject_scroll_buttons", None)
+        if inject:
+            inject()
 
         for i, child_node in enumerate(current_node.get_children_nodes()):
             self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes, clip_nodes)

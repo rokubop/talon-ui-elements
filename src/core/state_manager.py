@@ -596,6 +596,35 @@ class StateManager:
                 node.tree._scrollbar_show(scroll_id)
                 node.tree.render_manager.queue_render(RenderTaskScrolling)
 
+    def scroll_by_view_fraction(self, id: str, axis: str, direction: int, fraction: float = 0.45):
+        """Scroll a container by a fraction of its view size.
+        axis: "y" or "x". direction: -1 (up/left) or 1 (down/right).
+        Internal scroll offsets are negative as content moves further from origin."""
+        node = store.id_to_node.get(id)
+        if not node:
+            return
+        scroll_data, scroll_id = self._get_scroll_data(node, id)
+        if not scroll_data:
+            return
+        if axis == "y":
+            min_y = min(0, scroll_data.view_height - scroll_data.max_height)
+            amount = -scroll_data.view_height * fraction * direction
+            new_y = max(min_y, min(0, scroll_data.offset_y + amount))
+            if new_y != scroll_data.offset_y:
+                scroll_data.offset_y = new_y
+                scroll_data.target_offset_y = new_y
+                node.tree._scrollbar_show(scroll_id)
+                node.tree.render_manager.queue_render(RenderTaskScrolling)
+        else:
+            min_x = min(0, scroll_data.view_width - scroll_data.max_width)
+            amount = -scroll_data.view_width * fraction * direction
+            new_x = max(min_x, min(0, scroll_data.offset_x + amount))
+            if new_x != scroll_data.offset_x:
+                scroll_data.offset_x = new_x
+                scroll_data.target_offset_x = new_x
+                node.tree._scrollbar_show(scroll_id)
+                node.tree.render_manager.queue_render(RenderTaskScrolling)
+
     def scroll_to_key(self, id: str, key: str):
         """Scroll a data_table so the row with the given key is visible."""
         node = store.id_to_node.get(id)

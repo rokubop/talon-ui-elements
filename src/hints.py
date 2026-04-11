@@ -65,10 +65,13 @@ class HintGenerator:
         }
 
     def generate_hint(self, node: NodeType):
-        if node.id in store.id_to_hint:
-            return store.id_to_hint[node.id]
+        return self.generate_hint_for_id(node.id, node.element_type)
 
-        element_type = "input_text" if node.element_type == "textarea" else node.element_type
+    def generate_hint_for_id(self, id: str, element_type: str):
+        if id in store.id_to_hint:
+            return store.id_to_hint[id]
+
+        element_type = "input_text" if element_type == "textarea" else element_type
         if element_type not in self.char_map:
             element_type = "button"
         if element_type in self.char_map:
@@ -90,14 +93,29 @@ class HintGenerator:
                 hint = f"{chr(first_char_ascii)}{second_char}"
                 self.state[element_type] = (first_char_ascii, index + 1)
 
-            store.id_to_hint[node.id] = hint
+            store.id_to_hint[id] = hint
             return hint
 
 hint_generator = None
 
+def _dispatch_scroll_button_hint(synthetic_id: str) -> bool:
+    """If the synthetic id matches a scroll button overlay in any tree, dispatch the
+    scroll action and return True."""
+    for tree in store.trees:
+        overlay = tree.meta_state.scroll_button_overlays.get(synthetic_id)
+        if overlay:
+            state_manager.scroll_by_view_fraction(
+                overlay.container_id, overlay.axis, overlay.direction
+            )
+            return True
+    return False
+
 def trigger_hint_click(hint_trigger: str):
     for id, hint in store.id_to_hint.items():
         if hint == hint_trigger:
+            if id.startswith("__sb__"):
+                _dispatch_scroll_button_hint(id)
+                return
             node = store.id_to_node.get(id)
             if node:
                 on_click = getattr(node, 'on_click', None)
@@ -111,6 +129,8 @@ def trigger_hint_click(hint_trigger: str):
 def trigger_hint_focus(hint_trigger: str):
     for id, hint in store.id_to_hint.items():
         if hint == hint_trigger:
+            if id.startswith("__sb__"):
+                return
             node = store.id_to_node.get(id)
             if node:
                 state_manager.focus_node(node)
@@ -194,6 +214,49 @@ def draw_hint(c: SkiaCanvas, node: NodeType, text: str, transforms: RenderTransf
     if apply_clip:
         c.restore()
 
+def draw_scroll_button_hint(c: SkiaCanvas, overlay, transforms: RenderTransforms = None):
+    """Render a hint label for a synthetic scroll button overlay."""
+    hint_text = generate_scroll_button_hint(overlay.synthetic_id)
+
+    hint_size = settings.get("user.ui_elements_hints_size", 12)
+    c.paint.textsize = scale_value(hint_size)
+    hint_text_width = c.paint.measure_text(hint_text)[1].width
+    hint_text_height = c.paint.measure_text("X")[1].height
+    hint_padding = scale_value(6.0)
+    hint_padding_width = hint_text_width + hint_padding
+    hint_padding_height = hint_text_height + hint_padding
+
+    hint_padding_rect = Rect(
+        overlay.rect.x - hint_padding_width,
+        overlay.rect.y - hint_padding_height,
+        hint_padding_width,
+        hint_padding_height
+    )
+    if transforms and transforms.offset:
+        hint_padding_rect.x += transforms.offset.x
+        hint_padding_rect.y += transforms.offset.y
+
+    c.paint.antialias = True
+    c.paint.color = "555555"
+    c.paint.style = c.paint.Style.STROKE
+    c.paint.stroke_width = 1
+    c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
+
+    c.paint.color = "333333"
+    c.paint.style = c.paint.Style.FILL
+    c.draw_rrect(RoundRect.from_rect(hint_padding_rect, x=2, y=2))
+
+    c.paint.color = "FFFFFF"
+    c.paint.style = c.paint.Style.FILL
+    c.draw_text(
+        hint_text,
+        hint_padding_rect.x + hint_padding / 2,
+        hint_padding_rect.y + hint_padding / 2 + hint_text_height
+    )
+
+def generate_scroll_button_hint(synthetic_id: str) -> str:
+    return get_hint_generator_obj().generate_hint_for_id(synthetic_id, "button")
+
 def reset_hint_generator():
     global hint_generator
     hint_generator = HintGenerator()
@@ -202,6 +265,11 @@ def get_hint_generator():
     if not hint_generator:
         reset_hint_generator()
     return hint_generator.generate_hint
+
+def get_hint_generator_obj():
+    if not hint_generator:
+        reset_hint_generator()
+    return hint_generator
 
 
 class KeyPressOrRepeatHold:
