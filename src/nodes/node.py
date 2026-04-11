@@ -304,6 +304,27 @@ class Node(NodeType):
                 self.properties.update_colors_with_opacity()
 
     def is_fully_clipped_by_scroll(self):
+        if not self.clip_nodes or not self.box_model:
+            return False
+        rect = self.box_model.padding_rect
+        if not rect:
+            return False
+        for clip_ref in self.clip_nodes:
+            clip_node = clip_ref()
+            if not clip_node or not clip_node.box_model:
+                continue
+            clip_rect = (
+                clip_node.box_model.padding_with_scroll_bar_rect
+                if clip_node.properties.overflow.scrollable
+                else clip_node.box_model.padding_rect
+            )
+            if not clip_rect:
+                continue
+            if (rect.x + rect.width <= clip_rect.x or
+                rect.x >= clip_rect.x + clip_rect.width or
+                rect.y + rect.height <= clip_rect.y or
+                rect.y >= clip_rect.y + clip_rect.height):
+                return True
         return False
 
     def v2_measure_intrinsic_size(self, c):

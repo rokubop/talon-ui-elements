@@ -2037,9 +2037,9 @@ class Tree(TreeType):
                     if source_id != target_id:
                         target_node = self.meta_state.id_to_node.get(target_id, None)
                     if source_node and not getattr(target_node, 'disabled', False):
-                        if source_node.is_fully_clipped_by_scroll():
-                            continue
                         if source_node and source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                            if source_node.is_fully_clipped_by_scroll():
+                                continue
                             new_hovered_id = target_id
                             if new_hovered_id != prev_hovered_id:
                                 state_manager.set_hovered_id(target_id)
@@ -2414,9 +2414,9 @@ class Tree(TreeType):
             if source_id != target_id:
                 target_node = self.meta_state.id_to_node.get(target_id, None)
             if source_node and not getattr(target_node, 'disabled', False):
-                if source_node.is_fully_clipped_by_scroll():
-                    continue
                 if source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                    if source_node.is_fully_clipped_by_scroll():
+                        continue
                     new_hovered_id = target_id
                     break
 
