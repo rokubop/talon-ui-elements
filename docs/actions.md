@@ -26,8 +26,7 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_debug_gc()` | None | Print garbage collection debug info to log for troubleshooting memory issues |
 | `user.ui_elements_version()` | None | Get version object with `.major`, `.minor`, `.patch` attributes. Supports comparison: `version < "0.6.2"` |
 | `user.ui_elements_reset_all_scale_overrides()` | None | Clear all manual scale overrides (from Ctrl/Cmd +/-) and revert to default scale |
-| `user.ui_elements_register_code_theme()` | `name: str`<br>`theme: dict` | Register a named code theme for use with the `code` element. Theme is a dict mapping token types to hex colors. Built-in themes: monokai, vscode_dark, dracula, one_dark, github_light |
-| `user.ui_elements_register_code_language()` | `name: str`<br>`patterns: list` | Register a custom language for syntax highlighting. Patterns is a list of `(token_type, compiled_regex)` tuples. Built-in languages: python, talon |
+| `user.ui_elements_register()` | `kind: str`<br>`name: str`<br>`value: Any` | Register a named extension. `kind="code_theme"` (value is dict of token to hex), `kind="code_language"` (value is list of `(token_type, compiled_regex)` tuples). Built-in themes: monokai, vscode_dark, dracula, one_dark, github_light. Built-in languages: python, talon |
 | `user.ui_elements_storybook_toggle()` | None | Toggle storybook UI for browsing component examples |
 | `user.ui_elements_examples()` | None | Toggle example UIs for demonstration and testing |
 | `user.ui_elements_test_runner()` | None | Toggle test runner UI for running and viewing tests |

@@ -1,9 +1,9 @@
 from talon import actions
 
 def icons_svgs_ui():
-    elements = ["div", "text", "screen", "icon", "button"]
+    elements = ["div", "text", "screen", "window", "icon", "button"]
     svg_elements = ["svg", "path", "rect", "circle", "line", "polygon", "polyline"]
-    div, text, screen, icon, button = actions.user.ui_elements(elements)
+    div, text, screen, window, icon, button = actions.user.ui_elements(elements)
     svg, path, rect, circle, line, polygon, polyline = actions.user.ui_elements_svg(svg_elements)
 
     def icon_with_text(name):
@@ -14,12 +14,16 @@ def icons_svgs_ui():
             text(name, font_size=12)
         ]
 
+    custom_icon = svg(size=18)[
+        polygon(
+            points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9",
+            fill="FFCC00",
+            stroke="FFCC00",
+        ),
+    ]
+
     return screen(justify_content="center", align_items="center")[
-        div(draggable=True, background_color="272727", border_radius=8, border_width=1)[
-            div(drag_handle=True, flex_direction='row', justify_content="space_between", padding=16, border_bottom=1, border_color="555555")[
-                text("Icons and svg", font_size=24),
-                text("talon-ui-elements", font_size=24, color="FFCC00"),
-            ],
+        window(title="Icons and svg", icon=custom_icon)[
             div(flex_direction="column", gap=24, padding=16, border_bottom=1)[
                 div(flex_direction="row")[
                     icon_with_text("menu"),

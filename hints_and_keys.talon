@@ -17,6 +17,6 @@ scroll down: user.ui_elements_scroll_action("down")
 scroll up: user.ui_elements_scroll_action("up")
 scroll [to] top: user.ui_elements_scroll_action("top")
 scroll [to] bottom: user.ui_elements_scroll_action("bottom")
-window close: user.ui_elements_close_focused()
+window close: user.ui_elements_key_action("close")
 
 # other key code in /nodes/tree.py in on_key

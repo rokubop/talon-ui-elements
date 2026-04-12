@@ -33,7 +33,6 @@
     ],
     "actions": [
       "user.ui_elements",
-      "user.ui_elements_close_focused",
       "user.ui_elements_debug_gc",
       "user.ui_elements_dev_tools",
       "user.ui_elements_examples",
@@ -48,8 +47,7 @@
       "user.ui_elements_hint_action",
       "user.ui_elements_is_active",
       "user.ui_elements_key_action",
-      "user.ui_elements_register_code_language",
-      "user.ui_elements_register_code_theme",
+      "user.ui_elements_register",
       "user.ui_elements_register_effect",
       "user.ui_elements_reset_all_scale_overrides",
       "user.ui_elements_scale_decrease",

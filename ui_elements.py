@@ -224,12 +224,17 @@ class Actions:
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
 
-    def ui_elements_register_code_theme(name: str, theme: dict):
+    def ui_elements_register(kind: str, name: str, value: Any):
         """
-        Register a named code theme for use with the `code` element.
+        Register a named extension for use with ui_elements. Forward-compatible
+        single entry point so future plugins/extensions share one action.
+
+        Supported kinds:
+        - `"code_theme"` - value is a dict mapping token types to hex colors
+        - `"code_language"` - value is a list of (token_type, compiled_regex) tuples
 
         ```
-        actions.user.ui_elements_register_code_theme("nord", {
+        actions.user.ui_elements_register("code_theme", "nord", {
             "keyword": "81A1C1",
             "string": "A3BE8C",
             "comment": "616E88",
@@ -237,31 +242,24 @@ class Actions:
             "function": "88C0D0",
             "text": "D8DEE9",
         })
-
-        # Then use it:
         code("def hello():", theme="nord")
-        ```
-        """
-        register_theme(name, theme)
 
-    def ui_elements_register_code_language(name: str, patterns: list):
-        """
-        Register a custom language for syntax highlighting with the `code` element.
-
-        ```
         import re
-        actions.user.ui_elements_register_code_language("json", [
+        actions.user.ui_elements_register("code_language", "json", [
             ("string", re.compile(r'"(?:[^"\\\\\\\\]|\\\\\\\\.)*"')),
             ("number", re.compile(r'-?\\b\\d+(?:\\.\\d+)?\\b')),
             ("keyword", re.compile(r'\\b(?:true|false|null)\\b')),
             ("punctuation", re.compile(r'[{}\\[\\]:,]')),
         ])
-
-        # Then use it:
         code('{"key": "value"}', language="json")
         ```
         """
-        register_language(name, patterns)
+        if kind == "code_theme":
+            register_theme(name, value)
+        elif kind == "code_language":
+            register_language(name, value)
+        else:
+            raise ValueError(f"Unknown ui_elements_register kind: {kind!r}")
 
     def ui_elements_storybook_toggle():
         """Toggle the storybook UI"""

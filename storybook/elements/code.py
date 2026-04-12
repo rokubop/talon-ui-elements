@@ -159,7 +159,7 @@ def code_stories():
                 "example": div(background_color=t.BG_CODE, border_radius=8, padding=16)[
                     code_el(textwrap.dedent("""\
                         # In your package (runs at load time):
-                        actions.user.ui_elements_register_code_theme("nord", {
+                        actions.user.ui_elements_register("code_theme", "nord", {
                             "keyword": "81A1C1",
                             "string": "A3BE8C",
                             "comment": "616E88",
@@ -172,7 +172,7 @@ def code_stories():
                         code("x = 42", theme="nord")""")),
                 ],
                 "code": textwrap.dedent("""\
-                    actions.user.ui_elements_register_code_theme("nord", {
+                    actions.user.ui_elements_register("code_theme", "nord", {
                         "keyword": "81A1C1",
                         "string": "A3BE8C",
                         "comment": "616E88",
@@ -192,7 +192,7 @@ def code_stories():
                         import re
 
                         # In your package (runs at load time):
-                        actions.user.ui_elements_register_code_language("json", [
+                        actions.user.ui_elements_register("code_language", "json", [
                             ("string", re.compile(r'"(?:[^"\\\\\\\\]|\\\\\\\\.)*"')),
                             ("number", re.compile(r'-?\\b\\d+(?:\\.\\d+)?\\b')),
                             ("keyword", re.compile(r'\\b(?:true|false|null)\\b')),
@@ -205,7 +205,7 @@ def code_stories():
                 "code": textwrap.dedent("""\
                     import re
 
-                    actions.user.ui_elements_register_code_language("json", [
+                    actions.user.ui_elements_register("code_language", "json", [
                         ("string", re.compile(r'"(?:[^"\\\\]|\\\\.)*"')),
                         ("number", re.compile(r'-?\\b\\d+(?:\\.\\d+)?\\b')),
                         ("keyword", re.compile(r'\\b(?:true|false|null)\\b')),

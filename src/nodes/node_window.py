@@ -235,9 +235,10 @@ class NodeWindow(NodeContainer):
             return None
 
         def _auto_scale_icon(icon_element, target_size):
-            """Auto-scale the icon's SVG to match the title font size."""
+            """Auto-scale the icon's SVG to match the title font size,
+            unless the user explicitly set a size on the SVG."""
             svg_node = _find_svg_node(icon_element)
-            if svg_node:
+            if svg_node and not svg_node.properties.is_user_set("size"):
                 svg_node.properties.size = target_size
 
         def title_bar():

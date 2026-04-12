@@ -241,8 +241,8 @@ actions.user.ui_elements_is_active(my_ui)                               # Check 
 
 **Register custom code themes/languages (from any repo):**
 ```python
-actions.user.ui_elements_register_code_theme("nord", {"keyword": "81A1C1", "string": "A3BE8C", ...})
-actions.user.ui_elements_register_code_language("json", [("string", re.compile(r'...')), ...])
+actions.user.ui_elements_register("code_theme", "nord", {"keyword": "81A1C1", "string": "A3BE8C", ...})
+actions.user.ui_elements_register("code_language", "json", [("string", re.compile(r'...')), ...])
 ```
 
 Every interactive element (buttons, inputs, links, checkboxes, switches) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default - pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).

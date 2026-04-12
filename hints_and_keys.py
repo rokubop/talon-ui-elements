@@ -131,7 +131,25 @@ class Actions:
             focus_previous.execute(key_down)
         elif action == "close":
             state_manager._smooth_scroll_stop()
-            entity_manager.hide_all_trees()
+            tree = store.focused_tree
+            if not tree:
+                entity_manager.hide_all_trees()
+                return
+            if tree.destroying:
+                return
+            # Route through the window's on_close handler so it follows the
+            # same deferred-teardown path as the close button (avoids
+            # half-close leaving the base canvas alive while the decorator
+            # canvas tears down).
+            for wid in list(tree.meta_state.windows):
+                node = tree.meta_state.id_to_node.get(wid)
+                on_close = getattr(node, "on_close", None) if node else None
+                if on_close:
+                    on_close(WindowCloseEvent(hide=True))
+                    return
+            tree.destroy()
+            if not store.trees:
+                store.clear()
 
     def ui_elements_scale_increase():
         """Increase UI scale by browser-like increments"""
@@ -164,25 +182,3 @@ class Actions:
             if node:
                 state_manager.scroll_to_bottom(node.id)
 
-    def ui_elements_close_focused():
-        """Close the focused UI elements window"""
-        state_manager._smooth_scroll_stop()
-        tree = store.focused_tree
-        if not tree:
-            entity_manager.hide_all_trees()
-            return
-        if tree.destroying:
-            return
-        # Route through the window's on_close handler so it follows the same
-        # deferred-teardown path as the close button (avoids half-close
-        # leaving the base canvas alive while the decorator canvas tears down).
-        for wid in list(tree.meta_state.windows):
-            node = tree.meta_state.id_to_node.get(wid)
-            on_close = getattr(node, "on_close", None) if node else None
-            if on_close:
-                on_close(WindowCloseEvent(hide=True))
-                return
-        # No window node — fall back to direct destroy
-        tree.destroy()
-        if not store.trees:
-            store.clear()
