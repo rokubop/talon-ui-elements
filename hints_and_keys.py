@@ -148,25 +148,21 @@ class Actions:
         new_scale = entity_manager.reset_scale()
         show_scale_notification(new_scale)
 
-    def ui_elements_scroll_down():
-        """Scroll down in the focused UI elements window"""
-        _scroll_focused_tree(-1)
-
-    def ui_elements_scroll_up():
-        """Scroll up in the focused UI elements window"""
-        _scroll_focused_tree(1)
-
-    def ui_elements_scroll_top():
-        """Jump to the top of the focused UI elements scrollable region"""
-        _, node = _resolve_focused_scroll_target()
-        if node:
-            state_manager.scroll_to_top(node.id)
-
-    def ui_elements_scroll_bottom():
-        """Jump to the bottom of the focused UI elements scrollable region"""
-        _, node = _resolve_focused_scroll_target()
-        if node:
-            state_manager.scroll_to_bottom(node.id)
+    def ui_elements_scroll_action(action: str):
+        """Trigger a ui_elements scroll action on the focused tree's scrollable region.
+        action: "down", "up", "top", "bottom"."""
+        if action == "down":
+            _scroll_focused_tree(-1)
+        elif action == "up":
+            _scroll_focused_tree(1)
+        elif action == "top":
+            _, node = _resolve_focused_scroll_target()
+            if node:
+                state_manager.scroll_to_top(node.id)
+        elif action == "bottom":
+            _, node = _resolve_focused_scroll_target()
+            if node:
+                state_manager.scroll_to_bottom(node.id)
 
     def ui_elements_close_focused():
         """Close the focused UI elements window"""

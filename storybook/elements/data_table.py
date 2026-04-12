@@ -107,29 +107,17 @@ def data_table_stories():
                     ),
                     div(flex_direction="row", gap=8, margin_top=8)[
                         button(
-                            on_click=lambda e: actions.user.ui_elements_scroll_to_key("story_dt_1", "zoom out"),
-                            padding=8,
-                            background_color="333333",
-                            border_radius=4,
-                        )[text("Scroll to 'zoom out' (action)", font_size=12, color=t.TEXT)],
-                        button(
                             on_click=lambda e: ref("story_dt_1").scroll_to_key("zoom out"),
                             padding=8,
                             background_color="333333",
                             border_radius=4,
-                        )[text("Scroll to 'zoom out' (ref)", font_size=12, color=t.TEXT)],
-                        button(
-                            on_click=lambda e: actions.user.ui_elements_scroll_to_top("story_dt_1"),
-                            padding=8,
-                            background_color="333333",
-                            border_radius=4,
-                        )[text("Scroll to top (action)", font_size=12, color=t.TEXT)],
+                        )[text("Scroll to 'zoom out'", font_size=12, color=t.TEXT)],
                         button(
                             on_click=lambda e: ref("story_dt_1").scroll_to_top(),
                             padding=8,
                             background_color="333333",
                             border_radius=4,
-                        )[text("Scroll to top (ref)", font_size=12, color=t.TEXT)],
+                        )[text("Scroll to top", font_size=12, color=t.TEXT)],
                     ],
                     text(
                         f"Selected: {selected_row}" if selected_row else "Click a row to select",

@@ -204,27 +204,6 @@ class Actions:
         """Get the value of a `input_text` element based on its id"""
         return state_manager.get_input_value(id)
 
-    def ui_elements_scroll_to_id(target_id: str, focus: bool = True):
-        """Scroll the nearest scrollable ancestor so that the target element is visible, and optionally focus it."""
-        state_manager.scroll_to_id(target_id, focus=focus)
-
-    def ui_elements_scroll_to_top(id: str):
-        """Scroll a scrollable container to the top. id is the scrollable element's id."""
-        state_manager.scroll_to_top(id)
-
-    def ui_elements_scroll_to_bottom(id: str):
-        """Scroll a scrollable container to the bottom. id is the scrollable element's id."""
-        state_manager.scroll_to_bottom(id)
-
-    def ui_elements_smooth_scroll(id: str, axis: str = "y", direction: int = -1, fraction: float = 0.45):
-        """Smoothly scroll a scrollable container by a fraction of its view size.
-        axis: "y" or "x". direction: 1 (up/left) or -1 (down/right)."""
-        state_manager.smooth_scroll_node(id, axis, direction, fraction)
-
-    def ui_elements_scroll_to_key(id: str, key: str):
-        """Scroll a data_table so the row with the given key is visible. id is the data_table's id."""
-        state_manager.scroll_to_key(id, key)
-
     def ui_elements_highlight(id: str, color: str = None):
         """Highlight element based on its id. Renders on a decoration layer."""
         state_manager.highlight(id, color)
