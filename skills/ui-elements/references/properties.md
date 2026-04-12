@@ -33,6 +33,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 
 ## Colors
 
+- `background`: str = None - plain color or gradient: `"FF0000"`, `"linear_gradient(to_right, FF0000, 0000FF)"`. Directions: `to_right`, `to_left`, `to_bottom`, `to_top`, `to_bottom_right`, `to_top_left`, or `45deg`.
 - `background_color`: str = None - hex "FF0000", "#FF0000", "FF000080" (with alpha), or named color
 - `color`: str = "FFFFFF" - text/foreground color
 - `border_color`: str = "555555"
@@ -67,7 +68,7 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 ## Interactivity
 
 - `on_click`: callable - receives ClickEvent if handler accepts a parameter
-- `on_change`: callable - for input_text, textarea, select, checkbox. Receives ChangeEvent.
+- `on_change`: callable - for input_text, textarea, select, checkbox, switch. Receives ChangeEvent (SwitchEvent for switch).
 - `on_submit`: callable - form only. Receives SubmitEvent(data={"input_id": "value", ...}) with all child input values. Also works with 0 args.
 - `type`: str - button only. Use `type="submit"` inside a form to trigger the form's `on_submit`.
 - `highlight_style`: dict - hover style e.g. {"background_color": "444444"}. Keys: background_color, border_color, color, fill, stroke

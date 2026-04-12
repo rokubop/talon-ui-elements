@@ -1,4 +1,4 @@
-from talon import actions, clip, cron
+from talon import actions
 from . import theme as t
 from .src_utils import hex_color
 
@@ -29,47 +29,19 @@ SMALL_INPUT_STYLE = {
 }
 
 def code(code_str: str):
-    div, text = actions.user.ui_elements(["div", "text"])
-    component = actions.user.ui_elements(["component"])
+    code_el = actions.user.ui_elements("code")
 
-    return div(
-            background_color=t.BG_CODE,
-            border_radius=8,
-            border_width=1,
-            border_color=t.BORDER_SUBTLE,
-            padding=24,
-            color=t.TEXT_CODE,
-            font_size=14,
-            position="relative",
-        )[
-            text(code_str, font_family="monospace", selectable=True),
-            div(position="absolute", right=0, top=0)[
-                component(copy_button, props={
-                    "code": code_str
-                })
-            ]
-        ]
-
-def copy_button(props):
-    button, icon, state = actions.user.ui_elements(["button", "icon", "state"])
-    copied, set_copied = state.use_local(False)
-
-    return button(
-        on_click=lambda: (
-            clip.set_text(props["code"]),
-            set_copied(True),
-            cron.after("2s", lambda: set_copied(False))
-        ),
-        padding=8,
+    return code_el(
+        code_str,
+        selectable=True,
+        copyable=True,
+        background_color=t.BG_CODE,
         border_radius=8,
-        color=t.TEXT_SECONDARY,
-    )[
-        icon(
-            "check" if copied else "copy",
-            color="#55E055" if copied else t.TEXT_SECONDARY,
-            size=20,
-        ),
-    ]
+        border_width=1,
+        border_color=t.BORDER_SUBTLE,
+        padding=24,
+        font_size=14,
+    )
 
 def example_with_code(props):
     state, div, text = actions.user.ui_elements(["state", "div", "text"])

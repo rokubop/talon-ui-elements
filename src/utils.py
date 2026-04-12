@@ -5,6 +5,7 @@ from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
 from talon.skia import RoundRect
+from talon import skia
 from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
@@ -60,6 +61,21 @@ def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
 def get_screen(index: int = None) -> Screen:
     return ui.main_screen() if index is None else ui.screens()[index]
 
+def _stable_value_repr(value) -> str:
+    """Return a stable string for a value — avoids default object repr
+    (which includes memory addresses and changes every render)."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return str(value)
+    if isinstance(value, (tuple, list)):
+        return "[" + ",".join(_stable_value_repr(v) for v in value) + "]"
+    if isinstance(value, dict):
+        return "{" + ",".join(
+            f"{k}:{_stable_value_repr(v)}" for k, v in sorted(value.items())
+        ) + "}"
+    # Fallback: type name only, so custom node/element objects don't
+    # produce a new hash every render.
+    return f"<{type(value).__name__}>"
+
 def generate_hash(obj: Union[Callable, dict]) -> str:
     hasher = hashlib.sha256()
 
@@ -77,8 +93,7 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
                 func_name = f"{value.__module__}.{value.__qualname__}"
                 hasher.update(f"{key}:{func_name}".encode())
             else:
-                # For other types, use string representation
-                hasher.update(f"{key}:{str(value)}".encode())
+                hasher.update(f"{key}:{_stable_value_repr(value)}".encode())
     else:
         raise TypeError("Object must be a callable or a dictionary.")
 
@@ -212,6 +227,76 @@ def hex_color(color: str, property_name: str = None) -> str:
         f"Use hex colors (e.g., 'FF0000', 'FFFFFF66') or named colors:\n"
         f"  {', '.join(list(NAMED_COLORS_TO_HEX.keys())[:10])}...\n"
     )
+
+GRADIENT_DIRECTIONS = {
+    "to_right":        (0.0, 0.5, 1.0, 0.5),
+    "to_left":         (1.0, 0.5, 0.0, 0.5),
+    "to_bottom":       (0.5, 0.0, 0.5, 1.0),
+    "to_top":          (0.5, 1.0, 0.5, 0.0),
+    "to_bottom_right": (0.0, 0.0, 1.0, 1.0),
+    "to_bottom_left":  (1.0, 0.0, 0.0, 1.0),
+    "to_top_right":    (0.0, 1.0, 1.0, 0.0),
+    "to_top_left":     (1.0, 1.0, 0.0, 0.0),
+}
+
+def parse_linear_gradient(value: str):
+    """Parse a linear_gradient(...) string into (direction_or_angle, colors).
+    Returns a dict with 'type', 'direction' (tuple of fractions), and 'colors' (list of hex strings).
+    """
+    inner = value[len("linear_gradient("):-1].strip()
+    parts = [p.strip() for p in inner.split(",")]
+    if not parts:
+        raise ValueError(f"\nlinear_gradient requires at least 2 colors.\n  Example: linear_gradient(FF0000, 0000FF)\n")
+
+    colors = []
+    direction = GRADIENT_DIRECTIONS["to_bottom"]  # CSS default
+
+    import math
+    start = 0
+    first = parts[0].strip()
+
+    if first in GRADIENT_DIRECTIONS:
+        direction = GRADIENT_DIRECTIONS[first]
+        start = 1
+    elif first.endswith("deg"):
+        try:
+            angle_deg = float(first[:-3])
+            angle_rad = math.radians(angle_deg)
+            # CSS gradient angle: 0deg = to top, 90deg = to right
+            dx = math.sin(angle_rad)
+            dy = -math.cos(angle_rad)
+            direction = (0.5 - dx * 0.5, 0.5 - dy * 0.5, 0.5 + dx * 0.5, 0.5 + dy * 0.5)
+            start = 1
+        except ValueError:
+            pass
+
+    for part in parts[start:]:
+        color = hex_color(part.strip(), property_name="background (linear_gradient)")
+        colors.append(color)
+
+    if len(colors) < 2:
+        raise ValueError(f"\nlinear_gradient requires at least 2 colors.\n  Example: linear_gradient(FF0000, 0000FF)\n")
+
+    return {
+        "type": "linear_gradient",
+        "direction": direction,
+        "colors": colors,
+    }
+
+def parse_background(value: str):
+    """Parse a background property value. Returns a gradient dict or None if it's a plain color."""
+    if value and isinstance(value, str) and value.startswith("linear_gradient(") and value.endswith(")"):
+        return parse_linear_gradient(value)
+    return None
+
+def render_gradient_shader(gradient: dict, rect: Rect):
+    """Create a Skia shader from a parsed gradient dict and a bounding rect."""
+    if gradient["type"] == "linear_gradient":
+        d = gradient["direction"]
+        start = (rect.x + d[0] * rect.width, rect.y + d[1] * rect.height)
+        end = (rect.x + d[2] * rect.width, rect.y + d[3] * rect.height)
+        return skia.Shader.linear_gradient(start, end, gradient["colors"])
+    return None
 
 def get_combined_screens_rect() -> Rect:
     screens = ui.screens()

@@ -110,27 +110,6 @@ def text_stories():
             }),
 
             component(example_with_code, props={
-                "title": "Code Block",
-                "example": div(
-                    background_color=t.BG_CODE,
-                    border_radius=8,
-                    padding=16,
-                )[
-                    text(
-                        "def hello():\n    print('world')\n    return True",
-                        font_family="monospace",
-                        font_size=14,
-                        color=t.TEXT_CODE,
-                    ),
-                ],
-                "code": textwrap.dedent("""\
-                    text(
-                        "def hello():\\n    print('world')",
-                        font_family="monospace",
-                    )""")
-            }),
-
-            component(example_with_code, props={
                 "title": "Selectable Text (drag to select, Ctrl+C to copy)",
                 "example": text(
                     "Try selecting this text by clicking and dragging. "
@@ -144,29 +123,6 @@ def text_stories():
                         "Try selecting this text...",
                         selectable=True,
                         width=350,
-                    )""")
-            }),
-
-            component(example_with_code, props={
-                "title": "Selectable Code Block",
-                "example": div(
-                    background_color=t.BG_CODE,
-                    border_radius=8,
-                    padding=16,
-                )[
-                    text(
-                        'name = "world"\nprint(f"hello {name}")\n# output: hello world',
-                        font_family="monospace",
-                        font_size=14,
-                        color=t.TEXT_CODE,
-                        selectable=True,
-                    ),
-                ],
-                "code": textwrap.dedent("""\
-                    text(
-                        'name = "world"\\nprint(f"hello {name}")',
-                        font_family="monospace",
-                        selectable=True,
                     )""")
             }),
 

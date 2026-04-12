@@ -1,7 +1,12 @@
 from talon import actions, cron
 from .node_container import NodeContainer
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_DROP_SHADOW,
+    DEFAULT_WINDOW_BACKGROUND_COLOR,
+)
 from ..events import WindowCloseEvent
+from ..icons import VALID_ICON_NAMES
 from ..properties import Properties, NodeWindowProperties
 from ..utils import generate_hash, adjust_color_brightness
 from ..core.entity_manager import entity_manager
@@ -34,6 +39,8 @@ class NodeWindow(NodeContainer):
 
         self.is_minimized = is_minimized
         minimized_style = window_properties.get("minimized_style", None)
+        if minimized_style is None:
+            minimized_style = {"position": "absolute", "top": 100, "right": 100}
 
         self.has_dock_behavior = minimized_style is not None and any(
             minimized_style.get(dir) is not None
@@ -50,8 +57,8 @@ class NodeWindow(NodeContainer):
 
         resolved_window_props = {
             "draggable": True,
-            "background_color": "222222",
-            "drop_shadow": (0, 20, 25, 25, "000000CC"),
+            "background_color": DEFAULT_WINDOW_BACKGROUND_COLOR,
+            "drop_shadow": DEFAULT_DROP_SHADOW,
             "border_radius": 4,
             "border_width": 1,
             "overflow": "hidden",
@@ -196,16 +203,67 @@ class NodeWindow(NodeContainer):
                     title_bar_style[key] = value
 
         drag_title_bar_only = window_properties.get("drag_title_bar_only", True)
+        window_icon = window_properties.get("icon", None)
+
+        if isinstance(window_icon, str):
+            if window_icon in VALID_ICON_NAMES:
+                window_icon = icon(window_icon)
+            else:
+                raise ValueError(
+                    f"Invalid window icon name: '{window_icon}'. "
+                    f"Valid icon names are: {VALID_ICON_NAMES}"
+                )
+        elif window_icon is not None:
+            svg_types = {"svg", "svg_path", "svg_rect", "svg_circle", "svg_line", "svg_polyline", "svg_polygon"}
+            element_type = getattr(window_icon, "element_type", None)
+            if element_type == "div":
+                pass  # div wrapping an svg (e.g. from icon()) is fine
+            elif element_type not in svg_types:
+                raise ValueError(
+                    f"window icon expects an SVG element or icon name string, "
+                    f"got element type '{element_type}'"
+                )
+
+        def _find_svg_node(node):
+            """Find the SVG node in an element tree for auto-scaling."""
+            if getattr(node, "element_type", None) == "svg":
+                return node
+            for child in getattr(node, "children_nodes", []):
+                result = _find_svg_node(child)
+                if result:
+                    return result
+            return None
+
+        def _auto_scale_icon(icon_element, target_size):
+            """Auto-scale the icon's SVG to match the title font size,
+            unless the user explicitly set a size on the SVG."""
+            svg_node = _find_svg_node(icon_element)
+            if svg_node and not svg_node.properties.is_user_set("size"):
+                svg_node.properties.size = target_size
 
         def title_bar():
             title_bar_props = {"drag_handle": True} if drag_title_bar_only else {}
-            return div(title_bar_style, **title_bar_props, flex_direction="row", justify_content="space_between", align_items="center")[
-                text(window_properties.get("title", ""), **title_style),
-                div(flex_direction="row")[
-                    button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, **button_style)[
+            if window_icon:
+                icon_size = int(title_style.get("font_size", 16))
+                _auto_scale_icon(window_icon, icon_size)
+                icon_title_style = {**title_style}
+                container_padding = {
+                    "padding_left": icon_title_style.pop("padding_left", 10),
+                    "padding": icon_title_style.pop("padding", 0),
+                }
+                title_left = div(flex_direction="row", align_items="center", gap=6, **container_padding)[
+                    window_icon,
+                    text(window_properties.get("title", ""), **icon_title_style),
+                ]
+            else:
+                title_left = text(window_properties.get("title", ""), **title_style)
+            return div(title_bar_style, **title_bar_props, flex_direction="row", justify_content="space_between", align_items="stretch")[
+                div(flex_direction="row", align_items="center")[title_left],
+                div(flex_direction="row", align_items="stretch")[
+                    button(on_click=on_minimize, padding=8, padding_left=12, padding_right=12, align_items="center", justify_content="center", **button_style)[
                         icon("minimize" if not self.is_minimized else "testing2", size=18, **icon_style),
                     ] if window_properties.get("show_minimize", True) else None,
-                    button(on_click=on_button_click_close, padding=8, padding_left=12, padding_right=12, **button_style)[
+                    button(on_click=on_button_click_close, padding=8, padding_left=12, padding_right=12, align_items="center", justify_content="center", **button_style)[
                         icon("close", size=20, **icon_style),
                     ] if window_properties.get("show_close", True) else None,
                 ],
@@ -214,8 +272,11 @@ class NodeWindow(NodeContainer):
         self.body = div(flex=1, **body_properties)
         if window_properties.get("show_title_bar", True):
             self.add_child(title_bar())
-        if window_properties.get("minimized_body", None) and self.is_minimized:
-            self.add_child(window_properties.get("minimized_body")())
+        if self.is_minimized:
+            minimized_body_fn = window_properties.get("minimized_body", None) or (
+                lambda: div(height=24, width=200)
+            )
+            self.add_child(minimized_body_fn())
         else:
             self.add_child(self.body)
 

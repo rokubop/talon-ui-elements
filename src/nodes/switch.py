@@ -2,19 +2,26 @@ from talon import actions
 from dataclasses import dataclass
 from ..constants import (
     ELEMENT_ENUM_TYPE,
-    DEFAULT_INTERACTIVE_BORDER_COLOR,
-    DEFAULT_INTERACTIVE_BORDER_WIDTH,
-    DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
+    DEFAULT_DISABLED_OPACITY,
+    DEFAULT_SWITCH_OFF_COLOR,
+    DEFAULT_SWITCH_ON_COLOR,
+    DEFAULT_SWITCH_SIZE,
+    DEFAULT_SWITCH_THUMB_COLOR,
+    DEFAULT_SWITCH_TRANSITION_MS,
 )
-from ..utils import scale_value
 from ..properties import validate_combined_props
 from .component import Component
+
+SWITCH_PROP_KEYS = {
+    "checked", "on_change", "size", "color", "track_color",
+    "thumb_color", "animated", "disabled",
+}
 
 def split_switch_props(props):
     switch_props = {}
     button_props = {}
     for key, value in props.items():
-        if key in ["checked", "on_change", "size", "color"]:
+        if key in SWITCH_PROP_KEYS:
             switch_props[key] = value
         else:
             button_props[key] = value
@@ -25,43 +32,88 @@ class SwitchEvent:
     checked: bool
     id: str = None
 
-default_button_props = {
-    "border_width": int(scale_value(DEFAULT_INTERACTIVE_BORDER_WIDTH)),
-    "border_color": DEFAULT_INTERACTIVE_BORDER_COLOR,
-    "border_radius": int(scale_value(4.0)),
-    "highlight_color": DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
-}
-
-default_svg_props = {
-    "size": int(scale_value(14.0)),
-    "stroke_width": int(scale_value(2.0)),
-}
-
 def switch_impl(props):
     switch_props, button_props = split_switch_props(props)
     div, button, state = actions.user.ui_elements(["div", "button", "state"])
-    is_checked, set_is_checked = state.use_local("switch", switch_props.get("checked", False))
+    on_change = switch_props.get("on_change")
+    # Controlled when `checked` is supplied: parent owns state, prop is the
+    # source of truth. This avoids stale local state when components are
+    # reordered/removed in lists, since component ids are position-based.
+    is_controlled = "checked" in switch_props
+    if is_controlled:
+        is_checked = bool(switch_props.get("checked"))
+        set_is_checked = None
+    else:
+        is_checked, set_is_checked = state.use_local("switch", False)
 
     def on_trigger(e):
         new_checked = not is_checked
-        set_is_checked(new_checked)
-        if switch_props.get("on_change"):
-            switch_props["on_change"](
+        if not is_controlled:
+            set_is_checked(new_checked)
+        if on_change is not None:
+            on_change(
                 SwitchEvent(checked=new_checked, id=button_props.get("id", None))
             )
 
-    # Extract styles from props
-    size = int(switch_props.get("size", 14))  # Default size scaling factor is 14
-    track_width = int(button_props.get("width", 40) * size / 14)
-    track_height = int(button_props.get("height", 22) * size / 14)
-    thumb_size = int(button_props.get("thumb_size", 16) * size / 14)
-    padding = int(button_props.get("padding", 2) * size / 14)
-    track_color = button_props.get("background_color", "#444444" if not is_checked else "#2196f3")
-    thumb_color = button_props.get("thumb_color", "#ffffff")
-    border_radius = int(button_props.get("border_radius", track_height // 2))
+    # size = track height in px. Width/thumb/padding scale proportionally
+    # from a 22px-tall reference (40 wide, 16 thumb, 2 padding).
+    size = int(switch_props.get("size", DEFAULT_SWITCH_SIZE))
+    track_height = int(button_props.pop("height", size))
+    track_width = int(button_props.pop("width", size * 40 / 22))
+    thumb_size = int(button_props.pop("thumb_size", size * 16 / 22))
+    padding = max(1, int(button_props.pop("padding", size * 2 / 22)))
+    on_color = switch_props.get("color") or button_props.pop("background_color", None) or DEFAULT_SWITCH_ON_COLOR
+    off_color = switch_props.get("track_color") or DEFAULT_SWITCH_OFF_COLOR
+    track_color = on_color if is_checked else off_color
+    thumb_color = switch_props.get("thumb_color") or DEFAULT_SWITCH_THUMB_COLOR
+    border_radius = int(button_props.pop("border_radius", track_height // 2))
+    animated = switch_props.get("animated", False)
+    disabled = bool(switch_props.get("disabled"))
+
+    thumb_transition = {"left": (DEFAULT_SWITCH_TRANSITION_MS, "ease_in_out")} if animated else None
+
+    if animated:
+        track_bg_transition = {"background_color": (DEFAULT_SWITCH_TRANSITION_MS, "ease_in_out")}
+        return button(
+            **button_props,
+            disabled=disabled,
+            opacity=DEFAULT_DISABLED_OPACITY if disabled else 1.0,
+            width=track_width,
+            height=track_height,
+            background_color="00000000",
+            border_radius=border_radius,
+            position="relative",
+            align_items="center",
+            on_click=on_trigger,
+            highlight_color="00000000",
+            hint_style={"background_color": track_color},
+        )[
+            div(
+                width=track_width,
+                height=track_height,
+                background_color=track_color,
+                border_radius=border_radius,
+                position="absolute",
+                top=0,
+                left=0,
+                transition=track_bg_transition,
+            ),
+            div(
+                width=thumb_size,
+                height=thumb_size,
+                background_color=thumb_color,
+                border_radius=thumb_size // 2,
+                position="absolute",
+                top=(track_height - thumb_size) // 2,
+                left=(track_width - thumb_size - padding) if is_checked else padding,
+                transition=thumb_transition,
+            )
+        ]
 
     return button(
         **button_props,
+        disabled=disabled,
+        opacity=DEFAULT_DISABLED_OPACITY if disabled else 1.0,
         width=track_width,
         height=track_height,
         background_color=track_color,

@@ -46,8 +46,8 @@ STATUS_COLORS = {
 
 
 def data_table_stories():
-    div, text, icon, component, data_table, state = actions.user.ui_elements([
-        "div", "text", "icon", "component", "data_table", "state"
+    div, text, icon, button, component, data_table, state, ref = actions.user.ui_elements([
+        "div", "text", "icon", "button", "component", "data_table", "state", "ref"
     ])
 
     selected_row, set_selected_row = state.use("dt_story_selected", None)
@@ -96,6 +96,7 @@ def data_table_stories():
                             {"key": "type", "label": "Type", "sortable": True, "width": 120},
                         ],
                         data=SAMPLE_DATA,
+                        row_key="name",
                         on_select=lambda e: set_selected_row(e.row["name"]),
                         sort_key="name",
                         body_height=300,
@@ -104,6 +105,20 @@ def data_table_stories():
                         border_color="444444",
                         border_radius=8,
                     ),
+                    div(flex_direction="row", gap=8, margin_top=8)[
+                        button(
+                            on_click=lambda e: ref("story_dt_1").scroll_to_key("zoom out"),
+                            padding=8,
+                            background_color="333333",
+                            border_radius=4,
+                        )[text("Scroll to 'zoom out'", font_size=12, color=t.TEXT)],
+                        button(
+                            on_click=lambda e: ref("story_dt_1").scroll_to_top(),
+                            padding=8,
+                            background_color="333333",
+                            border_radius=4,
+                        )[text("Scroll to top", font_size=12, color=t.TEXT)],
+                    ],
                     text(
                         f"Selected: {selected_row}" if selected_row else "Click a row to select",
                         font_size=13,

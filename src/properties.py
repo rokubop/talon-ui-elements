@@ -24,12 +24,18 @@ from .constants import (
     DEFAULT_COLOR,
     DEFAULT_FLEX_DIRECTION,
     DEFAULT_FONT_SIZE,
+    DEFAULT_HIGHLIGHT_ALPHA,
     DEFAULT_JUSTIFY_CONTENT,
     DEFAULT_FOCUS_OUTLINE_COLOR,
     DEFAULT_FOCUS_OUTLINE_WIDTH,
     ELEMENT_ENUM_TYPE,
 )
-from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex
+from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex, parse_background
+
+COLOR_PROPERTIES = {
+    "background_color", "border_color", "color", "stroke", "fill",
+    "border_top_color", "border_right_color", "border_bottom_color", "border_left_color",
+}
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
@@ -68,8 +74,13 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     align_items: str = DEFAULT_ALIGN_ITEMS
     align_self: str = None
     autofocus: bool = False
+    background: str = None
     background_color: str = None
     border_color: str = DEFAULT_BORDER_COLOR
+    border_top_color: str = None
+    border_right_color: str = None
+    border_bottom_color: str = None
+    border_left_color: str = None
     border_radius: Union[int, float, tuple, BorderRadius] = None
     border_width: int = None
     border: Border = Border(0, 0, 0, 0)
@@ -92,7 +103,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     height: Union[int, str, float] = 0
     highlight_style: dict = None
     highlight_color: str = None
+    hint_offset: tuple = None
+    hint_style: dict = None
     mount_style: dict = None
+    scroll_buttons: bool = True
+    scroll_buttons_style: dict = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
     key: str = None
@@ -109,6 +124,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)
     position: str = 'static'
+    resizable: Union[bool, str, list] = False
     right: Union[int, str, float] = None
     top: Union[int, str, float] = None
     transition: dict = None
@@ -134,7 +150,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             self.font_size = scale_value(DEFAULT_FONT_SIZE)
 
         if not self.highlight_color:
-            self.highlight_color = _expand_shorthand_hex(self.color) + "33"
+            self.highlight_color = _expand_shorthand_hex(self.color) + DEFAULT_HIGHLIGHT_ALPHA
 
         self.validate_properties(kwargs)
         self.update_colors_with_opacity()
@@ -142,19 +158,17 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_justify_content(self):
         if self.justify_content:
-            if self.justify_content not in ['flex_start', 'flex_end', 'space_between', 'center', 'space_evenly']:
-                raise ValueError(
-                    f"\nInvalid value for justify_content: '{self.justify_content}'\n"
-                    f"Valid values are: 'flex_start', 'flex_end', 'space_between', 'space_evenly', 'center'"
-                )
+            valid = ['flex_start', 'flex_end', 'space_between', 'center', 'space_evenly']
+            if self.justify_content not in valid:
+                print(f"ui_elements: unsupported justify_content '{self.justify_content}', falling back to 'flex_start'. Valid: {valid}")
+                self.justify_content = 'flex_start'
 
     def validate_align_items(self):
         if self.align_items:
-            if self.align_items not in ['stretch', 'center', 'flex_start', 'flex_end']:
-                raise ValueError(
-                    f"\nInvalid value for align_items: '{self.align_items}'\n"
-                    f"Valid values are: 'stretch', 'center', 'flex_start', 'flex_end'"
-                )
+            valid = ['stretch', 'center', 'flex_start', 'flex_end']
+            if self.align_items not in valid:
+                print(f"ui_elements: unsupported align_items '{self.align_items}', falling back to 'flex_start'. Valid: {valid}")
+                self.align_items = 'flex_start'
 
     def validate_drop_shadow(self):
         if self.drop_shadow:
@@ -230,7 +244,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_highlight_style(self):
         if self.highlight_style:
-            VALID_VALUES = ['background_color', 'border_color', 'color', 'fill', 'stroke']
+            VALID_VALUES = [
+                'background_color', 'border_color', 'color', 'fill', 'stroke',
+                'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
+            ]
 
             if not isinstance(self.highlight_style, dict):
                 raise ValueError(
@@ -285,7 +302,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key, value in kwargs.items():
             if key in self._explicitly_set:
                 continue
-            if key in ["background_color", "border_color", "color", "stroke", "fill"]:
+            if key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
 
             # Apply scaling to dimensional properties from styles
@@ -312,7 +329,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         """Inherit properties from another Properties object."""
         for key in properties._explicitly_set:
             value = getattr(properties, key)
-            if key in ["background_color", "border_color", "color", "stroke", "fill"]:
+            if key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
             if key in ["padding", "margin", "border"]:
                 value = parse_box_model(type(getattr(self, key)), **value)
@@ -338,6 +355,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if self.border_color:
                 self.border_color = self._apply_opacity_to_color(self.border_color, opacity_hex)
 
+            for side in ("border_top_color", "border_right_color", "border_bottom_color", "border_left_color"):
+                val = getattr(self, side, None)
+                if val:
+                    setattr(self, side, self._apply_opacity_to_color(val, opacity_hex))
+
             if self.color:
                 self.color = self._apply_opacity_to_color(self.color, opacity_hex)
 
@@ -361,7 +383,13 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             self._explicitly_set.add(key)
             return
         if hasattr(self, key):
-            if key in ["background_color", "border_color", "color", "fill", "stroke"]:
+            if key == "background" and isinstance(value, str):
+                gradient = parse_background(value)
+                if gradient:
+                    value = gradient
+                else:
+                    value = hex_color(value, property_name=key)
+            elif key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
 
             if key == "border_radius" and value is not None:
@@ -426,7 +454,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             variant = Properties.__new__(Properties)
             variant.__dict__ = self.__dict__.copy()
             variant.__dict__.update({
-                k: hex_color(v, property_name=k) if k in {"color", "background_color", "border_color", "fill", "stroke"} else v
+                k: hex_color(v, property_name=k) if k in COLOR_PROPERTIES else v
                 for k, v in self.highlight_style.items()
             })
             self._highlighted_variant = variant
@@ -498,8 +526,13 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     align_items: str
     align_self: str
     autofocus: bool
+    background: str
     background_color: str
     border_color: str
+    border_top_color: str
+    border_right_color: str
+    border_bottom_color: str
+    border_left_color: str
     border_radius: Union[int, float, tuple, BorderRadius]
     border_width: int
     bottom: Union[int, str, float]
@@ -523,8 +556,12 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     height: Union[int, str, float]
     highlight_style: dict
     highlight_color: str
+    hint_offset: tuple
+    hint_style: dict
     id: str
     mount_style: dict
+    scroll_buttons: bool
+    scroll_buttons_style: dict
     justify_content: str
     left: Union[int, str, float]
     max_height: Union[int, str]
@@ -537,6 +574,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    resizable: Union[bool, str, list]
     right: Union[int, str, float]
     top: Union[int, str, float]
     transition: dict
@@ -567,6 +605,22 @@ class NodeTextValidationProperties(ValidationProperties):
     font_style: str
     font_weight: str
     for_id: str
+    selectable: bool
+    selection_color: str
+    stroke_color: str = None
+    stroke_width: Union[int, float] = None
+    text_align: str
+    white_space: str
+
+class NodeCodeValidationProperties(ValidationProperties):
+    copyable: bool
+    diff: bool
+    font_size: Union[int, float]
+    font_family: str
+    font_style: str
+    font_weight: str
+    language: str
+    theme: Union[str, dict]
     selectable: bool
     selection_color: str
     stroke_color: str = None
@@ -607,6 +661,31 @@ class NodeTextProperties(Properties):
     def gc(self):
         if self.on_click:
             self.on_click = None
+
+@dataclass
+class NodeCodeProperties(Properties):
+    id: str = None
+    font_family: str = "monospace"
+    font_size: Union[int, float] = DEFAULT_FONT_SIZE
+    font_style: str = "normal"
+    font_weight: str = "normal"
+    for_id: str = None
+    language: str = "python"
+    copyable: bool = True
+    diff: bool = False
+    on_click: any = None
+    theme: Union[str, dict] = None
+    selectable: bool = True
+    selection_color: str = "4488FF88"
+    stroke_width: Union[int, float] = None
+    stroke_color: str = None
+    text_align: str = "left"
+    type: str = None
+    white_space: str = "nowrap"
+
+    def __init__(self, **kwargs):
+        self.font_size = DEFAULT_FONT_SIZE
+        super().__init__(**kwargs)
 
 class NodeScreenValidationProperties(ValidationProperties):
     screen: int
@@ -692,12 +771,12 @@ class NodeSvgPathValidationProperties(NodeSvgValidationProperties):
     fill: Union[str, bool]
 
 class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
-    x: int
-    y: int
-    width: int
-    height: int
-    rx: int
-    ry: int
+    x: Union[int, float]
+    y: Union[int, float]
+    width: Union[int, float]
+    height: Union[int, float]
+    rx: Union[int, float]
+    ry: Union[int, float]
     stroke_linecap: str
     stroke_linejoin: str
     stroke_width: Union[int, float]
@@ -705,9 +784,9 @@ class NodeSvgRectValidationProperties(NodeSvgValidationProperties):
     fill: Union[str, bool]
 
 class NodeSvgCircleValidationProperties(NodeSvgValidationProperties):
-    cx: int
-    cy: int
-    r: int
+    cx: Union[int, float]
+    cy: Union[int, float]
+    r: Union[int, float]
     stroke_linecap: str
     stroke_linejoin: str
     stroke_width: Union[int, float]
@@ -816,12 +895,12 @@ class NodeSvgPathProperties(Properties):
 
 @dataclass
 class NodeSvgRectProperties(Properties):
-    x: int = 0
-    y: int = 0
-    width: int = 0
-    height: int = 0
-    rx: int = 0
-    ry: int = 0
+    x: Union[int, float] = 0
+    y: Union[int, float] = 0
+    width: Union[int, float] = 0
+    height: Union[int, float] = 0
+    rx: Union[int, float] = 0
+    ry: Union[int, float] = 0
     stroke_linecap: str = None
     stroke_linejoin: str = None
     stroke_width: int = None
@@ -841,9 +920,9 @@ class NodeSvgRectProperties(Properties):
 
 @dataclass
 class NodeSvgCircleProperties(Properties):
-    cx: int = 0
-    cy: int = 0
-    r: int = 0
+    cx: Union[int, float] = 0
+    cy: Union[int, float] = 0
+    r: Union[int, float] = 0
     stroke_linecap: str = None
     stroke_linejoin: str = None
     stroke_width: int = None
@@ -963,6 +1042,7 @@ class NodeDataTableProperties(Properties):
     row_background_color: str = None
     stripe_background_color: str = None
     selected_background_color: str = None
+    row_hint_offset: tuple = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -993,6 +1073,7 @@ class NodeDataTableValidationProperties(ValidationProperties):
     row_background_color: str
     stripe_background_color: str
     selected_background_color: str
+    row_hint_offset: tuple
 
 
 class NodeSelectProperties(Properties):
@@ -1087,13 +1168,13 @@ class NodeTextareaValidationProperties(ValidationProperties):
 class NodeWindowProperties(Properties):
     drag_title_bar_only: bool = True
     drop_shadow: tuple[int, int, int, int, str] = None
+    icon: object = None
     minimized: bool = False
     minimized_style: dict = None
     minimized_body: callable = None
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
-    resizable: bool = False
     show_close: bool = True
     show_minimize: bool = True
     show_title_bar: bool = True
@@ -1115,13 +1196,13 @@ class NodeWindowProperties(Properties):
 
 class NodeWindowValidationProperties(ValidationProperties):
     drop_shadow: tuple[int, int, int, int, str]
+    icon: object
     minimized: bool
     minimized_style: dict
     minimized_body: callable
     on_close: callable
     on_minimize: callable
     on_restore: callable
-    resizable: bool
     show_close: bool
     show_minimize: bool
     show_title_bar: bool
@@ -1157,8 +1238,12 @@ class NodeSwitchProperties(NodeSvgProperties):
             self.on_change = None
 
 class NodeSwitchValidationProperties(ValidationProperties, NodeSvgValidationProperties):
+    animated: bool
     checked: bool
     on_change: callable
+    track_color: str
+    thumb_color: str
+    disabled: bool
 
 @dataclass
 class NodeModalProperties(Properties):
@@ -1197,6 +1282,7 @@ VALID_ELEMENT_PROP_TYPES = {
     ELEMENT_ENUM_TYPE["active_window"]: NodeActiveWindowValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["button"]: NodeButtonValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["checkbox"]: NodeCheckboxValidationProperties.__annotations__,
+    ELEMENT_ENUM_TYPE["code"]: NodeCodeValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["cursor"]: NodeCursorValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["data_table"]: NodeDataTableValidationProperties.__annotations__,
     ELEMENT_ENUM_TYPE["div"]: NodeDivValidationProperties.__annotations__,
@@ -1236,12 +1322,15 @@ def _resolve_aliases(props):
         return {_BORDER_WIDTH_ALIASES.get(k, k): v for k, v in props.items()}
     return props
 
-_IGNORED_PROPS = {"key"}
-
 def validate_props(props, element_type):
-    props = {k: v for k, v in props.items() if k not in _IGNORED_PROPS}
     props = _resolve_aliases(props)
-    invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
+    # `key` is a universal prop for stable component/node identity in lists.
+    # It is allowed on every element type and validated separately.
+    key_value = props.get("key", None)
+    if key_value is not None and not isinstance(key_value, (str, int)):
+        raise ValueError(f"key must be str or int, got {type(key_value).__name__}")
+    props_to_check = {k: v for k, v in props.items() if k != "key"}
+    invalid_props = props_to_check.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))
         raise ValueError(
@@ -1253,10 +1342,10 @@ def validate_props(props, element_type):
     _MARGIN_KEYS = {"margin", "margin_top", "margin_right", "margin_bottom", "margin_left", "margin_x", "margin_y"}
 
     type_errors = []
-    for key, value in props.items():
+    for key, value in props_to_check.items():
         expected_type = VALID_ELEMENT_PROP_TYPES[element_type][key]
         if expected_type is callable:
-            if not callable(value):
+            if value is not None and not callable(value):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
         elif not isinstance(value, expected_type) and value is not None:
             type_errors.append(f"{key}: expected {expected_type.__name__}, got {type(value).__name__} {value}")
@@ -1269,7 +1358,9 @@ def validate_props(props, element_type):
             "\n".join(type_errors)
         )
 
-    return props
+    if key_value is not None:
+        props_to_check["key"] = key_value
+    return props_to_check
 
 def validate_combined_props(props, additional_props, element_type):
     combined_props = combine_props(props, additional_props)

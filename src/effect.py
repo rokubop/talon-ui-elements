@@ -49,6 +49,12 @@ def use_effect(callback, arg2, arg3=None):
             You can also optionally use register on_mount and on_unmount effects directly with ui_elements_show(ui, on_mount=callback, on_unmount=callback)
         """)
 
+    if not component and tree.is_mounted:
+        print(f"Warning: effect('{callback.__name__}') called outside a component() after mount. "
+              f"Effects in plain functions only run on initial mount. "
+              f"Wrap the function in component() to use effects during re-renders.")
+        return
+
     if (component and component.id and not component.id in tree.meta_state.components) \
             or not tree.is_mounted:
         effect = Effect(

@@ -204,7 +204,9 @@ class NodeText(Node):
                     sel_width = content_width - (x_start - top_left.x)
 
                 y_pos = top_left.y + i * (self.text_line_height + gap)
-                c.draw_rect(Rect(x_start, y_pos, sel_width, self.text_line_height + 4), sel_paint)
+                is_last_selected = (i == len(self.text_multiline) - 1) or sel_end <= line_end + 1
+                sel_height = self.text_line_height + 4 if is_last_selected else self.text_line_height + gap
+                c.draw_rect(Rect(x_start, y_pos, sel_width, sel_height), sel_paint)
         else:
             local_start = max(0, sel_start)
             local_end = min(len(self.text), sel_end)

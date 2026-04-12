@@ -21,6 +21,7 @@ Properties mostly match standard CSS properties.
   - [Data Table-Specific Properties](#data-table-specific-properties)
   - [Select-Specific Properties](#select-specific-properties)
   - [Checkbox-Specific Properties](#checkbox-specific-properties)
+  - [Switch-Specific Properties](#switch-specific-properties)
   - [Link-Specific Properties](#link-specific-properties)
   - [Table-Specific Properties](#table-specific-properties)
   - [Icon-Specific Properties](#icon-specific-properties)
@@ -83,6 +84,7 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
+| background | str | None | Background with gradient support. Plain color: `background="FF0000"`. Linear gradient: `background="linear_gradient(to_right, FF0000, 0000FF)"`. Directions: `to_right`, `to_left`, `to_bottom` (default), `to_top`, `to_bottom_right`, `to_bottom_left`, `to_top_right`, `to_top_left`, or angle like `45deg`. |
 | background_color | str | None | Background color. Use 6-char hex ("#FFFFFF") or 8-char with opacity ("#FFFFFFFF" for fully visible, "#FFFFFF00" for invisible). Also supports color names like "red", "blue", etc. |
 | color | str | "#FFFFFF" | Text color - Cascades to children. Use 6-char hex ("#FFFFFF") or 8-char with opacity ("#FFFFFFFF" for fully visible, "#FFFFFF00" for invisible) |
 | drop_shadow | tuple[int, int, int, int, str] | None | Drop shadow as `(x_offset, y_offset, blur_x, blur_y, color)` |
@@ -150,6 +152,7 @@ Properties mostly match standard CSS properties.
 | focus_outline_width | Union[int, float] | 1.5 | Focus outline width - for keyboard accessibility and after you have interacted with an element. Cascades to children |
 | highlight_color | str | `{color}33` | Highlight color (on hover/interaction). Cascades to children. Defaults to text color with 20% opacity |
 | highlight_style | dict | None | Style overrides when highlighted. Valid keys: `background_color`, `border_color`, `color`, `fill`, `stroke`. Animates smoothly when `transition` is also set. Auto-generated for interactive nodes with `transition` + color properties |
+| hint_offset | tuple | None | Custom (x, y) offset for voice hint position relative to the element's padding rect. Overrides the default hint placement |
 
 ## Identification Properties
 
@@ -164,6 +167,7 @@ Properties mostly match standard CSS properties.
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
 | drag_title_bar_only | bool | True | Whether window can only be dragged by title bar |
+| icon | Union[str, SVG element] | None | Window icon in the title bar. Pass a built-in icon name string or a custom SVG element. Auto-scales to match title font size |
 | minimized | bool | False | Whether window is minimized |
 | minimized_body | callable | None | Function that returns alternate body when minimized |
 | minimized_style | dict | None | Style overrides when minimized |
@@ -211,6 +215,7 @@ Properties mostly match standard CSS properties.
 | row_background_color | str | "00000000" | Default row background color |
 | stripe_background_color | str | "FFFFFF08" | Alternating row stripe color |
 | selected_background_color | str | "67A4FF22" | Background color for selected rows (multi-select) |
+| row_hint_offset | tuple | (4, 4) | Custom (x, y) offset for voice hint position on data table rows |
 
 ## Select-Specific Properties
 
@@ -229,6 +234,15 @@ Properties mostly match standard CSS properties.
 | -- | -- | -- | -- |
 | checked | bool | False | Whether checkbox is checked |
 | on_change | callable | None | Callback when checked state changes |
+
+## Switch-Specific Properties
+
+| Property | Type | Default | Description |
+| -- | -- | -- | -- |
+| animated | bool | False | Enable smooth transition animation for thumb and track color |
+| checked | bool | False | Whether switch is on |
+| on_change | callable | None | Callback when switch state changes. Receives `SwitchEvent(checked, id)` |
+| size | int | 14 | Scale factor for switch dimensions |
 
 ## Link-Specific Properties
 

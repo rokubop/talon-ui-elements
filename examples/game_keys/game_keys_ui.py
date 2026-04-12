@@ -4,7 +4,7 @@ def key(id, display: str):
     div, text = actions.user.ui_elements(["div", "text"])
 
     return div(class_name="key", id=id)[
-        text(display)
+        text(display, font_weight="bold")
     ]
 
 def blank_key():

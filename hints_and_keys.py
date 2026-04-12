@@ -1,4 +1,4 @@
-from talon import Module, Context, cron
+from talon import Module, Context
 
 mod = Module()
 ctx = Context()
@@ -14,8 +14,10 @@ from .src.hints import (
     show_scale_notification,
 )
 from .src.core.entity_manager import entity_manager
+from .src.core.state_manager import state_manager
 from .src.core.store import store
 from .src.constants import ELEMENT_ENUM_TYPE, KEY_DOWN, KEY_UP
+from .src.events import WindowCloseEvent
 
 # Pass ctx to src/hints so it can enable/disable tags. Context objects must stay here (not src/)
 # because user reloads trigger import chain reloading of src files, but this file isn't imported
@@ -78,81 +80,27 @@ def _find_scroll_target(tree):
 
     return None, None
 
-_voice_scroll_job = None
-_voice_scroll_state = None
-
-def _voice_scroll_tick():
-    global _voice_scroll_job, _voice_scroll_state
-    if not _voice_scroll_state:
-        _voice_scroll_stop()
-        return
-
-    s = _voice_scroll_state
-    tree, data, node_id = s["tree"], s["data"], s["node_id"]
-    if tree.destroying or node_id not in tree.meta_state.scrollable:
-        _voice_scroll_stop()
-        return
-
-    dy = s["target"] - data.offset_y
-    if abs(dy) <= 0.5:
-        data.offset_y = s["target"]
-        tree.render_manager.render_scroll()
-        _voice_scroll_stop()
-        return
-
-    data.offset_y += dy * 0.08
-    tree.render_manager.render_scroll()
-
-def _voice_scroll_stop():
-    global _voice_scroll_job, _voice_scroll_state
-    if _voice_scroll_job:
-        cron.cancel(_voice_scroll_job)
-        _voice_scroll_job = None
-    _voice_scroll_state = None
-
-def _scroll_focused_tree(direction: int):
-    """Scroll the focused tree. direction: 1=up, -1=down."""
-    global _voice_scroll_job, _voice_scroll_state
+def _resolve_focused_scroll_target():
+    """Resolve (tree, node) for a scrollable region in the focused tree, or None."""
     tree = store.focused_tree
     if not tree:
-        # Fall back to any tree with a scrollable region
         for t in store.trees:
             if t.meta_state.scrollable:
                 tree = t
                 break
     if not tree:
-        return
-
+        return None, None
     node, data = _find_scroll_target(tree)
     if not node or not data:
+        return None, None
+    return tree, node
+
+def _scroll_focused_tree(direction: int):
+    """Scroll the focused tree. direction: 1=up, -1=down."""
+    tree, node = _resolve_focused_scroll_target()
+    if not node:
         return
-
-    max_height = node.box_model.content_children_with_padding_size.height
-    view_height = node.box_model.padding_size.height
-
-    prior = _voice_scroll_state if _voice_scroll_state and _voice_scroll_state["node_id"] == node.id else None
-    prior_direction = -1 if prior and prior["target"] < data.offset_y else 1 if prior and prior["target"] > data.offset_y else 0
-    changing_direction = prior and prior_direction != 0 and direction != prior_direction
-    current_target = data.offset_y if changing_direction else (prior["target"] if prior else data.offset_y)
-    amount = view_height * 0.45 * direction
-    min_y = view_height - max_height
-    new_target = max(min_y, min(0, current_target + amount))
-
-    if new_target == current_target:
-        return
-
-    data.view_height = view_height
-    data.max_height = max_height
-    tree._scrollbar_show(node.id)
-
-    _voice_scroll_state = {
-        "tree": tree,
-        "data": data,
-        "node_id": node.id,
-        "target": new_target,
-    }
-    if not _voice_scroll_job:
-        _voice_scroll_job = cron.interval("16ms", _voice_scroll_tick)
+    state_manager.smooth_scroll_node(node.id, "y", direction)
 
 @mod.action_class
 class Actions:
@@ -182,8 +130,26 @@ class Actions:
         elif action == "focus_previous":
             focus_previous.execute(key_down)
         elif action == "close":
-            _voice_scroll_stop()
-            entity_manager.hide_all_trees()
+            state_manager._smooth_scroll_stop()
+            tree = store.focused_tree
+            if not tree:
+                entity_manager.hide_all_trees()
+                return
+            if tree.destroying:
+                return
+            # Route through the window's on_close handler so it follows the
+            # same deferred-teardown path as the close button (avoids
+            # half-close leaving the base canvas alive while the decorator
+            # canvas tears down).
+            for wid in list(tree.meta_state.windows):
+                node = tree.meta_state.id_to_node.get(wid)
+                on_close = getattr(node, "on_close", None) if node else None
+                if on_close:
+                    on_close(WindowCloseEvent(hide=True))
+                    return
+            tree.destroy()
+            if not store.trees:
+                store.clear()
 
     def ui_elements_scale_increase():
         """Increase UI scale by browser-like increments"""
@@ -200,19 +166,19 @@ class Actions:
         new_scale = entity_manager.reset_scale()
         show_scale_notification(new_scale)
 
-    def ui_elements_scroll_down():
-        """Scroll down in the focused UI elements window"""
-        _scroll_focused_tree(-1)
+    def ui_elements_scroll_action(action: str):
+        """Trigger a ui_elements scroll action on the focused tree's scrollable region.
+        action: "down", "up", "top", "bottom"."""
+        if action == "down":
+            _scroll_focused_tree(-1)
+        elif action == "up":
+            _scroll_focused_tree(1)
+        elif action == "top":
+            _, node = _resolve_focused_scroll_target()
+            if node:
+                state_manager.scroll_to_top(node.id)
+        elif action == "bottom":
+            _, node = _resolve_focused_scroll_target()
+            if node:
+                state_manager.scroll_to_bottom(node.id)
 
-    def ui_elements_scroll_up():
-        """Scroll up in the focused UI elements window"""
-        _scroll_focused_tree(1)
-
-    def ui_elements_close_focused():
-        """Close the focused UI elements window"""
-        _voice_scroll_stop()
-        tree = store.focused_tree
-        if tree and not tree.destroying:
-            tree.destroy()
-            if not store.trees:
-                store.clear()

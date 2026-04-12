@@ -304,6 +304,8 @@ class NodeContainer(Node, NodeContainerType):
                     self.box_model.maximize_content_children_height()
 
         for child in self.participating_children_nodes:
+            if not child.box_model:
+                continue
             child.box_model.resolve_max_percent(self.box_model.calculated_content_size)
             child.v2_grow_size()
 
@@ -501,6 +503,9 @@ class NodeContainer(Node, NodeContainerType):
                     self.box_model.margin_size.height += capped_delta
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
+        if not self.box_model:
+            return
+
         if self.participates_in_layout:
             self.v2_drag_offset(cursor)
         else:
@@ -516,6 +521,7 @@ class NodeContainer(Node, NodeContainerType):
         scrollable = self.tree.meta_state.scrollable.get(self.id, None) if self.tree else None
         if scrollable:
             scrollable.reevaluate(self)
+            scrollable.rendered_offset_y = scrollable.offset_y
             self.box_model.adjust_scroll_y(scrollable.offset_y)
             self.box_model.adjust_scroll_x(scrollable.offset_x)
 
@@ -596,7 +602,6 @@ class NodeContainer(Node, NodeContainerType):
 
     def draw_end(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.v2_crop_end(c, transforms)
-        self.render_scroll_bar(c, transforms)
 
     def v2_build_render_list(self):
         if not self.uses_decoration_render and self.tree:

@@ -2,7 +2,10 @@ from dataclasses import dataclass, field
 from typing import List, Set
 from talon import actions
 from .node_container import NodeContainer
-from ..constants import ELEMENT_ENUM_TYPE
+from ..constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_WINDOW_BACKGROUND_COLOR,
+)
 from ..properties import NodeDataTableProperties
 
 
@@ -30,6 +33,14 @@ class NodeDataTable(NodeContainer):
         self._dt_properties = properties
 
         properties.padding = properties.padding.__class__(0, 0, 0, 0)
+        if not properties.overflow.is_boundary:
+            from ..box_model import Overflow
+            properties.overflow = Overflow(overflow="hidden")
+
+        # Auto-fill parent when body_height is percentage so flex works on body
+        if properties.body_height and isinstance(properties.body_height, str) and "%" in properties.body_height:
+            if not properties.flex and not properties.height:
+                properties.flex = 1
 
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["data_table"],
@@ -147,7 +158,7 @@ class NodeDataTable(NodeContainer):
         multi = props.multi_select
         row_key = props.row_key
 
-        header_bg = props.header_background_color or "222222"
+        header_bg = props.header_background_color or DEFAULT_WINDOW_BACKGROUND_COLOR
         row_bg = props.row_background_color or "00000000"
         stripe_bg = props.stripe_background_color or "FFFFFF08"
         border_color = props.border_color or "444444"
@@ -197,7 +208,7 @@ class NodeDataTable(NodeContainer):
                 icon(check_icon, size=14, color=header_color, stroke_width=2) if check_icon else
                 div(width=14, height=14, border_width=1, border_color="666666", border_radius=2),
             ]
-            checkbox_header.interactive = False
+            checkbox_header.focusable = False
             header_cells.append(checkbox_header)
 
         for col in columns:
@@ -244,7 +255,7 @@ class NodeDataTable(NodeContainer):
                     text(col_label, font_size=props.font_size, font_weight="bold", color=header_color),
                     sort_icon,
                 ]
-                cell.interactive = False
+                cell.focusable = False
             else:
                 cell = div(**cell_props)[
                     text(col_label, font_size=props.font_size, font_weight="bold", color=header_color),
@@ -267,9 +278,14 @@ class NodeDataTable(NodeContainer):
         if props.max_height:
             body_props["max_height"] = props.max_height
         if props.body_height:
-            body_props["height"] = props.body_height
+            if props.body_height == "100%":
+                body_props["flex"] = 1
+            else:
+                body_props["height"] = props.body_height
 
         body = div(**body_props)
+        self._body_node = body
+        self._key_to_row_node = {}
 
         if not data:
             empty_msg = div(
@@ -338,6 +354,8 @@ class NodeDataTable(NodeContainer):
 
                 bg = selected_bg if is_selected else (stripe_bg if i % 2 == 1 else row_bg)
 
+                row_hint_offset = props.row_hint_offset or (-5, -5)
+
                 if multi:
                     row_div = button(
                         on_click=lambda e, r=row, rid_=rid: self._toggle_row_selected(rid_, r, data),
@@ -346,8 +364,9 @@ class NodeDataTable(NodeContainer):
                         highlight_color="FFFFFF11",
                         border_bottom=1,
                         border_color=border_color,
+                        hint_offset=row_hint_offset,
                     )[*row_cells]
-                    row_div.interactive = False
+                    row_div.focusable = False
                 elif props.on_select:
                     row_div = button(
                         on_click=lambda e, r=row, idx=i: props.on_select(
@@ -358,8 +377,9 @@ class NodeDataTable(NodeContainer):
                         highlight_color="FFFFFF11",
                         border_bottom=1,
                         border_color=border_color,
+                        hint_offset=row_hint_offset,
                     )[*row_cells]
-                    row_div.interactive = False
+                    row_div.focusable = False
                 else:
                     row_div = div(
                         flex_direction="row",
@@ -368,13 +388,51 @@ class NodeDataTable(NodeContainer):
                         border_color=border_color,
                     )[*row_cells]
 
+                self._key_to_row_node[rid] = row_div
                 body.add_child(row_div)
 
         self.add_child(body)
+
+    def scroll_to_key(self, key):
+        """Scroll so the row with the given key is visible.
+        Sets scroll offset but does not queue a render - caller is responsible."""
+        row_node = self._key_to_row_node.get(key)
+        if not row_node:
+            return False
+        body = self._body_node
+        if not row_node.box_model or not body or not body.box_model or not body.id:
+            return False
+
+        scroll_data = self.tree.meta_state.scrollable.get(body.id)
+        if not scroll_data:
+            return False
+
+        # Use rendered_offset_y (the offset applied during last layout)
+        # not offset_y (which may have changed by a pending scroll not yet rendered)
+        child_y = row_node.box_model.margin_pos.y - body.box_model.padding_pos.y - scroll_data.rendered_offset_y
+        child_height = row_node.box_model.margin_size.height
+
+        visible_top = -scroll_data.rendered_offset_y
+        visible_bottom = visible_top + scroll_data.view_height
+        already_visible = child_y >= visible_top and child_y + child_height <= visible_bottom
+
+        if not already_visible:
+            new_offset_y = -child_y + 8
+            min_offset_y = min(0, scroll_data.view_height - scroll_data.max_height)
+            new_offset_y = max(min_offset_y, min(0, new_offset_y))
+
+            if scroll_data.offset_y != new_offset_y:
+                scroll_data.offset_y = new_offset_y
+                scroll_data.target_offset_y = new_offset_y
+                self.tree._scrollbar_show(body.id)
+                return True
+        return False
 
     def destroy(self):
         self._set_sort_key = None
         self._set_sort_dir = None
         self._set_search_text = None
         self._set_selected_set = None
+        self._key_to_row_node = None
+        self._body_node = None
         super().destroy()

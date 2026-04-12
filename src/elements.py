@@ -1,6 +1,10 @@
 from talon import ctrl
 from typing import List, Dict, Any, Union
-from .constants import ELEMENT_ENUM_TYPE
+from .constants import (
+    ELEMENT_ENUM_TYPE,
+    DEFAULT_DROP_SHADOW,
+    DEFAULT_WINDOW_BACKGROUND_COLOR,
+)
 from .core.state_manager import state_manager
 from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
@@ -24,6 +28,7 @@ from .nodes.node_svg import (
 )
 from .nodes.node_table import NodeTable, NodeTableRow, NodeTableData, NodeTableHeader
 from .nodes.node_text import NodeText
+from .nodes.code import code
 from .nodes.node_button import NodeButton
 from .nodes.node_form import NodeForm
 from .nodes.switch import switch
@@ -298,6 +303,8 @@ def text(text_str: str = "", props=None, **additional_props):
     text_properties = NodeTextProperties(**properties)
     return NodeText(ELEMENT_ENUM_TYPE["text"], text_str, text_properties)
 
+# code() is imported from .nodes.code
+
 def button(*args, text=None, **additional_props):
     if args and isinstance(args[0], str):
         text = args[0]
@@ -398,6 +405,7 @@ def window(props=None, **additional_props):
             "border_color",
             "drag_title_bar_only",
             "drop_shadow",
+            "icon",
             "on_minimize",
             "on_restore",
             "on_close",
@@ -450,9 +458,9 @@ def modal(title=None, open=False, on_close=None, draggable=False, show_title_bar
         "on_close": on_close,
         "draggable": draggable,
         "show_title_bar": show_title_bar,
-        "background_color": "222222",
+        "background_color": DEFAULT_WINDOW_BACKGROUND_COLOR,
         "border_width": 1,
-        "drop_shadow": (0, 20, 25, 25, "000000CC"),
+        "drop_shadow": DEFAULT_DROP_SHADOW,
         "backdrop": backdrop,
         "backdrop_color": backdrop_color,
         "backdrop_click_close": backdrop_click_close
@@ -535,6 +543,7 @@ use_effect_without_tree = use_effect_no_tree
 
 active_window = UIElementsContainerNoTextProxy(active_window)
 button = UIElementsLeafProxy(button)
+code = UIElementsLeafProxy(code)
 checkbox = UIElementsLeafProxy(checkbox)
 cursor = UIElementsContainerNoTextProxy(cursor)
 data_table = UIElementsLeafProxy(data_table)
@@ -613,6 +622,7 @@ element_collection: Dict[str, callable] = {
     'active_window': active_window,
     'button': button,
     'checkbox': checkbox,
+    'code': code,
     'component': Component,
     'cursor': cursor,
     'data_table': data_table,
@@ -634,7 +644,7 @@ element_collection: Dict[str, callable] = {
     'textarea': textarea,
     'th': th,
     'tr': tr,
-    # 'switch': switch, # experimental
+    'switch': switch,
     'window': window,
     **element_svg_collection_full,
 }

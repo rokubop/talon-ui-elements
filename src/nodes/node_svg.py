@@ -352,20 +352,36 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
             for i in range(0, len(raw_points), 2)
         ]
 
+        if not points:
+            return
+
+        path = Path()
+        path.move_to(points[0][0], points[0][1])
+        for x, y in points[1:]:
+            path.line_to(x, y)
+        if self.element_type == "svg_polygon":
+            path.close()
+
         prev_paint = c.paint.clone()
 
-        top_left_pos = self.parent_node.box_model.content_children_pos
-
-        if self.properties.fill and self.properties.fill != "none":
-            c.paint.style = c.paint.Style.FILL
-            c.paint.color = self.properties.fill
-        else:
-            c.paint.style = c.paint.Style.STROKE
-            c.paint.color = self.properties.stroke or self.parent_node.properties.stroke
+        fill = self.properties.fill if self.properties.fill and self.properties.fill != "none" else None
+        stroke = self.properties.stroke or self.parent_node.properties.stroke
 
         assign_stroke_cap_and_join(c, self)
         c.paint.stroke_width = (self.properties.stroke_width or self.parent_node.properties.stroke_width) * scale
-        c.draw_points(mode=c.PointMode.POLYGON, points=points)
+
+        if fill:
+            c.paint.style = c.paint.Style.FILL
+            c.paint.color = fill
+            c.draw_path(path, c.paint)
+            if stroke and self.properties.is_user_set('stroke'):
+                c.paint.style = c.paint.Style.STROKE
+                c.paint.color = stroke
+                c.draw_path(path, c.paint)
+        else:
+            c.paint.style = c.paint.Style.STROKE
+            c.paint.color = stroke
+            c.draw_path(path, c.paint)
 
         c.paint = prev_paint
 

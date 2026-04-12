@@ -6,7 +6,7 @@ from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.imagefilter import ImageFilter
 from .component import Component
-from ..utils import draw_rect
+from ..utils import draw_rect, render_gradient_shader
 from ..border_radius import BorderRadius
 from ..core.animations import (
     ANIMATABLE_COLOR_PROPERTIES,
@@ -63,6 +63,7 @@ class Node(NodeType):
         self.is_dirty: bool = False
         self.disabled: bool = self.properties.disabled or False
         self.interactive = False
+        self.focusable = True
         self.interactive_id: str = None
         self.is_svg: bool = False
         self.uses_decoration_render: bool = False
@@ -303,6 +304,27 @@ class Node(NodeType):
                 self.properties.update_colors_with_opacity()
 
     def is_fully_clipped_by_scroll(self):
+        if not self.clip_nodes or not self.box_model:
+            return False
+        rect = self.box_model.padding_rect
+        if not rect:
+            return False
+        for clip_ref in self.clip_nodes:
+            clip_node = clip_ref()
+            if not clip_node or not clip_node.box_model:
+                continue
+            clip_rect = (
+                clip_node.box_model.padding_with_scroll_bar_rect
+                if clip_node.properties.overflow.scrollable
+                else clip_node.box_model.padding_rect
+            )
+            if not clip_rect:
+                continue
+            if (rect.x + rect.width <= clip_rect.x or
+                rect.x >= clip_rect.x + clip_rect.width or
+                rect.y + rect.height <= clip_rect.y or
+                rect.y >= clip_rect.y + clip_rect.height):
+                return True
         return False
 
     def v2_measure_intrinsic_size(self, c):
@@ -358,10 +380,8 @@ class Node(NodeType):
     def v2_scroll_layout(self, offset: Point2d = None):
         node_offset = offset
         if self.properties.is_scrollable() and self.id in self.tree.meta_state.scrollable:
-            new_offset = Point2d(
-                self.tree.meta_state.scrollable[self.id].offset_x,
-                self.tree.meta_state.scrollable[self.id].offset_y
-            )
+            scrollable = self.tree.meta_state.scrollable[self.id]
+            new_offset = Point2d(scrollable.offset_x, scrollable.offset_y)
             node_offset = new_offset if not node_offset else node_offset + new_offset
             for child in self.get_children_nodes():
                 child.v2_reposition(node_offset)
@@ -369,12 +389,23 @@ class Node(NodeType):
         for child in self.get_children_nodes():
             child.v2_scroll_layout(node_offset)
 
+    def _resolve_side_border_color(self, side: str, fallback: str) -> str:
+        color = getattr(self.properties, f"border_{side}_color", None)
+        return color if color else fallback
+
+    def _has_per_side_border_colors(self) -> bool:
+        return any(
+            getattr(self.properties, attr, None)
+            for attr in ("border_top_color", "border_right_color", "border_bottom_color", "border_left_color")
+        )
+
     def v2_render_borders(self, c: SkiaCanvas, transforms: RenderTransforms = None):
         self.is_uniform_border = True
         border_spacing = self.box_model.border_spacing
         has_border = border_spacing.left or border_spacing.top or border_spacing.right or border_spacing.bottom
         if has_border:
             self.is_uniform_border = border_spacing.left == border_spacing.top == border_spacing.right == border_spacing.bottom
+            has_per_side_colors = self._has_per_side_border_colors()
 
             if transforms and transforms.offset:
                 inner_rect = self.box_model.padding_rect.copy()
@@ -388,7 +419,7 @@ class Node(NodeType):
                 inner_rect = self.box_model.padding_rect
 
             border_color = self.resolve_render_property("border_color")
-            if self.is_uniform_border:
+            if self.is_uniform_border and not has_per_side_colors:
                 border_width = border_spacing.left
                 c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
@@ -419,7 +450,6 @@ class Node(NodeType):
                 else:
                     c.draw_rect(bordered_rect)
             else:
-                c.paint.color = border_color
                 c.paint.style = c.paint.Style.STROKE
                 b_rect, p_rect = self.box_model.border_rect, inner_rect
 
@@ -432,18 +462,22 @@ class Node(NodeType):
                     )
 
                 if border_spacing.left:
+                    c.paint.color = self._resolve_side_border_color("left", border_color)
                     c.paint.stroke_width = border_spacing.left
                     half = border_spacing.left / 2
                     c.draw_line(b_rect.x + half, p_rect.y, b_rect.x + half, p_rect.y + p_rect.height)
                 if border_spacing.right:
+                    c.paint.color = self._resolve_side_border_color("right", border_color)
                     c.paint.stroke_width = border_spacing.right
                     half = border_spacing.right / 2
                     c.draw_line(b_rect.x + b_rect.width - half, p_rect.y, b_rect.x + b_rect.width - half, p_rect.y + p_rect.height)
                 if border_spacing.top:
+                    c.paint.color = self._resolve_side_border_color("top", border_color)
                     c.paint.stroke_width = border_spacing.top
                     half = border_spacing.top / 2
                     c.draw_line(p_rect.x, b_rect.y + half, p_rect.x + p_rect.width, b_rect.y + half)
                 if border_spacing.bottom:
+                    c.paint.color = self._resolve_side_border_color("bottom", border_color)
                     c.paint.stroke_width = border_spacing.bottom
                     half = border_spacing.bottom / 2
                     c.draw_line(p_rect.x, b_rect.y + b_rect.height - half, p_rect.x + p_rect.width, b_rect.y + b_rect.height - half)
@@ -475,10 +509,12 @@ class Node(NodeType):
             c.paint.imagefilter = None
 
     def v2_render_background(self, c: SkiaCanvas, transforms: RenderTransforms = None):
+        background = self.properties.background
         background_color = self.resolve_render_property("background_color")
-        if background_color:
+        if not background_color and isinstance(background, str):
+            background_color = background
+        if background_color or isinstance(background, dict):
             c.paint.style = c.paint.Style.FILL
-            c.paint.color = background_color
 
             inner_rect = self.box_model.padding_with_scroll_bar_rect
 
@@ -490,6 +526,15 @@ class Node(NodeType):
                     inner_rect.height
                 )
 
+            if isinstance(background, dict):
+                shader = render_gradient_shader(background, inner_rect)
+                if shader:
+                    c.paint.shader = shader
+                    draw_rect(c, inner_rect, self.properties.get_border_radius())
+                    c.paint.shader = None
+                    return
+
+            c.paint.color = background_color
             draw_rect(c, inner_rect, self.properties.get_border_radius())
 
     def draw_start(self, c: SkiaCanvas, transforms: RenderTransforms = None):

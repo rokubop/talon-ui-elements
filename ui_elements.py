@@ -7,6 +7,7 @@ from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
+from .src.syntax import register_theme, register_language
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
 from .storybook.main import storybook_ui
@@ -26,7 +27,7 @@ class Actions:
         button, input_text, state = actions.user.ui_elements(["button", "input_text", "state"])
         ref, effect, icon = actions.user.ui_elements(["ref", "effect", "icon"])
         component, style = actions.user.ui_elements(["component", "style"])
-        checkbox, link, cursor = actions.user.ui_elements(["checkbox", "link", "cursor"])
+        checkbox, code, link, cursor = actions.user.ui_elements(["checkbox", "code", "link", "cursor"])
         table, th, tr, td = actions.user.ui_elements(["table", "th", "tr", "td"])
         svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
         circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
@@ -203,10 +204,6 @@ class Actions:
         """Get the value of a `input_text` element based on its id"""
         return state_manager.get_input_value(id)
 
-    def ui_elements_scroll_to_id(target_id: str, focus: bool = True):
-        """Scroll the nearest scrollable ancestor so that the target element is visible, and optionally focus it."""
-        state_manager.scroll_to_id(target_id, focus=focus)
-
     def ui_elements_highlight(id: str, color: str = None):
         """Highlight element based on its id. Renders on a decoration layer."""
         state_manager.highlight(id, color)
@@ -226,6 +223,43 @@ class Actions:
     def ui_elements_get_trees():
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
+
+    def ui_elements_register(kind: str, name: str, value: Any):
+        """
+        Register a named extension for use with ui_elements. Forward-compatible
+        single entry point so future plugins/extensions share one action.
+
+        Supported kinds:
+        - `"code_theme"` - value is a dict mapping token types to hex colors
+        - `"code_language"` - value is a list of (token_type, compiled_regex) tuples
+
+        ```
+        actions.user.ui_elements_register("code_theme", "nord", {
+            "keyword": "81A1C1",
+            "string": "A3BE8C",
+            "comment": "616E88",
+            "number": "B48EAD",
+            "function": "88C0D0",
+            "text": "D8DEE9",
+        })
+        code("def hello():", theme="nord")
+
+        import re
+        actions.user.ui_elements_register("code_language", "json", [
+            ("string", re.compile(r'"(?:[^"\\\\\\\\]|\\\\\\\\.)*"')),
+            ("number", re.compile(r'-?\\b\\d+(?:\\.\\d+)?\\b')),
+            ("keyword", re.compile(r'\\b(?:true|false|null)\\b')),
+            ("punctuation", re.compile(r'[{}\\[\\]:,]')),
+        ])
+        code('{"key": "value"}', language="json")
+        ```
+        """
+        if kind == "code_theme":
+            register_theme(name, value)
+        elif kind == "code_language":
+            register_language(name, value)
+        else:
+            raise ValueError(f"Unknown ui_elements_register kind: {kind!r}")
 
     def ui_elements_storybook_toggle():
         """Toggle the storybook UI"""

@@ -35,7 +35,8 @@ def app_layout_ui():
             # Main row
             div(flex_direction="row", flex=1, overflow="hidden")[
                 # Sidebar
-                div(width=280, flex_shrink=0, padding=16, gap=4, overflow_y="auto",
+                div(id="sidebar", width=280, min_width=150, max_width=500, flex_shrink=0,
+                    padding=16, gap=4, overflow_y="auto", resizable="right",
                     background_color="#1a1e2a", border_right_width=1, border_color="#333a50")[
                     text("EXPLORER", font_size=13, color="#8892aa", margin_bottom=8),
                     input_text(id="search", placeholder="Search files...",

@@ -17,9 +17,17 @@ from ..constants import (
     ELEMENT_ENUM_TYPE,
     DRAG_INIT_THRESHOLD,
     DEFAULT_CURSOR_REFRESH_RATE,
+    DEFAULT_HIGHLIGHT_DURATION_MS,
     DEFAULT_SCROLL_BAR_FADE_IN_MS,
     DEFAULT_SCROLL_BAR_FADE_OUT_MS,
     DEFAULT_SCROLL_BAR_IDLE_MS,
+    DEFAULT_SCROLL_BAR_WIDTH,
+    DEFAULT_SCROLL_BUTTON_SIZE,
+    DEFAULT_SCROLL_BUTTON_INSET,
+    DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR,
+    DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR,
+    DEFAULT_SCROLL_BUTTON_BORDER_COLOR,
+    DEFAULT_SCROLL_BUTTON_ICON_COLOR,
     RESIZE_EDGE_THRESHOLD,
     RESIZE_GHOST_COLOR,
     RESIZE_GHOST_STROKE_WIDTH,
@@ -53,7 +61,7 @@ from ..interfaces import (
     ScrollRegionType,
     ScrollableType,
 )
-from ..hints import draw_hint, get_hint_generator, hint_clear_state, hint_tag_enable
+from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable
 from ..style import Style
 from ..utils import (
     draw_text_simple,
@@ -94,6 +102,7 @@ class Scrollable(ScrollableType):
         self.offset_y = 0
         self.target_offset_x = 0
         self.target_offset_y = 0
+        self.rendered_offset_y = 0
         self.view_height = 0
         self.max_height = 0
         self.view_width = 0
@@ -124,9 +133,20 @@ class DraggableOffset:
     y: int
 
 
+@dataclass
+class ScrollButtonOverlay:
+    container_id: str
+    role: str       # "up" | "down" | "left" | "right"
+    axis: str       # "y" | "x"
+    direction: int  # -1 | 1
+    rect: Rect
+    synthetic_id: str
+    style: dict = None
+
+
 class MetaState(MetaStateType):
     def __init__(self):
-        self._buttons = set()
+        self._buttons = []
         self._components = {}
         self._staged_components = {}
         self.decoration_renders = {}
@@ -143,6 +163,7 @@ class MetaState(MetaStateType):
         self._style_mutations = {}
         self._text_mutations = {}
         self.windows = set()
+        self.resizable_nodes = set()
         self.ref_property_overrides = {}
         self.unhighlight_jobs = {}
         self.new_component_ids = set()
@@ -158,6 +179,8 @@ class MetaState(MetaStateType):
         self.scrollbar_opacity = {}
         self.scrollbar_fade_jobs = {}
         self.scrollbar_idle_jobs = {}
+        self.scroll_button_overlays: dict[str, ScrollButtonOverlay] = {}
+        self.scroll_button_hovered_id: str = None
         self.resize_edge_hovered = None
         self.resize_original_constraints = {}
         self.resize_dragging_id = None
@@ -231,7 +254,8 @@ class MetaState(MetaStateType):
         self._inputs[id] = input_data
 
     def add_button(self, id):
-        self._buttons.add(id)
+        if id not in self._buttons:
+            self._buttons.append(id)
 
     def add_component(self, component):
         if component.id not in self._staged_components:
@@ -346,6 +370,8 @@ class MetaState(MetaStateType):
     def clear_nodes(self):
         self._id_to_node.clear()
         self._staged_id_to_node.clear()
+        self._buttons.clear()
+        self._text_with_for_ids.clear()
         entity_manager.synchronize_global_ids()
 
     def prepare_node_transition(self):
@@ -358,7 +384,7 @@ class MetaState(MetaStateType):
 
     def get_hover_links(self):
         return list(
-            (b, b) for b in self._buttons
+            (b, b) for b in reversed(self._buttons)
         ) + list(
             self._text_with_for_ids.items()
         )
@@ -483,6 +509,7 @@ class MetaState(MetaStateType):
         self._style_mutations.clear()
         self._text_mutations.clear()
         self.windows.clear()
+        self.resizable_nodes.clear()
         self.unhighlight_jobs.clear()
         self.ref_property_overrides.clear()
         self.new_component_ids.clear()
@@ -716,17 +743,27 @@ class Tree(TreeType):
     def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
         try:
-            if len(inspect.signature(self._tree_constructor).parameters) > 0:
-                if self.props and not isinstance(self.props, dict):
-                    raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
-                self.root_node = self._tree_constructor(self.props or {})
-            else:
-                self.root_node = self._tree_constructor()
-            self.absolute_nodes.clear()
-            self.fixed_nodes.clear()
-            if not isinstance(self.root_node, NodeType):
-                raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
-            self.auto_wrap_root_node()
+            try:
+                if len(inspect.signature(self._tree_constructor).parameters) > 0:
+                    if self.props and not isinstance(self.props, dict):
+                        raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
+                    self.root_node = self._tree_constructor(self.props or {})
+                else:
+                    self.root_node = self._tree_constructor()
+                self.absolute_nodes.clear()
+                self.fixed_nodes.clear()
+                if not isinstance(self.root_node, NodeType):
+                    raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
+                self.auto_wrap_root_node()
+            except Exception as e:
+                # Render-time errors (validation failures, user code exceptions) would
+                # otherwise propagate up the cron callback and crash the entire UI.
+                # Log loudly and tear down the tree so subsequent state changes don't
+                # keep firing the same broken render.
+                print(f"ui_elements: error while rendering tree: {e}")
+                traceback.print_exc()
+                self.root_node = None
+                cron.after("1ms", self.destroy)
         finally:
             state_manager.set_processing_tree(None)
 
@@ -740,6 +777,11 @@ class Tree(TreeType):
 
     def compute_clip_regions_cache(self):
         def compute_for_node(node: NodeType):
+            # Defensive: skip Components that somehow weren't resolved by
+            # init_node_hierarchy. They have no compute_clip_regions_cache and
+            # no children, so just walking past them is safe.
+            if isinstance(node, ComponentType):
+                return
             node.compute_clip_regions_cache()
             for child in node.get_children_nodes():
                 compute_for_node(child)
@@ -831,6 +873,127 @@ class Tree(TreeType):
                 node.v2_render_decorator(canvas, transforms)
                 self.restore_clip_regions(canvas, clip_count)
 
+    def draw_scrollbars(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
+        for id in list(self.meta_state.scrollable.keys()):
+            if id in self.meta_state.id_to_node:
+                node = self.meta_state.id_to_node[id]
+                if hasattr(node, "render_scroll_bar"):
+                    node.render_scroll_bar(canvas, transforms)
+
+    def compute_scroll_button_overlays(self):
+        """Walk scrollable containers and compute floating scroll button overlays
+        for any direction with remaining scroll room."""
+        self.meta_state.scroll_button_overlays.clear()
+        default_size = scale_value(DEFAULT_SCROLL_BUTTON_SIZE)
+        inset = scale_value(DEFAULT_SCROLL_BUTTON_INSET)
+        bar_width = scale_value(DEFAULT_SCROLL_BAR_WIDTH)
+
+        for sid in list(self.meta_state.scrollable.keys()):
+            node = self.meta_state.id_to_node.get(sid)
+            if not node or not node.box_model:
+                continue
+            if getattr(node.properties, "scroll_buttons", True) is False:
+                continue
+            style = getattr(node.properties, "scroll_buttons_style", None) or {}
+            size = scale_value(style.get("size", DEFAULT_SCROLL_BUTTON_SIZE))
+
+            sdata = self.meta_state.scrollable[sid]
+            pad = node.box_model.padding_rect
+
+            y_overflow = sdata.max_height > sdata.view_height
+            x_overflow = sdata.max_width > sdata.view_width
+
+            if y_overflow:
+                x = pad.x + pad.width - size - inset - bar_width
+                if sdata.offset_y < 0:
+                    self._add_scroll_button_overlay(sid, "up", "y", 1,
+                        Rect(x, pad.y + inset, size, size), style)
+                if sdata.offset_y > (sdata.view_height - sdata.max_height):
+                    self._add_scroll_button_overlay(sid, "down", "y", -1,
+                        Rect(x, pad.y + pad.height - size - inset, size, size), style)
+
+            if x_overflow:
+                y = pad.y + pad.height - size - inset - bar_width
+                left_x = pad.x + inset
+                right_x = pad.x + pad.width - size - inset
+                # Avoid colliding with the down button when both axes scroll
+                if y_overflow:
+                    right_x -= (size + inset)
+                if sdata.offset_x < 0:
+                    self._add_scroll_button_overlay(sid, "left", "x", 1,
+                        Rect(left_x, y, size, size), style)
+                if sdata.offset_x > (sdata.view_width - sdata.max_width):
+                    self._add_scroll_button_overlay(sid, "right", "x", -1,
+                        Rect(right_x, y, size, size), style)
+
+    def _add_scroll_button_overlay(self, container_id, role, axis, direction, rect, style=None):
+        synthetic_id = f"__sb__{container_id}__{role}"
+        self.meta_state.scroll_button_overlays[synthetic_id] = ScrollButtonOverlay(
+            container_id=container_id,
+            role=role,
+            axis=axis,
+            direction=direction,
+            rect=rect,
+            synthetic_id=synthetic_id,
+            style=style,
+        )
+
+    def draw_scroll_button_overlays(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
+        if not self.meta_state.scroll_button_overlays:
+            return
+        hovered = self.meta_state.scroll_button_hovered_id
+        for overlay in list(self.meta_state.scroll_button_overlays.values()):
+            style = overlay.style or {}
+            background_color = style.get("background_color", DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR)
+            hover_background_color = style.get("hover_background_color", DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR)
+            border_color = style.get("border_color", DEFAULT_SCROLL_BUTTON_BORDER_COLOR)
+            icon_color = style.get("icon_color", DEFAULT_SCROLL_BUTTON_ICON_COLOR)
+
+            r = overlay.rect.copy()
+            if transforms and transforms.offset:
+                r.x += transforms.offset.x
+                r.y += transforms.offset.y
+            cx = r.x + r.width / 2
+            cy = r.y + r.height / 2
+            radius = r.width / 2
+
+            canvas.paint.antialias = True
+            canvas.paint.style = canvas.paint.Style.FILL
+            canvas.paint.color = (hover_background_color
+                if overlay.synthetic_id == hovered else background_color)
+            canvas.draw_circle(cx, cy, radius)
+
+            canvas.paint.style = canvas.paint.Style.STROKE
+            canvas.paint.stroke_width = scale_value(1)
+            canvas.paint.color = border_color
+            canvas.draw_circle(cx, cy, radius)
+
+            # Chevron
+            canvas.paint.color = icon_color
+            canvas.paint.stroke_width = scale_value(2)
+            canvas.paint.style = canvas.paint.Style.STROKE
+            arm = radius * 0.36
+            depth = radius * 0.22
+            if overlay.role == "up":
+                canvas.draw_line(cx - arm, cy + depth / 2, cx, cy - depth / 2)
+                canvas.draw_line(cx, cy - depth / 2, cx + arm, cy + depth / 2)
+            elif overlay.role == "down":
+                canvas.draw_line(cx - arm, cy - depth / 2, cx, cy + depth / 2)
+                canvas.draw_line(cx, cy + depth / 2, cx + arm, cy - depth / 2)
+            elif overlay.role == "left":
+                canvas.draw_line(cx + depth / 2, cy - arm, cx - depth / 2, cy)
+                canvas.draw_line(cx - depth / 2, cy, cx + depth / 2, cy + arm)
+            elif overlay.role == "right":
+                canvas.draw_line(cx - depth / 2, cy - arm, cx + depth / 2, cy)
+                canvas.draw_line(cx + depth / 2, cy, cx - depth / 2, cy + arm)
+
+    def scroll_button_overlay_at(self, gpos):
+        """Return the scroll button overlay at the given position, or None."""
+        for overlay in self.meta_state.scroll_button_overlays.values():
+            if overlay.rect.contains(gpos):
+                return overlay
+        return None
+
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         try:
             if not self.render_manager.is_destroying:
@@ -848,6 +1011,12 @@ class Tree(TreeType):
                     ):
                         self.reconcile_mouse_highlight()
                     self.draw_decoration_renders(draw_canvas, transforms)
+                    if self.meta_state.scrollable:
+                        self.draw_scrollbars(draw_canvas, transforms)
+                        self.compute_scroll_button_overlays()
+                        self.draw_scroll_button_overlays(draw_canvas, transforms)
+                    elif self.meta_state.scroll_button_overlays:
+                        self.meta_state.scroll_button_overlays.clear()
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
                     self.draw_resize_ghost(draw_canvas)
@@ -1044,12 +1213,61 @@ class Tree(TreeType):
         self.render_manager.finish_current_render()
 
     def draw_hints(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
-        if self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list:
-            hint_tag_enable()
-            hint_generator = get_hint_generator()
-            for node in list(self.meta_state.id_to_node.values()):
-                if node.interactive:
+        if not (self.meta_state.inputs or self.meta_state.buttons or self.interactive_node_list or self.meta_state.scroll_button_overlays):
+            return
+        hint_tag_enable()
+        hint_generator = get_hint_generator()
+        nodes = list(self.meta_state.id_to_node.values())
+
+        # Scan once for open decoration-render subtrees (e.g. select dropdown).
+        decoration_rects = None
+        decoration_node_ids = None
+        for n in nodes:
+            if n.uses_decoration_render and n.box_model:
+                if decoration_rects is None:
+                    decoration_rects = []
+                    decoration_node_ids = set()
+                decoration_rects.append(n.box_model.padding_rect)
+                stack = [n]
+                while stack:
+                    cur = stack.pop()
+                    decoration_node_ids.add(id(cur))
+                    stack.extend(getattr(cur, 'children_nodes', None) or ())
+
+        # Fast path: no decoration render active — original draw-all behavior.
+        if decoration_rects is None:
+            for node in nodes:
+                if getattr(node, 'hintable', node.interactive):
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
+            for overlay in list(self.meta_state.scroll_button_overlays.values()):
+                draw_scroll_button_hint(canvas, overlay, transforms=transforms)
+            return
+
+        # Decoration-aware path: hide hints that would land inside a decoration
+        # subtree's rect, and defer the subtree's own hints so they paint last.
+        deferred = []
+        for node in nodes:
+            if not getattr(node, 'hintable', node.interactive):
+                continue
+            if id(node) in decoration_node_ids:
+                deferred.append(node)
+                continue
+            bm = node.box_model
+            if bm:
+                r = bm.padding_rect
+                occluded = False
+                for d in decoration_rects:
+                    if not (r.x + r.width <= d.x or d.x + d.width <= r.x or
+                            r.y + r.height <= d.y or d.y + d.height <= r.y):
+                        occluded = True
+                        break
+                if occluded:
+                    continue
+            draw_hint(canvas, node, hint_generator(node), transforms=transforms)
+        for overlay in list(self.meta_state.scroll_button_overlays.values()):
+            draw_scroll_button_hint(canvas, overlay, transforms=transforms)
+        for node in deferred:
+            draw_hint(canvas, node, hint_generator(node), transforms=transforms)
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
@@ -1106,7 +1324,7 @@ class Tree(TreeType):
 
             self.canvas_decorator.freeze()
 
-    def highlight_briefly(self, id: str, color: str = None, duration: int = 150):
+    def highlight_briefly(self, id: str, color: str = None, duration: int = DEFAULT_HIGHLIGHT_DURATION_MS):
         if id in self.meta_state.unhighlight_jobs:
             job, _ = self.meta_state.unhighlight_jobs.pop(id)
             cron.cancel(job)
@@ -1451,7 +1669,51 @@ class Tree(TreeType):
                     self.render_manager.pause()
                     self.render_base_canvas()
                     return True
+                if node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos):
+                    self._scrollbar_track_jump(node_id, scrollable_data, node, gpos, axis="y")
+                    return True
+                if node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos):
+                    self._scrollbar_track_jump(node_id, scrollable_data, node, gpos, axis="x")
+                    return True
         return False
+
+    def _scrollbar_track_jump(self, node_id, scrollable_data, node, gpos, axis="y"):
+        """Jump scroll to click position on the track, then start drag."""
+        if axis == "y":
+            track_rect = node.box_model.scroll_bar_track_rect
+            thumb_rect = node.box_model.scroll_bar_thumb_rect
+            if not track_rect or not thumb_rect:
+                return
+            view_height = scrollable_data.view_height
+            max_height = scrollable_data.max_height
+            content_travel = max_height - view_height
+            thumb_center_y = gpos.y - thumb_rect.height / 2
+            ratio = (thumb_center_y - track_rect.y) / (track_rect.height - thumb_rect.height)
+            ratio = max(0, min(1, ratio))
+            new_offset = -ratio * content_travel
+            new_offset = max(view_height - max_height, min(0, new_offset))
+            scrollable_data.offset_y = new_offset
+            scrollable_data.target_offset_y = new_offset
+            self.meta_state.start_scrollbar_drag(node_id, gpos.y, new_offset, axis="y")
+        else:
+            track_rect = node.box_model.scroll_bar_x_track_rect
+            thumb_rect = node.box_model.scroll_bar_x_thumb_rect
+            if not track_rect or not thumb_rect:
+                return
+            view_width = scrollable_data.view_width
+            max_width = scrollable_data.max_width
+            content_travel = max_width - view_width
+            thumb_center_x = gpos.x - thumb_rect.width / 2
+            ratio = (thumb_center_x - track_rect.x) / (track_rect.width - thumb_rect.width)
+            ratio = max(0, min(1, ratio))
+            new_offset = -ratio * content_travel
+            new_offset = max(view_width - max_width, min(0, new_offset))
+            scrollable_data.offset_x = new_offset
+            scrollable_data.target_offset_x = new_offset
+            self.meta_state.start_scrollbar_drag(node_id, gpos.x, new_offset, axis="x")
+        self._scrollbar_show(node_id)
+        self.render_manager.pause()
+        self.render_base_canvas()
 
     def handle_scrollbar_mouseup(self, gpos):
         """Handle scrollbar drag end and restore hover state."""
@@ -1484,6 +1746,14 @@ class Tree(TreeType):
                     new_hovered_id = node_id
                     new_hovered_axis = "x"
                     break
+                if node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    new_hovered_axis = "y"
+                    break
+                if node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos):
+                    new_hovered_id = node_id
+                    new_hovered_axis = "x"
+                    break
 
         if new_hovered_id != prev_hovered_id or new_hovered_axis != prev_hovered_axis:
             if new_hovered_id:
@@ -1496,7 +1766,7 @@ class Tree(TreeType):
             self.render_base_canvas()
 
     def detect_resize_edge(self, gpos):
-        """Detect if mouse is near a resizable window's edge. Returns (node_id, edge_str) or (None, None)."""
+        """Detect if mouse is near a resizable element's edge. Returns (node_id, edge_str) or (None, None)."""
         # Scrollbar takes priority over resize edges
         for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
             node = self.meta_state.id_to_node.get(node_id)
@@ -1505,43 +1775,62 @@ class Tree(TreeType):
                     return (None, None)
                 if (node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos)):
                     return (None, None)
+                if (node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos)):
+                    return (None, None)
+                if (node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos)):
+                    return (None, None)
 
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
-        for window_id in self.meta_state.windows:
-            node = self.meta_state.id_to_node.get(window_id)
-            if not node or not getattr(node.properties, 'resizable', False):
+        resizable_ids = self.meta_state.resizable_nodes | {
+            wid for wid in self.meta_state.windows
+            if self.meta_state.id_to_node.get(wid) and getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
+        }
+        for node_id in resizable_ids:
+            node = self.meta_state.id_to_node.get(node_id)
+            if not node:
                 continue
             if getattr(node, 'is_minimized', False):
                 continue
             if not node.box_model or not node.box_model.border_rect:
                 continue
 
+            # Determine allowed edges
+            resizable = node.properties.resizable
+            if resizable is True:
+                allowed_edges = {"top", "right", "bottom", "left"}
+            elif isinstance(resizable, str):
+                allowed_edges = {resizable}
+            elif isinstance(resizable, list):
+                allowed_edges = set(resizable)
+            else:
+                continue
+
             rect = node.box_model.border_rect
             x, y = gpos.x, gpos.y
 
-            near_top = abs(y - rect.y) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
-            near_bottom = abs(y - (rect.y + rect.height)) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
-            near_left = abs(x - rect.x) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
-            near_right = abs(x - (rect.x + rect.width)) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
+            near_top = "top" in allowed_edges and abs(y - rect.y) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
+            near_bottom = "bottom" in allowed_edges and abs(y - (rect.y + rect.height)) <= threshold and rect.x - threshold <= x <= rect.x + rect.width + threshold
+            near_left = "left" in allowed_edges and abs(x - rect.x) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
+            near_right = "right" in allowed_edges and abs(x - (rect.x + rect.width)) <= threshold and rect.y - threshold <= y <= rect.y + rect.height + threshold
 
-            # Corners first
+            # Corners (only if both edges are allowed)
             if near_top and near_left:
-                return (window_id, "top_left")
+                return (node_id, "top_left")
             if near_top and near_right:
-                return (window_id, "top_right")
+                return (node_id, "top_right")
             if near_bottom and near_left:
-                return (window_id, "bottom_left")
+                return (node_id, "bottom_left")
             if near_bottom and near_right:
-                return (window_id, "bottom_right")
+                return (node_id, "bottom_right")
             # Single edges
             if near_top:
-                return (window_id, "top")
+                return (node_id, "top")
             if near_bottom:
-                return (window_id, "bottom")
+                return (node_id, "bottom")
             if near_left:
-                return (window_id, "left")
+                return (node_id, "left")
             if near_right:
-                return (window_id, "right")
+                return (node_id, "right")
 
         return (None, None)
 
@@ -1741,6 +2030,23 @@ class Tree(TreeType):
                     self.meta_state.clear_resize_edge_hover()
                     self.render_manager.render_mouse_highlight()
 
+                # Scroll button hover
+                hovered_overlay = self.scroll_button_overlay_at(gpos)
+                hovered_overlay_id = hovered_overlay.synthetic_id if hovered_overlay else None
+                if hovered_overlay_id != self.meta_state.scroll_button_hovered_id:
+                    self.meta_state.scroll_button_hovered_id = hovered_overlay_id
+                    self.render_manager.render_mouse_highlight()
+                if hovered_overlay_id:
+                    # Suppress button hover when over a scroll button overlay
+                    prev_hovered_id = state_manager.get_hovered_id()
+                    if prev_hovered_id:
+                        self.unhighlight_no_render(prev_hovered_id)
+                        state_manager.set_hovered_id(None)
+                        self.render_manager.render_mouse_highlight()
+                    if not self.hover_validation_job:
+                        self.schedule_hover_validation()
+                    return
+
                 changed = False
                 new_hovered_id = None
                 prev_hovered_id = state_manager.get_hovered_id()
@@ -1750,9 +2056,9 @@ class Tree(TreeType):
                     if source_id != target_id:
                         target_node = self.meta_state.id_to_node.get(target_id, None)
                     if source_node and not getattr(target_node, 'disabled', False):
-                        if source_node.is_fully_clipped_by_scroll():
-                            continue
-                        if source_node and source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                        if source_node and source_node.box_model and self._hover_hit_rect(source_node).contains(gpos):
+                            if source_node.is_fully_clipped_by_scroll():
+                                continue
                             new_hovered_id = target_id
                             if new_hovered_id != prev_hovered_id:
                                 state_manager.set_hovered_id(target_id)
@@ -1789,7 +2095,7 @@ class Tree(TreeType):
 
     def _get_selectable_text_at(self, gpos):
         for node in self.meta_state.id_to_node.values():
-            if node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+            if node.element_type in (ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]) and \
                     getattr(node, 'selectable', False) and node.box_model:
                 hit_rect = node.parent_node.box_model.padding_rect \
                     if node.parent_node and node.parent_node.box_model \
@@ -1811,7 +2117,7 @@ class Tree(TreeType):
             return
 
         if self._text_selecting_node:
-            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"]):
+            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]):
                 self._text_selecting_node.update_selection_from_drag(gpos.x, click_y=gpos.y)
             else:
                 self._text_selecting_node.update_selection_from_drag(gpos.x)
@@ -1877,6 +2183,13 @@ class Tree(TreeType):
                 return
 
         if self.handle_scrollbar_mousedown(gpos):
+            return
+
+        scroll_btn = self.scroll_button_overlay_at(gpos)
+        if scroll_btn:
+            state_manager.smooth_scroll_node(
+                scroll_btn.container_id, scroll_btn.axis, scroll_btn.direction
+            )
             return
 
         hovered_id = state_manager.get_hovered_id()
@@ -2053,6 +2366,23 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def _hover_hit_rect(self, source_node):
+        """Hit-test rect for a hover-link source. For `for_id` text labels we
+        expand the tight glyph padding_rect by a few pixels so the click target
+        matches the visual line-height. Other nodes use their padding_rect."""
+        rect = source_node.box_model.padding_rect
+        if source_node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+                getattr(source_node.properties, "for_id", None):
+            pad_x = scale_value(4)
+            pad_y = scale_value(6)
+            return Rect(
+                rect.x - pad_x,
+                rect.y - pad_y,
+                rect.width + pad_x * 2,
+                rect.height + pad_y * 2,
+            )
+        return rect
+
     def validate_hover_state(self):
         """Validate hover state and clean up if mouse left the UI."""
         if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering:
@@ -2062,19 +2392,26 @@ class Tree(TreeType):
 
         hovered_id = state_manager.get_hovered_id()
         if hovered_id and not state_manager.is_drag_active():
-            node = self.meta_state.id_to_node.get(hovered_id)
+            # Check every source node that maps to this hovered target. With
+            # for_id, a label text is the source and the checkbox is the target -
+            # the cursor lives over the source's rect, not the target's, so
+            # checking only the target would clear hover incorrectly.
+            still_hovered = False
+            try:
+                for source_id, target_id in self.meta_state.get_hover_links():
+                    if target_id != hovered_id:
+                        continue
+                    source_node = self.meta_state.id_to_node.get(source_id)
+                    if source_node and source_node.box_model and \
+                            self._hover_hit_rect(source_node).contains(current_pos) and \
+                            not source_node.is_fully_clipped_by_scroll():
+                        still_hovered = True
+                        break
+            except (AttributeError, TypeError):
+                still_hovered = False
 
-            if node and node.box_model:
-                try:
-                    if not node.box_model.padding_rect.contains(current_pos):
-                        self.unhighlight_no_render(hovered_id)
-                        state_manager.set_hovered_id(None)
-                        changed = True
-                except (AttributeError, TypeError):
-                    # Box model changed/destroyed between check and access
-                    state_manager.set_hovered_id(None)
-                    changed = True
-            else:
+            if not still_hovered:
+                self.unhighlight_no_render(hovered_id)
                 state_manager.set_hovered_id(None)
                 changed = True
 
@@ -2120,9 +2457,9 @@ class Tree(TreeType):
             if source_id != target_id:
                 target_node = self.meta_state.id_to_node.get(target_id, None)
             if source_node and not getattr(target_node, 'disabled', False):
-                if source_node.is_fully_clipped_by_scroll():
-                    continue
-                if source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                if source_node.box_model and self._hover_hit_rect(source_node).contains(gpos):
+                    if source_node.is_fully_clipped_by_scroll():
+                        continue
                     new_hovered_id = target_id
                     break
 
@@ -2635,8 +2972,8 @@ class Tree(TreeType):
 
             if getattr(node, 'on_click', None):
                 self.meta_state.add_button(node.id)
-            elif node.element_type == ELEMENT_ENUM_TYPE["text"]:
-                if node.properties.for_id:
+            elif node.element_type in (ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]):
+                if getattr(node.properties, 'for_id', None):
                     self.meta_state.add_text_with_for_id(node.id, node.properties.for_id)
                 elif getattr(node, 'selectable', False):
                     pass
@@ -2650,6 +2987,9 @@ class Tree(TreeType):
 
             if node.properties.draggable:
                 self.meta_state.add_draggable(node.id)
+
+            if node.properties.resizable and node.id:
+                self.meta_state.resizable_nodes.add(node.id)
 
             if node.properties.transition:
                 self.transition_manager.detect_changes(node.id, node)
@@ -2818,8 +3158,16 @@ class Tree(TreeType):
         self._check_deprecated_ui(current_node)
         self._apply_justify_content_if_space_evenly(current_node)
 
+        inject = getattr(current_node, "_maybe_inject_scroll_buttons", None)
+        if inject:
+            inject()
+
         for i, child_node in enumerate(current_node.get_children_nodes()):
-            self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes, clip_nodes)
+            child_key = getattr(child_node, "key", None)
+            # Keyed children get a stable path segment so their state survives
+            # sibling reordering. Unkeyed children fall back to position index.
+            segment = f"k_{child_key}" if child_key is not None else i
+            self.init_node_hierarchy(child_node, node_index_path + [segment], constraint_nodes, clip_nodes)
 
         entity_manager.synchronize_global_ids()
 
@@ -2894,7 +3242,7 @@ class Tree(TreeType):
                 else self.root_node.box_model.content_children_rect
 
             # Expand blockable area to cover resize edge detection zone
-            has_resizable = any(
+            has_resizable = bool(self.meta_state.resizable_nodes) or any(
                 self.meta_state.id_to_node.get(wid) and
                 getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
                 for wid in self.meta_state.windows

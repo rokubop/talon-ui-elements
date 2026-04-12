@@ -316,7 +316,8 @@ class TransitionManager:
         else:
             watch_props = set(transition_dict.keys()) & ANIMATABLE_PROPERTIES
 
-        # First encounter - snapshot values; start mount animations if mount_style exists
+        # First encounter - snapshot values; queue mount_style values for
+        # re-render so mount animations go through the normal state-change path.
         if node_id not in self.previous_values:
             self.previous_values[node_id] = {}
             mount_style = getattr(node.properties, 'mount_style', None)
@@ -326,11 +327,9 @@ class TransitionManager:
                 if value is None:
                     continue
 
-                # Check if this property should animate from mount_style
                 if mount_style and prop in mount_style:
                     config = self._parse_transition_config(transition_dict, prop)
                     if config:
-                        duration_ms, easing = config
                         from_value = self._normalize_style_value(prop, mount_style[prop], "mount_style")
                         if from_value is None:
                             self.previous_values[node_id][prop] = value
@@ -338,21 +337,9 @@ class TransitionManager:
                         if prop in ANIMATABLE_COLOR_PROPERTIES and isinstance(from_value, str):
                             from_value = hex_color(from_value, property_name=prop)
 
-                        anim = ActiveAnimation(
-                            property=prop,
-                            from_value=from_value,
-                            to_value=value,
-                            duration_ms=duration_ms,
-                            easing=easing,
-                            start_time=time.monotonic(),
-                            node_id=node_id,
-                        )
-                        if node_id not in self.active:
-                            self.active[node_id] = {}
-                        self.active[node_id][prop] = anim
-                        self.previous_values[node_id][prop] = value
-                        # Defer applying mount values until after tree hierarchy is initialized
-                        # to avoid corrupting inherited colors for children
+                        # Store mount_style value as "previous" so the next
+                        # render sees a diff and creates a normal animation.
+                        self.previous_values[node_id][prop] = from_value
                         self._pending_mount_values.append((node_id, prop, from_value))
                         continue
 
@@ -534,19 +521,16 @@ class TransitionManager:
         self._mount_animations_pending = True
 
     def start_mount_animations(self):
-        """Start mount animations with fresh timing. Call after tree is fully rendered."""
+        """Queue a re-render so mount_style diffs are picked up as normal
+        state-driven transitions. Queued via render_manager so it runs
+        after the current (first) render completes."""
         if not self._mount_animations_pending:
             return
         self._mount_animations_pending = False
 
         if not self.tree or self.tree.destroying:
             return
-        now = time.monotonic()
-        for node_id, anims in self.active.items():
-            for prop, anim in anims.items():
-                anim.start_time = now
-        self._last_tick_time = None
-        self.start_tick_loop()
+        self.tree.render_manager.render_state_change()
 
     def start_unmount(self, on_complete):
         """Start exit animations for all nodes with unmount_style. Calls on_complete when done."""

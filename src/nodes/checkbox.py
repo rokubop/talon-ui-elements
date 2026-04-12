@@ -2,6 +2,8 @@ from talon import actions
 from dataclasses import dataclass
 from ..constants import (
     ELEMENT_ENUM_TYPE,
+    DEFAULT_DISABLED_OPACITY,
+    DEFAULT_HIGHLIGHT_ALPHA,
     DEFAULT_INPUT_BACKGROUND_COLOR,
     DEFAULT_CHECKBOX_SIZE,
     DEFAULT_INTERACTIVE_HIGHLIGHT_COLOR,
@@ -22,7 +24,7 @@ def split_checkbox_props(props):
         elif key in ["color", "stroke", "fill"]:
             if key == "color":
                 svg_props["stroke"] = value
-            button_props["highlight_color"] = _expand_shorthand_hex(value) + "33"
+            button_props["highlight_color"] = _expand_shorthand_hex(value) + DEFAULT_HIGHLIGHT_ALPHA
             button_props[key] = value
         else:
             button_props[key] = value
@@ -46,12 +48,21 @@ default_svg_props = {
 def checkbox_impl(props):
     svg_props, button_props, checkbox_props = split_checkbox_props(props)
     div, button, state = actions.user.ui_elements(["div", "button", "state"])
-    is_checked, set_is_checked = state.use_local("checkbox", checkbox_props.get("checked", False))
+    # Controlled when `checked` is supplied: parent owns state, prop is the source
+    # of truth. This avoids stale local state when components are reordered/removed
+    # in lists, since component ids are position-based.
+    is_controlled = "checked" in checkbox_props
+    if is_controlled:
+        is_checked = bool(checkbox_props.get("checked"))
+        set_is_checked = None
+    else:
+        is_checked, set_is_checked = state.use_local("checkbox", False)
     svg, polyline = actions.user.ui_elements_svg(["svg", "polyline"])
 
     def on_trigger(e):
         new_checked = not is_checked
-        set_is_checked(new_checked)
+        if not is_controlled:
+            set_is_checked(new_checked)
         if checkbox_props.get("on_change"):
             checkbox_props["on_change"](
                 CheckboxEvent(checked=new_checked, id=button_props.get("id", None))
@@ -65,7 +76,7 @@ def checkbox_impl(props):
                 **default_button_props,
                 **button_props,
                 "disabled": True,
-                "opacity":0.5,
+                "opacity": DEFAULT_DISABLED_OPACITY,
             },
         )[
             div()[
