@@ -649,6 +649,10 @@ class StateManager:
 
         setattr(scroll_data, view_attr, view)
         setattr(scroll_data, max_attr, content)
+        # Keep target_offset_{y,x} in sync so a follow-up wheel/scrollbar
+        # interaction starts from the new position instead of jumping back
+        # to the pre-button-click target.
+        setattr(scroll_data, target_attr, new_target)
         node.tree._scrollbar_show(scroll_id)
 
         self._smooth_scroll_state = {
