@@ -1242,8 +1242,8 @@ class Tree(TreeType):
                 r = bm.padding_rect
                 occluded = False
                 for d in decoration_rects:
-                    if not (r.x + r.width < d.x or d.x + d.width < r.x or
-                            r.y + r.height < d.y or d.y + d.height < r.y):
+                    if not (r.x + r.width <= d.x or d.x + d.width <= r.x or
+                            r.y + r.height <= d.y or d.y + d.height <= r.y):
                         occluded = True
                         break
                 if occluded:
