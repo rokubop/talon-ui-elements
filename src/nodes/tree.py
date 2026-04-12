@@ -777,6 +777,11 @@ class Tree(TreeType):
 
     def compute_clip_regions_cache(self):
         def compute_for_node(node: NodeType):
+            # Defensive: skip Components that somehow weren't resolved by
+            # init_node_hierarchy. They have no compute_clip_regions_cache and
+            # no children, so just walking past them is safe.
+            if isinstance(node, ComponentType):
+                return
             node.compute_clip_regions_cache()
             for child in node.get_children_nodes():
                 compute_for_node(child)

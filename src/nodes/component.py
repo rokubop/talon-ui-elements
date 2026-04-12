@@ -23,10 +23,18 @@ class Component(ComponentType):
         self.id = None
         self.renderer = renderer
         self.name = renderer.__name__
-        self.props = dict(props or {})
-        # `key` provides stable identity for components in lists, so local state
-        # doesn't leak between siblings when items are reordered or removed.
-        self.key = self.props.pop("key", None)
+        # `props` may be a dict (element-style props) or any other value when
+        # the renderer is a plain function expecting a single positional arg
+        # (e.g. `component(copy_button, "label")`). Only dict-shaped props get
+        # the `key` extraction; everything else passes through unchanged.
+        if isinstance(props, dict):
+            self.props = dict(props)
+            # `key` gives components stable identity in lists so local state
+            # doesn't leak between siblings on reorder/remove.
+            self.key = self.props.pop("key", None)
+        else:
+            self.props = props if props is not None else {}
+            self.key = None
         self.style: Style = None
         self._parent_node: weakref.ReferenceType[NodeType] = None
         self._children_nodes: List[weakref.ReferenceType[NodeType]] = []
@@ -82,4 +90,7 @@ class Component(ComponentType):
         self._parent_node = None
         self._tree = None
         self._root_node = None
-        self.props.clear()
+        if isinstance(self.props, dict):
+            self.props.clear()
+        else:
+            self.props = None
