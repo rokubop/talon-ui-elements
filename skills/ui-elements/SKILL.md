@@ -197,7 +197,7 @@ See: `docs/concepts/style.md`
 - `screen()` / `active_window()` - Root containers. `screen(1)` for second monitor. `active_window()` follows focused OS window.
 - `div()` - Generic container.
 - `text("content")` - Display text.
-- `code("def hello():")` - Syntax-highlighted code. Props: `language` ("python"/"talon"), `theme` (string name or dict), `diff=True`. Built-in themes: "monokai" (default), "vscode_dark", "dracula", "one_dark", "github_light". Defaults to monospace font and `white_space="nowrap"`.
+- `code("def hello():")` - Syntax-highlighted code. Props: `language` ("python"/"talon"), `theme`, `diff=True`, `copyable=True`. Monospace font by default.
 - `form(on_submit=fn)` - Form container. Enter in child `input_text` or clicking a child `button(type="submit")` triggers `on_submit`. Callback receives `SubmitEvent(data={"input_id": "value", ...})` with all child input values. Ctrl+Enter submits from `textarea`.
 - `button("label", on_click=fn)` - Interactive button. Container when no label: `button(on_click=fn)[icon("check")]`. Use `type="submit"` inside a `form` to trigger the form's `on_submit`.
 - `input_text(id="x")` - Text input. Requires `id`. Supports `placeholder`, `autofocus`, `on_change`.
@@ -237,12 +237,6 @@ actions.user.ui_elements_hide("screen_id")                              # Hide b
 actions.user.ui_elements_toggle(my_ui)                                  # Toggle
 actions.user.ui_elements_hide_all()                                     # Hide all
 actions.user.ui_elements_is_active(my_ui)                               # Check if showing
-```
-
-**Register custom code themes/languages (from any repo):**
-```python
-actions.user.ui_elements_register("code_theme", "nord", {"keyword": "81A1C1", "string": "A3BE8C", ...})
-actions.user.ui_elements_register("code_language", "json", [("string", re.compile(r'...')), ...])
 ```
 
 Every interactive element (buttons, inputs, links, checkboxes, switches) automatically gets a voice-activated 2-letter hint label. Users say the letters to click the element. This is on by default - pass `show_hints=False` to disable for UIs that don't need voice interaction (e.g. display-only HUDs).
@@ -346,3 +340,5 @@ Cascaded (inherited by children): `color`, `font_family`, `font_size`, `highligh
 - `docs/concepts/window.md` - Window element
 - `docs/concepts/svgs.md` - Custom SVG graphics
 - `docs/tutorials/` - Step-by-step tutorials (hello_world, cheatsheet, game_keys)
+- `examples/` - Runnable example UIs (dashboard, cheatsheet, todo_list, game_keys, inputs, etc.)
+- `storybook/` - Per-element storybook for visual/behavioral reference
