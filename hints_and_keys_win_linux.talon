@@ -1,4 +1,5 @@
 tag: user.ui_elements_hints_active
+and app: Talon
 os: windows
 os: linux
 -
