@@ -18,7 +18,8 @@ class NodeInputText(Node):
             properties=properties
         )
         self.interactive = True
-        self.properties.width = self.properties.width or round(self.properties.font_size * 15)
+        if not self.properties.width and not self.properties.flex:
+            self.properties.width = round(self.properties.font_size * 15)
         if not self.properties.height:
             has_pad = any(
                 k in self.properties._explicitly_set

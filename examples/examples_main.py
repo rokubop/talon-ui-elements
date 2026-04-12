@@ -8,7 +8,7 @@ from .hello_world.hello_world_ui import show_hello_world
 from .actions.actions_ui import show_actions_ui
 from .icons_svgs.icons_svgs_ui import show_icons_svgs
 from .inputs.inputs_ui import show_inputs
-from .state_vs_refs.state_vs_refs_ui import show_state_vs_refs
+from .state_tests.state_tests_ui import show_state_tests
 from .todo_list.todo_list_ui import show_todo_list
 from .notification.notification_ui import show_notification
 from .transitions.transitions_ui import show_transitions
@@ -81,7 +81,7 @@ button_col2_actions = {
     "Icons and SVGs": lambda: show_example(show_icons_svgs),
     "Input Prompt": show_inputs_example,
     "Notification": lambda: show_example(show_notification),
-    "State vs Ref": lambda: show_example(show_state_vs_refs),
+    "State Tests": lambda: show_example(show_state_tests),
     "Todo List": lambda: show_example(show_todo_list),
     "Transitions": lambda: show_example(show_transitions),
 }

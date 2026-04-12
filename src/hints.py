@@ -119,7 +119,13 @@ def trigger_hint_click(hint_trigger: str):
             node = store.id_to_node.get(id)
             if node:
                 on_click = getattr(node, 'on_click', None)
-                if on_click:
+                is_submit = getattr(getattr(node, 'properties', None), 'type', None) == 'submit'
+                if is_submit:
+                    tree = getattr(node, 'tree', None)
+                    if tree:
+                        state_manager.highlight_briefly(id)
+                        cron.after("50ms", lambda: tree.click_node(node))
+                elif on_click:
                     state_manager.highlight_briefly(id)
                     # allow for a flash of the highlight before the click
                     cron.after("50ms", lambda: safe_callback(on_click, ClickEvent(id=id, cause="hint")))

@@ -1322,12 +1322,15 @@ def _resolve_aliases(props):
         return {_BORDER_WIDTH_ALIASES.get(k, k): v for k, v in props.items()}
     return props
 
-_IGNORED_PROPS = {"key"}
-
 def validate_props(props, element_type):
-    props = {k: v for k, v in props.items() if k not in _IGNORED_PROPS}
     props = _resolve_aliases(props)
-    invalid_props = props.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
+    # `key` is a universal prop for stable component/node identity in lists.
+    # It is allowed on every element type and validated separately.
+    key_value = props.get("key", None)
+    if key_value is not None and not isinstance(key_value, (str, int)):
+        raise ValueError(f"key must be str or int, got {type(key_value).__name__}")
+    props_to_check = {k: v for k, v in props.items() if k != "key"}
+    invalid_props = props_to_check.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))
         raise ValueError(
@@ -1339,10 +1342,10 @@ def validate_props(props, element_type):
     _MARGIN_KEYS = {"margin", "margin_top", "margin_right", "margin_bottom", "margin_left", "margin_x", "margin_y"}
 
     type_errors = []
-    for key, value in props.items():
+    for key, value in props_to_check.items():
         expected_type = VALID_ELEMENT_PROP_TYPES[element_type][key]
         if expected_type is callable:
-            if not callable(value):
+            if value is not None and not callable(value):
                 type_errors.append(f"{key}: expected callable, got {type(value).__name__} {value}")
         elif not isinstance(value, expected_type) and value is not None:
             type_errors.append(f"{key}: expected {expected_type.__name__}, got {type(value).__name__} {value}")
@@ -1355,7 +1358,9 @@ def validate_props(props, element_type):
             "\n".join(type_errors)
         )
 
-    return props
+    if key_value is not None:
+        props_to_check["key"] = key_value
+    return props_to_check
 
 def validate_combined_props(props, additional_props, element_type):
     combined_props = combine_props(props, additional_props)

@@ -35,20 +35,21 @@ class SwitchEvent:
 def switch_impl(props):
     switch_props, button_props = split_switch_props(props)
     div, button, state = actions.user.ui_elements(["div", "button", "state"])
-    checked_prop = switch_props.get("checked", False)
     on_change = switch_props.get("on_change")
-    is_checked, set_is_checked = state.use_local("switch", checked_prop)
-
-    # Sync with controlled prop only when used as a controlled component.
-    # Without on_change, checked_prop is just the initial value and must not
-    # clobber local state on re-render.
-    if on_change is not None and checked_prop != is_checked:
-        set_is_checked(checked_prop)
-        is_checked = checked_prop
+    # Controlled when `checked` is supplied: parent owns state, prop is the
+    # source of truth. This avoids stale local state when components are
+    # reordered/removed in lists, since component ids are position-based.
+    is_controlled = "checked" in switch_props
+    if is_controlled:
+        is_checked = bool(switch_props.get("checked"))
+        set_is_checked = None
+    else:
+        is_checked, set_is_checked = state.use_local("switch", False)
 
     def on_trigger(e):
         new_checked = not is_checked
-        set_is_checked(new_checked)
+        if not is_controlled:
+            set_is_checked(new_checked)
         if on_change is not None:
             on_change(
                 SwitchEvent(checked=new_checked, id=button_props.get("id", None))

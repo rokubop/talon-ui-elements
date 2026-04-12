@@ -23,7 +23,10 @@ class Component(ComponentType):
         self.id = None
         self.renderer = renderer
         self.name = renderer.__name__
-        self.props = props or {}
+        self.props = dict(props or {})
+        # `key` provides stable identity for components in lists, so local state
+        # doesn't leak between siblings when items are reordered or removed.
+        self.key = self.props.pop("key", None)
         self.style: Style = None
         self._parent_node: weakref.ReferenceType[NodeType] = None
         self._children_nodes: List[weakref.ReferenceType[NodeType]] = []

@@ -743,17 +743,27 @@ class Tree(TreeType):
     def init_tree_constructor(self):
         state_manager.set_processing_tree(self)
         try:
-            if len(inspect.signature(self._tree_constructor).parameters) > 0:
-                if self.props and not isinstance(self.props, dict):
-                    raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
-                self.root_node = self._tree_constructor(self.props or {})
-            else:
-                self.root_node = self._tree_constructor()
-            self.absolute_nodes.clear()
-            self.fixed_nodes.clear()
-            if not isinstance(self.root_node, NodeType):
-                raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
-            self.auto_wrap_root_node()
+            try:
+                if len(inspect.signature(self._tree_constructor).parameters) > 0:
+                    if self.props and not isinstance(self.props, dict):
+                        raise Exception("props passed to actions.user.ui_elements_show should be a dictionary, and the receiving function should accept a single argument `props`")
+                    self.root_node = self._tree_constructor(self.props or {})
+                else:
+                    self.root_node = self._tree_constructor()
+                self.absolute_nodes.clear()
+                self.fixed_nodes.clear()
+                if not isinstance(self.root_node, NodeType):
+                    raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
+                self.auto_wrap_root_node()
+            except Exception as e:
+                # Render-time errors (validation failures, user code exceptions) would
+                # otherwise propagate up the cron callback and crash the entire UI.
+                # Log loudly and tear down the tree so subsequent state changes don't
+                # keep firing the same broken render.
+                print(f"ui_elements: error while rendering tree: {e}")
+                traceback.print_exc()
+                self.root_node = None
+                cron.after("1ms", self.destroy)
         finally:
             state_manager.set_processing_tree(None)
 
@@ -2041,7 +2051,7 @@ class Tree(TreeType):
                     if source_id != target_id:
                         target_node = self.meta_state.id_to_node.get(target_id, None)
                     if source_node and not getattr(target_node, 'disabled', False):
-                        if source_node and source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                        if source_node and source_node.box_model and self._hover_hit_rect(source_node).contains(gpos):
                             if source_node.is_fully_clipped_by_scroll():
                                 continue
                             new_hovered_id = target_id
@@ -2351,6 +2361,23 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def _hover_hit_rect(self, source_node):
+        """Hit-test rect for a hover-link source. For `for_id` text labels we
+        expand the tight glyph padding_rect by a few pixels so the click target
+        matches the visual line-height. Other nodes use their padding_rect."""
+        rect = source_node.box_model.padding_rect
+        if source_node.element_type == ELEMENT_ENUM_TYPE["text"] and \
+                getattr(source_node.properties, "for_id", None):
+            pad_x = scale_value(4)
+            pad_y = scale_value(6)
+            return Rect(
+                rect.x - pad_x,
+                rect.y - pad_y,
+                rect.width + pad_x * 2,
+                rect.height + pad_y * 2,
+            )
+        return rect
+
     def validate_hover_state(self):
         """Validate hover state and clean up if mouse left the UI."""
         if state_manager.are_mouse_events_disabled() or self.render_manager.is_rendering:
@@ -2360,19 +2387,26 @@ class Tree(TreeType):
 
         hovered_id = state_manager.get_hovered_id()
         if hovered_id and not state_manager.is_drag_active():
-            node = self.meta_state.id_to_node.get(hovered_id)
+            # Check every source node that maps to this hovered target. With
+            # for_id, a label text is the source and the checkbox is the target -
+            # the cursor lives over the source's rect, not the target's, so
+            # checking only the target would clear hover incorrectly.
+            still_hovered = False
+            try:
+                for source_id, target_id in self.meta_state.get_hover_links():
+                    if target_id != hovered_id:
+                        continue
+                    source_node = self.meta_state.id_to_node.get(source_id)
+                    if source_node and source_node.box_model and \
+                            self._hover_hit_rect(source_node).contains(current_pos) and \
+                            not source_node.is_fully_clipped_by_scroll():
+                        still_hovered = True
+                        break
+            except (AttributeError, TypeError):
+                still_hovered = False
 
-            if node and node.box_model:
-                try:
-                    if not node.box_model.padding_rect.contains(current_pos):
-                        self.unhighlight_no_render(hovered_id)
-                        state_manager.set_hovered_id(None)
-                        changed = True
-                except (AttributeError, TypeError):
-                    # Box model changed/destroyed between check and access
-                    state_manager.set_hovered_id(None)
-                    changed = True
-            else:
+            if not still_hovered:
+                self.unhighlight_no_render(hovered_id)
                 state_manager.set_hovered_id(None)
                 changed = True
 
@@ -2418,7 +2452,7 @@ class Tree(TreeType):
             if source_id != target_id:
                 target_node = self.meta_state.id_to_node.get(target_id, None)
             if source_node and not getattr(target_node, 'disabled', False):
-                if source_node.box_model and source_node.box_model.padding_rect.contains(gpos):
+                if source_node.box_model and self._hover_hit_rect(source_node).contains(gpos):
                     if source_node.is_fully_clipped_by_scroll():
                         continue
                     new_hovered_id = target_id
@@ -3124,7 +3158,11 @@ class Tree(TreeType):
             inject()
 
         for i, child_node in enumerate(current_node.get_children_nodes()):
-            self.init_node_hierarchy(child_node, node_index_path + [i], constraint_nodes, clip_nodes)
+            child_key = getattr(child_node, "key", None)
+            # Keyed children get a stable path segment so their state survives
+            # sibling reordering. Unkeyed children fall back to position index.
+            segment = f"k_{child_key}" if child_key is not None else i
+            self.init_node_hierarchy(child_node, node_index_path + [segment], constraint_nodes, clip_nodes)
 
         entity_manager.synchronize_global_ids()
 
