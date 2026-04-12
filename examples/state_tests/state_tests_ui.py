@@ -174,8 +174,8 @@ def uncontrolled_checkbox_panel():
 
 
 def controlled_switch_panel():
-    div, text, switch, state = actions.user.ui_elements(
-        ["div", "text", "switch", "state"]
+    div, text, button, switch, state = actions.user.ui_elements(
+        ["div", "text", "button", "switch", "state"]
     )
     on, set_on = state.use("ctrl_sw", False)
     sw_id = "ctrl_sw_box"
@@ -183,7 +183,7 @@ def controlled_switch_panel():
     return panel(
         div, text,
         "Controlled switch",
-        text("Parent owns state.", font_size=14, color=TEXT_SECONDARY),
+        text("Parent owns state. Toggle from either side.", font_size=14, color=TEXT_SECONDARY),
         row(
             div,
             switch(
@@ -194,6 +194,7 @@ def controlled_switch_panel():
                 size=22,
             ),
             text(f"value: {on}", for_id=sw_id, font_size=14, color=TEXT_PRIMARY),
+            small_btn(button, "Flip from parent", lambda e: set_on(not on)),
         ),
     )
 
