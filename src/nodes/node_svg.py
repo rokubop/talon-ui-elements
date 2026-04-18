@@ -355,12 +355,21 @@ class NodeSvgPolyline(Node, NodeType, NodeRenderOnly):
         if not points:
             return
 
-        path = Path()
-        path.move_to(points[0][0], points[0][1])
-        for x, y in points[1:]:
-            path.line_to(x, y)
-        if self.element_type == "svg_polygon":
-            path.close()
+        if PathBuilder:
+            builder = PathBuilder()
+            builder.move_to(points[0][0], points[0][1])
+            for x, y in points[1:]:
+                builder.line_to(x, y)
+            if self.element_type == "svg_polygon":
+                builder.close()
+            path = builder.detach()
+        else:
+            path = Path()
+            path.move_to(points[0][0], points[0][1])
+            for x, y in points[1:]:
+                path.line_to(x, y)
+            if self.element_type == "svg_polygon":
+                path.close()
 
         prev_paint = c.paint.clone()
 
