@@ -423,6 +423,8 @@ class BoxModelV2(BoxModelV2Type):
         )
 
     def grow_calculated_height_to(self, height: int, grow_content: bool = True):
+        if self.max_height:
+            height = min(height, self.max_height + self.margin_spacing.top + self.margin_spacing.bottom)
         if height > self.calculated_margin_size.height:
             diff = height - self.calculated_margin_size.height
             self.calculated_margin_size.height += diff
@@ -432,6 +434,8 @@ class BoxModelV2(BoxModelV2Type):
                 self.calculated_content_size.height += diff
 
     def grow_calculated_width_to(self, width: int, grow_content: bool = True):
+        if self.max_width:
+            width = min(width, self.max_width + self.margin_spacing.left + self.margin_spacing.right)
         if width > self.calculated_margin_size.width:
             diff = width - self.calculated_margin_size.width
             self.calculated_margin_size.width += diff

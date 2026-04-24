@@ -13,6 +13,7 @@ from typing import Any, Callable
 from collections import defaultdict
 from dataclasses import dataclass
 
+from ..platform.mouse_proxy import try_create_mouse_proxy
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     DRAG_INIT_THRESHOLD,
@@ -584,6 +585,11 @@ class Tree(TreeType):
         self.active_modal_count = 0
         self.canvas_base = None
         self.canvas_blockable = []
+        self._mouse_proxy = (
+            try_create_mouse_proxy(self.on_mouse, self.on_scroll)
+            if settings.get("user.ui_elements_mouse_use_pynput")
+            else None
+        )
         self.canvas_decorator = None
         self.current_base_canvas = None
         self.cursor = None
@@ -2076,9 +2082,9 @@ class Tree(TreeType):
                 if changed:
                     self.render_manager.render_mouse_highlight()
 
-        except Exception as e:
-            print(f"talon_ui_elements on_hover error: {e}")
-            self.destroy()
+        except Exception:
+            print("talon_ui_elements on_hover error:")
+            traceback.print_exc()
 
     def get_mouse_hovered_input_id(self, gpos):
         # Check textarea nodes (always custom-rendered)
@@ -2794,9 +2800,12 @@ class Tree(TreeType):
 
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
+            if self._mouse_proxy:
+                self._mouse_proxy.stop()
             for canvas in self.canvas_blockable:
-                canvas.unregister("mouse", self.on_mouse)
-                canvas.unregister("scroll", self.on_scroll)
+                if not self._mouse_proxy:
+                    canvas.unregister("mouse", self.on_mouse)
+                    canvas.unregister("scroll", self.on_scroll)
                 canvas.close()
             self.is_blockable_canvas_init = False
             self.last_blockable_rects.clear()
@@ -3221,6 +3230,8 @@ class Tree(TreeType):
                 self.canvas_blockable[i].move(x, y)
         self.last_blockable_rects.clear()
         self.last_blockable_rects.extend(blockable_rects)
+        if self._mouse_proxy:
+            self._mouse_proxy.update_rects(blockable_rects)
 
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
@@ -3317,9 +3328,12 @@ class Tree(TreeType):
                     canvas = CanvasWeakRef(self.Canvas.from_rect(rect))
                     self.canvas_blockable.append(canvas)
                     canvas.blocks_mouse = True
-                    canvas.register("mouse", self.on_mouse)
-                    canvas.register("scroll", self.on_scroll)
+                    if not self._mouse_proxy:
+                        canvas.register("mouse", self.on_mouse)
+                        canvas.register("scroll", self.on_scroll)
                     canvas.freeze()
+                if self._mouse_proxy and blockable_rects:
+                    self._mouse_proxy.start(blockable_rects)
         except Exception as e:
             print(f"talon_ui_elements draw_blockable_canvases error: {e}")
             self.destroy()
