@@ -5,13 +5,18 @@ Workaround for GIL contention in Talon's native blocks_mouse mouse callback
 dispatch on Windows. The blocking canvas is kept (for click suppression) but
 mouse/scroll callbacks are handled via pynput instead of canvas.register().
 
-pynput callbacks fire on their own thread. We call handlers directly to
-minimize latency - the tree's on_mouse/on_scroll are lightweight dispatchers.
+pynput callbacks fire on a background thread. To keep Skia/tree state access
+on Talon's main thread and to tame the firehose of mousemove events, every
+dispatch is marshaled through cron.after. Moves use single-slot coalescing:
+additional moves update the latest pending position instead of queuing, so
+a slow render tick naturally drops stale intermediate moves rather than
+piling up a backlog.
 
 pynput is imported lazily (only when a Tree opts in via the
 `user.ui_elements_mouse_use_pynput` setting) so it isn't a hard dependency.
 """
 
+from talon import cron
 from talon.types import Point2d
 
 _warned_missing = False
@@ -73,6 +78,11 @@ class MouseProxy:
         # soon as the cursor outruns the rect update and mouseup is lost if
         # released outside, leaving the tree stuck in drag state.
         self._pressed = False
+        # Single-slot move coalescing. pynput writes _pending_move from its
+        # listener thread; a single queued cron job drains the latest value
+        # on the main thread.
+        self._pending_move = None
+        self._move_job = None
 
     def _in_any_rect(self, x, y):
         for rect in self._rects:
@@ -86,6 +96,17 @@ class MouseProxy:
             return
         if not self._pressed and not self._in_any_rect(x, y):
             return
+        self._pending_move = (x, y)
+        if self._move_job is None:
+            self._move_job = cron.after("0ms", self._flush_move)
+
+    def _flush_move(self):
+        self._move_job = None
+        pending = self._pending_move
+        self._pending_move = None
+        if pending is None or not self._active:
+            return
+        x, y = pending
         self._on_mouse(SyntheticMouseEvent("mousemove", Point2d(x, y)))
 
     def _handle_click(self, x, y, button, pressed):
@@ -97,15 +118,27 @@ class MouseProxy:
             if not self._in_any_rect(x, y):
                 return
             self._pressed = True
-            self._on_mouse(SyntheticMouseEvent("mousedown", Point2d(x, y)))
+            event = "mousedown"
         else:
             if not self._pressed:
                 return
             self._pressed = False
-            self._on_mouse(SyntheticMouseEvent("mouseup", Point2d(x, y)))
+            event = "mouseup"
+        cron.after("0ms", lambda e=event, px=x, py=y: self._fire_click(e, px, py))
+
+    def _fire_click(self, event, x, y):
+        if not self._active:
+            return
+        self._on_mouse(SyntheticMouseEvent(event, Point2d(x, y)))
 
     def _handle_scroll(self, x, y, dx, dy):
         if not self._active or not self._in_any_rect(x, y):
+            return
+        cron.after("0ms", lambda px=x, py=y, ddx=dx, ddy=dy:
+            self._fire_scroll(px, py, ddx, ddy))
+
+    def _fire_scroll(self, x, y, dx, dy):
+        if not self._active:
             return
         self._on_scroll(SyntheticScrollEvent(Point2d(x, y), dy=dy, dx=dx))
 
@@ -128,6 +161,10 @@ class MouseProxy:
         self._active = False
         self._rects = []
         self._pressed = False
+        self._pending_move = None
+        if self._move_job is not None:
+            cron.cancel(self._move_job)
+            self._move_job = None
         if self._listener is not None:
             self._listener.stop()
             self._listener = None
