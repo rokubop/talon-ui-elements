@@ -67,6 +67,12 @@ class MouseProxy:
         self._listener = None
         self._rects = []
         self._active = False
+        # Mirror the native blocks_mouse capture semantics: once a mousedown
+        # lands inside a rect, keep delivering move/up events globally until
+        # the button is released. Without this, dragging a window breaks as
+        # soon as the cursor outruns the rect update and mouseup is lost if
+        # released outside, leaving the tree stuck in drag state.
+        self._pressed = False
 
     def _in_any_rect(self, x, y):
         for rect in self._rects:
@@ -76,17 +82,27 @@ class MouseProxy:
         return False
 
     def _handle_move(self, x, y):
-        if not self._active or not self._in_any_rect(x, y):
+        if not self._active:
+            return
+        if not self._pressed and not self._in_any_rect(x, y):
             return
         self._on_mouse(SyntheticMouseEvent("mousemove", Point2d(x, y)))
 
     def _handle_click(self, x, y, button, pressed):
-        if not self._active or not self._in_any_rect(x, y):
+        if not self._active:
             return
         if button != self._pynput_mouse.Button.left:
             return
-        event = "mousedown" if pressed else "mouseup"
-        self._on_mouse(SyntheticMouseEvent(event, Point2d(x, y)))
+        if pressed:
+            if not self._in_any_rect(x, y):
+                return
+            self._pressed = True
+            self._on_mouse(SyntheticMouseEvent("mousedown", Point2d(x, y)))
+        else:
+            if not self._pressed:
+                return
+            self._pressed = False
+            self._on_mouse(SyntheticMouseEvent("mouseup", Point2d(x, y)))
 
     def _handle_scroll(self, x, y, dx, dy):
         if not self._active or not self._in_any_rect(x, y):
@@ -111,6 +127,7 @@ class MouseProxy:
     def stop(self):
         self._active = False
         self._rects = []
+        self._pressed = False
         if self._listener is not None:
             self._listener.stop()
             self._listener = None

@@ -2056,7 +2056,12 @@ class Tree(TreeType):
                 changed = False
                 new_hovered_id = None
                 prev_hovered_id = state_manager.get_hovered_id()
+                decoration_ids = self._decoration_subtree_ids_at(gpos)
                 for source_id, target_id in self.meta_state.get_hover_links():
+                    if decoration_ids is not None and \
+                            source_id not in decoration_ids and \
+                            target_id not in decoration_ids:
+                        continue
                     source_node = self.meta_state.id_to_node.get(source_id, None)
                     target_node = source_node
                     if source_id != target_id:
@@ -2372,6 +2377,29 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
+    def _decoration_subtree_ids_at(self, gpos):
+        """If gpos falls inside an open `uses_decoration_render` subtree (e.g.
+        an expanded select dropdown), return the set of node ids that belong
+        to that subtree so hit-tests can restrict matches to it. Without this,
+        hover/click can fall through to a sibling button that happens to sit
+        under the floating dropdown. Returns None when no decoration subtree
+        is covering gpos."""
+        for node in self.meta_state.id_to_node.values():
+            if not (node.uses_decoration_render and node.box_model):
+                continue
+            if not node.box_model.padding_rect.contains(gpos):
+                continue
+            ids = set()
+            stack = [node]
+            while stack:
+                cur = stack.pop()
+                cur_id = getattr(cur, 'id', None)
+                if cur_id:
+                    ids.add(cur_id)
+                stack.extend(getattr(cur, 'children_nodes', None) or ())
+            return ids
+        return None
+
     def _hover_hit_rect(self, source_node):
         """Hit-test rect for a hover-link source. For `for_id` text labels we
         expand the tight glyph padding_rect by a few pixels so the click target
@@ -2404,8 +2432,13 @@ class Tree(TreeType):
             # checking only the target would clear hover incorrectly.
             still_hovered = False
             try:
+                decoration_ids = self._decoration_subtree_ids_at(current_pos)
                 for source_id, target_id in self.meta_state.get_hover_links():
                     if target_id != hovered_id:
+                        continue
+                    if decoration_ids is not None and \
+                            source_id not in decoration_ids and \
+                            target_id not in decoration_ids:
                         continue
                     source_node = self.meta_state.id_to_node.get(source_id)
                     if source_node and source_node.box_model and \
@@ -2457,7 +2490,12 @@ class Tree(TreeType):
 
         # Re-detect which element is under the cursor after re-render
         new_hovered_id = None
+        decoration_ids = self._decoration_subtree_ids_at(gpos)
         for source_id, target_id in self.meta_state.get_hover_links():
+            if decoration_ids is not None and \
+                    source_id not in decoration_ids and \
+                    target_id not in decoration_ids:
+                continue
             source_node = self.meta_state.id_to_node.get(source_id, None)
             target_node = source_node
             if source_id != target_id:
@@ -3222,16 +3260,21 @@ class Tree(TreeType):
         return dimension_change, position_change
 
     def move_blockable_canvas_rects(self, blockable_rects, offset=Point2d):
+        moved_rects = []
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
                 x = rect.x + offset.x
                 y = rect.y + offset.y
                 self.canvas_blockable[i].move(x, y)
+                moved_rects.append(Rect(x, y, rect.width, rect.height))
         self.last_blockable_rects.clear()
         self.last_blockable_rects.extend(blockable_rects)
         if self._mouse_proxy:
-            self._mouse_proxy.update_rects(blockable_rects)
+            # Proxy rects must match the actual on-screen canvas positions,
+            # not the pre-drag blockable_rects, or buttons stop responding
+            # after the window is dragged to a new position.
+            self._mouse_proxy.update_rects(moved_rects or blockable_rects)
 
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
