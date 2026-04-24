@@ -91,6 +91,12 @@ def scroll_throttle_clear():
         cron.cancel(scroll_throttle_job)
     scroll_throttle_job = None
 
+def _proxy_noop_mouse(e):
+    pass
+
+def _proxy_noop_scroll(e):
+    pass
+
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int = 0, scroll_x: int = 0):
         self.scroll_y = scroll_y
@@ -2853,7 +2859,10 @@ class Tree(TreeType):
             if self._mouse_proxy:
                 self._mouse_proxy.stop()
             for canvas in self.canvas_blockable:
-                if not self._mouse_proxy:
+                if self._mouse_proxy:
+                    canvas.unregister("mouse", _proxy_noop_mouse)
+                    canvas.unregister("scroll", _proxy_noop_scroll)
+                else:
                     canvas.unregister("mouse", self.on_mouse)
                     canvas.unregister("scroll", self.on_scroll)
                 canvas.close()
@@ -3386,7 +3395,17 @@ class Tree(TreeType):
                     canvas = CanvasWeakRef(self.Canvas.from_rect(rect))
                     self.canvas_blockable.append(canvas)
                     canvas.blocks_mouse = True
-                    if not self._mouse_proxy:
+                    if self._mouse_proxy:
+                        # Register no-op handlers so Talon treats the canvas
+                        # as mouse-active. Without at least one registered
+                        # callback, blocks_mouse can fail to fully claim the
+                        # click and focus leaks to the underlying window,
+                        # breaking keyboard routing to the decorator canvas
+                        # (text input typing, etc). pynput still does the
+                        # real event processing.
+                        canvas.register("mouse", _proxy_noop_mouse)
+                        canvas.register("scroll", _proxy_noop_scroll)
+                    else:
                         canvas.register("mouse", self.on_mouse)
                         canvas.register("scroll", self.on_scroll)
                     canvas.freeze()
