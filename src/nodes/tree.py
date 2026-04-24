@@ -189,6 +189,10 @@ class MetaState(MetaStateType):
         self.resize_start_pos = None
         self.resize_start_rect = None
         self.resize_ghost_rect = None
+        # True when any node in the current tree is a floating overlay
+        # (uses_decoration_render and z_index > 0). Used to fast-exit
+        # hit-test filtering when no overlay is open.
+        self.has_hit_priority_overlay = False
 
     @property
     def buttons(self):
@@ -373,6 +377,7 @@ class MetaState(MetaStateType):
         self._staged_id_to_node.clear()
         self._buttons.clear()
         self._text_with_for_ids.clear()
+        self.has_hit_priority_overlay = False
         entity_manager.synchronize_global_ids()
 
     def prepare_node_transition(self):
@@ -2378,14 +2383,21 @@ class Tree(TreeType):
             self.destroy()
 
     def _decoration_subtree_ids_at(self, gpos):
-        """If gpos falls inside an open `uses_decoration_render` subtree (e.g.
-        an expanded select dropdown), return the set of node ids that belong
-        to that subtree so hit-tests can restrict matches to it. Without this,
+        """If gpos falls inside an open floating-overlay subtree (e.g. an
+        expanded select dropdown), return the set of node ids that belong to
+        that subtree so hit-tests can restrict matches to it. Without this,
         hover/click can fall through to a sibling button that happens to sit
-        under the floating dropdown. Returns None when no decoration subtree
-        is covering gpos."""
+        under the floating dropdown. Returns None when no overlay is covering
+        gpos. `uses_decoration_render` alone isn't enough — it's also cascaded
+        onto nodes with `highlight_style`, so we additionally require
+        `z_index > 0` to distinguish real overlays from decoration-rendered
+        highlights."""
+        if not self.meta_state.has_hit_priority_overlay:
+            return None
         for node in self.meta_state.id_to_node.values():
             if not (node.uses_decoration_render and node.box_model):
+                continue
+            if (node.properties.z_index or 0) <= 0:
                 continue
             if not node.box_model.padding_rect.contains(gpos):
                 continue
@@ -3066,6 +3078,9 @@ class Tree(TreeType):
         if node.element_type == ELEMENT_ENUM_TYPE["select"] \
                 and getattr(node, 'is_open', False) and node.id:
             self.meta_state.add_decoration_render(node.id)
+
+        if node.uses_decoration_render and (node.properties.z_index or 0) > 0:
+            self.meta_state.has_hit_priority_overlay = True
 
     def _apply_constraint_nodes(self, node: NodeType, constraint_nodes: list[NodeType]):
         if node.properties.width is not None or \
