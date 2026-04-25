@@ -47,7 +47,7 @@ There's an opt-in workaround that routes mouse and scroll events through [pynput
    ```
    (Adjust the path if your Talon install lives elsewhere.)
 
-2. Set `user.ui_elements_mouse_use_pynput = 1` in your settings.
+2. In [`settings.py`](settings.py), change `ui_elements_mouse_use_pynput` to `default=True`.
 
 3. Restart Talon.
 
