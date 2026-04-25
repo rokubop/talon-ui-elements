@@ -35,6 +35,28 @@ git clone https://github.com/rokubop/talon-ui-elements.git
 
 Done! 🎉 Start learning below.
 
+## Windows + Python 3.14t (free-threaded)
+
+If you're on Windows and Talon is running on the free-threaded Python 3.14t build, you may notice laggy or unresponsive mouse interactions over UI elements (high mouse latency, choppy hover/drag). This is caused by GIL contention in Talon's native `blocks_mouse` mouse callback dispatch on the free-threaded build.
+
+There's an opt-in workaround that routes mouse and scroll events through [pynput](https://pypi.org/project/pynput/) instead of Talon's native canvas callbacks:
+
+1. Install pynput into Talon's bundled Python:
+   ```sh
+   "%APPDATA%\talon\.venv\Scripts\pip.exe" install pynput
+   ```
+   (Adjust the path if your Talon install lives elsewhere.)
+
+2. Enable the setting in any `.talon` file:
+   ```
+   settings():
+       user.ui_elements_mouse_use_pynput = 1
+   ```
+
+3. Restart Talon.
+
+If you enable the setting without installing pynput, you'll get a visible error UI the next time you launch a UI explaining how to fix it. The setting defaults to `0` (off) and is safe to leave alone on macOS, Linux, or any non-free-threaded Python build.
+
 ## Examples
 
 Say "elements test" to bring up the examples.
