@@ -35,7 +35,7 @@ from ..constants import (
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
     PRIMARY_MOD,
-    KEY_SPACE, KEY_ENTER, KEY_RETURN,
+    KEY_SPACE, KEY_ENTER, KEY_RETURN, KEY_ESCAPE,
 )
 from ..utils import draw_rect, get_scale, scale_value
 from ..canvas_wrapper import CanvasWeakRef
