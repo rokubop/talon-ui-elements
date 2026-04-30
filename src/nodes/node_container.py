@@ -409,13 +409,27 @@ class NodeContainer(Node, NodeContainerType):
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
 
+            # Reserve space for inter-child gaps. Without this, a flex/overflowing
+            # child sized to the remaining available space would leave no room for
+            # the gaps the layout pass inserts between siblings, and the row would
+            # exceed the parent by gap × (n-1).
+            fixed_gap = self.determine_intrinsic_fixed_gap()
+            total_inter_child_gap = 0
+            for i in range(len(participating_children_nodes) - 1):
+                total_inter_child_gap += self.gap_between_elements(
+                    participating_children_nodes[i], i, fixed_gap
+                )
+            available_primary = getattr(new_available_size, primary_axis)
+            if available_primary is not None and total_inter_child_gap > 0:
+                available_primary = max(0, available_primary - total_inter_child_gap)
+                setattr(new_available_size, primary_axis, available_primary)
+
             # Reserve space for non-flex children so flex children don't consume
             # all available space. Without this, a flex child with large intrinsic
             # content (e.g. scrollable text) would constrain to the full available
             # height, leaving 0 for non-flex siblings like a bottom bar.
             # Track remaining unprocessed non-flex intrinsic size so we don't
             # double-subtract for non-flex children already consumed from available.
-            available_primary = getattr(new_available_size, primary_axis)
             remaining_non_flex_intrinsic = 0
             if available_primary is not None:
                 for child in participating_children_nodes:
