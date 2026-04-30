@@ -406,54 +406,49 @@ class NodeContainer(Node, NodeContainerType):
                 getattr(children_accumulated_size, primary_axis) + getattr(child.box_model.margin_size, primary_axis)
             )
 
+        # Single pass over children to gather everything the constrain loop and
+        # the post-constrain accumulation step need:
+        #   total_inter_child_gap  - reserved for gaps so flex children don't
+        #                            overflow the parent by gap * (n-1)
+        #   remaining_non_flex_intrinsic - reserved so flex children don't eat
+        #                                  the space non-flex siblings need
+        #   total_flex_calc / non_flex_calc / total_flex_weight - used to
+        #                          detect when grow phase put more into the
+        #                          children than parent's actual content can
+        #                          hold and we need to redistribute proportionally
+        # Both branches below (with/without constraint) reuse total_inter_child_gap
+        # in the post-constrain accumulate step, so this runs unconditionally.
+        fixed_gap = self.determine_intrinsic_fixed_gap()
+        total_inter_child_gap = 0
+        remaining_non_flex_intrinsic = 0
+        total_flex_calc = 0
+        total_non_flex_calc = 0
+        total_flex_weight = 0
+        last_idx = len(participating_children_nodes) - 1
+        for i, child in enumerate(participating_children_nodes):
+            bm = child.box_model
+            calc_primary = getattr(bm.calculated_margin_size, primary_axis)
+            if child.properties.flex:
+                total_flex_calc += calc_primary
+                total_flex_weight += child.properties.flex
+            else:
+                total_non_flex_calc += calc_primary
+                remaining_non_flex_intrinsic += getattr(
+                    bm.intrinsic_margin_size, primary_axis
+                )
+            if i < last_idx:
+                total_inter_child_gap += self.gap_between_elements(
+                    child, i, fixed_gap
+                )
+
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
 
-            # Reserve space for inter-child gaps. Without this, a flex/overflowing
-            # child sized to the remaining available space would leave no room for
-            # the gaps the layout pass inserts between siblings, and the row would
-            # exceed the parent by gap × (n-1).
-            fixed_gap = self.determine_intrinsic_fixed_gap()
-            total_inter_child_gap = 0
-            for i in range(len(participating_children_nodes) - 1):
-                total_inter_child_gap += self.gap_between_elements(
-                    participating_children_nodes[i], i, fixed_gap
-                )
             available_primary = getattr(new_available_size, primary_axis)
             if available_primary is not None and total_inter_child_gap > 0:
                 available_primary = max(0, available_primary - total_inter_child_gap)
                 setattr(new_available_size, primary_axis, available_primary)
 
-            # Reserve space for non-flex children so flex children don't consume
-            # all available space. Without this, a flex child with large intrinsic
-            # content (e.g. scrollable text) would constrain to the full available
-            # height, leaving 0 for non-flex siblings like a bottom bar.
-            # Track remaining unprocessed non-flex intrinsic size so we don't
-            # double-subtract for non-flex children already consumed from available.
-            remaining_non_flex_intrinsic = 0
-            if available_primary is not None:
-                for child in participating_children_nodes:
-                    if not child.properties.flex:
-                        remaining_non_flex_intrinsic += getattr(
-                            child.box_model.intrinsic_margin_size, primary_axis
-                        )
-
-            # Detect when flex children's grown sizes (calculated_margin) don't
-            # fit in the actual available space - happens when grow phase used
-            # an oversized parent.calculated_content_size (e.g. a long-text
-            # sibling inflated the parent's intrinsic). When that's the case,
-            # divvy up the actual available primary axis proportional to flex
-            # weights instead of letting the first flex child eat everything.
-            total_flex_calc = 0
-            total_non_flex_calc = 0
-            total_flex_weight = 0
-            for child in participating_children_nodes:
-                ms_primary = getattr(child.box_model.calculated_margin_size, primary_axis)
-                if child.properties.flex:
-                    total_flex_calc += ms_primary
-                    total_flex_weight += child.properties.flex
-                else:
-                    total_non_flex_calc += ms_primary
             flex_overflows = (
                 available_primary is not None
                 and total_flex_weight > 0
@@ -518,15 +513,12 @@ class NodeContainer(Node, NodeContainerType):
                 child.v2_constrain_size()
                 accumulate(child)
 
-        fixed_gap = self.determine_intrinsic_fixed_gap()
-        for i, child in enumerate(participating_children_nodes):
-            if i != len(participating_children_nodes) - 1:
-                gap = self.gap_between_elements(child, i, fixed_gap)
-                setattr(
-                    children_accumulated_size,
-                    primary_axis,
-                    getattr(children_accumulated_size, primary_axis) + gap
-                )
+        if total_inter_child_gap:
+            setattr(
+                children_accumulated_size,
+                primary_axis,
+                getattr(children_accumulated_size, primary_axis) + total_inter_child_gap,
+            )
 
         self.box_model.shrink_content_children_size(children_accumulated_size)
 
