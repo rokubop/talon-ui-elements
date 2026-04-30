@@ -438,6 +438,32 @@ class NodeContainer(Node, NodeContainerType):
                             child.box_model.intrinsic_margin_size, primary_axis
                         )
 
+            # Detect when flex children's grown sizes (calculated_margin) don't
+            # fit in the actual available space - happens when grow phase used
+            # an oversized parent.calculated_content_size (e.g. a long-text
+            # sibling inflated the parent's intrinsic). When that's the case,
+            # divvy up the actual available primary axis proportional to flex
+            # weights instead of letting the first flex child eat everything.
+            total_flex_calc = 0
+            total_non_flex_calc = 0
+            total_flex_weight = 0
+            for child in participating_children_nodes:
+                ms_primary = getattr(child.box_model.calculated_margin_size, primary_axis)
+                if child.properties.flex:
+                    total_flex_calc += ms_primary
+                    total_flex_weight += child.properties.flex
+                else:
+                    total_non_flex_calc += ms_primary
+            flex_overflows = (
+                available_primary is not None
+                and total_flex_weight > 0
+                and (total_flex_calc + total_non_flex_calc) > available_primary
+            )
+            flex_proportional_budget = (
+                max(0, available_primary - total_non_flex_calc)
+                if flex_overflows else None
+            )
+
             for child in participating_children_nodes:
                 child_available = new_available_size
                 # Resolve primary-axis percentage to a concrete constraint
@@ -452,6 +478,12 @@ class NodeContainer(Node, NodeContainerType):
                             pct_value = min(pct_value, max(0, remaining))
                         child_available = new_available_size.copy()
                         setattr(child_available, primary_axis, pct_value)
+                elif child.properties.flex and flex_overflows:
+                    # Total flex calc exceeds available - distribute the actual
+                    # available space proportional to flex weights, not order.
+                    flex_share = flex_proportional_budget * (child.properties.flex / total_flex_weight)
+                    child_available = new_available_size.copy()
+                    setattr(child_available, primary_axis, flex_share)
                 elif child.properties.flex and available_primary is not None:
                     # Cap flex child's available space to leave room for
                     # not-yet-processed non-flex siblings
