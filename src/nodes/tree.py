@@ -9,7 +9,7 @@ from talon.canvas import Canvas as RealCanvas, MouseEvent
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -593,7 +593,8 @@ class Tree(TreeType):
             initial_state = dict[str, Any]
         ):
         self.absolute_nodes = []
-        self.active_modal_count = 0
+        self._active_modal_node_ref: Optional[weakref.ReferenceType[NodeType]] = None
+        self._cached_modal_scope_ids: Optional[set[str]] = None
         self.canvas_base = None
         self.canvas_blockable = []
         self._mouse_proxy = (
@@ -1005,10 +1006,15 @@ class Tree(TreeType):
                 canvas.draw_line(cx + depth / 2, cy, cx - depth / 2, cy + arm)
 
     def scroll_button_overlay_at(self, gpos):
-        """Return the scroll button overlay at the given position, or None."""
+        """Return the scroll button overlay at the given position, or None.
+        When a modal is open, only overlays inside the modal subtree are returned."""
+        modal_scope = self.get_modal_scope_ids()
         for overlay in self.meta_state.scroll_button_overlays.values():
-            if overlay.rect.contains(gpos):
-                return overlay
+            if not overlay.rect.contains(gpos):
+                continue
+            if modal_scope is not None and overlay.container_id not in modal_scope:
+                continue
+            return overlay
         return None
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
@@ -1236,6 +1242,11 @@ class Tree(TreeType):
         hint_generator = get_hint_generator()
         nodes = list(self.meta_state.id_to_node.values())
 
+        # Modal scope: when a modal is open, only its subtree gets hints.
+        modal_scope_ids = self.get_modal_scope_ids()
+        if modal_scope_ids is not None:
+            nodes = [n for n in nodes if n.id in modal_scope_ids]
+
         # Scan once for open decoration-render subtrees (e.g. select dropdown).
         decoration_rects = None
         decoration_node_ids = None
@@ -1378,6 +1389,20 @@ class Tree(TreeType):
         key_string = e.key.lower() if e.key is not None else ""
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
+
+        # Esc dismisses an open dismissible modal. Takes priority over input
+        # focus / other handlers — convention is that Esc always escapes the
+        # modal first. Locked modals (backdrop_click_close=False) ignore Esc.
+        if key_string == KEY_ESCAPE and e.down and self._active_modal_node_ref:
+            modal = self._active_modal_node_ref()
+            if modal and getattr(modal.properties, 'backdrop_click_close', True):
+                on_close = getattr(modal.properties, 'on_close', None)
+                if on_close:
+                    try:
+                        on_close()
+                    except Exception:
+                        traceback.print_exc()
+                    return
 
         # Copy selected text
         if key_string == f"{PRIMARY_MOD}-c" and e.down and self._text_selected_nodes:
@@ -1671,7 +1696,10 @@ class Tree(TreeType):
 
     def handle_scrollbar_mousedown(self, gpos):
         """Check for scrollbar click and initiate drag if found."""
+        modal_scope = self.get_modal_scope_ids()
         for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            if modal_scope is not None and node_id not in modal_scope:
+                continue
             node = self.meta_state.id_to_node.get(node_id)
             if node and node.box_model:
                 if node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos):
@@ -2103,14 +2131,19 @@ class Tree(TreeType):
             traceback.print_exc()
 
     def get_mouse_hovered_input_id(self, gpos):
+        modal_scope = self.get_modal_scope_ids()
         # Check textarea nodes (always custom-rendered)
         for node in self.interactive_node_list:
             if node.element_type == ELEMENT_ENUM_TYPE["textarea"] and node.box_model:
+                if modal_scope is not None and node.id not in modal_scope:
+                    continue
                 if node.box_model.border_rect.contains(gpos):
                     return node.id
 
         for node in self.interactive_node_list:
             if node.element_type == ELEMENT_ENUM_TYPE["input_text"] and node.box_model:
+                if modal_scope is not None and node.id not in modal_scope:
+                    continue
                 if node.box_model.border_rect.contains(gpos):
                     return node.id
         return None
@@ -2149,7 +2182,7 @@ class Tree(TreeType):
         if start_pos:
             state_manager.set_mousedown_start_offset(gpos - start_pos)
 
-        if start_pos and not self.active_modal_count and state_manager.get_drag_relative_offset():
+        if start_pos and not self._active_modal_node_ref and state_manager.get_drag_relative_offset():
             is_drag_start = False
             if not state_manager.is_drag_active():
                 threshold = scale_value(DRAG_INIT_THRESHOLD)
@@ -2397,9 +2430,13 @@ class Tree(TreeType):
         gpos. `uses_decoration_render` alone isn't enough — it's also cascaded
         onto nodes with `highlight_style`, so we additionally require
         `z_index > 0` to distinguish real overlays from decoration-rendered
-        highlights."""
+        highlights.
+
+        When a modal is open, the result is intersected with the modal subtree
+        so clicks/hovers can never reach background elements."""
+        modal_scope = self.get_modal_scope_ids()
         if not self.meta_state.has_hit_priority_overlay:
-            return None
+            return modal_scope
         for node in self.meta_state.id_to_node.values():
             if not (node.uses_decoration_render and node.box_model):
                 continue
@@ -2415,8 +2452,10 @@ class Tree(TreeType):
                 if cur_id:
                     ids.add(cur_id)
                 stack.extend(getattr(cur, 'children_nodes', None) or ())
+            if modal_scope is not None:
+                ids &= modal_scope
             return ids
-        return None
+        return modal_scope
 
     def _hover_hit_rect(self, source_node):
         """Hit-test rect for a hover-link source. For `for_id` text labels we
@@ -3159,7 +3198,35 @@ class Tree(TreeType):
 
     def _check_modals(self, node: NodeType):
         if node.element_type == ELEMENT_ENUM_TYPE["modal"] and node.properties.open:
-            self.active_modal_count += 1
+            # Last open modal in walk order wins (deeper / later siblings sit on top).
+            self._active_modal_node_ref = weakref.ref(node)
+            self._cached_modal_scope_ids = None
+
+    @property
+    def active_modal_node(self) -> Optional[NodeType]:
+        return self._active_modal_node_ref() if self._active_modal_node_ref else None
+
+    def get_modal_scope_ids(self) -> Optional[set]:
+        """Set of node ids inside the active modal's subtree, or None when no
+        modal is open. Hot-path callers can early-out on a single attr check
+        before invoking this. Computed lazily and cached per render."""
+        if not self._active_modal_node_ref:
+            return None
+        if self._cached_modal_scope_ids is not None:
+            return self._cached_modal_scope_ids
+        modal = self._active_modal_node_ref()
+        if not modal:
+            return None
+        ids = set()
+        stack = [modal]
+        while stack:
+            cur = stack.pop()
+            cur_id = getattr(cur, 'id', None)
+            if cur_id:
+                ids.add(cur_id)
+            stack.extend(getattr(cur, 'children_nodes', None) or ())
+        self._cached_modal_scope_ids = ids
+        return ids
 
     def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":
@@ -3202,6 +3269,11 @@ class Tree(TreeType):
         First step in the rendering process. Runs before layout.
         Runs once for each node in the tree to establish meta_state and relationships
         """
+        if not node_index_path:
+            # Root call: clear per-render modal tracking before walking the tree.
+            self._active_modal_node_ref = None
+            self._cached_modal_scope_ids = None
+
         current_node = self._resolve_component(current_node, node_index_path)
 
         # Safety check - ensure current_node is valid

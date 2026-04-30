@@ -425,7 +425,11 @@ def window(props=None, **additional_props):
         body_properties=body_properties,
     )
 
-modal_only_props = {
+DEFAULT_MODAL_Z_INDEX = 100
+
+# Props that belong on the modal wrapper itself (full-viewport overlay).
+# Everything else is forwarded to the content panel that sits inside it.
+_MODAL_WRAPPER_PROPS = {
     "open",
     "on_close",
     "show_title_bar",
@@ -433,48 +437,69 @@ modal_only_props = {
     "backdrop_color",
     "backdrop_click_close",
     "title",
+    "z_index",
 }
 
-def split_modal_props(props: dict[str, Any]):
-    modal_props = {}
-    contents_props = {}
-
-    for prop in props:
-        # print(f"prop: {prop}")
-        if prop in modal_only_props:
-            modal_props[prop] = props[prop]
+def _split_modal_props(props: dict[str, Any]):
+    wrapper_props = {}
+    content_props = {}
+    for k, v in props.items():
+        if k in _MODAL_WRAPPER_PROPS:
+            wrapper_props[k] = v
         else:
-            contents_props[prop] = props[prop]
+            content_props[k] = v
+    return wrapper_props, content_props
 
-    return modal_props, contents_props
-
-def modal(title=None, open=False, on_close=None, draggable=False, show_title_bar=True,
-         backdrop=True, backdrop_color="00000080", backdrop_click_close=True, props=None, **additional_props):
+def modal(
+    title=None,
+    open=False,
+    on_close=None,
+    show_title_bar=True,
+    backdrop=True,
+    backdrop_color="00000080",
+    backdrop_click_close=True,
+    z_index=DEFAULT_MODAL_Z_INDEX,
+    props=None,
+    **additional_props,
+):
+    """Full-viewport overlay layer. Pass content sizing (`width`, `height`,
+    `padding`, etc.) directly — they apply to the centered content panel,
+    not the full-viewport wrapper. The wrapper always covers the screen and
+    auto-scopes hints/clicks to its subtree while open."""
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["modal"])
-    modal_props, contents_props = split_modal_props({
+
+    content_defaults = {
+        "background_color": DEFAULT_WINDOW_BACKGROUND_COLOR,
+        "border_width": 1,
+        "drop_shadow": DEFAULT_DROP_SHADOW,
+    }
+
+    wrapper_props, content_props = _split_modal_props({
         **properties,
         "title": title,
         "open": open,
         "on_close": on_close,
-        "draggable": draggable,
         "show_title_bar": show_title_bar,
-        "background_color": DEFAULT_WINDOW_BACKGROUND_COLOR,
-        "border_width": 1,
-        "drop_shadow": DEFAULT_DROP_SHADOW,
         "backdrop": backdrop,
         "backdrop_color": backdrop_color,
-        "backdrop_click_close": backdrop_click_close
+        "backdrop_click_close": backdrop_click_close,
+        "z_index": z_index,
     })
+
+    content_props = {**content_defaults, **content_props}
+
     return NodeModal(
         NodeModalProperties(
-            **modal_props,
+            **wrapper_props,
+            position="fixed",
+            top=0,
+            left=0,
             width="100%",
             height="100%",
-            position="absolute",
             justify_content="center",
-            align_items="center"
+            align_items="center",
         ),
-        contents_props,
+        content_props,
     )
 
 class UIElementsContainerNoTextProxy:
@@ -633,7 +658,7 @@ element_collection: Dict[str, callable] = {
     'input_text': input_text,
     'link': link,
     'select': select,
-    # 'modal': modal, # experimental
+    'modal': modal,
     'ref': ref,
     'screen': screen,
     'state': state,

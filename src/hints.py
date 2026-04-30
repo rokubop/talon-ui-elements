@@ -110,11 +110,33 @@ def _dispatch_scroll_button_hint(synthetic_id: str) -> bool:
             return True
     return False
 
+def _active_modal_scope():
+    """Union of modal subtree ids across all trees, or None when no tree has
+    an open modal. Used to drop background hints from dispatch — when a modal
+    is open the user can only trigger hints inside it."""
+    scope = None
+    for tree in store.trees:
+        getter = getattr(tree, 'get_modal_scope_ids', None)
+        if not getter:
+            continue
+        tree_scope = getter()
+        if tree_scope is None:
+            continue
+        if scope is None:
+            scope = set()
+        scope.update(tree_scope)
+    return scope
+
 def trigger_hint_click(hint_trigger: str):
+    modal_scope = _active_modal_scope()
     for id, hint in store.id_to_hint.items():
         if hint == hint_trigger:
             if id.startswith("__sb__"):
+                if modal_scope is not None:
+                    return
                 _dispatch_scroll_button_hint(id)
+                return
+            if modal_scope is not None and id not in modal_scope:
                 return
             node = store.id_to_node.get(id)
             if node:
@@ -133,9 +155,12 @@ def trigger_hint_click(hint_trigger: str):
             break
 
 def trigger_hint_focus(hint_trigger: str):
+    modal_scope = _active_modal_scope()
     for id, hint in store.id_to_hint.items():
         if hint == hint_trigger:
             if id.startswith("__sb__"):
+                return
+            if modal_scope is not None and id not in modal_scope:
                 return
             node = store.id_to_node.get(id)
             if node:

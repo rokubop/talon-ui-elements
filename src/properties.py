@@ -339,6 +339,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     @staticmethod
     def _apply_opacity_to_color(color: str, opacity_hex: str) -> str:
         """Expand shorthand, strip existing alpha, append opacity."""
+        if not color or color.lower() == "none":
+            return color
         color = _expand_shorthand_hex(color)
         if len(color) > 6:
             color = color[:6]
@@ -1251,7 +1253,7 @@ class NodeModalProperties(Properties):
     on_close: callable = None
     open: bool = False
     backdrop: bool = True
-    backdrop_color: str = "00000000"
+    backdrop_color: str = "00000080"
     backdrop_click_close: bool = True
     show_title_bar: bool = True
 

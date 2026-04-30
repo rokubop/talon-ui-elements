@@ -4,6 +4,7 @@ from .elements.code import code_stories
 from .elements.data_table import data_table_stories
 from .elements.div import div_stories
 from .elements.link import link_stories
+from .elements.modal import modal_stories
 from .elements.table import table_stories
 from .elements.checkbox import checkbox_stories
 from .elements.input_text import input_text_stories
@@ -21,6 +22,7 @@ storybook_pages = {
     "div": div_stories,
     "input_text": input_text_stories,
     "link": link_stories,
+    "modal": modal_stories,
     "select": select_stories,
     "switch": switch_stories,
     "table": table_stories,
