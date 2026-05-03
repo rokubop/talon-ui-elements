@@ -884,8 +884,15 @@ class Tree(TreeType):
             canvas.restore()
 
     def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
+        # The decorator canvas paints on top of the base canvas, so when a
+        # modal is open we must skip decoration renders for nodes outside the
+        # modal subtree. Otherwise input cursors/text and open select
+        # dropdowns from underneath the modal show through on top of it.
+        modal_scope = self.get_modal_scope_ids()
         for id in list(self.meta_state.decoration_renders.keys()):
             if id in self.meta_state.id_to_node:
+                if modal_scope is not None and id not in modal_scope:
+                    continue
                 node = self.meta_state.id_to_node[id]
                 clip_count = self.apply_clip_regions(canvas, node, transforms)
                 node.v2_render_decorator(canvas, transforms)
@@ -1227,8 +1234,11 @@ class Tree(TreeType):
         self.restore_clip_regions(canvas, clip_count)
 
     def draw_text_mutations(self, canvas: SkiaCanvas, offset: Point2d):
+        modal_scope = self.get_modal_scope_ids()
         for id, text_value in list(self.meta_state.text_mutations.items()):
             if id in self.meta_state.id_to_node:
+                if modal_scope is not None and id not in modal_scope:
+                    continue
                 node = self.meta_state.id_to_node[id]
                 self.draw_text_mutation(canvas, node, id, offset)
 
