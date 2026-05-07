@@ -595,6 +595,7 @@ class Tree(TreeType):
         self.absolute_nodes = []
         self._active_modal_node_ref: Optional[weakref.ReferenceType[NodeType]] = None
         self._cached_modal_scope_ids: Optional[set[str]] = None
+        self._prev_active_modal_id: Optional[str] = None
         self.canvas_base = None
         self.canvas_blockable = []
         self._mouse_proxy = (
@@ -899,8 +900,13 @@ class Tree(TreeType):
                 self.restore_clip_regions(canvas, clip_count)
 
     def draw_scrollbars(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
+        # Decorator canvas paints on top of the base canvas, so background
+        # scrollbars would otherwise render in front of an open modal.
+        modal_scope = self.get_modal_scope_ids()
         for id in list(self.meta_state.scrollable.keys()):
             if id in self.meta_state.id_to_node:
+                if modal_scope is not None and id not in modal_scope:
+                    continue
                 node = self.meta_state.id_to_node[id]
                 if hasattr(node, "render_scroll_bar"):
                     node.render_scroll_bar(canvas, transforms)
@@ -966,8 +972,11 @@ class Tree(TreeType):
     def draw_scroll_button_overlays(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
         if not self.meta_state.scroll_button_overlays:
             return
+        modal_scope = self.get_modal_scope_ids()
         hovered = self.meta_state.scroll_button_hovered_id
         for overlay in list(self.meta_state.scroll_button_overlays.values()):
+            if modal_scope is not None and overlay.container_id not in modal_scope:
+                continue
             style = overlay.style or {}
             background_color = style.get("background_color", DEFAULT_SCROLL_BUTTON_BACKGROUND_COLOR)
             hover_background_color = style.get("hover_background_color", DEFAULT_SCROLL_BUTTON_HOVER_BACKGROUND_COLOR)
@@ -1138,6 +1147,7 @@ class Tree(TreeType):
             self.meta_state.clear_nodes()
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
+            self._handle_modal_open_transition()
             self.transition_manager.apply_pending_mount_values()
             self.consume_components()
             self.consume_effects()
@@ -1785,12 +1795,15 @@ class Tree(TreeType):
         if self.meta_state.is_scrollbar_dragging():
             return
 
+        modal_scope = self.get_modal_scope_ids()
         prev_hovered_id = self.meta_state.scrollbar_hovered_id
         prev_hovered_axis = self.meta_state.scrollbar_hovered_axis
         new_hovered_id = None
         new_hovered_axis = None
 
         for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+            if modal_scope is not None and node_id not in modal_scope:
+                continue
             node = self.meta_state.id_to_node.get(node_id)
             if node and node.box_model:
                 if node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos):
@@ -2118,6 +2131,8 @@ class Tree(TreeType):
                     if source_node and not getattr(target_node, 'disabled', False):
                         if source_node and source_node.box_model and self._hover_hit_rect(source_node).contains(gpos):
                             if source_node.is_fully_clipped_by_scroll():
+                                continue
+                            if self._modal_backdrop_blocked_by_panel(gpos, source_id):
                                 continue
                             new_hovered_id = target_id
                             if new_hovered_id != prev_hovered_id:
@@ -2510,7 +2525,8 @@ class Tree(TreeType):
                     source_node = self.meta_state.id_to_node.get(source_id)
                     if source_node and source_node.box_model and \
                             self._hover_hit_rect(source_node).contains(current_pos) and \
-                            not source_node.is_fully_clipped_by_scroll():
+                            not source_node.is_fully_clipped_by_scroll() and \
+                            not self._modal_backdrop_blocked_by_panel(current_pos, source_id):
                         still_hovered = True
                         break
             except (AttributeError, TypeError):
@@ -2689,15 +2705,19 @@ class Tree(TreeType):
         """Handle mouse wheel scrolling for textarea nodes."""
         from ..platform.custom_input import custom_input_manager
 
+        modal_scope = self.get_modal_scope_ids()
         # Find textarea to scroll: prefer focused, fall back to hovered
         node = None
         focused_node = state_manager.get_focused_node()
         if focused_node and focused_node.tree == self \
-                and focused_node.element_type == ELEMENT_ENUM_TYPE["textarea"]:
+                and focused_node.element_type == ELEMENT_ENUM_TYPE["textarea"] \
+                and (modal_scope is None or focused_node.id in modal_scope):
             node = focused_node
         else:
             for n in self.interactive_node_list:
                 if n.element_type != ELEMENT_ENUM_TYPE["textarea"]:
+                    continue
+                if modal_scope is not None and n.id not in modal_scope:
                     continue
                 if getattr(n, 'box_model', None) and n.box_model.border_rect.contains(e.gpos):
                     node = n
@@ -2747,9 +2767,12 @@ class Tree(TreeType):
             return
 
         if self.meta_state.scrollable:
+            modal_scope = self.get_modal_scope_ids()
             # Collect all scrollable containers under the cursor, sorted smallest first
             candidates = []
             for id, data in list(self.meta_state.scrollable.items()):
+                if modal_scope is not None and id not in modal_scope:
+                    continue
                 node = self.meta_state.id_to_node.get(id)
                 if getattr(node, 'box_model', None) and node.box_model.padding_rect.contains(e.gpos):
                     area = node.box_model.padding_rect.width * node.box_model.padding_rect.height
@@ -3237,6 +3260,54 @@ class Tree(TreeType):
             stack.extend(getattr(cur, 'children_nodes', None) or ())
         self._cached_modal_scope_ids = ids
         return ids
+
+    def _handle_modal_open_transition(self):
+        """Detect modal open events across renders and force-collapse any
+        scrollbars on background scrollables so a previously-visible bar
+        doesn't bleed through under the panel."""
+        modal = self.active_modal_node
+        current_id = modal.id if modal else None
+        prev_id = self._prev_active_modal_id
+        self._prev_active_modal_id = current_id
+        if current_id and current_id != prev_id:
+            self._force_hide_background_scrollbars()
+
+    def _force_hide_background_scrollbars(self):
+        modal_scope = self.get_modal_scope_ids()
+        if modal_scope is None:
+            return
+        hov_id = self.meta_state.scrollbar_hovered_id
+        if hov_id and hov_id not in modal_scope:
+            self.meta_state.clear_scrollbar_hover()
+        needs_render = False
+        for node_id in list(self.meta_state.scrollable.keys()):
+            if node_id in modal_scope:
+                continue
+            self.meta_state.clear_scrollbar_fade_job(node_id)
+            self.meta_state.clear_scrollbar_idle_job(node_id)
+            if self.meta_state.get_scrollbar_opacity(node_id) > 0.0:
+                self.meta_state.set_scrollbar_opacity(node_id, 0.0)
+                needs_render = True
+        if needs_render:
+            self.render_manager.render_scroll()
+
+    def _modal_backdrop_blocked_by_panel(self, gpos, source_id) -> bool:
+        """When `source_id` is the active modal's clickable backdrop and `gpos`
+        falls inside the panel's rect, the panel visually intercepts the click
+        — so it must not pass through to dismiss the modal."""
+        modal = self.active_modal_node
+        if not modal:
+            return False
+        backdrop = getattr(modal, 'backdrop_node', None)
+        panel = getattr(modal, 'panel_node', None)
+        if not backdrop or not panel:
+            return False
+        if source_id != backdrop.id:
+            return False
+        if panel.box_model and panel.box_model.border_rect and \
+                panel.box_model.border_rect.contains(gpos):
+            return True
+        return False
 
     def _setup_nonlayout_nodes(self, node: NodeType):
         if node.properties.position != "static":

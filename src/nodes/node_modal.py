@@ -37,12 +37,16 @@ class NodeModal(NodeContainer):
                 properties=modal_properties,
             )
             self.body = None
+            self.backdrop_node = None
+            self.panel_node = None
             return
 
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["modal"],
             properties=modal_properties,
         )
+        self.backdrop_node = None
+        self.panel_node = None
 
         div, button, text, icon = actions.user.ui_elements(
             ["div", "button", "text", "icon"]
@@ -76,6 +80,7 @@ class NodeModal(NodeContainer):
                 backdrop = button(**backdrop_props)
             else:
                 backdrop = div(**backdrop_props)
+            self.backdrop_node = backdrop
             self.add_child(backdrop)
 
         panel_props = {k: v for k, v in content_properties.items() if k not in _BODY_PROPS}
@@ -109,6 +114,7 @@ class NodeModal(NodeContainer):
 
         self.body = div(**body_props)
         panel.add_child(self.body)
+        self.panel_node = panel
         self.add_child(panel)
 
     def __getitem__(self, children=None):
