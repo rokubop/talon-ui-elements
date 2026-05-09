@@ -65,6 +65,8 @@ class Ref:
 
     def set_value(self, new_value: Any):
         node = self.get_node()
+        if not node:
+            raise ValueError(f"ref('{self._get('id')}'): no element with this id is mounted")
         if node.element_type in ("input_text", "textarea"):
             from .platform.custom_input import custom_input_manager
             custom_input_manager.set_value(self._get("id"), str(new_value))
@@ -74,7 +76,7 @@ class Ref:
     def set(self, name: str, new_value: Any):
         element_type = self.get_element_type()
         if not element_type:
-            return
+            raise ValueError(f"ref('{self._get('id')}'): no element with this id is mounted")
         if name == "text":
             if element_type == "text":
                 self.set_text(new_value)
@@ -91,7 +93,7 @@ class Ref:
     def get(self, name: str):
         element_type = self.get_element_type()
         if not element_type:
-            return ""
+            raise ValueError(f"ref('{self._get('id')}'): no element with this id is mounted")
         if name == "text":
             if element_type == "text":
                 return state_manager.get_text_mutation(self._get("id"))
