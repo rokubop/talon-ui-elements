@@ -18,7 +18,9 @@ class NodeContainer(Node, NodeContainerType):
         super().__init__(element_type=element_type, properties=properties)
         if self.properties.on_click:
             self.on_click = self.properties.on_click
-            self.interactive = True
+            self.disabled = self.properties.disabled or False
+            self.interactive = not self.disabled
+            self.focusable = self.interactive
             self.is_hovering = False
         self.justify_between_gaps = None
         self.wrap_lines = None

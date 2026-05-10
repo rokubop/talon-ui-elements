@@ -1285,7 +1285,7 @@ class Tree(TreeType):
         # Fast path: no decoration render active — original draw-all behavior.
         if decoration_rects is None:
             for node in nodes:
-                if getattr(node, 'hintable', node.interactive):
+                if getattr(node, 'hintable', node.interactive) and not getattr(node, 'disabled', False):
                     draw_hint(canvas, node, hint_generator(node), transforms=transforms)
             for overlay in list(self.meta_state.scroll_button_overlays.values()):
                 draw_scroll_button_hint(canvas, overlay, transforms=transforms)
@@ -1295,7 +1295,7 @@ class Tree(TreeType):
         # subtree's rect, and defer the subtree's own hints so they paint last.
         deferred = []
         for node in nodes:
-            if not getattr(node, 'hintable', node.interactive):
+            if not getattr(node, 'hintable', node.interactive) or getattr(node, 'disabled', False):
                 continue
             if id(node) in decoration_node_ids:
                 deferred.append(node)

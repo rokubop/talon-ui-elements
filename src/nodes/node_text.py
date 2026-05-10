@@ -34,7 +34,9 @@ class NodeText(Node):
         if element_type == "button" or element_type == "link":
             self.on_click = self.properties.on_click or (lambda: None)
             self.is_hovering = False
-            self.interactive = True
+            self.disabled = self.properties.disabled or False
+            self.interactive = not self.disabled
+            self.focusable = self.interactive
 
     @property
     def own_id(self):
