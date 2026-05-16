@@ -271,10 +271,16 @@ class NodeContainer(Node, NodeContainerType):
             # Consider: shouldn't this just grow content children to the growth we did above?
             # Regardless of stretch or not.
             # if self.properties.align_items == "stretch":
+            # Skip the maximize on a scrollable axis: clamping
+            # calculated_content_children_size to our own content size
+            # wipes out the overflow signal that resolve_scroll_bar_*_rects
+            # needs to detect that a scrollbar should appear.
             if self.properties.flex_direction == "row":
-                self.box_model.maximize_content_children_height()
+                if not self.properties.overflow.scrollable_y:
+                    self.box_model.maximize_content_children_height()
             elif self.properties.flex_direction == "column":
-                self.box_model.maximize_content_children_width()
+                if not self.properties.overflow.scrollable_x:
+                    self.box_model.maximize_content_children_width()
 
         # Grow justification / primary axis
         if growable_primary_axis_flex:
@@ -301,9 +307,11 @@ class NodeContainer(Node, NodeContainerType):
                             additional_size = min(additional_size, max(0, max_additional))
                     grow_function(child, additional_size)
                 if flex_direction == "row":
-                    self.box_model.maximize_content_children_width()
+                    if not self.properties.overflow.scrollable_x:
+                        self.box_model.maximize_content_children_width()
                 elif flex_direction == "column":
-                    self.box_model.maximize_content_children_height()
+                    if not self.properties.overflow.scrollable_y:
+                        self.box_model.maximize_content_children_height()
 
         for child in self.participating_children_nodes:
             if not child.box_model:
