@@ -8,6 +8,7 @@ from .constants import (
 from .core.state_manager import state_manager
 from .effect import use_effect, use_effect_no_tree
 from .nodes.component import Component
+from .nodes.error_boundary import ErrorBoundary
 from .nodes.checkbox import checkbox
 from .nodes.link import link
 from .nodes.node import Node
@@ -650,6 +651,7 @@ element_collection: Dict[str, callable] = {
     'code': code,
     'component': Component,
     'cursor': cursor,
+    'error_boundary': ErrorBoundary,
     'data_table': data_table,
     'div': div,
     'effect': effect,

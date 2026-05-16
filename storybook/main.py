@@ -3,6 +3,7 @@ from .elements.button import button_stories
 from .elements.code import code_stories
 from .elements.data_table import data_table_stories
 from .elements.div import div_stories
+from .elements.error_boundary import error_boundary_stories
 from .elements.link import link_stories
 from .elements.modal import modal_stories
 from .elements.table import table_stories
@@ -20,6 +21,7 @@ storybook_pages = {
     "checkbox": checkbox_stories,
     "data_table": data_table_stories,
     "div": div_stories,
+    "error_boundary": error_boundary_stories,
     "input_text": input_text_stories,
     "link": link_stories,
     "modal": modal_stories,

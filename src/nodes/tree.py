@@ -109,6 +109,7 @@ class Scrollable(ScrollableType):
         self.offset_y = 0
         self.target_offset_x = 0
         self.target_offset_y = 0
+        self.rendered_offset_x = 0
         self.rendered_offset_y = 0
         self.view_height = 0
         self.max_height = 0
@@ -775,14 +776,14 @@ class Tree(TreeType):
                     raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
                 self.auto_wrap_root_node()
             except Exception as e:
-                # Render-time errors (validation failures, user code exceptions) would
-                # otherwise propagate up the cron callback and crash the entire UI.
-                # Log loudly and tear down the tree so subsequent state changes don't
-                # keep firing the same broken render.
-                print(f"ui_elements: error while rendering tree: {e}")
-                traceback.print_exc()
-                self.root_node = None
-                cron.after("1ms", self.destroy)
+                from .error_boundary import build_error_card
+                tb_str = traceback.format_exc()
+                label = getattr(self._tree_constructor, "__qualname__", None) or "tree"
+                print(f"ui_elements: error while rendering tree '{label}':\n{tb_str}")
+                self.root_node = build_error_card(label, type(e).__name__, str(e), tb_str)
+                self.absolute_nodes.clear()
+                self.fixed_nodes.clear()
+                self.auto_wrap_root_node()
         finally:
             state_manager.set_processing_tree(None)
 
