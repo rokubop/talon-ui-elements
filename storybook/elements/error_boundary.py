@@ -1,7 +1,22 @@
 from talon import actions
-from ..common import code, example_with_code
+from ..common import (
+    code, example_with_code, interactive_section,
+    build_controls_state, build_preview_props,
+    STRING, INT, COLOR,
+)
 from .. import theme as t
 import textwrap
+
+CONTROLS = [
+    ("label", STRING, "MyView"),
+    ("padding", INT, "24"),
+    ("border_radius", INT, "0"),
+    ("border_width", INT, "0"),
+    ("border_color", COLOR, ""),
+    ("background_color", COLOR, ""),
+    ("title_color", COLOR, ""),
+    ("message_color", COLOR, ""),
+]
 
 
 def _ok_view():
@@ -35,10 +50,24 @@ def _toggle_view(props):
     ]
 
 
+def _custom_fallback(exc_kind, exc_msg, tb_str):
+    div, text = actions.user.ui_elements(["div", "text"])
+    return div(
+        padding=16, gap=6, background_color="2a1a00", border_radius=6,
+        border_width=1, border_color="cc8800",
+    )[
+        text("oh no, something broke", color="ffcc66", font_size=16, font_weight="bold"),
+        text(f"{exc_kind}: {exc_msg}", color="ffaa66", font_size=13, font_family="monospace"),
+    ]
+
+
 def error_boundary_stories():
-    component, div, text, error_boundary = actions.user.ui_elements([
-        "component", "div", "text", "error_boundary",
+    component, div, text, error_boundary, state = actions.user.ui_elements([
+        "component", "div", "text", "error_boundary", "state",
     ])
+
+    cs = build_controls_state(state, "eb", CONTROLS)
+    preview_props = build_preview_props(CONTROLS, cs)
 
     def _frame(child):
         """Box the error_boundary in an explicitly bounded container so
@@ -50,20 +79,18 @@ def error_boundary_stories():
 
     return div(padding=32, gap=24)[
         text("error_boundary", font_size=22, font_weight="bold", color=t.TEXT),
-        text(
-            "Wraps a render function so an exception inside it shows a "
-            "visible error card scoped to that subtree, instead of "
-            "blanking or propagating. Mirrors component(fn, props)'s "
-            "signature.",
-            color=t.TEXT_SECONDARY, font_size=14,
+        code(
+            textwrap.dedent("""\
+                error_boundary = actions.user.ui_elements(['error_boundary'])""")
         ),
-        code(textwrap.dedent("""\
-            error_boundary = actions.user.ui_elements("error_boundary")
 
-            error_boundary(my_view)             # no-arg renderer
-            error_boundary(my_view, my_props)   # value or dict passed to renderer
-
-            # Error card title + log line use the renderer's __qualname__.""")),
+        interactive_section(
+            element_name="error_boundary",
+            preview_element=_frame(error_boundary(_boom_view, **preview_props)),
+            controls_spec=CONTROLS,
+            controls_state=cs,
+            prefix="eb",
+        ),
 
         div(gap=16)[
             text("Examples", font_size=18, font_weight="bold",
@@ -71,23 +98,26 @@ def error_boundary_stories():
                  border_color=t.BORDER),
 
             component(example_with_code, props={
-                "title": "Renderer succeeds (transparent)",
-                "example": _frame(error_boundary(_ok_view)),
-                "code": textwrap.dedent("""\
-                    def my_view():
-                        return div(padding=12)[text("Rendered successfully")]
-
-                    error_boundary(my_view)"""),
-            }),
-
-            component(example_with_code, props={
-                "title": "Renderer raises (fallback card)",
+                "title": "Renderer raises (default fallback card)",
                 "example": _frame(error_boundary(_boom_view)),
                 "code": textwrap.dedent("""\
                     def my_view():
                         raise RuntimeError("something went wrong")
 
                     error_boundary(my_view)"""),
+            }),
+
+            component(example_with_code, props={
+                "title": "Custom fallback (full visual override)",
+                "example": _frame(error_boundary(_boom_view, fallback=_custom_fallback)),
+                "code": textwrap.dedent("""\
+                    def my_fallback(exc_kind, exc_msg, tb_str):
+                        return div(padding=16, background_color="2a1a00")[
+                            text("oh no, something broke"),
+                            text(f"{exc_kind}: {exc_msg}"),
+                        ]
+
+                    error_boundary(my_view, fallback=my_fallback)"""),
             }),
 
             component(example_with_code, props={
@@ -107,6 +137,16 @@ def error_boundary_stories():
                     # boundary swaps in the error card. State change
                     # elsewhere re-renders and the boundary tries
                     # again -- so fixes hot-reload cleanly."""),
+            }),
+
+            component(example_with_code, props={
+                "title": "Renderer succeeds (transparent)",
+                "example": error_boundary(_ok_view),
+                "code": textwrap.dedent("""\
+                    def my_view():
+                        return div(padding=12)[text("Rendered successfully")]
+
+                    error_boundary(my_view)"""),
             }),
         ],
     ]

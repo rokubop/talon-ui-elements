@@ -48,7 +48,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `effect` | Reactive | Side effects and lifecycle hooks (see [effect.md](concepts/effect.md)) | `effect(on_mount, [])` for mount, `effect(on_change, ["mode"])` for state changes |
 | `ref` | Reactive | Direct element access - useful for getting input_text values (see [ref.md](concepts/ref.md)) | `my_ref = ref()` then `input_text(ref=my_ref)` |
 | `component` | Reactive | Reusable component wrapper (see [components.md](concepts/components.md)) | `component(my_component, props={...})` |
-| `error_boundary` | Reactive | Wrap a render function so an exception inside it shows a visible error card scoped to that subtree, instead of blanking the tree. Mirrors `component()`'s signature; label derived from the renderer's `__qualname__`. | `error_boundary(my_view, props)` |
+| `error_boundary` | Reactive | Wrap a render function so an exception inside it shows a visible error card scoped to that subtree, instead of blanking the tree. First two args mirror `component()` (`renderer, props`); kwargs style the error card (`background_color`, `padding`, `border_radius`, ...) or override pieces (`label`, `title_color`, `message_color`, `code_props`, `fallback`). | `error_boundary(my_view, props, background_color="111", label="MyView")` |
 | `style` | Utility | Set styles for all elements or per `class_name` instead of inline (see [style.md](concepts/style.md)) | `style({"text": {"color": "red"}, ".header": {"font_size": 24}})` |
 
 ## Full Example
