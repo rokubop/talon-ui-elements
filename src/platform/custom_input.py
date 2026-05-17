@@ -66,6 +66,11 @@ class CustomInputManager:
         self._on_submit_callbacks: dict[str, Callable] = {}
         self._render_callbacks: dict[str, Callable] = {}
         self._trees: dict[str, object] = {}
+        # Per-input snapshot of the `value` prop from the previous render.
+        # Used by setup_custom_input to detect "the consumer changed the
+        # controlled value" (sync state.text) vs "the consumer is re-passing
+        # the same initial value every render" (don't clobber typing).
+        self._prev_props_value: dict[str, str] = {}
         self._blink_job = None
 
     def create_input(self, id: str, initial_value: str = "", on_change: Callable = None, on_submit: Callable = None, multiline: bool = False, tree=None):
@@ -87,6 +92,7 @@ class CustomInputManager:
         self._on_submit_callbacks.pop(id, None)
         self._render_callbacks.pop(id, None)
         self._trees.pop(id, None)
+        self._prev_props_value.pop(id, None)
         if self._focused_id == id:
             self._focused_id = None
             self._stop_blink()
@@ -99,6 +105,7 @@ class CustomInputManager:
         self._on_submit_callbacks.clear()
         self._render_callbacks.clear()
         self._trees.clear()
+        self._prev_props_value.clear()
         self._focused_id = None
         self._stop_blink()
         _ctx.tags = []
@@ -475,10 +482,13 @@ custom_input_manager = CustomInputManager()
 
 def setup_custom_input(node, multiline: bool = False):
     """Shared setup for custom input nodes (input_text and textarea)."""
-    if not custom_input_manager.get_state(node.id):
+    input_id = node.id
+    new_value = node.properties.value or ""
+
+    if not custom_input_manager.get_state(input_id):
         custom_input_manager.create_input(
-            id=node.id,
-            initial_value=node.properties.value or "",
+            id=input_id,
+            initial_value=new_value,
             on_change=node.properties.on_change,
             multiline=multiline,
             tree=node.tree,
@@ -489,4 +499,22 @@ def setup_custom_input(node, multiline: bool = False):
                 if tree_ref.canvas_decorator:
                     tree_ref.render_decorator_canvas()
             return render_cb
-        custom_input_manager.set_render_callback(node.id, make_render_cb(node.tree))
+        custom_input_manager.set_render_callback(input_id, make_render_cb(node.tree))
+    else:
+        # Re-render. Refresh on_change so closures with newly-captured state
+        # take effect, then sync the controlled value if it changed.
+        custom_input_manager._on_change_callbacks[input_id] = node.properties.on_change
+        # Controlled-input semantics: when `value=` changes between renders,
+        # mirror it into state.text and put the cursor at the end. Compare
+        # against the previous render's prop (not state.text), so consumers
+        # who pass `value="default"` once and ignore on_change (uncontrolled-
+        # with-initial-value) don't have typing clobbered on every keystroke.
+        prev = custom_input_manager._prev_props_value.get(input_id)
+        if new_value != prev:
+            state = custom_input_manager.get_state(input_id)
+            if state and state.text != new_value:
+                state.text = new_value
+                state.cursor_pos = len(new_value)
+                state.selection_start = None
+
+    custom_input_manager._prev_props_value[input_id] = new_value

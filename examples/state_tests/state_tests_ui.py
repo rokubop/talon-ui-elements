@@ -234,8 +234,8 @@ def controlled_input_panel():
         div, text,
         "Controlled input_text",
         text(
-            "Parent owns state via value=. EXPECT BUG today: 'Set from parent' does "
-            "not flow back into the input (value= is only initial value).",
+            "Parent owns state via value=. 'Set from parent' flows into the "
+            "input; typing mirrors state.",
             font_size=14, color=TEXT_SECONDARY,
         ),
         input_text(
