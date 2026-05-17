@@ -1,6 +1,5 @@
 import hashlib
 import inspect
-import re
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
@@ -98,9 +97,6 @@ def generate_hash(obj: Union[Callable, dict]) -> str:
         raise TypeError("Object must be a callable or a dictionary.")
 
     return hasher.hexdigest()
-
-def sanitize_string(text: str) -> str:
-    return re.sub(r'[^a-zA-Z0-9_]', '_', text)
 
 E = TypeVar("E")
 
