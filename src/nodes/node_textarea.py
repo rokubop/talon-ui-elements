@@ -80,6 +80,11 @@ class NodeTextarea(Node):
         )
 
     def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        # When an ancestor sets `highlight_style`, the ancestor's
+        # `uses_decoration_render` propagates to children, so this textarea's
+        # `v2_render` (which calls _setup_custom_input) never fires. Do the
+        # setup + paint here so the textarea still registers and accepts focus.
+        self._setup_custom_input()
         self._render_textarea(c, transforms)
 
     def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):
