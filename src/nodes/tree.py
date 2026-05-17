@@ -652,6 +652,11 @@ class Tree(TreeType):
         self.render_debounce_job = None
         self.redistribute_box_model = False
         self.root_node = None
+        # Set by render(), drained by _commit_pending_render at the top of
+        # the next paint. Deferred so init_tree_constructor can't mutate
+        # self.root_node mid-pipeline when a state change fires synchronously
+        # from queue_render.on_start during an in-flight paint.
+        self._pending_render = False
         self.scroll_amount_per_tick = settings.get("user.ui_elements_scroll_speed")
         self._scroll_anim_job = None
         smooth_duration = settings.get("user.ui_elements_smooth_scroll_duration", 80)
@@ -1178,6 +1183,7 @@ class Tree(TreeType):
             self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
             try:
+                self._commit_pending_render()
                 dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
                 if dragging:
                     self.on_draw_base_canvas_dragging(canvas)
@@ -1565,9 +1571,7 @@ class Tree(TreeType):
             self.props = self.props or props
 
             if self.is_mounted:
-                self.on_state_change_effect_cleanups()
-                self.interactive_node_list.clear()
-                self.init_tree_constructor()
+                self._pending_render = True
 
             if on_mount or on_unmount:
                 state_manager.register_effect(Effect(
@@ -1581,6 +1585,22 @@ class Tree(TreeType):
                 self.show_hints = show_hints
 
             self.render_base_canvas()
+
+    def _commit_pending_render(self):
+        """Apply a deferred render at the top of a paint. Runs effect cleanups,
+        resets the interactive list, and rebuilds self.root_node. Called from
+        on_draw_base_canvas before dispatching to a variant, so the variant's
+        whole pipeline sees a stable, init_node_hierarchy-walkable root."""
+        if not self._pending_render:
+            return
+        # Reset the flag before doing work so re-entrant state changes that
+        # arrive during init_tree_constructor get a fresh pending request
+        # for the next paint instead of looping inside this one.
+        self._pending_render = False
+        if self.is_mounted:
+            self.on_state_change_effect_cleanups()
+            self.interactive_node_list.clear()
+        self.init_tree_constructor()
 
     def render_animation_frame(self):
         if not self.destroying:
@@ -3046,6 +3066,7 @@ class Tree(TreeType):
             self.effects.clear()
             self.processing_states.clear()
             self.is_mounted = False
+            self._pending_render = False
             self.interactive_node_list.clear()
             if self.root_node:
                 self.root_node.destroy()
