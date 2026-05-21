@@ -507,16 +507,32 @@ class NodeContainer(Node, NodeContainerType):
                     child.v2_constrain_size(no_shrink_size)
                 else:
                     child.v2_constrain_size(child_available)
+                # Charge the running budget the SMALLER of intrinsic vs
+                # post-constrain margin. Why min:
+                #   - text wrap GROWS a child past intrinsic (column case):
+                #     post-margin > intrinsic → charging post-margin would
+                #     squish siblings. Use intrinsic.
+                #   - container constrain SHRINKS a child below intrinsic
+                #     (row case with unwrapped text): post-margin < intrinsic
+                #     → charging intrinsic would zero the budget for the
+                #     next sibling. Use post-margin.
+                # The min picks the right one in each direction. Children
+                # that grew render past their slot; the container's
+                # "Grow if children grew" block below absorbs the overflow.
                 if is_row and new_available_size.width != None:
-                    new_available_size.width = max(0, new_available_size.width - child.box_model.margin_size.width)
+                    used = min(child.box_model.margin_size.width, child.box_model.intrinsic_margin_size.width)
+                    new_available_size.width = max(0, new_available_size.width - used)
                 elif not is_row and new_available_size.height != None:
-                    new_available_size.height = max(0, new_available_size.height - child.box_model.margin_size.height)
+                    used = min(child.box_model.margin_size.height, child.box_model.intrinsic_margin_size.height)
+                    new_available_size.height = max(0, new_available_size.height - used)
                 # Decrement remaining reservation as non-flex children are processed
                 if not child.properties.flex and available_primary is not None:
+                    used_primary = min(
+                        getattr(child.box_model.margin_size, primary_axis),
+                        getattr(child.box_model.intrinsic_margin_size, primary_axis),
+                    )
                     remaining_non_flex_intrinsic = max(0,
-                        remaining_non_flex_intrinsic - getattr(
-                            child.box_model.margin_size, primary_axis
-                        ))
+                        remaining_non_flex_intrinsic - used_primary)
                 accumulate(child)
         else:
             for child in participating_children_nodes:
@@ -532,23 +548,29 @@ class NodeContainer(Node, NodeContainerType):
 
         self.box_model.shrink_content_children_size(children_accumulated_size)
 
-        # Grow if children grew during constrain (e.g. text word-wrap)
-        accumulated_height = children_accumulated_size.height
-        current_height = self.box_model.content_children_size.height
-        if accumulated_height > current_height:
-            delta = accumulated_height - current_height
-            self.box_model.content_children_size.height = accumulated_height
-            # Grow container outer sizes only if height is unconstrained
-            if not self.properties.height and not self.properties.max_height:
-                max_margin = self.box_model.margin_size.height + delta
-                if available_size and available_size.height is not None:
-                    max_margin = min(max_margin, available_size.height)
-                capped_delta = max_margin - self.box_model.margin_size.height
-                if capped_delta > 0:
-                    self.box_model.content_size.height += capped_delta
-                    self.box_model.padding_size.height += capped_delta
-                    self.box_model.border_size.height += capped_delta
-                    self.box_model.margin_size.height += capped_delta
+        # Grow if children grew during constrain (e.g. text word-wrap).
+        # Applied to both axes for symmetry: column containers usually only
+        # see height growth (text wrap), but a row container with a child
+        # that grew its primary axis during constrain needs the same fix.
+        # max_<axis> caps the grow rather than gating it -- properties.<axis>
+        # set explicitly does gate it (caller pinned a fixed size).
+        for axis in ("height", "width"):
+            accumulated = getattr(children_accumulated_size, axis)
+            current = getattr(self.box_model.content_children_size, axis)
+            if accumulated <= current:
+                continue
+            setattr(self.box_model.content_children_size, axis, accumulated)
+            pinned = bool(self.properties.height if axis == "height" else self.properties.width)
+            if pinned:
+                continue
+            avail_along = None
+            if available_size is not None:
+                avail_along = available_size.height if axis == "height" else available_size.width
+            self.box_model.grow_outer_to_fit_delta(
+                axis=axis,
+                delta=accumulated - current,
+                available_along_axis=avail_along,
+            )
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         if not self.box_model:

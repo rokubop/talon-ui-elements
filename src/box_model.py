@@ -422,6 +422,40 @@ class BoxModelV2(BoxModelV2Type):
             self.intrinsic_border_size.height + self.margin_spacing.top + self.margin_spacing.bottom
         )
 
+    def grow_outer_to_fit_delta(self, axis: str, delta: int, available_along_axis=None):
+        """Grow margin/border/padding/content_size along `axis` by up to
+        `delta`, capped by max_<axis> (when set) and `available_along_axis`
+        (when set). Used at the end of v2_constrain_size to absorb children
+        that grew during their own constrain pass (e.g. text word-wrap).
+
+        Treats max_<axis> as an upper bound, not a freeze: a node with
+        max_height set is still allowed to grow up to max_height. Caller
+        is responsible for skipping when the corresponding properties.<axis>
+        is explicitly pinned.
+        """
+        is_height = axis == "height"
+        size_attr = "height" if is_height else "width"
+
+        current_margin = getattr(self.margin_size, size_attr)
+        max_constraint = self.max_height if is_height else self.max_width
+        margin_sum = (
+            self.margin_spacing.top + self.margin_spacing.bottom
+            if is_height
+            else self.margin_spacing.left + self.margin_spacing.right
+        )
+
+        target = current_margin + delta
+        if max_constraint is not None:
+            target = min(target, max_constraint + margin_sum)
+        if available_along_axis is not None:
+            target = min(target, available_along_axis)
+
+        capped = target - current_margin
+        if capped <= 0:
+            return
+        for box in (self.content_size, self.padding_size, self.border_size, self.margin_size):
+            setattr(box, size_attr, getattr(box, size_attr) + capped)
+
     def grow_calculated_height_to(self, height: int, grow_content: bool = True):
         if self.max_height:
             height = min(height, self.max_height + self.margin_spacing.top + self.margin_spacing.bottom)
@@ -456,6 +490,44 @@ class BoxModelV2(BoxModelV2Type):
     def maximize_content_children_height(self):
         self.calculated_content_children_size.height = self.calculated_content_size.height
 
+    @staticmethod
+    def _upper_content_size(
+        current_margin,
+        current_content,
+        max_constraint,
+        available,
+        margin_sum,
+        border_sum,
+        padding_sum,
+        scrollbar_cross_axis,
+    ):
+        """Upper bound for content_constraint on one axis, in content-box units.
+
+        Children see the headroom this node could grow into rather than its
+        current (intrinsic-driven) content size. The parent's own outer
+        size catches up via the "Grow if children grew" block at the bottom
+        of v2_constrain_size when children actually use the headroom.
+
+        Returns None when neither max_constraint nor available is set --
+        the caller treats that as "no constraint to propagate downward".
+        """
+        if not max_constraint and available is None:
+            return None
+        upper_margin = current_margin
+        if max_constraint:
+            upper_margin = max(upper_margin, max_constraint + margin_sum)
+        if available is not None:
+            # No max_constraint means the parent's `available` is the upper
+            # bound; boost the headroom up to it. Then clamp by available
+            # so the cap stays honoured regardless.
+            if not max_constraint:
+                upper_margin = max(upper_margin, available)
+            upper_margin = min(upper_margin, available)
+        return max(
+            current_content,
+            upper_margin - margin_sum - border_sum - padding_sum - scrollbar_cross_axis,
+        )
+
     def constrain_size(self, available_size: Size2d = None, overflow: Overflow = None) -> Size2d:
         margin_width = self.calculated_margin_size.width
         margin_height = self.calculated_margin_size.height
@@ -487,7 +559,13 @@ class BoxModelV2(BoxModelV2Type):
             border_width = self.calculated_border_size.width
             padding_width = self.calculated_padding_size.width
             content_width = self.calculated_content_size.width
-            content_constraint_width = content_width if (max_width or available_size_width) else None
+            content_constraint_width = BoxModelV2._upper_content_size(
+                margin_width, content_width, max_width, available_size_width,
+                self.margin_spacing.left + self.margin_spacing.right,
+                self.border_spacing.left + self.border_spacing.right,
+                self.padding_spacing.left + self.padding_spacing.right,
+                self.conditional_scroll_bar_y_width,
+            )
             content_children_width = self.calculated_content_children_size.width
 
         if getattr(overflow, 'scrollable_x', False):
@@ -523,7 +601,13 @@ class BoxModelV2(BoxModelV2Type):
             border_height = self.calculated_border_size.height
             padding_height = self.calculated_padding_size.height
             content_height = self.calculated_content_size.height
-            content_constraint_height = content_height if (max_height or available_size_height) else None
+            content_constraint_height = BoxModelV2._upper_content_size(
+                margin_height, content_height, max_height, available_size_height,
+                self.margin_spacing.top + self.margin_spacing.bottom,
+                self.border_spacing.top + self.border_spacing.bottom,
+                self.padding_spacing.top + self.padding_spacing.bottom,
+                self.conditional_scroll_bar_x_height,
+            )
             content_children_height = self.calculated_content_children_size.height
 
         if getattr(overflow, 'scrollable_y', False):
