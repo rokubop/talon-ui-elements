@@ -543,7 +543,13 @@ class BoxModelV2(BoxModelV2Type):
             margin_width = min(margin_width, max_width + self.margin_spacing.left + self.margin_spacing.right)
 
         if available_size_width is not None:
-            margin_width = min(margin_width, available_size_width) if margin_width else available_size_width
+            # Must be `min`, not `if margin_width else available`: an empty
+            # element with calculated_margin_size.width == 0 (e.g. inner div
+            # with no children and no min_width) is *not* uninitialized; the
+            # else-branch would balloon it to the full available width, which
+            # then bubbles up through grow_outer_to_fit_delta and stretches
+            # the parent (see empty-cell-bug repro in storybook).
+            margin_width = min(margin_width, available_size_width)
         # if not max_width and not available_size_width:
         #     margin_width = max(margin_width, self.intrinsic_margin_size.width)
 
@@ -584,7 +590,8 @@ class BoxModelV2(BoxModelV2Type):
             margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
 
         if available_size_height is not None:
-            margin_height = min(margin_height, available_size_height) if margin_height else available_size_height
+            # See width branch above: must be `min`, not `if-truthy-else`.
+            margin_height = min(margin_height, available_size_height)
         # if not max_height and not available_size_height:
         #     margin_height = max(margin_height, self.intrinsic_margin_size.height)
 
