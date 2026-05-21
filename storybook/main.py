@@ -13,6 +13,7 @@ from .elements.select import select_stories
 from .elements.text import text_stories
 from .elements.switch import switch_stories
 from .elements.textarea import textarea_stories
+from .elements.window import window_stories
 from . import theme as t
 
 storybook_pages = {
@@ -30,6 +31,7 @@ storybook_pages = {
     "table": table_stories,
     "text": text_stories,
     "textarea": textarea_stories,
+    "window": window_stories,
 }
 
 elements = list(storybook_pages.keys())
