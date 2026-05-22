@@ -1088,6 +1088,12 @@ class Tree(TreeType):
         try:
             self.move_canvas(canvas)
             self.move_inputs()
+            # Raise on the drag-start tick only, not every dragging tick:
+            # focused= is an OS focus call and doing it ~100Hz across a drag
+            # is laggy. Talon sinks the canvas once at the start of the drag,
+            # so a single raise is enough to ride out the whole drag.
+            if self.render_manager.is_drag_start():
+                self._raise_dragging_canvases_to_top()
         except Exception as e:
             print(f"Error during dragging rendering: {e}")
             log_trace()
@@ -1100,11 +1106,31 @@ class Tree(TreeType):
             self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
+            self._raise_dragging_canvases_to_top()
         except Exception as e:
             print(f"Error during drag end rendering: {e}")
             log_trace()
             self.finish_current_render()
             self.destroy()
+
+    def _raise_dragging_canvases_to_top(self):
+        # Talon sinks a draggable canvas below other on-screen canvases
+        # (other ui_elements trees and this tree's own hint/decorator layer)
+        # when it becomes the drag source. Re-assert focus to raise back to
+        # the top. Order matters: focused=True acts as "raise to top of
+        # stack", so raise base first and decorator second so the decorator
+        # ends up on top of the base (preserving the in-tree paint order:
+        # base < decorator).
+        if self.canvas_base:
+            try:
+                self.canvas_base.focused = True
+            except Exception:
+                pass
+        if self.canvas_decorator:
+            try:
+                self.canvas_decorator.focused = True
+            except Exception:
+                pass
 
     def on_draw_base_canvas_scroll(self, canvas: SkiaCanvas):
         try:
