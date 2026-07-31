@@ -774,10 +774,15 @@ class Tree(TreeType):
                 tb_str = traceback.format_exc()
                 label = getattr(self._tree_constructor, "__qualname__", None) or "tree"
                 print(f"ui_elements: error while rendering tree '{label}':\n{tb_str}")
-                self.root_node = build_error_card(label, type(e).__name__, str(e), tb_str)
-                self.absolute_nodes.clear()
-                self.fixed_nodes.clear()
-                self.auto_wrap_root_node()
+                # the error card must not be able to crash the render itself
+                try:
+                    self.root_node = build_error_card(label, type(e).__name__, str(e), tb_str)
+                    self.absolute_nodes.clear()
+                    self.fixed_nodes.clear()
+                    self.auto_wrap_root_node()
+                except Exception:
+                    self.root_node = None
+                    print(f"ui_elements: error card failed to render for '{label}':\n{traceback.format_exc()}")
         finally:
             state_manager.set_processing_tree(None)
 
