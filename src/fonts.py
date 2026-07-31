@@ -248,7 +248,34 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     font_cache[key] = None
     return None
 
+_paint_cache = {}
+_PAINT_CACHE_MAX = 256
+
+def get_text_paint(font_size, font_family, font_weight, font_style="normal") -> "Paint":
+    """Shared, cached Paint configured for a font. Callers may set per-use
+    fields (color, style, stroke_width) freely - those are reassigned on every
+    use - but must restore font fields (e.g. embolden) if they toggle them.
+    All canvas draw/measure work happens on Talon's UI thread, so sharing is safe."""
+    from talon.skia.paint import Paint
+    key = (font_size, font_family, font_weight, font_style)
+    paint = _paint_cache.get(key)
+    if paint is None:
+        paint = Paint()
+        paint.textsize = font_size
+        if font_family:
+            typeface = get_typeface(font_family, font_weight)
+            if typeface:
+                paint.typeface = typeface
+        paint.font.embolden = font_weight == "bold"
+        if font_style == "italic":
+            paint.font.skew_x = -0.25
+        if len(_paint_cache) >= _PAINT_CACHE_MAX:
+            _paint_cache.clear()
+        _paint_cache[key] = paint
+    return paint
+
 def reset_font_state():
     """Reset logged font errors so they can be shown again. Called by store.clear()."""
     global _logged_font_errors
     _logged_font_errors.clear()
+    _paint_cache.clear()

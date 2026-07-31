@@ -59,7 +59,8 @@ def on_base_canvas_change(tree: TreeType):
     tree.render_base_canvas()
 
 def on_decorator_canvas_change(tree: TreeType):
-    tree.canvas_decorator.freeze()
+    tree.render_manager.expect_decorator_completion()
+    tree.request_decorator_freeze()
 
 def on_full_render(tree: TreeType, *args):
     tree.render(*args)
@@ -130,6 +131,7 @@ class RenderManager(RenderManagerType):
         self._render_throttle_job = None
         self._pending_throttled_task = None
         self._destroying = False
+        self._decorator_completion_expected = False
 
     @property
     def render_cause(self):
@@ -163,7 +165,25 @@ class RenderManager(RenderManagerType):
                 self.current_render_task = render_task
                 render_task.on_start(self.tree, *render_task.args)
             else:
+                if self._coalesce_queued(render_task):
+                    return
                 self.queue.append(render_task)
+
+    def _coalesce_queued(self, render_task: RenderTask) -> bool:
+        """TAKE_LATEST: a queued task of the same group will repaint the same
+        thing, so drop the new one (keeping its latest args/metadata). Tasks
+        with completion callbacks are never collapsed - callers rely on every
+        on_end firing (e.g. StateCoordinator cycle accounting)."""
+        if render_task.policy != Policy.TAKE_LATEST or render_task.on_end:
+            return False
+        for queued in self.queue:
+            if queued.group == render_task.group \
+                    and queued.policy == Policy.TAKE_LATEST \
+                    and not queued.on_end:
+                queued.args = render_task.args
+                queued.metadata = render_task.metadata
+                return True
+        return False
 
     def is_dragging(self):
         return self.current_render_task and \
@@ -232,7 +252,18 @@ class RenderManager(RenderManagerType):
             self.current_render_task = self.queue.popleft()
             self.current_render_task.on_start(self.tree, *self.current_render_task.args)
 
+    def expect_decorator_completion(self):
+        """Mark that the in-flight render task has issued its own decorator
+        freeze, so the next decorator draw is allowed to complete it. Draws
+        caused by out-of-band freezes (highlights, focus changes) must not
+        complete a task that is still in its base-canvas phase."""
+        self._decorator_completion_expected = True
+
+    def should_complete_on_decorator_draw(self):
+        return self.current_render_task is not None and self._decorator_completion_expected
+
     def finish_current_render(self):
+        self._decorator_completion_expected = False
         if self.current_render_task and self.current_render_task.on_end:
             self.current_render_task.on_end(RenderCallbackEvent(
                 tree=self.tree,
@@ -390,6 +421,7 @@ class RenderManager(RenderManagerType):
         self._render_debounce_job = None
         self._render_throttle_job = None
         self._pending_throttled_task = None
+        self._decorator_completion_expected = False
         self.queue.clear()
         self.current_render_task = None
         self.tree = None

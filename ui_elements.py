@@ -216,6 +216,17 @@ class Actions:
         """Highlight element briefly based on its id. Renders on a decoration layer."""
         state_manager.highlight_briefly(id, color)
 
+    def ui_elements_perf_stats(reset: bool = False):
+        """Print and return render hot-path counters (draws/sec, coalesced
+        freezes, highlight/set_text call rates) since the last reset."""
+        from .src.perf import perf
+        stats = perf.stats()
+        for name, entry in stats.items():
+            print(f"ui_elements perf: {name}: {entry}")
+        if reset:
+            perf.reset()
+        return stats
+
     def ui_elements_get_node(id: str):
         """Get node for informational purposes e.g. to access `.box_model`, `.tree`, `.parent_node`, `.children_nodes`, or other properties"""
         return entity_manager.get_node(id)

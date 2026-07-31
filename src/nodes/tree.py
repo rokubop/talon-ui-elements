@@ -1,4 +1,5 @@
 import inspect
+import math
 import time
 import uuid
 import threading
@@ -16,6 +17,7 @@ from dataclasses import dataclass
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     DRAG_INIT_THRESHOLD,
+    DECORATOR_COALESCE_MS,
     DEFAULT_CURSOR_REFRESH_RATE,
     DEFAULT_HIGHLIGHT_DURATION_MS,
     DEFAULT_SCROLL_BAR_FADE_IN_MS,
@@ -43,6 +45,7 @@ from ..core.entity_manager import entity_manager
 from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
+from ..perf import perf
 from ..core.store import store
 from ..cursor import Cursor, CursorV2
 from ..events import StateEvent, DragEndEvent, WindowCloseEvent
@@ -594,6 +597,8 @@ class Tree(TreeType):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
+        self._decorator_freeze_pending_job = None
+        self._last_decorator_freeze_ts = 0.0
         self.current_base_canvas = None
         self.cursor = None
         self.cursor_v2 = None
@@ -1043,6 +1048,8 @@ class Tree(TreeType):
         return None
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
+        completing_task = False
+        draw_started = time.monotonic()
         try:
             if not self.render_manager.is_destroying:
                 draw_canvas = canvas
@@ -1077,10 +1084,21 @@ class Tree(TreeType):
                             self.draw_hints(draw_canvas, transforms)
                     self.init_key_controls()
                     self.draw_blockable_canvases()
-                    self.on_fully_rendered()
+                    # Only complete a render task (and fire its effects) when
+                    # this draw was caused by the task's own decorator freeze.
+                    # Out-of-band freezes (highlight, focus) must not complete
+                    # a task still in its base phase.
+                    completing_task = self.render_manager.should_complete_on_decorator_draw()
+                    if completing_task or not self.render_manager.is_rendering:
+                        self.on_fully_rendered()
                 finally:
                     state_manager.set_processing_tree(None)
-                self.finish_current_render()
+                if completing_task:
+                    self.finish_current_render()
+                elif not self.render_manager.is_rendering:
+                    # Safety valve: drain anything stranded while idle.
+                    self.render_manager.process_next_render()
+                perf.add_duration("decorator_draw", (time.monotonic() - draw_started) * 1000)
         except Exception as e:
             print(f"Error during decorator canvas rendering: {e}")
             log_trace()
@@ -1209,6 +1227,7 @@ class Tree(TreeType):
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
+            draw_started = time.monotonic()
             self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
             try:
@@ -1229,7 +1248,10 @@ class Tree(TreeType):
 
                 if not dragging:
                     self.show_inputs()
+                if self.render_manager.is_rendering:
+                    self.render_manager.expect_decorator_completion()
                 self.render_decorator_canvas()
+                perf.add_duration("base_draw", (time.monotonic() - draw_started) * 1000)
             finally:
                 state_manager.set_processing_tree(None)
 
@@ -1355,15 +1377,28 @@ class Tree(TreeType):
 
     def refresh_decorator_canvas(self):
         if self.canvas_decorator:
-            self.canvas_decorator.freeze()
+            self.request_decorator_freeze()
 
     def highlight_forced(self, id: str, color: str = None):
         self.render_cause.highlight_change()
         self.meta_state.set_highlighted(id, color)
-        self.canvas_decorator.freeze()
+        self.request_decorator_freeze()
+
+    def _retarget_fading_highlight(self, id: str):
+        """A re-highlight while the fade-out transition is still running must
+        reverse the animation instead of being dropped by the already-highlighted
+        guard (the id stays in meta_state.highlighted for the whole fade-out)."""
+        anim = self.transition_manager.highlight_anims.get(id)
+        if anim and anim.direction == "out":
+            node = self.meta_state.id_to_node.get(id)
+            if node and node.properties.transition and node.properties.highlight_style:
+                self.transition_manager.start_highlight(id, node, "in")
+                return True
+        return False
 
     def highlight_no_render(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
+            self._retarget_fading_highlight(id)
             return
         self.meta_state.set_highlighted(id, color)
         node = self.meta_state.id_to_node.get(id)
@@ -1372,6 +1407,8 @@ class Tree(TreeType):
 
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
+            if self._retarget_fading_highlight(id):
+                self.request_decorator_freeze()
             return
 
         self.render_cause.highlight_change()
@@ -1379,7 +1416,7 @@ class Tree(TreeType):
         node = self.meta_state.id_to_node.get(id)
         if node and node.properties.transition and node.properties.highlight_style:
             self.transition_manager.start_highlight(id, node, "in")
-        self.canvas_decorator.freeze()
+        self.request_decorator_freeze()
 
     def unhighlight_no_render(self, id: str):
         if id in self.meta_state.highlighted:
@@ -1406,14 +1443,18 @@ class Tree(TreeType):
             if job:
                 cron.cancel(job[0])
 
-            self.canvas_decorator.freeze()
+            self.request_decorator_freeze()
 
     def highlight_briefly(self, id: str, color: str = None, duration: int = DEFAULT_HIGHLIGHT_DURATION_MS):
         if id in self.meta_state.unhighlight_jobs:
             job, _ = self.meta_state.unhighlight_jobs.pop(id)
             cron.cancel(job)
         self.highlight(id, color)
-        pending_unhighlight = lambda: self.unhighlight(id)
+        def pending_unhighlight():
+            # Pop first: if the id was already unhighlighted by another path,
+            # unhighlight() early-returns and would strand this entry forever.
+            self.meta_state.unhighlight_jobs.pop(id, None)
+            self.unhighlight(id)
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
 
     def move_inputs(self):
@@ -1572,6 +1613,37 @@ class Tree(TreeType):
         )
         return CanvasWeakRef(self.Canvas.from_rect(safe_rect))
 
+    def request_decorator_freeze(self):
+        """Coalesced decorator-canvas repaint. Rapid decoration changes
+        (highlights, text mutations, transition ticks) collapse into at most
+        one freeze per DECORATOR_COALESCE_MS window: the first request paints
+        immediately (no added latency for isolated events), later requests
+        inside the window ride along on one trailing repaint."""
+        perf.count("decorator_freeze_requested")
+        if not self.canvas_decorator or self.render_manager.is_destroying or self.destroying:
+            return
+        if self._decorator_freeze_pending_job:
+            perf.count("decorator_freeze_coalesced")
+            return
+        elapsed_ms = (time.monotonic() - self._last_decorator_freeze_ts) * 1000
+        if elapsed_ms >= DECORATOR_COALESCE_MS:
+            self._freeze_decorator_now()
+        else:
+            delay = max(1, math.ceil(DECORATOR_COALESCE_MS - elapsed_ms))
+            self._decorator_freeze_pending_job = cron.after(f"{delay}ms", self._on_decorator_freeze_job)
+
+    def _on_decorator_freeze_job(self):
+        self._decorator_freeze_pending_job = None
+        if self.canvas_decorator and not self.render_manager.is_destroying and not self.destroying:
+            self._freeze_decorator_now()
+
+    def _freeze_decorator_now(self):
+        if self._decorator_freeze_pending_job:
+            cron.cancel(self._decorator_freeze_pending_job)
+            self._decorator_freeze_pending_job = None
+        self._last_decorator_freeze_ts = time.monotonic()
+        self.canvas_decorator.freeze()
+
     def render_decorator_canvas(self):
         if not self.canvas_decorator and not self.render_manager.is_destroying:
             self.canvas_decorator = self.create_canvas()
@@ -1584,7 +1656,7 @@ class Tree(TreeType):
                     self.canvas_decorator.focused = True
 
         if self.canvas_decorator:
-            self.canvas_decorator.freeze()
+            self._freeze_decorator_now()
 
     def render_base_canvas(self):
         if not self.render_manager.is_destroying:
@@ -3065,6 +3137,10 @@ class Tree(TreeType):
                 self.canvas_base.close()
                 self.canvas_base = None
 
+            if self._decorator_freeze_pending_job:
+                cron.cancel(self._decorator_freeze_pending_job)
+                self._decorator_freeze_pending_job = None
+
             if self.canvas_decorator:
                 if self.is_key_controls_init:
                     self.canvas_decorator.unregister("key", self.on_key)
@@ -3438,7 +3514,10 @@ class Tree(TreeType):
             segment = f"k_{child_key}" if child_key is not None else i
             self.init_node_hierarchy(child_node, node_index_path + [segment], constraint_nodes, clip_nodes)
 
-        entity_manager.synchronize_global_ids()
+        if not node_index_path:
+            # Root call only: rebuilding the global id map per node makes the
+            # walk O(n^2) in tree size.
+            entity_manager.synchronize_global_ids()
 
     def consume_effects(self):
         for effect in list(store.staged_effects):

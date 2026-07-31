@@ -77,6 +77,9 @@ DEFAULT_ERROR_COLOR = "BD2F3E"
 DEFAULT_ERROR_LINK_COLOR = "5F9FE3"
 DEFAULT_DROP_SHADOW = (0, 20, 25, 25, "000000CC")
 DEFAULT_HIGHLIGHT_DURATION_MS = 150
+# Decoration-only repaints (highlight, text mutation, transition tick) are
+# coalesced so bursts of events produce at most one decorator freeze per window.
+DECORATOR_COALESCE_MS = 16
 # DEFAULT_LINK_COLOR = "#589ADB"
 DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
 DRAG_INIT_THRESHOLD = 4.0

@@ -498,7 +498,7 @@ class TransitionManager:
             if self.active:
                 self.tree.render_animation_frame()
             if highlight_needs_decorator_redraw and self.tree.canvas_decorator:
-                self.tree.canvas_decorator.freeze()
+                self.tree.request_decorator_freeze()
 
         if not self.active and not self.highlight_anims:
             self.stop_tick_loop()

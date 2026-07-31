@@ -9,11 +9,18 @@ from ..core.state_manager import state_manager
 from ..interfaces import Size2d, RenderTransforms
 from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
-from ..fonts import get_typeface
+from ..fonts import get_typeface, get_text_paint
 from ..text_utils import binary_search_cursor, wrap_lines
 from ..utils import draw_text_simple
 
 ElementType = Literal['button', 'text', 'link']
+
+# Measurement caches. Text measurement is pure in (text, font attrs), and
+# full renders re-measure every text node from scratch - at high render rates
+# identical labels re-measure hundreds of times per second without these.
+_line_height_cache = {}
+_text_width_cache = {}
+_TEXT_WIDTH_CACHE_MAX = 4096
 
 class NodeText(Node):
     def __init__(self, element_type, text: str, properties: NodeTextProperties = None):
@@ -46,24 +53,33 @@ class NodeText(Node):
     def selectable(self):
         return getattr(self.properties, 'selectable', False)
 
+    def _font_cache_key(self):
+        return (
+            self.properties.font_size,
+            self.properties.font_family,
+            self.properties.font_weight,
+            self.properties.font_style,
+        )
+
     def _make_paint(self):
-        paint = Paint()
-        paint.textsize = self.properties.font_size
-        if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family, self.properties.font_weight)
-            if typeface:
-                paint.typeface = typeface
-        paint.font.embolden = self.properties.font_weight == "bold"
-        if self.properties.font_style == "italic":
-            paint.font.skew_x = -0.25
-        return paint
+        return get_text_paint(
+            self.properties.font_size,
+            self.properties.font_family,
+            self.properties.font_weight,
+            self.properties.font_style,
+        )
 
     def _measure_line_height(self, paint):
         """Measure line height without embolden for consistent sizing."""
+        key = self._font_cache_key()
+        cached = _line_height_cache.get(key)
+        if cached is not None:
+            return cached
         was_bold = paint.font.embolden
         paint.font.embolden = False
         line_height = paint.measure_text("X")[1].height
         paint.font.embolden = was_bold
+        _line_height_cache[key] = line_height
         return line_height
 
     def _get_line_gap(self):
@@ -105,9 +121,16 @@ class NodeText(Node):
         else:
             # Single line - append sentinel to accurately measure leading/trailing spaces
             if text:
-                width_with_sentinel = paint.measure_text(text + "|")[0]
-                sentinel_width = paint.measure_text("|")[0]
-                self.text_width = width_with_sentinel - sentinel_width
+                key = (self._font_cache_key(), text)
+                cached = _text_width_cache.get(key)
+                if cached is None:
+                    width_with_sentinel = paint.measure_text(text + "|")[0]
+                    sentinel_width = paint.measure_text("|")[0]
+                    cached = width_with_sentinel - sentinel_width
+                    if len(_text_width_cache) >= _TEXT_WIDTH_CACHE_MAX:
+                        _text_width_cache.clear()
+                    _text_width_cache[key] = cached
+                self.text_width = cached
             else:
                 self.text_width = 0
             self.text_body_height = self.text_line_height
