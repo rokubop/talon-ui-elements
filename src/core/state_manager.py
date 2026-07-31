@@ -9,7 +9,6 @@ from ..interfaces import (
 )
 from .store import store
 from .render_manager import RenderTaskScrolling, RenderTask, RenderCause, on_base_canvas_change
-from ..perf import perf
 import gc
 
 class StateCoordinator:
@@ -328,7 +327,6 @@ class StateManager:
         return ""
 
     def set_text_mutation(self, id, text_or_callable):
-        perf.count("set_text_call")
         node = store.id_to_node.get(id)
         if node:
             text_mutations = node.tree.meta_state.text_mutations
@@ -401,19 +399,16 @@ class StateManager:
         store.staged_effects.append(effect)
 
     def highlight(self, id, color=None):
-        perf.count("highlight_call")
         node = store.id_to_node.get(id)
         if node:
             node.tree.highlight(id, color)
 
     def unhighlight(self, id):
-        perf.count("highlight_call")
         node = store.id_to_node.get(id)
         if node:
             node.tree.unhighlight(id)
 
     def highlight_briefly(self, id, color=None):
-        perf.count("highlight_call")
         node = store.id_to_node.get(id)
         if node:
             node.tree.highlight_briefly(id, color)

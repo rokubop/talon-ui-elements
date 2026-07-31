@@ -45,7 +45,6 @@ from ..core.entity_manager import entity_manager
 from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
-from ..perf import perf
 from ..core.store import store
 from ..cursor import Cursor, CursorV2
 from ..events import StateEvent, DragEndEvent, WindowCloseEvent
@@ -1049,7 +1048,6 @@ class Tree(TreeType):
 
     def on_draw_decorator_canvas(self, canvas: SkiaCanvas):
         completing_task = False
-        draw_started = time.monotonic()
         try:
             if not self.render_manager.is_destroying:
                 draw_canvas = canvas
@@ -1098,7 +1096,6 @@ class Tree(TreeType):
                 elif not self.render_manager.is_rendering:
                     # Safety valve: drain anything stranded while idle.
                     self.render_manager.process_next_render()
-                perf.add_duration("decorator_draw", (time.monotonic() - draw_started) * 1000)
         except Exception as e:
             print(f"Error during decorator canvas rendering: {e}")
             log_trace()
@@ -1227,7 +1224,6 @@ class Tree(TreeType):
 
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
-            draw_started = time.monotonic()
             self.current_base_canvas = canvas
             state_manager.set_processing_tree(self)
             try:
@@ -1251,7 +1247,6 @@ class Tree(TreeType):
                 if self.render_manager.is_rendering:
                     self.render_manager.expect_decorator_completion()
                 self.render_decorator_canvas()
-                perf.add_duration("base_draw", (time.monotonic() - draw_started) * 1000)
             finally:
                 state_manager.set_processing_tree(None)
 
@@ -1621,11 +1616,9 @@ class Tree(TreeType):
         one freeze per DECORATOR_COALESCE_MS window: the first request paints
         immediately (no added latency for isolated events), later requests
         inside the window ride along on one trailing repaint."""
-        perf.count("decorator_freeze_requested")
         if not self.canvas_decorator or self.render_manager.is_destroying or self.destroying:
             return
         if self._decorator_freeze_pending_job:
-            perf.count("decorator_freeze_coalesced")
             return
         elapsed_ms = (time.monotonic() - self._last_decorator_freeze_ts) * 1000
         if elapsed_ms >= DECORATOR_COALESCE_MS:
