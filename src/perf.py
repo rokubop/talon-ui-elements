@@ -1,9 +1,14 @@
+"""Render hot-path counters, off by default. Not a public action - from the REPL:
+
+    import sys
+    perf = sys.modules["user.roku.talon-ui-elements.src.perf"].perf
+    perf.enabled = True; perf.reset()
+    perf.stats()   # draws/sec, coalesced freezes, avg draw ms
+"""
 import time
 from collections import defaultdict
 
 class PerfCounters:
-    """Render hot-path counters. Off by default - enable with
-    actions.user.ui_elements_perf_enable(), read with ui_elements_perf_stats()."""
     def __init__(self):
         self.enabled = False
         self.counters = defaultdict(int)
