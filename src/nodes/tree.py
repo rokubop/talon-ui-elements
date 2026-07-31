@@ -61,6 +61,7 @@ from ..interfaces import (
     RenderTransforms,
     ScrollRegionType,
     ScrollableType,
+    Size2d,
 )
 from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable
 from ..style import Style
@@ -814,13 +815,22 @@ class Tree(TreeType):
         compute_for_node(self.root_node)
 
     def nonlayout_flow(self):
+        # Bound absolute/fixed nodes to the viewport so a tall subtree can't
+        # grow off-screen. constrain_size only applies min(content, available),
+        # so nodes that already fit are unaffected.
+        viewport = None
+        if self.root_node and self.root_node.boundary_rect:
+            viewport = Size2d(
+                int(self.root_node.boundary_rect.width),
+                int(self.root_node.boundary_rect.height),
+            )
         for node in self.absolute_nodes + self.fixed_nodes:
             node: NodeType = node()
             if node and node.tree == self:
                 relative_positional_node: NodeType = node.relative_positional_node()
                 node.v2_measure_intrinsic_size(self.current_base_canvas)
                 node.v2_grow_size()
-                node.v2_constrain_size()
+                node.v2_constrain_size(viewport.copy() if viewport else None)
                 cursor = CursorV2(Point2d(
                     relative_positional_node.box_model.margin_pos.x,
                     relative_positional_node.box_model.margin_pos.y
