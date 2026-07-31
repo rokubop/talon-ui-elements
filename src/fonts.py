@@ -282,6 +282,9 @@ def reset_font_state():
     """Reset logged font errors so they can be shown again. Called by store.clear()."""
     global _logged_font_errors
     _logged_font_errors.clear()
+    # drop negative entries so failed fonts actually retry; keep loaded typefaces
+    for key in [k for k, v in font_cache.items() if v is None]:
+        del font_cache[key]
     _paint_cache.clear()
     line_height_cache.clear()
     text_width_cache.clear()

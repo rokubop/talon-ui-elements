@@ -140,7 +140,7 @@ class RenderManager(RenderManagerType):
         self._render_throttle_job = None
         self._pending_throttled_task = None
         self._destroying = False
-        self._decorator_completion_expected = False
+        self._decorator_completion_task = None
 
     @property
     def render_cause(self):
@@ -179,16 +179,22 @@ class RenderManager(RenderManagerType):
                 self.queue.append(render_task)
 
     def _coalesce_queued(self, render_task: RenderTask) -> bool:
-        """Drop duplicate queued repaints. Tasks with on_end never collapse -
-        StateCoordinator relies on every callback firing."""
-        if render_task.policy != Policy.TAKE_LATEST or render_task.on_end:
+        """Drop a duplicate queued repaint. Only bare tasks collapse - anything
+        carrying args, metadata, or on_end runs (StateCoordinator relies on
+        every on_end; mount tasks carry their props). Queued tasks are never
+        mutated - several are shared module singletons."""
+        if render_task.policy != Policy.TAKE_LATEST or render_task.on_end \
+                or render_task.args or render_task.metadata:
             return False
         for queued in self.queue:
-            if queued.group == render_task.group \
+            if queued is render_task:
+                return True
+            if queued.cause == render_task.cause \
+                    and queued.on_start is render_task.on_start \
                     and queued.policy == Policy.TAKE_LATEST \
-                    and not queued.on_end:
-                queued.args = render_task.args
-                queued.metadata = render_task.metadata
+                    and not queued.on_end \
+                    and not queued.args \
+                    and not queued.metadata:
                 return True
         return False
 
@@ -270,13 +276,14 @@ class RenderManager(RenderManagerType):
     def expect_decorator_completion(self):
         """The in-flight task issued its own decorator freeze. Out-of-band
         freezes (highlight, focus) must not complete a task still in its base phase."""
-        self._decorator_completion_expected = True
+        self._decorator_completion_task = self.current_render_task
 
     def should_complete_on_decorator_draw(self):
-        return self.current_render_task is not None and self._decorator_completion_expected
+        return self.current_render_task is not None and \
+            self.current_render_task is self._decorator_completion_task
 
     def finish_current_render(self):
-        self._decorator_completion_expected = False
+        self._decorator_completion_task = None
         if self.current_render_task and self.current_render_task.on_end:
             self.current_render_task.on_end(RenderCallbackEvent(
                 tree=self.tree,
@@ -434,7 +441,7 @@ class RenderManager(RenderManagerType):
         self._render_debounce_job = None
         self._render_throttle_job = None
         self._pending_throttled_task = None
-        self._decorator_completion_expected = False
+        self._decorator_completion_task = None
         self.queue.clear()
         self.current_render_task = None
         self.tree = None
