@@ -60,7 +60,19 @@ def on_base_canvas_change(tree: TreeType):
 
 def on_decorator_canvas_change(tree: TreeType):
     tree.render_manager.expect_decorator_completion()
-    tree.request_decorator_freeze()
+    if tree.canvas_decorator:
+        tree.request_decorator_freeze()
+    else:
+        # No decorator canvas yet - render_decorator_canvas creates it and
+        # freezes immediately, so this task can't get stuck as current forever.
+        tree.render_decorator_canvas()
+
+def on_decorator_canvas_change_immediate(tree: TreeType):
+    # For human-driven causes (mouse hover, resize ghost): freeze now instead
+    # of riding the coalescing window - a deferred repaint reads as input lag.
+    # These causes are already rate-limited by their own throttles.
+    tree.render_manager.expect_decorator_completion()
+    tree.render_decorator_canvas()
 
 def on_full_render(tree: TreeType, *args):
     tree.render(*args)
@@ -102,7 +114,7 @@ RenderStateChange = RenderTask(
 
 RenderMouseHighlight = RenderTask(
     RenderCause.MOUSE_HIGHLIGHT,
-    on_decorator_canvas_change,
+    on_decorator_canvas_change_immediate,
 )
 
 RenderTaskCursorUpdate = RenderTask(
@@ -112,7 +124,7 @@ RenderTaskCursorUpdate = RenderTask(
 
 RenderTaskResizeGhost = RenderTask(
     RenderCause.RESIZE_GHOST,
-    on_decorator_canvas_change,
+    on_decorator_canvas_change_immediate,
 )
 
 @dataclass
@@ -236,6 +248,15 @@ class RenderManager(RenderManagerType):
             )
         elif self._render_throttle_job:
             self._pending_throttled_task = render_task
+        else:
+            # A render is in flight with no throttle window armed. Park the
+            # task and arm one, otherwise the tail update is silently dropped
+            # (e.g. a scroll ends mid-render and never paints its final position).
+            self._pending_throttled_task = render_task
+            self._render_throttle_job = cron.after(
+                interval,
+                self.clear_throttle
+            )
 
     def _queue_render_after_debounce_execute(self, render_task: RenderTask):
         self.queue_render(render_task)
