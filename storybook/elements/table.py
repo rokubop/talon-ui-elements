@@ -145,6 +145,55 @@ def striped_table():
         ] for i, r in enumerate(rows)],
     ]
 
+_EMPTY_CELL_ROWS = [
+    ("1", ["pop"], ["0.91"]),
+    ("2", ["hiss"], ["0.83"]),
+    ("3", [], []),
+    ("4", ["click"], ["0.77"]),
+    ("5", [], []),
+    ("6", ["pop", "hiss"], ["0.62", "0.55"]),
+]
+
+
+def empty_div_in_cell_table():
+    table, th, tr, td, div, text, style = actions.user.ui_elements([
+        "table", "th", "tr", "td", "div", "text", "style"
+    ])
+    style({
+        "th": {
+            "padding": 10,
+            "padding_left": 12,
+            "padding_right": 12,
+            "align_items": "flex_start",
+            "border_bottom": 1,
+        },
+        "td": {
+            "padding": 8,
+            "padding_left": 12,
+            "padding_right": 12,
+            "align_items": "flex_end",
+            "border_bottom": 1,
+            "justify_content": "center",
+        },
+    })
+    return table()[
+        tr()[
+            th()[text("Frame")],
+            th()[text("Pattern")],
+            th()[text("Prob.")],
+        ],
+        *[tr()[
+            td()[text(frame_id)],
+            td(align_items="flex_start")[div(gap=10, min_width=60)[
+                *[text(p) for p in patterns]
+            ]],
+            td(align_items="flex_end")[div(gap=10)[
+                *[text(p) for p in probs]
+            ]],
+        ] for frame_id, patterns, probs in _EMPTY_CELL_ROWS],
+    ]
+
+
 def colspan_table():
     table, th, tr, td, text, style = actions.user.ui_elements([
         "table", "th", "tr", "td", "text", "style"
@@ -301,6 +350,32 @@ def table_stories():
 
                     # Use component to encapsulate the style
                     component(bordered_table)"""
+                )
+            }),
+            component(example_with_code, props={
+                "title": "Empty inner div in cells",
+                "example": component(empty_div_in_cell_table),
+                "code": textwrap.dedent("""\
+                    # Each cell wraps its content in an inner div whose
+                    # children come from a per-row list. Rows where that
+                    # list is empty render with an empty inner div.
+                    rows = [
+                        ("1", ["pop"],          ["0.91"]),
+                        ("2", ["hiss"],         ["0.83"]),
+                        ("3", [],               []),
+                        ("4", ["click"],        ["0.77"]),
+                        ("5", [],               []),
+                        ("6", ["pop", "hiss"],  ["0.62", "0.55"]),
+                    ]
+
+                    table()[
+                        tr()[th()[text("Frame")], th()[text("Pattern")], th()[text("Prob.")]],
+                        *[tr()[
+                            td()[text(fid)],
+                            td()[div(gap=10, min_width=60)[*[text(p) for p in patterns]]],
+                            td()[div(gap=10)[*[text(p) for p in probs]]],
+                        ] for fid, patterns, probs in rows],
+                    ]"""
                 )
             }),
             component(example_with_code, props={

@@ -188,6 +188,50 @@ def text_stories():
             }),
 
             component(example_with_code, props={
+                "title": "Long unbreakable token in flex column",
+                "example": div(width=440, padding=12, background_color=t.BG_CODE, border_radius=8)[
+                    div(flex_direction="row", align_items="center", gap=12,
+                        padding=12, background_color=t.BG, border_radius=6)[
+                        div(flex=1, min_width=0, gap=4)[
+                            text("windows_terminal",
+                                 font_size=15, font_weight="bold", color=t.TEXT),
+                            text(
+                                "C:\\Users\\Rokubop\\AppData\\Roaming\\talon\\user\\some\\windows_terminal",
+                                font_size=13, color=t.TEXT_MUTED,
+                            ),
+                        ],
+                        div(flex_direction="row", gap=8)[
+                            text("Open in Explorer",
+                                 padding=8, padding_left=14, padding_right=14,
+                                 background_color=t.BG_ACTIVE, border_radius=6,
+                                 color=t.TEXT, font_size=14),
+                            text("Open in VS Code",
+                                 padding=8, padding_left=14, padding_right=14,
+                                 background_color=t.BG_ACTIVE, border_radius=6,
+                                 color=t.TEXT, font_size=14),
+                        ],
+                    ],
+                ],
+                "code": textwrap.dedent("""\
+                    # A long unbreakable token (path with no spaces)
+                    # in a flex=1, min_width=0 column. Without char-level
+                    # fallback in wrap_lines, the text renders past its
+                    # column and visually overlaps the sibling on the right.
+                    div(width=440)[
+                        div(flex_direction="row", gap=12)[
+                            div(flex=1, min_width=0)[
+                                text("windows_terminal", font_weight="bold"),
+                                text("C:\\\\Users\\\\...\\\\windows_terminal"),
+                            ],
+                            div(flex_direction="row", gap=8)[
+                                text("Open in Explorer", ...),
+                                text("Open in VS Code", ...),
+                            ],
+                        ],
+                    ]""")
+            }),
+
+            component(example_with_code, props={
                 "title": "No Wrap (white_space)",
                 "example": div(width=300, background_color=t.BG_CODE, border_radius=8, padding=16, overflow_x="scroll")[
                     text(

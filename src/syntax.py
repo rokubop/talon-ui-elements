@@ -294,7 +294,74 @@ def tokenize_line(line, language="python"):
     return tokens
 
 
+_TRIPLE_QUOTE_LANGS = {"python"}
+
+
+def _tokenize_python_with_triple_quotes(lines):
+    """Python tokenizer that tracks triple-quoted strings across line
+    boundaries. Once a `\"\"\"` or `'''` opens on one line and doesn't close
+    on the same line, every subsequent line stays inside the string until
+    the matching closer appears. Without this, content inside multi-line
+    strings gets re-tokenized as code (so `and` reads as a keyword, slashes
+    as operators), and the trailing closer renders as a stray `\"`."""
+    result = []
+    pending = None  # The marker we're inside ('\"\"\"' or '\'\'\''), or None.
+
+    for line in lines:
+        if pending is not None:
+            close_idx = line.find(pending)
+            if close_idx < 0:
+                # Whole line is still inside the string.
+                result.append([(line, TOKEN_STRING)] if line else [])
+                continue
+            # Closer found. Everything up through it is string; tokenize the
+            # tail (if any) as code.
+            str_part = line[: close_idx + 3]
+            rest = line[close_idx + 3 :]
+            tokens = [(str_part, TOKEN_STRING)]
+            if rest:
+                tokens.extend(tokenize_line(rest, "python"))
+            result.append(tokens)
+            pending = None
+            continue
+
+        # Not currently inside a multi-line string. Look for an opener that
+        # has no matching closer later on the same line — that's the start
+        # of a multi-line string.
+        opener_idx = -1
+        opener_marker = None
+        for marker in ('"""', "'''"):
+            search_from = 0
+            while True:
+                open_idx = line.find(marker, search_from)
+                if open_idx < 0:
+                    break
+                close_idx = line.find(marker, open_idx + 3)
+                if close_idx < 0:
+                    # Opens but doesn't close on this line.
+                    if opener_idx < 0 or open_idx < opener_idx:
+                        opener_idx = open_idx
+                        opener_marker = marker
+                    break
+                # Same-line pair; skip past it and keep scanning.
+                search_from = close_idx + 3
+
+        if opener_marker is None:
+            result.append(tokenize_line(line, "python"))
+        else:
+            head = line[:opener_idx]
+            tail_string = line[opener_idx:]
+            tokens = tokenize_line(head, "python") if head else []
+            tokens.append((tail_string, TOKEN_STRING))
+            result.append(tokens)
+            pending = opener_marker
+
+    return result
+
+
 def tokenize(text, language="python"):
     """Tokenize multi-line code text. Returns list of list of (text, token_type) per line."""
     lines = text.split("\n")
+    if language in _TRIPLE_QUOTE_LANGS:
+        return _tokenize_python_with_triple_quotes(lines)
     return [tokenize_line(line, language) for line in lines]

@@ -369,6 +369,11 @@ class StateManager:
             if node.element_type in ("input_text", "textarea"):
                 focus_method = self.focus_textarea if node.element_type == "textarea" else self.focus_input
                 def delayed_focus():
+                    # Tree may have been destroyed in the 100ms gap (eg.
+                    # render error or window close). Bail before
+                    # dereferencing node.tree.
+                    if node.tree is None:
+                        return
                     focus_method(node.id)
                     if node.tree.canvas_decorator:
                         node.tree.canvas_decorator.focused = True

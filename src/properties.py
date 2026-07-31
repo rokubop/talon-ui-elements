@@ -1,5 +1,4 @@
 import hashlib
-import inspect
 import json
 from dataclasses import dataclass
 from talon import app
@@ -339,6 +338,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     @staticmethod
     def _apply_opacity_to_color(color: str, opacity_hex: str) -> str:
         """Expand shorthand, strip existing alpha, append opacity."""
+        if not color or color.lower() == "none":
+            return color
         color = _expand_shorthand_hex(color)
         if len(color) > 6:
             color = color[:6]
@@ -417,25 +418,6 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                         value = scale_value(numeric_value)
                     except (ValueError, TypeError):
                         pass
-
-            if key == "on_click" and value is not None and callable(value):
-                try:
-                    sig = inspect.signature(value)
-                    params = list(sig.parameters.values())
-                    if len(params) > 0:
-                        first_param = params[0]
-                        # Check for common mistake: lambda with default parameter as first arg
-                        if first_param.default != inspect.Parameter.empty and first_param.name != 'e' and first_param.name != 'event':
-                            raise ValueError(
-                                f"on_click function signature error: First parameter '{first_param.name}' "
-                                f"has a default value, suggesting it might be a captured variable. "
-                                f"The on_click callback receives a ClickEvent as its first parameter. "
-                                f"Correct usage: on_click=lambda e: your_function(captured_var) "
-                                f"or on_click=lambda e, var=captured_var: your_function(var)"
-                            )
-                except (ValueError, TypeError) as e:
-                    if "on_click function signature error" in str(e):
-                        raise
 
             setattr(self, key, value)
             if explicitly_set:
@@ -1251,7 +1233,7 @@ class NodeModalProperties(Properties):
     on_close: callable = None
     open: bool = False
     backdrop: bool = True
-    backdrop_color: str = "00000000"
+    backdrop_color: str = "00000080"
     backdrop_click_close: bool = True
     show_title_bar: bool = True
 

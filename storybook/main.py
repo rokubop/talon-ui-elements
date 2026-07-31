@@ -3,7 +3,9 @@ from .elements.button import button_stories
 from .elements.code import code_stories
 from .elements.data_table import data_table_stories
 from .elements.div import div_stories
+from .elements.error_boundary import error_boundary_stories
 from .elements.link import link_stories
+from .elements.modal import modal_stories
 from .elements.table import table_stories
 from .elements.checkbox import checkbox_stories
 from .elements.input_text import input_text_stories
@@ -11,6 +13,7 @@ from .elements.select import select_stories
 from .elements.text import text_stories
 from .elements.switch import switch_stories
 from .elements.textarea import textarea_stories
+from .elements.window import window_stories
 from . import theme as t
 
 storybook_pages = {
@@ -19,13 +22,16 @@ storybook_pages = {
     "checkbox": checkbox_stories,
     "data_table": data_table_stories,
     "div": div_stories,
+    "error_boundary": error_boundary_stories,
     "input_text": input_text_stories,
     "link": link_stories,
+    "modal": modal_stories,
     "select": select_stories,
     "switch": switch_stories,
     "table": table_stories,
     "text": text_stories,
     "textarea": textarea_stories,
+    "window": window_stories,
 }
 
 elements = list(storybook_pages.keys())

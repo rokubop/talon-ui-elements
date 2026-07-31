@@ -223,6 +223,59 @@ def uncontrolled_switch_panel():
     )
 
 
+def controlled_input_panel():
+    div, text, button, input_text, state = actions.user.ui_elements(
+        ["div", "text", "button", "input_text", "state"]
+    )
+    value, set_value = state.use("ctrl_input", "")
+    inp_id = "ctrl_input_box"
+
+    return panel(
+        div, text,
+        "Controlled input_text",
+        text(
+            "Parent owns state via value=. 'Set from parent' flows into the "
+            "input; typing mirrors state.",
+            font_size=14, color=TEXT_SECONDARY,
+        ),
+        input_text(
+            id=inp_id,
+            value=value,
+            on_change=lambda e: set_value(e.value),
+            placeholder="type here",
+        ),
+        row(
+            div,
+            text(f"state: {value!r}", font_size=14, color=TEXT_PRIMARY, flex=1),
+            small_btn(button, "Set from parent", lambda e: set_value("from parent")),
+            small_btn(button, "Clear from parent", lambda e: set_value("")),
+        ),
+    )
+
+
+def uncontrolled_input_panel():
+    div, text, button, input_text, ref = actions.user.ui_elements(
+        ["div", "text", "button", "input_text", "ref"]
+    )
+    inp_ref = ref("uncon_input_box")
+
+    return panel(
+        div, text,
+        "Uncontrolled input_text",
+        text(
+            "No value= echo. Input owns its state. Read/write imperatively via ref.",
+            font_size=14, color=TEXT_SECONDARY,
+        ),
+        input_text(id="uncon_input_box", placeholder="type here"),
+        row(
+            div,
+            small_btn(button, "Set via ref", lambda e: inp_ref.set_value("from ref")),
+            small_btn(button, "Clear via ref", lambda e: inp_ref.clear()),
+            small_btn(button, "Log via ref", lambda e: print(f"ref value: {inp_ref.value!r}")),
+        ),
+    )
+
+
 def _move(items, idx, delta):
     j = idx + delta
     if 0 <= j < len(items):
@@ -314,6 +367,10 @@ def state_tests_ui():
                 div(flex_direction="row", gap=16)[
                     controlled_switch_panel(),
                     uncontrolled_switch_panel(),
+                ],
+                div(flex_direction="row", gap=16)[
+                    controlled_input_panel(),
+                    uncontrolled_input_panel(),
                 ],
                 div(flex_direction="row", gap=16)[
                     list_panel("Keyed list (expect: state follows item)", "keyed_items", use_keys=True),

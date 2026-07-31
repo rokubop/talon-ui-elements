@@ -13,6 +13,29 @@ weight_keywords = {
 
 preferred_weights = ["regular", "", "medium", "light", "semibold", "bold", "black"]
 
+_SYSTEM = platform.system()  # "Windows" | "Darwin" | "Linux"
+
+
+def _by_os(*, windows: list, mac: list, linux: list) -> list:
+    """Build an alias list ordered for the current OS first, then fall
+    through to the other platforms' fonts so a missing native font (rare
+    but possible on stripped systems) still resolves. De-dupes while
+    preserving order."""
+    if _SYSTEM == "Darwin":
+        order = (mac, windows, linux)
+    elif _SYSTEM == "Linux":
+        order = (linux, mac, windows)
+    else:
+        order = (windows, mac, linux)
+    seen, out = set(), []
+    for group in order:
+        for name in group:
+            if name not in seen:
+                seen.add(name)
+                out.append(name)
+    return out
+
+
 font_aliases = {
     "consolas": ["consola", "consolas"],
     "menlo": ["menlo"],
@@ -20,14 +43,49 @@ font_aliases = {
     "courier_new": ["cour", "courier"],
     "comic sans ms": ["comic", "comicz"],
     "comic_sans_ms": ["comic", "comicz"],
-    # Add monospace support with prioritized common monospace fonts
-    "monospace": [
-        "consola", "consolas", "menlo", "dejavu sans mono", "liberation mono", "courier new", "monaco", "andale mono", "ubuntu mono", "source code pro"
-    ],
+    # CSS generic family names. Each maps to a prioritized list of
+    # platform-typical fonts so consumers can write
+    # `font_family="serif"` portably; the active OS's fonts are tried
+    # first via _by_os so Mac picks Helvetica before Arial, etc.
+    "monospace": _by_os(
+        windows=["consola", "consolas", "courier new"],
+        mac=["menlo", "monaco", "sfmono", "andale mono"],
+        linux=[
+            "dejavu sans mono", "liberation mono", "ubuntu mono",
+            "source code pro",
+        ],
+    ),
+    "serif": _by_os(
+        windows=["times", "timesnewroman", "georgia", "cambria", "constantia"],
+        mac=["times", "georgia", "cochin", "didot", "baskerville"],
+        linux=[
+            "dejavu serif", "liberation serif", "noto serif", "freeserif",
+        ],
+    ),
+    "sans-serif": _by_os(
+        windows=["segoeui", "arial", "verdana", "tahoma", "calibri"],
+        mac=[
+            "helvetica", "sfns", "applesystem", "lucidagrande", "arial",
+        ],
+        linux=[
+            "dejavu sans", "liberation sans", "noto sans", "ubuntu",
+            "roboto", "cantarell",
+        ],
+    ),
+    "system-ui": _by_os(
+        windows=["segoeui"],
+        mac=["sfns", "sf pro", "helvetica neue", "helvetica"],
+        linux=["cantarell", "ubuntu", "noto sans", "dejavu sans"],
+    ),
     "segoe ui": ["segoeui", "segoeuib", "segoeuil", "segoeuisl", "segoeuiz", "segoeuiblack"],
     "segoe_ui": ["segoeui", "segoeuib", "segoeuil", "segoeuisl", "segoeuiz", "segoeuiblack"],
     "times new roman": ["times", "timesnewroman"],
 }
+
+# Underscore aliases for the hyphenated CSS names (some consumers can't
+# pass hyphens through ui_elements property names).
+font_aliases["sans_serif"] = font_aliases["sans-serif"]
+font_aliases["system_ui"] = font_aliases["system-ui"]
 
 # Cross-platform font equivalents - ordered by preference
 platform_equivalents = {
@@ -137,6 +195,24 @@ def find_installed_font(font_family: str, font_weight: str = None) -> str | None
 
     return candidates[0][1] if candidates else None
 
+def _try_load_typeface(font_path: str) -> Typeface | None:
+    """Load a Typeface from a path, swallowing any failure. Returns None
+    if the file isn't a usable font (corrupt, unsupported format, the
+    aliasing glob picked up something that looks like a font but isn't).
+    Lets callers fall through to the next fallback instead of crashing
+    the whole render."""
+    try:
+        return Typeface.from_file(font_path, 0)
+    except TypeError:
+        # Older Talon Typeface.from_file signature (no face_index arg).
+        try:
+            return Typeface.from_file(font_path)
+        except Exception:
+            return None
+    except Exception:
+        return None
+
+
 def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     key = (font_family, font_weight)
     if key in font_cache:
@@ -145,12 +221,10 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     font_path = find_installed_font(font_family, font_weight)
     log("Found font path:", font_path)
     if font_path:
-        try:
-            typeface = Typeface.from_file(font_path, 0)
-        except TypeError:
-            typeface = Typeface.from_file(font_path)
-        font_cache[key] = typeface
-        return typeface
+        typeface = _try_load_typeface(font_path)
+        if typeface is not None:
+            font_cache[key] = typeface
+            return typeface
 
     # Try platform equivalents before giving up
     equivalents = platform_equivalents.get(font_family.lower(), [])
@@ -158,13 +232,11 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
         log(f"Trying platform equivalent: {equivalent}")
         equiv_path = find_installed_font(equivalent, font_weight)
         if equiv_path:
-            print(f"Font '{font_family}' not found, using platform equivalent '{equivalent}'")
-            try:
-                typeface = Typeface.from_file(equiv_path, 0)
-            except TypeError:
-                typeface = Typeface.from_file(equiv_path)
-            font_cache[key] = typeface
-            return typeface
+            typeface = _try_load_typeface(equiv_path)
+            if typeface is not None:
+                print(f"Font '{font_family}' not found, using platform equivalent '{equivalent}'")
+                font_cache[key] = typeface
+                return typeface
 
     # Only log the error once per font to avoid console spam
     if font_family not in _logged_font_errors:
@@ -172,6 +244,8 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
         print(f"Font '{font_family}' not found. Use one of:")
         for font in list_available_fonts():
             print("  ", font)
+    # Cache the miss so we don't redo all that scanning on every render.
+    font_cache[key] = None
     return None
 
 def reset_font_state():

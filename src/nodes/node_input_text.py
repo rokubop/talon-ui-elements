@@ -65,6 +65,14 @@ class NodeInputText(Node):
         )
 
     def v2_render_decorator(self, c, transforms: RenderTransforms = None):
+        # When an ancestor sets `highlight_style`, the ancestor's
+        # `uses_decoration_render` propagates to children, so this input's
+        # `v2_render` (which calls _setup_custom_input) never fires. Do the
+        # full setup + paint here so the input still registers with
+        # custom_input_manager and shows its value / accepts focus.
+        self.v2_render_background(c, transforms)
+        self.v2_render_borders(c, transforms)
+        self._setup_custom_input()
         self._render_custom_input_text(c, transforms)
 
     def v2_render(self, c: SkiaCanvas, transforms: RenderTransforms = None):

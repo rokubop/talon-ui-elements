@@ -18,7 +18,9 @@ class NodeContainer(Node, NodeContainerType):
         super().__init__(element_type=element_type, properties=properties)
         if self.properties.on_click:
             self.on_click = self.properties.on_click
-            self.interactive = True
+            self.disabled = self.properties.disabled or False
+            self.interactive = not self.disabled
+            self.focusable = self.interactive
             self.is_hovering = False
         self.justify_between_gaps = None
         self.wrap_lines = None
@@ -269,10 +271,16 @@ class NodeContainer(Node, NodeContainerType):
             # Consider: shouldn't this just grow content children to the growth we did above?
             # Regardless of stretch or not.
             # if self.properties.align_items == "stretch":
+            # Skip the maximize on a scrollable axis: clamping
+            # calculated_content_children_size to our own content size
+            # wipes out the overflow signal that resolve_scroll_bar_*_rects
+            # needs to detect that a scrollbar should appear.
             if self.properties.flex_direction == "row":
-                self.box_model.maximize_content_children_height()
+                if not self.properties.overflow.scrollable_y:
+                    self.box_model.maximize_content_children_height()
             elif self.properties.flex_direction == "column":
-                self.box_model.maximize_content_children_width()
+                if not self.properties.overflow.scrollable_x:
+                    self.box_model.maximize_content_children_width()
 
         # Grow justification / primary axis
         if growable_primary_axis_flex:
@@ -299,9 +307,11 @@ class NodeContainer(Node, NodeContainerType):
                             additional_size = min(additional_size, max(0, max_additional))
                     grow_function(child, additional_size)
                 if flex_direction == "row":
-                    self.box_model.maximize_content_children_width()
+                    if not self.properties.overflow.scrollable_x:
+                        self.box_model.maximize_content_children_width()
                 elif flex_direction == "column":
-                    self.box_model.maximize_content_children_height()
+                    if not self.properties.overflow.scrollable_y:
+                        self.box_model.maximize_content_children_height()
 
         for child in self.participating_children_nodes:
             if not child.box_model:
@@ -406,23 +416,58 @@ class NodeContainer(Node, NodeContainerType):
                 getattr(children_accumulated_size, primary_axis) + getattr(child.box_model.margin_size, primary_axis)
             )
 
+        # Single pass over children to gather everything the constrain loop and
+        # the post-constrain accumulation step need:
+        #   total_inter_child_gap  - reserved for gaps so flex children don't
+        #                            overflow the parent by gap * (n-1)
+        #   remaining_non_flex_intrinsic - reserved so flex children don't eat
+        #                                  the space non-flex siblings need
+        #   total_flex_calc / non_flex_calc / total_flex_weight - used to
+        #                          detect when grow phase put more into the
+        #                          children than parent's actual content can
+        #                          hold and we need to redistribute proportionally
+        # Both branches below (with/without constraint) reuse total_inter_child_gap
+        # in the post-constrain accumulate step, so this runs unconditionally.
+        fixed_gap = self.determine_intrinsic_fixed_gap()
+        total_inter_child_gap = 0
+        remaining_non_flex_intrinsic = 0
+        total_flex_calc = 0
+        total_non_flex_calc = 0
+        total_flex_weight = 0
+        last_idx = len(participating_children_nodes) - 1
+        for i, child in enumerate(participating_children_nodes):
+            bm = child.box_model
+            calc_primary = getattr(bm.calculated_margin_size, primary_axis)
+            if child.properties.flex:
+                total_flex_calc += calc_primary
+                total_flex_weight += child.properties.flex
+            else:
+                total_non_flex_calc += calc_primary
+                remaining_non_flex_intrinsic += getattr(
+                    bm.intrinsic_margin_size, primary_axis
+                )
+            if i < last_idx:
+                total_inter_child_gap += self.gap_between_elements(
+                    child, i, fixed_gap
+                )
+
         if content_constraint_size:
             new_available_size = content_constraint_size.copy()
 
-            # Reserve space for non-flex children so flex children don't consume
-            # all available space. Without this, a flex child with large intrinsic
-            # content (e.g. scrollable text) would constrain to the full available
-            # height, leaving 0 for non-flex siblings like a bottom bar.
-            # Track remaining unprocessed non-flex intrinsic size so we don't
-            # double-subtract for non-flex children already consumed from available.
             available_primary = getattr(new_available_size, primary_axis)
-            remaining_non_flex_intrinsic = 0
-            if available_primary is not None:
-                for child in participating_children_nodes:
-                    if not child.properties.flex:
-                        remaining_non_flex_intrinsic += getattr(
-                            child.box_model.intrinsic_margin_size, primary_axis
-                        )
+            if available_primary is not None and total_inter_child_gap > 0:
+                available_primary = max(0, available_primary - total_inter_child_gap)
+                setattr(new_available_size, primary_axis, available_primary)
+
+            flex_overflows = (
+                available_primary is not None
+                and total_flex_weight > 0
+                and (total_flex_calc + total_non_flex_calc) > available_primary
+            )
+            flex_proportional_budget = (
+                max(0, available_primary - total_non_flex_calc)
+                if flex_overflows else None
+            )
 
             for child in participating_children_nodes:
                 child_available = new_available_size
@@ -438,6 +483,12 @@ class NodeContainer(Node, NodeContainerType):
                             pct_value = min(pct_value, max(0, remaining))
                         child_available = new_available_size.copy()
                         setattr(child_available, primary_axis, pct_value)
+                elif child.properties.flex and flex_overflows:
+                    # Total flex calc exceeds available - distribute the actual
+                    # available space proportional to flex weights, not order.
+                    flex_share = flex_proportional_budget * (child.properties.flex / total_flex_weight)
+                    child_available = new_available_size.copy()
+                    setattr(child_available, primary_axis, flex_share)
                 elif child.properties.flex and available_primary is not None:
                     # Cap flex child's available space to leave room for
                     # not-yet-processed non-flex siblings
@@ -456,51 +507,70 @@ class NodeContainer(Node, NodeContainerType):
                     child.v2_constrain_size(no_shrink_size)
                 else:
                     child.v2_constrain_size(child_available)
+                # Charge the running budget the SMALLER of intrinsic vs
+                # post-constrain margin. Why min:
+                #   - text wrap GROWS a child past intrinsic (column case):
+                #     post-margin > intrinsic → charging post-margin would
+                #     squish siblings. Use intrinsic.
+                #   - container constrain SHRINKS a child below intrinsic
+                #     (row case with unwrapped text): post-margin < intrinsic
+                #     → charging intrinsic would zero the budget for the
+                #     next sibling. Use post-margin.
+                # The min picks the right one in each direction. Children
+                # that grew render past their slot; the container's
+                # "Grow if children grew" block below absorbs the overflow.
                 if is_row and new_available_size.width != None:
-                    new_available_size.width = max(0, new_available_size.width - child.box_model.margin_size.width)
+                    used = min(child.box_model.margin_size.width, child.box_model.intrinsic_margin_size.width)
+                    new_available_size.width = max(0, new_available_size.width - used)
                 elif not is_row and new_available_size.height != None:
-                    new_available_size.height = max(0, new_available_size.height - child.box_model.margin_size.height)
+                    used = min(child.box_model.margin_size.height, child.box_model.intrinsic_margin_size.height)
+                    new_available_size.height = max(0, new_available_size.height - used)
                 # Decrement remaining reservation as non-flex children are processed
                 if not child.properties.flex and available_primary is not None:
+                    used_primary = min(
+                        getattr(child.box_model.margin_size, primary_axis),
+                        getattr(child.box_model.intrinsic_margin_size, primary_axis),
+                    )
                     remaining_non_flex_intrinsic = max(0,
-                        remaining_non_flex_intrinsic - getattr(
-                            child.box_model.margin_size, primary_axis
-                        ))
+                        remaining_non_flex_intrinsic - used_primary)
                 accumulate(child)
         else:
             for child in participating_children_nodes:
                 child.v2_constrain_size()
                 accumulate(child)
 
-        fixed_gap = self.determine_intrinsic_fixed_gap()
-        for i, child in enumerate(participating_children_nodes):
-            if i != len(participating_children_nodes) - 1:
-                gap = self.gap_between_elements(child, i, fixed_gap)
-                setattr(
-                    children_accumulated_size,
-                    primary_axis,
-                    getattr(children_accumulated_size, primary_axis) + gap
-                )
+        if total_inter_child_gap:
+            setattr(
+                children_accumulated_size,
+                primary_axis,
+                getattr(children_accumulated_size, primary_axis) + total_inter_child_gap,
+            )
 
         self.box_model.shrink_content_children_size(children_accumulated_size)
 
-        # Grow if children grew during constrain (e.g. text word-wrap)
-        accumulated_height = children_accumulated_size.height
-        current_height = self.box_model.content_children_size.height
-        if accumulated_height > current_height:
-            delta = accumulated_height - current_height
-            self.box_model.content_children_size.height = accumulated_height
-            # Grow container outer sizes only if height is unconstrained
-            if not self.properties.height and not self.properties.max_height:
-                max_margin = self.box_model.margin_size.height + delta
-                if available_size and available_size.height is not None:
-                    max_margin = min(max_margin, available_size.height)
-                capped_delta = max_margin - self.box_model.margin_size.height
-                if capped_delta > 0:
-                    self.box_model.content_size.height += capped_delta
-                    self.box_model.padding_size.height += capped_delta
-                    self.box_model.border_size.height += capped_delta
-                    self.box_model.margin_size.height += capped_delta
+        # Grow if children grew during constrain (e.g. text word-wrap).
+        # Applied to both axes for symmetry: column containers usually only
+        # see height growth (text wrap), but a row container with a child
+        # that grew its primary axis during constrain needs the same fix.
+        # max_<axis> caps the grow rather than gating it -- properties.<axis>
+        # set explicitly does gate it (caller pinned a fixed size).
+        for axis in ("height", "width"):
+            accumulated = getattr(children_accumulated_size, axis)
+            current = getattr(self.box_model.content_children_size, axis)
+            if accumulated <= current:
+                continue
+            setattr(self.box_model.content_children_size, axis, accumulated)
+            pinned = bool(self.properties.height if axis == "height" else self.properties.width)
+            if pinned:
+                continue
+            avail_along = None
+            if available_size is not None:
+                avail_along = available_size.height if axis == "height" else available_size.width
+            self.box_model.grow_outer_to_fit_delta(
+                axis=axis,
+                delta=accumulated - current,
+                available_along_axis=avail_along,
+            )
 
     def v2_layout(self, cursor: Cursor) -> Size2d:
         if not self.box_model:

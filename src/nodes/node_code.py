@@ -3,7 +3,7 @@ from talon.types import Rect
 from .node_text import NodeText
 from ..properties import NodeCodeProperties
 from ..syntax import (
-    tokenize_line, resolve_theme, TOKEN_TEXT,
+    tokenize, tokenize_line, resolve_theme, TOKEN_TEXT,
     TOKEN_DIFF_ADD, TOKEN_DIFF_ADD_BG,
     TOKEN_DIFF_REMOVE, TOKEN_DIFF_REMOVE_BG,
     TOKEN_DIFF_HUNK, TOKEN_DIFF_HUNK_BG,
@@ -33,6 +33,13 @@ class NodeCode(NodeText):
         self.language = properties.language or "python"
         self.theme = resolve_theme(properties.theme)
         self.diff = properties.diff
+        # Pre-tokenize the whole text up front so multi-line constructs
+        # (triple-quoted strings, eventually multi-line comments) get
+        # tokenized with cross-line state. Indexed by line number; used by
+        # _draw_text_lines for the non-diff path.
+        self.tokenized_lines = (
+            tokenize(text, self.language) if text and not self.diff else []
+        )
 
     def _make_code_paint(self):
         paint = self._make_paint()
@@ -94,7 +101,11 @@ class NodeCode(NodeText):
                         paint.color = text_color
                         c.draw_text(prefix, top_left.x, y, paint)
                 else:
-                    self._draw_tokenized_line(c, paint, line_text, top_left.x, y, default_color)
+                    pre_tokens = (
+                        self.tokenized_lines[i]
+                        if i < len(self.tokenized_lines) else None
+                    )
+                    self._draw_tokenized_line(c, paint, line_text, top_left.x, y, default_color, tokens=pre_tokens)
         else:
             y = top_left.y + self.text_line_height
             if self.diff:
@@ -112,11 +123,18 @@ class NodeCode(NodeText):
                     paint.color = text_color
                     c.draw_text(prefix, top_left.x, y, paint)
             else:
-                self._draw_tokenized_line(c, paint, self.text, top_left.x, y, default_color)
+                pre_tokens = (
+                    self.tokenized_lines[0]
+                    if self.tokenized_lines else None
+                )
+                self._draw_tokenized_line(c, paint, self.text, top_left.x, y, default_color, tokens=pre_tokens)
 
-    def _draw_tokenized_line(self, c, paint, line_text, x, y, default_color):
-        """Draw a single line with syntax coloring."""
-        tokens = tokenize_line(line_text, self.language)
+    def _draw_tokenized_line(self, c, paint, line_text, x, y, default_color, tokens=None):
+        """Draw a single line with syntax coloring. `tokens` may be passed
+        when the caller has already computed cross-line tokenization (so
+        triple-quoted string state carries across lines)."""
+        if tokens is None:
+            tokens = tokenize_line(line_text, self.language)
 
         for token_text, token_type in tokens:
             if not token_text:

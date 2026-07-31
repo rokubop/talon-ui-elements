@@ -1,90 +1,129 @@
+import traceback
 from talon import actions
 from .node_container import NodeContainer
 from ..constants import ELEMENT_ENUM_TYPE
-from ..properties import Properties
+from ..properties import NodeModalProperties
 
-# Experimental - WIP
+
+# Props that shape the user's content area (inner body div). Everything else
+# is treated as panel-level (visual chrome, sizing, cascade-able color/font).
+# Putting padding/gap/flex on the inner body keeps the title bar flush against
+# the panel edges instead of being indented by the user's content padding.
+_BODY_PROPS = {
+    "padding", "padding_top", "padding_right", "padding_bottom", "padding_left",
+    "padding_x", "padding_y",
+    "gap",
+    "flex_direction", "justify_content", "align_items",
+    "flex_wrap",
+}
+
+
 class NodeModal(NodeContainer):
-    def __init__(self, modal_properties: Properties = None, contents_properties: dict = None):
-        # self.children_nodes = []
-        div, icon, button, text = actions.user.ui_elements(["div", "icon", "button", "text"])
+    """Full-viewport overlay layer. When `open=True` adds a backdrop and a
+    centered content panel; when `open=False` collapses to a zero-footprint
+    placeholder so reactive open=True re-renders work without leaving any
+    invisible click target behind."""
 
-        # Use the open property to determine visibility
-        self.is_open = modal_properties.open if hasattr(modal_properties, 'open') else False
-        self.on_close = modal_properties.on_close if hasattr(modal_properties, 'on_close') else None
-        self.show_title_bar = modal_properties.show_title_bar if hasattr(modal_properties, 'show_title_bar') else True
+    def __init__(self, modal_properties: NodeModalProperties, content_properties: dict):
+        is_open = bool(modal_properties.open)
 
-        # Initialize with provided properties
-        super().__init__(element_type=ELEMENT_ENUM_TYPE["modal"], properties=modal_properties)
+        if not is_open:
+            # Closed: don't take up the viewport, don't hit-test, don't render.
+            modal_properties.position = "static"
+            modal_properties.width = 0
+            modal_properties.height = 0
+            super().__init__(
+                element_type=ELEMENT_ENUM_TYPE["modal"],
+                properties=modal_properties,
+            )
+            self.body = None
+            self.backdrop_node = None
+            self.panel_node = None
+            return
 
-        if not self.is_open:
-            return None
+        super().__init__(
+            element_type=ELEMENT_ENUM_TYPE["modal"],
+            properties=modal_properties,
+        )
+        self.backdrop_node = None
+        self.panel_node = None
 
-        def on_close_modal():
-            if self.on_close:
-                self.on_close()
+        div, button, text, icon = actions.user.ui_elements(
+            ["div", "button", "text", "icon"]
+        )
 
-        def create_backdrop():
-            if hasattr(modal_properties, 'backdrop') and modal_properties.backdrop is False:
-                return div()
+        on_close_cb = modal_properties.on_close
+        modal_z = modal_properties.z_index or 0
 
-            backdrop_color = modal_properties.backdrop_color if hasattr(modal_properties, 'backdrop_color') else "00000080"
-            backdrop_click_close = modal_properties.backdrop_click_close if hasattr(modal_properties, 'backdrop_click_close') else True
+        def fire_close(*_):
+            if on_close_cb:
+                try:
+                    on_close_cb()
+                except Exception:
+                    traceback.print_exc()
 
-            return button(
-                position="fixed",
-                top=0,
-                left=0,
-                width="100%",
-                height="100%",
-                highlight_color="00000000",
-                background_color=backdrop_color,
-                z_index=1,
-                on_click=on_close_modal if backdrop_click_close else None
+        if modal_properties.backdrop:
+            # Use "fixed" (root-relative) rather than "absolute" (modal-relative)
+            # so nonlayout_flow can lay it out without depending on the modal's
+            # box_model already being computed (it's also a fixed node).
+            backdrop_props = {
+                "position": "fixed",
+                "top": 0,
+                "left": 0,
+                "width": "100%",
+                "height": "100%",
+                "background_color": modal_properties.backdrop_color,
+                "highlight_color": "00000000",
+            }
+            if modal_properties.backdrop_click_close and on_close_cb:
+                backdrop_props["on_click"] = fire_close
+                backdrop = button(**backdrop_props)
+            else:
+                backdrop = div(**backdrop_props)
+            self.backdrop_node = backdrop
+            self.add_child(backdrop)
+
+        panel_props = {k: v for k, v in content_properties.items() if k not in _BODY_PROPS}
+        body_props = {k: v for k, v in content_properties.items() if k in _BODY_PROPS}
+
+        # The +1 explicit z_index beats the backdrop's higher z_subindex (from
+        # being a fixed-position node) so the panel always renders on top.
+        panel = div(**panel_props, z_index=modal_z + 1)
+
+        if modal_properties.show_title_bar:
+            title_bar_children = [
+                text(modal_properties.title or "", padding=8, padding_left=10),
+            ]
+            if on_close_cb:
+                title_bar_children.append(
+                    button(
+                        on_click=fire_close,
+                        padding=8,
+                        padding_left=12,
+                        padding_right=12,
+                    )[icon("close", stroke_width=1, size=20)]
+                )
+            panel.add_child(
+                div(
+                    background_color="272727",
+                    flex_direction="row",
+                    justify_content="space_between",
+                    align_items="center",
+                )[title_bar_children]
             )
 
-        def title_bar():
-            if not self.show_title_bar:
-                return None
+        self.body = div(**body_props)
+        panel.add_child(self.body)
+        self.panel_node = panel
+        self.add_child(panel)
 
-            return div(background_color="272727", flex_direction="row", justify_content="space_between", align_items="center")[
-                text(modal_properties.title or "", padding=8, padding_left=10),
-                div(flex_direction="row")[
-                    button(on_click=on_close_modal, padding=8, padding_left=12, padding_right=12)[
-                        icon("close", stroke_width=1, size=20),
-                    ],
-                ],
-            ]
-
-        self.body = div(contents_properties)
-
-        # Add backdrop if needed
-        # backdrop_element = create_backdrop()
-        # if backdrop_element:
-        #     self.add_child(backdrop_element)
-
-        # # Add title bar if needed
-        # if self.show_title_bar:
-        #     title_bar_element = title_bar()
-        #     if title_bar_element:
-        #         self.add_child(title_bar_element)
-
-        # Add content container
-        self.add_child(self.body)
-
-    def __getitem__(self, children_nodes=None):
-        if not self.is_open:
-            self.children_nodes = []
+    def __getitem__(self, children=None):
+        if self.body is None:
             return self
-
-        if children_nodes is None:
-            children_nodes = []
-
-        if not isinstance(children_nodes, list):
-            children_nodes = [children_nodes]
-
-        for node in children_nodes:
-            print(f"Adding child node: {node}")
-            self.body.add_child(node)
-
+        if children is None:
+            children = []
+        if not isinstance(children, list):
+            children = [children]
+        for child in children:
+            self.body.add_child(child)
         return self

@@ -268,12 +268,27 @@ def icon_star(props=None, **additional_props):
         ]
     ]
 
+def icon_missing(props=None, **additional_props):
+    div = actions.user.ui_elements("div")
+    svg, rect, path, circle = actions.user.ui_elements_svg(["svg", "rect", "path", "circle"])
+
+    div_props, svg_props = parse_icon_properties(props, **additional_props)
+
+    return div(**div_props)[
+        svg(**svg_props)[
+            rect(x=3, y=3, width=18, height=18, rx=2, ry=2),
+            path(d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .8-1 1.7v.3"),
+            circle(cx=12, cy=17, r=1, fill=True),
+        ]
+    ]
+
 ICON_CUSTOM_SVG = {
     "check": icon_check,
     "clock": icon_clock,
     "copy": icon_copy,
     "home": icon_home,
     "minus": icon_minus,
+    "missing": icon_missing,
     "more_horizontal": more_horizontal,
     "more_vertical": more_vertical,
     "pause": icon_pause,
@@ -308,12 +323,12 @@ def icon(name: str, props=None, **additional_props):
         **(props or {})
     }
 
-    if name not in VALID_ICON_NAMES:
-        raise ValueError(f"Invalid icon name: {name}. Valid icon names are: \n{list(ICON_SVG_PATH_ONLY.keys())}")
-
     validate_combined_props(default_props, additional_props, ELEMENT_ENUM_TYPE["icon"])
 
     if name in ICON_SVG_PATH_ONLY:
         return icon_svg_single_path_stroke(name, props, **additional_props)
     if name in ICON_CUSTOM_SVG:
         return ICON_CUSTOM_SVG[name](props, **additional_props)
+
+    print(f"ui_elements: unknown icon '{name}', rendering placeholder. Valid names: {sorted(VALID_ICON_NAMES)}")
+    return icon_missing(props, **additional_props)

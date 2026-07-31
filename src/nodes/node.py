@@ -34,7 +34,6 @@ from ..interfaces import (
     Size2d,
 )
 from ..properties import Properties
-from ..utils import sanitize_string
 
 STYLE_MAP = {
     "highlight": "highlight_style",
@@ -53,7 +52,7 @@ class Node(NodeType):
         self.cascaded_properties = set()
         self.guid: str = uuid.uuid4().hex
         self.class_name: str = None
-        self.id: str = sanitize_string(self.properties.id) if self.properties.id else None
+        self.id: str = self.properties.id or None
         self.is_uniform_border = True
         self.key: str = self.properties.key
         self.node_type: NodeEnumType = NODE_TYPE_MAP[element_type]

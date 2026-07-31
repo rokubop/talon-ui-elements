@@ -104,8 +104,10 @@ def build_preview_props(controls_spec, controls_state):
         val = controls_state[name][0]
 
         if ctrl_type == BOOL:
-            if val:
-                props[name] = True
+            # Always pass bools: stripping False would flip controlled
+            # elements (e.g. checkbox) into uncontrolled mode, where they
+            # fall back to local state and desync from the controls panel.
+            props[name] = bool(val)
         elif ctrl_type == COLOR:
             if _is_valid_color(val):
                 props[name] = val
