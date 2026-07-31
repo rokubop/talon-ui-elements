@@ -251,18 +251,15 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
 _paint_cache = {}
 _PAINT_CACHE_MAX = 256
 
-# Text measurement caches (populated by node_text). Live here so
-# reset_font_state clears them together with the paint cache - measurements
-# taken against a fallback typeface must not survive a font retry.
+# populated by node_text; cleared with the paint cache so fallback-typeface
+# measurements don't survive a font retry
 line_height_cache = {}
 text_width_cache = {}
 TEXT_WIDTH_CACHE_MAX = 4096
 
 def get_text_paint(font_size, font_family, font_weight, font_style="normal") -> "Paint":
-    """Shared, cached Paint configured for a font. Callers may set per-use
-    fields (color, style, stroke_width) freely - those are reassigned on every
-    use - but must restore font fields (e.g. embolden) if they toggle them.
-    All canvas draw/measure work happens on Talon's UI thread, so sharing is safe."""
+    """Cached shared Paint per font. Per-use fields (color, style, stroke_width)
+    are safe to set; restore font fields (embolden) if toggled."""
     from talon.skia.paint import Paint
     key = (font_size, font_family, font_weight, font_style)
     paint = _paint_cache.get(key)

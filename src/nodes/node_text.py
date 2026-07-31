@@ -79,7 +79,6 @@ class NodeText(Node):
         try:
             line_height = paint.measure_text("X")[1].height
         finally:
-            # paint is shared via get_text_paint - never leave it poisoned
             paint.font.embolden = was_bold
         line_height_cache[key] = line_height
         return line_height

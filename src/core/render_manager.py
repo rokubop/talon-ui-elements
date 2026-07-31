@@ -63,14 +63,11 @@ def on_decorator_canvas_change(tree: TreeType):
     if tree.canvas_decorator:
         tree.request_decorator_freeze()
     else:
-        # No decorator canvas yet - render_decorator_canvas creates it and
-        # freezes immediately, so this task can't get stuck as current forever.
+        # create + freeze now, else this task stays current forever
         tree.render_decorator_canvas()
 
 def on_decorator_canvas_change_immediate(tree: TreeType):
-    # For human-driven causes (mouse hover, resize ghost): freeze now instead
-    # of riding the coalescing window - a deferred repaint reads as input lag.
-    # These causes are already rate-limited by their own throttles.
+    # hover/resize must not ride the coalescing window - deferred hover reads as lag
     tree.render_manager.expect_decorator_completion()
     tree.render_decorator_canvas()
 
@@ -182,10 +179,8 @@ class RenderManager(RenderManagerType):
                 self.queue.append(render_task)
 
     def _coalesce_queued(self, render_task: RenderTask) -> bool:
-        """TAKE_LATEST: a queued task of the same group will repaint the same
-        thing, so drop the new one (keeping its latest args/metadata). Tasks
-        with completion callbacks are never collapsed - callers rely on every
-        on_end firing (e.g. StateCoordinator cycle accounting)."""
+        """Drop duplicate queued repaints. Tasks with on_end never collapse -
+        StateCoordinator relies on every callback firing."""
         if render_task.policy != Policy.TAKE_LATEST or render_task.on_end:
             return False
         for queued in self.queue:
@@ -249,12 +244,8 @@ class RenderManager(RenderManagerType):
         elif self._render_throttle_job:
             self._pending_throttled_task = render_task
         else:
-            # No throttle window armed but a render is in flight or a debounce
-            # job is pending. Park the task and arm a window, otherwise the
-            # tail update is silently dropped (e.g. a scroll ends mid-render
-            # and never paints its final position). In the debounce case the
-            # parked task queues after the window, alongside whatever the
-            # debounce queues - both should render.
+            # render in flight or debounce pending: park + arm a window,
+            # else the tail update is dropped (scroll stuck at non-final position)
             self._pending_throttled_task = render_task
             self._render_throttle_job = cron.after(
                 interval,
@@ -277,10 +268,8 @@ class RenderManager(RenderManagerType):
             self.current_render_task.on_start(self.tree, *self.current_render_task.args)
 
     def expect_decorator_completion(self):
-        """Mark that the in-flight render task has issued its own decorator
-        freeze, so the next decorator draw is allowed to complete it. Draws
-        caused by out-of-band freezes (highlights, focus changes) must not
-        complete a task that is still in its base-canvas phase."""
+        """The in-flight task issued its own decorator freeze. Out-of-band
+        freezes (highlight, focus) must not complete a task still in its base phase."""
         self._decorator_completion_expected = True
 
     def should_complete_on_decorator_draw(self):

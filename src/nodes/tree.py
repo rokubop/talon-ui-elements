@@ -1082,10 +1082,6 @@ class Tree(TreeType):
                             self.draw_hints(draw_canvas, transforms)
                     self.init_key_controls()
                     self.draw_blockable_canvases()
-                    # Only complete a render task (and fire its effects) when
-                    # this draw was caused by the task's own decorator freeze.
-                    # Out-of-band freezes (highlight, focus) must not complete
-                    # a task still in its base phase.
                     completing_task = self.render_manager.should_complete_on_decorator_draw()
                     if completing_task or not self.render_manager.is_rendering:
                         self.on_fully_rendered()
@@ -1094,7 +1090,7 @@ class Tree(TreeType):
                 if completing_task:
                     self.finish_current_render()
                 elif not self.render_manager.is_rendering:
-                    # Safety valve: drain anything stranded while idle.
+                    # drain anything stranded while idle
                     self.render_manager.process_next_render()
         except Exception as e:
             print(f"Error during decorator canvas rendering: {e}")
@@ -1380,9 +1376,8 @@ class Tree(TreeType):
         self.request_decorator_freeze()
 
     def _retarget_fading_highlight(self, id: str, color: str = None):
-        """A re-highlight while the fade-out transition is still running must
-        reverse the animation instead of being dropped by the already-highlighted
-        guard (the id stays in meta_state.highlighted for the whole fade-out)."""
+        """Reverse a fade-out on re-highlight. The id stays in highlighted
+        during the fade, so the guard would otherwise drop it."""
         anim = self.transition_manager.highlight_anims.get(id)
         if anim and anim.direction == "out":
             node = self.meta_state.id_to_node.get(id)
@@ -1448,8 +1443,7 @@ class Tree(TreeType):
             cron.cancel(job)
         self.highlight(id, color)
         def pending_unhighlight():
-            # Pop first: if the id was already unhighlighted by another path,
-            # unhighlight() early-returns and would strand this entry forever.
+            # pop first - unhighlight() early-returns if already unhighlighted, stranding the entry
             self.meta_state.unhighlight_jobs.pop(id, None)
             self.unhighlight(id)
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
@@ -1611,11 +1605,8 @@ class Tree(TreeType):
         return CanvasWeakRef(self.Canvas.from_rect(safe_rect))
 
     def request_decorator_freeze(self):
-        """Coalesced decorator-canvas repaint. Rapid decoration changes
-        (highlights, text mutations, transition ticks) collapse into at most
-        one freeze per DECORATOR_COALESCE_MS window: the first request paints
-        immediately (no added latency for isolated events), later requests
-        inside the window ride along on one trailing repaint."""
+        """Coalesced decorator repaint: first request paints immediately,
+        requests within DECORATOR_COALESCE_MS ride one trailing freeze."""
         if not self.canvas_decorator or self.render_manager.is_destroying or self.destroying:
             return
         if self._decorator_freeze_pending_job:
@@ -3510,8 +3501,7 @@ class Tree(TreeType):
             self.init_node_hierarchy(child_node, node_index_path + [segment], constraint_nodes, clip_nodes)
 
         if not node_index_path:
-            # Root call only: rebuilding the global id map per node makes the
-            # walk O(n^2) in tree size.
+            # root call only - per-node rebuild is O(n^2)
             entity_manager.synchronize_global_ids()
 
     def consume_effects(self):
