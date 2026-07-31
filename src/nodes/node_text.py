@@ -11,7 +11,6 @@ from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
 from ..fonts import (
     get_typeface,
-    get_text_paint,
     line_height_cache,
     text_width_cache,
     TEXT_WIDTH_CACHE_MAX,
@@ -61,12 +60,16 @@ class NodeText(Node):
         )
 
     def _make_paint(self):
-        return get_text_paint(
-            self.properties.font_size,
-            self.properties.font_family,
-            self.properties.font_weight,
-            self.properties.font_style,
-        )
+        paint = Paint()
+        paint.textsize = self.properties.font_size
+        if self.properties.font_family:
+            typeface = get_typeface(self.properties.font_family, self.properties.font_weight)
+            if typeface:
+                paint.typeface = typeface
+        paint.font.embolden = self.properties.font_weight == "bold"
+        if self.properties.font_style == "italic":
+            paint.font.skew_x = -0.25
+        return paint
 
     def _measure_line_height(self, paint):
         """Measure line height without embolden for consistent sizing."""

@@ -9,7 +9,7 @@ from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
-from .fonts import get_text_paint
+from .fonts import get_typeface
 from .border_radius import BorderRadius, draw_manual_rounded_rect_path
 
 def get_scale() -> float:
@@ -35,13 +35,17 @@ def scale_value(value: Union[int, float]) -> Union[int, float]:
         return value
 
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
-    paint = get_text_paint(
-        properties.font_size,
-        properties.font_family,
-        properties.font_weight,
-        getattr(properties, "font_style", "normal"),
-    )
+    paint = Paint()
+    paint.textsize = properties.font_size
     c.paint.antialias = True
+    if properties.font_family:
+        typeface = get_typeface(properties.font_family, properties.font_weight)
+        if typeface:
+            paint.typeface = typeface
+    if properties.font_weight == "bold":
+        paint.font.embolden = True
+    if getattr(properties, "font_style", "normal") == "italic":
+        paint.font.skew_x = -0.25
 
     if properties.stroke_color:
         paint.style = paint.Style.STROKE

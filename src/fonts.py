@@ -248,35 +248,11 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     font_cache[key] = None
     return None
 
-_paint_cache = {}
-_PAINT_CACHE_MAX = 256
-
-# populated by node_text; cleared with the paint cache so fallback-typeface
+# populated by node_text; cleared on font reset so fallback-typeface
 # measurements don't survive a font retry
 line_height_cache = {}
 text_width_cache = {}
 TEXT_WIDTH_CACHE_MAX = 4096
-
-def get_text_paint(font_size, font_family, font_weight, font_style="normal") -> "Paint":
-    """Cached shared Paint per font. Per-use fields (color, style, stroke_width)
-    are safe to set; restore font fields (embolden) if toggled."""
-    from talon.skia.paint import Paint
-    key = (font_size, font_family, font_weight, font_style)
-    paint = _paint_cache.get(key)
-    if paint is None:
-        paint = Paint()
-        paint.textsize = font_size
-        if font_family:
-            typeface = get_typeface(font_family, font_weight)
-            if typeface:
-                paint.typeface = typeface
-        paint.font.embolden = font_weight == "bold"
-        if font_style == "italic":
-            paint.font.skew_x = -0.25
-        if len(_paint_cache) >= _PAINT_CACHE_MAX:
-            _paint_cache.clear()
-        _paint_cache[key] = paint
-    return paint
 
 def reset_font_state():
     """Reset logged font errors so they can be shown again. Called by store.clear()."""
@@ -285,6 +261,5 @@ def reset_font_state():
     # drop negative entries so failed fonts actually retry; keep loaded typefaces
     for key in [k for k, v in font_cache.items() if v is None]:
         del font_cache[key]
-    _paint_cache.clear()
     line_height_cache.clear()
     text_width_cache.clear()
