@@ -13,7 +13,6 @@ from typing import Any, Callable, Optional
 from collections import defaultdict
 from dataclasses import dataclass
 
-from ..platform.mouse_proxy import try_create_mouse_proxy
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     DRAG_INIT_THRESHOLD,
@@ -91,12 +90,6 @@ def scroll_throttle_clear():
     if scroll_throttle_job:
         cron.cancel(scroll_throttle_job)
     scroll_throttle_job = None
-
-def _proxy_noop_mouse(e):
-    pass
-
-def _proxy_noop_scroll(e):
-    pass
 
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int = 0, scroll_x: int = 0):
@@ -600,11 +593,6 @@ class Tree(TreeType):
         self._prev_active_modal_id: Optional[str] = None
         self.canvas_base = None
         self.canvas_blockable = []
-        self._mouse_proxy = (
-            try_create_mouse_proxy(self.on_mouse, self.on_scroll)
-            if settings.get("user.ui_elements_mouse_use_pynput")
-            else None
-        )
         self.canvas_decorator = None
         self.current_base_canvas = None
         self.cursor = None
@@ -2985,15 +2973,9 @@ class Tree(TreeType):
 
     def destroy_blockable_canvas(self):
         if self.canvas_blockable:
-            if self._mouse_proxy:
-                self._mouse_proxy.stop()
             for canvas in self.canvas_blockable:
-                if self._mouse_proxy:
-                    canvas.unregister("mouse", _proxy_noop_mouse)
-                    canvas.unregister("scroll", _proxy_noop_scroll)
-                else:
-                    canvas.unregister("mouse", self.on_mouse)
-                    canvas.unregister("scroll", self.on_scroll)
+                canvas.unregister("mouse", self.on_mouse)
+                canvas.unregister("scroll", self.on_scroll)
                 canvas.close()
             self.is_blockable_canvas_init = False
             self.last_blockable_rects.clear()
@@ -3495,21 +3477,14 @@ class Tree(TreeType):
         return dimension_change, position_change
 
     def move_blockable_canvas_rects(self, blockable_rects, offset=Point2d):
-        moved_rects = []
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
                 x = rect.x + offset.x
                 y = rect.y + offset.y
                 self.canvas_blockable[i].move(x, y)
-                moved_rects.append(Rect(x, y, rect.width, rect.height))
         self.last_blockable_rects.clear()
         self.last_blockable_rects.extend(blockable_rects)
-        if self._mouse_proxy:
-            # Proxy rects must match the actual on-screen canvas positions,
-            # not the pre-drag blockable_rects, or buttons stop responding
-            # after the window is dragged to a new position.
-            self._mouse_proxy.update_rects(moved_rects or blockable_rects)
 
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
@@ -3606,22 +3581,9 @@ class Tree(TreeType):
                     canvas = CanvasWeakRef(self.Canvas.from_rect(rect))
                     self.canvas_blockable.append(canvas)
                     canvas.blocks_mouse = True
-                    if self._mouse_proxy:
-                        # Register no-op handlers so Talon treats the canvas
-                        # as mouse-active. Without at least one registered
-                        # callback, blocks_mouse can fail to fully claim the
-                        # click and focus leaks to the underlying window,
-                        # breaking keyboard routing to the decorator canvas
-                        # (text input typing, etc). pynput still does the
-                        # real event processing.
-                        canvas.register("mouse", _proxy_noop_mouse)
-                        canvas.register("scroll", _proxy_noop_scroll)
-                    else:
-                        canvas.register("mouse", self.on_mouse)
-                        canvas.register("scroll", self.on_scroll)
+                    canvas.register("mouse", self.on_mouse)
+                    canvas.register("scroll", self.on_scroll)
                     canvas.freeze()
-                if self._mouse_proxy and blockable_rects:
-                    self._mouse_proxy.start(blockable_rects)
         except Exception as e:
             print(f"talon_ui_elements draw_blockable_canvases error: {e}")
             self.destroy()

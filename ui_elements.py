@@ -5,7 +5,7 @@ from .src.core.state_manager import state_manager, debug_gc
 from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
-from .src.errors import show_error_if_not_compatible, show_error_if_pynput_missing
+from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.syntax import register_theme, register_language
 from .tests.test_runner_ui import runner_ui
@@ -75,9 +75,6 @@ class Actions:
         actions.user.ui_elements_show(ui, scale=1.5)
         ```
         """
-        if show_error_if_pynput_missing(renderer):
-            return
-
         if min_version and show_error_if_not_compatible(renderer, min_version):
             return
 
