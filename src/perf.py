@@ -1,6 +1,7 @@
 """Render hot-path counters, off by default. Not a public action - from the REPL:
 
     import sys
+    # module key follows your install path, e.g. "user.talon-ui-elements.src.perf"
     perf = sys.modules["user.roku.talon-ui-elements.src.perf"].perf
     perf.enabled = True; perf.reset()
     perf.stats()   # draws/sec, coalesced freezes, avg draw ms

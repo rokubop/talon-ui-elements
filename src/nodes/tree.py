@@ -1384,7 +1384,7 @@ class Tree(TreeType):
         self.meta_state.set_highlighted(id, color)
         self.request_decorator_freeze()
 
-    def _retarget_fading_highlight(self, id: str):
+    def _retarget_fading_highlight(self, id: str, color: str = None):
         """A re-highlight while the fade-out transition is still running must
         reverse the animation instead of being dropped by the already-highlighted
         guard (the id stays in meta_state.highlighted for the whole fade-out)."""
@@ -1392,13 +1392,15 @@ class Tree(TreeType):
         if anim and anim.direction == "out":
             node = self.meta_state.id_to_node.get(id)
             if node and node.properties.transition and node.properties.highlight_style:
+                if color is not None:
+                    self.meta_state.set_highlighted(id, color)
                 self.transition_manager.start_highlight(id, node, "in")
                 return True
         return False
 
     def highlight_no_render(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
-            self._retarget_fading_highlight(id)
+            self._retarget_fading_highlight(id, color)
             return
         self.meta_state.set_highlighted(id, color)
         node = self.meta_state.id_to_node.get(id)
@@ -1407,7 +1409,7 @@ class Tree(TreeType):
 
     def highlight(self, id: str, color: str = None):
         if id in self.meta_state.highlighted:
-            if self._retarget_fading_highlight(id):
+            if self._retarget_fading_highlight(id, color):
                 self.request_decorator_freeze()
             return
 

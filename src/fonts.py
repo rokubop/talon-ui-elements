@@ -251,6 +251,13 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
 _paint_cache = {}
 _PAINT_CACHE_MAX = 256
 
+# Text measurement caches (populated by node_text). Live here so
+# reset_font_state clears them together with the paint cache - measurements
+# taken against a fallback typeface must not survive a font retry.
+line_height_cache = {}
+text_width_cache = {}
+TEXT_WIDTH_CACHE_MAX = 4096
+
 def get_text_paint(font_size, font_family, font_weight, font_style="normal") -> "Paint":
     """Shared, cached Paint configured for a font. Callers may set per-use
     fields (color, style, stroke_width) freely - those are reassigned on every
@@ -279,3 +286,5 @@ def reset_font_state():
     global _logged_font_errors
     _logged_font_errors.clear()
     _paint_cache.clear()
+    line_height_cache.clear()
+    text_width_cache.clear()

@@ -9,18 +9,17 @@ from ..core.state_manager import state_manager
 from ..interfaces import Size2d, RenderTransforms
 from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
-from ..fonts import get_typeface, get_text_paint
+from ..fonts import (
+    get_typeface,
+    get_text_paint,
+    line_height_cache,
+    text_width_cache,
+    TEXT_WIDTH_CACHE_MAX,
+)
 from ..text_utils import binary_search_cursor, wrap_lines
 from ..utils import draw_text_simple
 
 ElementType = Literal['button', 'text', 'link']
-
-# Measurement caches. Text measurement is pure in (text, font attrs), and
-# full renders re-measure every text node from scratch - at high render rates
-# identical labels re-measure hundreds of times per second without these.
-_line_height_cache = {}
-_text_width_cache = {}
-_TEXT_WIDTH_CACHE_MAX = 4096
 
 class NodeText(Node):
     def __init__(self, element_type, text: str, properties: NodeTextProperties = None):
@@ -72,14 +71,17 @@ class NodeText(Node):
     def _measure_line_height(self, paint):
         """Measure line height without embolden for consistent sizing."""
         key = self._font_cache_key()
-        cached = _line_height_cache.get(key)
+        cached = line_height_cache.get(key)
         if cached is not None:
             return cached
         was_bold = paint.font.embolden
         paint.font.embolden = False
-        line_height = paint.measure_text("X")[1].height
-        paint.font.embolden = was_bold
-        _line_height_cache[key] = line_height
+        try:
+            line_height = paint.measure_text("X")[1].height
+        finally:
+            # paint is shared via get_text_paint - never leave it poisoned
+            paint.font.embolden = was_bold
+        line_height_cache[key] = line_height
         return line_height
 
     def _get_line_gap(self):
@@ -122,14 +124,14 @@ class NodeText(Node):
             # Single line - append sentinel to accurately measure leading/trailing spaces
             if text:
                 key = (self._font_cache_key(), text)
-                cached = _text_width_cache.get(key)
+                cached = text_width_cache.get(key)
                 if cached is None:
                     width_with_sentinel = paint.measure_text(text + "|")[0]
                     sentinel_width = paint.measure_text("|")[0]
                     cached = width_with_sentinel - sentinel_width
-                    if len(_text_width_cache) >= _TEXT_WIDTH_CACHE_MAX:
-                        _text_width_cache.clear()
-                    _text_width_cache[key] = cached
+                    if len(text_width_cache) >= TEXT_WIDTH_CACHE_MAX:
+                        text_width_cache.clear()
+                    text_width_cache[key] = cached
                 self.text_width = cached
             else:
                 self.text_width = 0

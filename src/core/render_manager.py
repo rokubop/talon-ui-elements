@@ -249,9 +249,12 @@ class RenderManager(RenderManagerType):
         elif self._render_throttle_job:
             self._pending_throttled_task = render_task
         else:
-            # A render is in flight with no throttle window armed. Park the
-            # task and arm one, otherwise the tail update is silently dropped
-            # (e.g. a scroll ends mid-render and never paints its final position).
+            # No throttle window armed but a render is in flight or a debounce
+            # job is pending. Park the task and arm a window, otherwise the
+            # tail update is silently dropped (e.g. a scroll ends mid-render
+            # and never paints its final position). In the debounce case the
+            # parked task queues after the window, alongside whatever the
+            # debounce queues - both should render.
             self._pending_throttled_task = render_task
             self._render_throttle_job = cron.after(
                 interval,
