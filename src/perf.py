@@ -2,19 +2,22 @@ import time
 from collections import defaultdict
 
 class PerfCounters:
-    """Lightweight always-on counters for the render hot paths.
-    Snapshot with actions.user.ui_elements_perf_stats() from the REPL."""
+    """Render hot-path counters. Off by default - enable with
+    actions.user.ui_elements_perf_enable(), read with ui_elements_perf_stats()."""
     def __init__(self):
+        self.enabled = False
         self.counters = defaultdict(int)
         self.durations_ms = defaultdict(float)
         self.started = time.monotonic()
 
     def count(self, name: str):
-        self.counters[name] += 1
+        if self.enabled:
+            self.counters[name] += 1
 
     def add_duration(self, name: str, ms: float):
-        self.counters[name] += 1
-        self.durations_ms[name] += ms
+        if self.enabled:
+            self.counters[name] += 1
+            self.durations_ms[name] += ms
 
     def reset(self):
         self.counters.clear()

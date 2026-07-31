@@ -216,10 +216,20 @@ class Actions:
         """Highlight element briefly based on its id. Renders on a decoration layer."""
         state_manager.highlight_briefly(id, color)
 
+    def ui_elements_perf_enable(enabled: bool = True):
+        """Enable render hot-path perf counters (off by default). Resets counters on enable."""
+        from .src.perf import perf
+        perf.enabled = enabled
+        if enabled:
+            perf.reset()
+
     def ui_elements_perf_stats(reset: bool = False):
         """Print and return render hot-path counters (draws/sec, coalesced
-        freezes, highlight/set_text call rates) since the last reset."""
+        freezes, highlight/set_text call rates) since the last reset.
+        Counters are off by default - see ui_elements_perf_enable."""
         from .src.perf import perf
+        if not perf.enabled:
+            print("ui_elements perf: counters disabled - run ui_elements_perf_enable() first")
         stats = perf.stats()
         for name, entry in stats.items():
             print(f"ui_elements perf: {name}: {entry}")
