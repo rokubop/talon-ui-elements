@@ -38,7 +38,6 @@ class RenderTask(RenderTaskType):
         on_end: callable = None,
         args: list[object] = None,
         metadata: dict[str, Any] = None,
-        group: str = None,
         policy: Policy = Policy.TAKE_LATEST,
     ):
         self.running = False
@@ -46,7 +45,6 @@ class RenderTask(RenderTaskType):
         self.on_start = on_start
         self.on_end = on_end
         self.args = args if args is not None else []
-        self.group = group if group is not None else cause
         self.policy = policy
         self.metadata = metadata if metadata is not None else {}
 

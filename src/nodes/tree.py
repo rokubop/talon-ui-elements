@@ -1243,6 +1243,13 @@ class Tree(TreeType):
                 if self.render_manager.is_rendering:
                     self.render_manager.expect_decorator_completion()
                 self.render_decorator_canvas()
+            except Exception as e:
+                # _commit_pending_render runs user component code - an uncaught
+                # raise here would leave the task current and wedge the queue
+                print(f"Error during base canvas draw: {e}")
+                log_trace()
+                self.finish_current_render()
+                self.destroy()
             finally:
                 state_manager.set_processing_tree(None)
 
