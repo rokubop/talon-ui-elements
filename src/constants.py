@@ -78,6 +78,9 @@ DEFAULT_ERROR_LINK_COLOR = "5F9FE3"
 DEFAULT_DROP_SHADOW = (0, 20, 25, 25, "000000CC")
 DEFAULT_HIGHLIGHT_DURATION_MS = 150
 DECORATOR_COALESCE_MS = 16
+# liveness check on the render queue - see RenderManager._on_watchdog.
+# Well clear of the ~1s GIL stalls a render can legitimately hit.
+RENDER_WATCHDOG_MS = 5000
 # DEFAULT_LINK_COLOR = "#589ADB"
 DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
 DRAG_INIT_THRESHOLD = 4.0

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from talon import cron
 from typing import Any
+from ..constants import RENDER_WATCHDOG_MS
 from ..interfaces import TreeType, RenderTaskType, RenderManagerType, Point2d
 from .store import store
 
@@ -139,6 +140,52 @@ class RenderManager(RenderManagerType):
         self._pending_throttled_task = None
         self._destroying = False
         self._decorator_completion_task = None
+        self._watchdog_job = None
+        self._task_seq = 0
+
+    def _begin_task(self, render_task: RenderTask):
+        """Single entry point for a task going current. current_render_task
+        gates the whole queue, so arm a liveness check alongside it."""
+        self.current_render_task = render_task
+        self._task_seq += 1
+        self._arm_watchdog(self._task_seq)
+        render_task.on_start(self.tree, *render_task.args)
+
+    def _arm_watchdog(self, seq: int):
+        # one-shot, not a persistent poller - a cron.interval orphaned by a
+        # hot reload ticks forever with no handle left to cancel it
+        self._cancel_watchdog()
+        self._watchdog_job = cron.after(
+            f"{RENDER_WATCHDOG_MS}ms",
+            lambda: self._on_watchdog(seq)
+        )
+
+    def _cancel_watchdog(self):
+        if self._watchdog_job:
+            cron.cancel(self._watchdog_job)
+            self._watchdog_job = None
+
+    def _on_watchdog(self, seq: int):
+        """Fired only if the task that armed this is somehow still current.
+        Compares a sequence number, not task identity - the RenderTasks are
+        shared module singletons, so the same object going current again would
+        pass an identity check and get reported as a wedge while it's young."""
+        self._watchdog_job = None
+        if self._destroying or seq != self._task_seq or not self.current_render_task:
+            return
+
+        # no stack - at cron-fire time it's the timer's call path, not the
+        # code that wedged the task. The causes are the actionable part.
+        blocked = ", ".join(t.cause.value for t in self.queue) or "nothing yet"
+        print(
+            f"ui_elements: render task {self.current_render_task.cause.value} has "
+            f"been current for {RENDER_WATCHDOG_MS / 1000:.1f}s - the render queue "
+            f"is wedged and this tree will not repaint again. Blocked behind it: "
+            f"{blocked}"
+        )
+        # Recovery, deliberately off until the log confirms no legitimate
+        # long-running cause trips this (DRAGGING is the one to watch):
+        # self.finish_current_render()
 
     @property
     def render_cause(self):
@@ -169,8 +216,7 @@ class RenderManager(RenderManagerType):
                     render_task.cause == RenderCause.RESIZE_GHOST):
                 return
             if not self.current_render_task:
-                self.current_render_task = render_task
-                render_task.on_start(self.tree, *render_task.args)
+                self._begin_task(render_task)
             else:
                 if self._coalesce_queued(render_task):
                     return
@@ -268,8 +314,7 @@ class RenderManager(RenderManagerType):
                         self.queue[0].cause == RenderCause.SCROLLBAR_DRAGGING or \
                         self.queue[0].cause == RenderCause.RESIZE_GHOST):
                     return
-            self.current_render_task = self.queue.popleft()
-            self.current_render_task.on_start(self.tree, *self.current_render_task.args)
+            self._begin_task(self.queue.popleft())
 
     def expect_decorator_completion(self):
         """The in-flight task issued its own decorator freeze. Out-of-band
@@ -282,6 +327,7 @@ class RenderManager(RenderManagerType):
 
     def finish_current_render(self):
         self._decorator_completion_task = None
+        self._cancel_watchdog()
         if self.current_render_task and self.current_render_task.on_end:
             self.current_render_task.on_end(RenderCallbackEvent(
                 tree=self.tree,
@@ -440,6 +486,7 @@ class RenderManager(RenderManagerType):
         self._render_throttle_job = None
         self._pending_throttled_task = None
         self._decorator_completion_task = None
+        self._cancel_watchdog()
         self.queue.clear()
         self.current_render_task = None
         self.tree = None
