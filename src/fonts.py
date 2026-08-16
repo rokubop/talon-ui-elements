@@ -248,7 +248,18 @@ def get_typeface(font_family: str, font_weight: str = None) -> Typeface:
     font_cache[key] = None
     return None
 
+# populated by node_text; cleared on font reset so fallback-typeface
+# measurements don't survive a font retry
+line_height_cache = {}
+text_width_cache = {}
+TEXT_WIDTH_CACHE_MAX = 4096
+
 def reset_font_state():
     """Reset logged font errors so they can be shown again. Called by store.clear()."""
     global _logged_font_errors
     _logged_font_errors.clear()
+    # drop negative entries so failed fonts actually retry; keep loaded typefaces
+    for key in [k for k, v in font_cache.items() if v is None]:
+        del font_cache[key]
+    line_height_cache.clear()
+    text_width_cache.clear()
