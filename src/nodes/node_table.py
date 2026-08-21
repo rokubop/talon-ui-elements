@@ -123,6 +123,76 @@ class NodeTable(NodeContainer):
 
         return super().v2_measure_intrinsic_size(c)
 
+    def v2_constrain_size(self, available_size: Size2d = None):
+        result = super().v2_constrain_size(available_size)
+        self.v2_reconcile_row_heights(available_size)
+        return result
+
+    def v2_reconcile_row_heights(self, available_size: Size2d = None):
+        """Re-derive row heights from the post-constrain cell heights.
+
+        row_heights comes from unwrapped text at measure time. A cell whose
+        text wraps grows past it, and since the layout is column-major
+        (see create_column_layout) nothing re-aligns the row: the grown cell
+        pushes its own column down and every row below it desyncs.
+        """
+        if not self.rows:
+            return
+
+        column_deltas = [0] * len(self.columns)
+
+        for row_index, row in enumerate(self.rows):
+            cells = [td for td in row if td.box_model]
+            if not cells:
+                continue
+
+            row_height = max(td.box_model.margin_size.height for td in cells)
+            self.row_heights[row_index] = max(
+                td.box_model.content_size.height for td in cells
+            )
+
+            for td in cells:
+                delta = row_height - td.box_model.margin_size.height
+                if delta <= 0:
+                    continue
+                before = td.box_model.margin_size.height
+                td.box_model.grow_outer_to_fit_delta(axis="height", delta=delta)
+                column_deltas[td.column_index] += td.box_model.margin_size.height - before
+
+        if not any(column_deltas):
+            return
+
+        for column_index, delta in enumerate(column_deltas):
+            if delta <= 0:
+                continue
+            column_node = self.column_layout_children_nodes[column_index]
+            if not column_node.box_model:
+                continue
+            column_node.box_model.content_children_size.height += delta
+            column_node.box_model.grow_outer_to_fit_delta(axis="height", delta=delta)
+
+        column_heights = [
+            node.box_model.margin_size.height
+            for node in self.column_layout_children_nodes
+            if node.box_model
+        ]
+        if not column_heights:
+            return
+
+        table_height = max(column_heights)
+        current_height = self.box_model.content_children_size.height
+        if table_height <= current_height:
+            return
+
+        self.box_model.content_children_size.height = table_height
+        if self.properties.height:
+            return
+        self.box_model.grow_outer_to_fit_delta(
+            axis="height",
+            delta=table_height - current_height,
+            available_along_axis=available_size.height if available_size else None,
+        )
+
     def check_invalid_child(self, c):
         super().check_invalid_child(c)
         if c.element_type != "tr":
