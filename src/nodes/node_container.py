@@ -319,6 +319,46 @@ class NodeContainer(Node, NodeContainerType):
             child.box_model.resolve_max_percent(self.box_model.calculated_content_size)
             child.v2_grow_size()
 
+    def _resolve_flex_shares(self, children, primary_axis, budget, total_flex_weight):
+        """Split `budget` across flex children proportional to their weights.
+
+        A child wanting less than its share is frozen at what it wants and its
+        surplus goes back in the pot for the greedy ones, repeated until only
+        children wanting more than their share are left. Without the give-back
+        the surplus is never claimed and the parent renders with a hole in it,
+        e.g. a table's narrow columns leaving dead space on the right.
+        """
+        shares = {}
+        remaining = budget
+        remaining_weight = total_flex_weight
+        unfrozen = [
+            (i, child) for i, child in enumerate(children) if child.properties.flex
+        ]
+
+        while unfrozen and remaining_weight > 0:
+            froze = False
+            for entry in list(unfrozen):
+                i, child = entry
+                share = remaining * child.properties.flex / remaining_weight
+                wanted = getattr(child.box_model.calculated_margin_size, primary_axis)
+                if wanted > share:
+                    continue
+                shares[i] = wanted
+                remaining -= wanted
+                remaining_weight -= child.properties.flex
+                unfrozen.remove(entry)
+                froze = True
+            if not froze:
+                break
+
+        for i, child in unfrozen:
+            shares[i] = (
+                remaining * child.properties.flex / remaining_weight
+                if remaining_weight > 0 else 0
+            )
+
+        return shares
+
     def v2_constrain_size(self, available_size: Size2d = None) -> bool:
         content_constraint_size = self.box_model.constrain_size(available_size, self.properties.overflow)
         children_accumulated_size = Size2d(0, 0)
@@ -464,12 +504,17 @@ class NodeContainer(Node, NodeContainerType):
                 and total_flex_weight > 0
                 and (total_flex_calc + total_non_flex_calc) > available_primary
             )
-            flex_proportional_budget = (
-                max(0, available_primary - total_non_flex_calc)
+            flex_shares = (
+                self._resolve_flex_shares(
+                    participating_children_nodes,
+                    primary_axis,
+                    max(0, available_primary - total_non_flex_calc),
+                    total_flex_weight,
+                )
                 if flex_overflows else None
             )
 
-            for child in participating_children_nodes:
+            for i, child in enumerate(participating_children_nodes):
                 child_available = new_available_size
                 # Resolve primary-axis percentage to a concrete constraint
                 pct_prop = child.properties.width if is_row else child.properties.height
@@ -483,12 +528,11 @@ class NodeContainer(Node, NodeContainerType):
                             pct_value = min(pct_value, max(0, remaining))
                         child_available = new_available_size.copy()
                         setattr(child_available, primary_axis, pct_value)
-                elif child.properties.flex and flex_overflows:
+                elif child.properties.flex and flex_shares is not None:
                     # Total flex calc exceeds available - distribute the actual
                     # available space proportional to flex weights, not order.
-                    flex_share = flex_proportional_budget * (child.properties.flex / total_flex_weight)
                     child_available = new_available_size.copy()
-                    setattr(child_available, primary_axis, flex_share)
+                    setattr(child_available, primary_axis, flex_shares[i])
                 elif child.properties.flex and available_primary is not None:
                     # Cap flex child's available space to leave room for
                     # not-yet-processed non-flex siblings
