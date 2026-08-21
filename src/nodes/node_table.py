@@ -142,7 +142,7 @@ class NodeTable(NodeContainer):
         column_deltas = [0] * len(self.columns)
 
         for row_index, row in enumerate(self.rows):
-            cells = [td for td in row if td.box_model]
+            cells = [td for td in row if td.box_model and td.participates_in_layout]
             if not cells:
                 continue
 
