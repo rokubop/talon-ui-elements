@@ -194,6 +194,44 @@ def empty_div_in_cell_table():
     ]
 
 
+_WRAPPING_ROWS = [
+    ("ee", "stop, or reset when already stopped", "0.91"),
+    ("pop", "jump", "0.83"),
+    ("hiss", "crouch toggle held until released", "0.77"),
+    ("cluck", "reload", "0.62"),
+]
+
+def wrapping_table():
+    table, th, tr, td, text, style = actions.user.ui_elements([
+        "table", "th", "tr", "td", "text", "style"
+    ])
+
+    style({
+        "td": {
+            "padding": 8,
+            "border": 1,
+            "border_color": "#555555",
+        },
+        "th": {
+            "padding": 8,
+            "border": 1,
+            "border_color": "#555555",
+        }
+    })
+
+    return table(width=380)[
+        tr()[
+            th()[text("Pattern")],
+            th()[text("Action")],
+            th()[text("Prob.")],
+        ],
+        *[tr()[
+            td()[text(pattern)],
+            td()[text(action)],
+            td()[text(prob)],
+        ] for pattern, action, prob in _WRAPPING_ROWS],
+    ]
+
 def colspan_table():
     table, th, tr, td, text, style = actions.user.ui_elements([
         "table", "th", "tr", "td", "text", "style"
@@ -350,6 +388,22 @@ def table_stories():
 
                     # Use component to encapsulate the style
                     component(bordered_table)"""
+                )
+            }),
+            component(example_with_code, props={
+                "title": "Wrapping text",
+                "example": component(wrapping_table),
+                "code": textwrap.dedent("""\
+                    # Fixed width, so a long cell wraps. The row stays one
+                    # height: shorter cells grow to match the wrapped one.
+                    table(width=380)[
+                        tr()[th()[text("Pattern")], th()[text("Action")], th()[text("Prob.")]],
+                        *[tr()[
+                            td()[text(pattern)],
+                            td()[text(action)],
+                            td()[text(prob)],
+                        ] for pattern, action, prob in rows],
+                    ]"""
                 )
             }),
             component(example_with_code, props={
