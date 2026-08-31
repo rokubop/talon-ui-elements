@@ -10,7 +10,8 @@ from ..interfaces import Size2d, RenderTransforms
 from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
 from ..fonts import (
-    get_typeface,
+    apply_text_rendering,
+    resolve_font,
     line_height_cache,
     text_width_cache,
     TEXT_WIDTH_CACHE_MAX,
@@ -62,12 +63,20 @@ class NodeText(Node):
     def _make_paint(self):
         paint = Paint()
         paint.textsize = self.properties.font_size
-        if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family, self.properties.font_weight)
-            if typeface:
-                paint.typeface = typeface
-        paint.font.embolden = self.properties.font_weight == "bold"
-        if self.properties.font_style == "italic":
+        # c.draw_text uses the paint passed to it, not c.paint, so the
+        # canvas-level antialias flag never reaches text.
+        apply_text_rendering(paint)
+        font = resolve_font(
+            self.properties.font_family,
+            self.properties.font_weight,
+            self.properties.font_style,
+        )
+        if font.typeface:
+            paint.typeface = font.typeface
+        # embolden and skew_x are synthesized and look visibly weaker than a
+        # real face -- only apply them for what the loaded face doesn't have.
+        paint.font.embolden = font.synthetic_bold
+        if font.synthetic_italic:
             paint.font.skew_x = -0.25
         return paint
 

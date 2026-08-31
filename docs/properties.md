@@ -117,7 +117,7 @@ Properties mostly match standard CSS properties.
 | font_family | str | "" | Font family |
 | font_size | Union[int, float] | 16 | Font size |
 | font_style | "normal", "italic" | "normal" | Font style |
-| font_weight | "normal", "bold" | "normal" | Font weight |
+| font_weight | "light", "normal", "medium", "semibold", "bold", "black" (or 100-900) | "normal" | Font weight. Resolves to a real installed face when one exists, and is synthesized otherwise |
 | for_id | str | None | Associates a label with an input (for `text` element) |
 | selectable | bool | False | Enable text selection by click-and-drag (for `text` element) |
 | selection_color | str | "4488FF88" | Highlight color for selected text (for `text` element) |
