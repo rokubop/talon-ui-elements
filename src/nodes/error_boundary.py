@@ -53,6 +53,41 @@ class ErrorBoundary(Component):
             return error_node
 
 
+# Fractions of the screen the default error card is allowed to occupy, and
+# the absolute pixel ceilings it prefers when the screen is large.
+ERROR_CARD_MAX_WIDTH_RATIO = 0.7
+ERROR_CARD_MAX_HEIGHT_RATIO = 0.6
+ERROR_CARD_MAX_WIDTH = 900
+ERROR_CARD_MAX_HEIGHT = 560
+ERROR_CARD_FALLBACK_SIZE = (800, 500)
+
+
+def error_card_max_size():
+    """Upper bound for the default error card, in pixels.
+
+    A traceback is arbitrarily long and arbitrarily wide, and the card has no
+    intrinsic size of its own, so without a cap it grows to the full content
+    size and drags its container with it. Inside a `window` that pushes the
+    title bar - and the close button on it - off screen, leaving no way to
+    dismiss the error.
+    """
+    try:
+        from ..utils import get_screen
+
+        screen_index = None
+        processing_tree = state_manager.get_processing_tree()
+        if processing_tree and processing_tree.root_node:
+            screen_index = getattr(processing_tree.root_node.properties, "screen", None)
+        rect = get_screen(screen_index).rect
+        return (
+            min(ERROR_CARD_MAX_WIDTH, int(rect.width * ERROR_CARD_MAX_WIDTH_RATIO)),
+            min(ERROR_CARD_MAX_HEIGHT, int(rect.height * ERROR_CARD_MAX_HEIGHT_RATIO)),
+        )
+    except Exception:
+        # Screen lookup must never be the reason an error card fails to render.
+        return ERROR_CARD_FALLBACK_SIZE
+
+
 def build_error_card(
     label: str,
     exc_kind: str,
@@ -69,6 +104,8 @@ def build_error_card(
     from ..elements import div, text
     from .code import code
 
+    max_width, max_height = error_card_max_size()
+
     card_defaults = {
         "flex": 1,
         "flex_direction": "column",
@@ -76,6 +113,8 @@ def build_error_card(
         "gap": 14,
         "background_color": "1a0e0e",
         "overflow_y": "scroll",
+        "max_width": max_width,
+        "max_height": max_height,
     }
     card_final = {**card_defaults, **(card_style or {})}
 

@@ -137,6 +137,17 @@ class NodeWindow(NodeContainer):
                     pct = float(val.replace("%", "")) / 100
                     resolved_window_props[key] = int(screen_size * pct)
 
+        # Last-resort cap: a window with no explicit size is sized by its
+        # content, so runaway content (a long traceback, an unbounded table)
+        # grows it past the display. Centered, that puts the title bar - and
+        # the close button on it - off screen with no way to drag or dismiss
+        # the window. An explicit width/height/max_* is the consumer's call
+        # and is left alone.
+        for dim, screen_size in [("width", screen_rect.width), ("height", screen_rect.height)]:
+            max_dim = f"max_{dim}"
+            if resolved_window_props.get(dim) is None and resolved_window_props.get(max_dim) is None:
+                resolved_window_props[max_dim] = int(screen_size)
+
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["window"],
             properties=NodeWindowProperties(**resolved_window_props)
