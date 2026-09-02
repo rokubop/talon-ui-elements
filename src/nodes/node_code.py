@@ -45,6 +45,8 @@ class NodeCode(NodeText):
         self.line_number_start = properties.line_number_start or 1
         self.gutter_width = 0
         self.row_line_numbers = []
+        self.row_starts_line = []
+        self.row_logical_index = []
 
     def _wrap_inset(self):
         return self.gutter_width
@@ -63,20 +65,33 @@ class NodeCode(NodeText):
         self._compute_line_numbers()
 
     def _compute_line_numbers(self):
-        """Row -> line number. None where a row is a wrapped continuation."""
-        if not self.line_numbers:
-            self.row_line_numbers = []
-            return
+        """Map each drawn row to its logical line. Wrapped continuation rows
+        share their parent's index and get no number."""
         rows = self.text_multiline or [(self.text, 0)]
-        numbers = []
-        n = self.line_number_start
+        starts, logical, numbers = [], [], []
+        index = -1
         for _, pos in rows:
-            if pos == 0 or self.text[pos - 1:pos] == "\n":
-                numbers.append(n)
-                n += 1
-            else:
-                numbers.append(None)
-        self.row_line_numbers = numbers
+            starts_line = pos == 0 or self.text[pos - 1:pos] == "\n"
+            if starts_line:
+                index += 1
+            starts.append(starts_line)
+            logical.append(max(index, 0))
+            numbers.append(self.line_number_start + index if starts_line else None)
+        self.row_starts_line = starts
+        self.row_logical_index = logical
+        self.row_line_numbers = numbers if self.line_numbers else []
+
+    def _row_tokens(self, row):
+        """tokenized_lines is indexed by logical line, so it only applies to a
+        row that is a whole line. A wrapped fragment tokenizes on its own."""
+        if row >= len(self.row_starts_line) or not self.row_starts_line[row]:
+            return None
+        if row + 1 < len(self.row_starts_line) and not self.row_starts_line[row + 1]:
+            return None
+        index = self.row_logical_index[row]
+        if index < len(self.tokenized_lines):
+            return self.tokenized_lines[index]
+        return None
 
     def _measure_gutter(self, paint):
         if not self.line_numbers:
@@ -162,11 +177,7 @@ class NodeCode(NodeText):
                         paint.color = text_color
                         c.draw_text(prefix, code_x, y, paint)
                 else:
-                    pre_tokens = (
-                        self.tokenized_lines[i]
-                        if i < len(self.tokenized_lines) else None
-                    )
-                    self._draw_tokenized_line(c, paint, line_text, code_x, y, default_color, tokens=pre_tokens)
+                    self._draw_tokenized_line(c, paint, line_text, code_x, y, default_color, tokens=self._row_tokens(i))
         else:
             y = top_left.y + self.text_line_height
             self._draw_line_number(c, paint, 0, top_left.x, y)
