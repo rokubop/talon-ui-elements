@@ -8,6 +8,7 @@ CODE_ONLY_PROPS = {
     "language", "theme", "diff", "selectable", "selection_color",
     "font_family", "font_size", "font_style", "font_weight",
     "text_align", "white_space", "color", "stroke_width", "stroke_color",
+    "gap",
 }
 
 OVERFLOW_PROPS = {"overflow", "overflow_x", "overflow_y"}
@@ -29,7 +30,7 @@ def code_copy_impl(props):
     overflow_props = {}
     padding_props = {}
     for k, v in props.items():
-        if k in ("copyable", "id", "for_id", "type"):
+        if k in ("copyable", "for_id", "type"):
             continue
         elif k in CODE_ONLY_PROPS:
             code_props[k] = v
@@ -84,7 +85,7 @@ def code_scroll_impl(props):
     code_props = {}
     wrap_props = {}
     for k, v in props.items():
-        if k in ("copyable", "id", "for_id", "type"):
+        if k in ("copyable", "for_id", "type"):
             continue
         elif k in CODE_ONLY_PROPS:
             code_props[k] = v
