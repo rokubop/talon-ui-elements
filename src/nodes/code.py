@@ -109,7 +109,10 @@ def code(text_str: str = "", props=None, **additional_props):
     properties.setdefault("copyable", True)
     # Code defaults to white_space="nowrap" -- without overflow_x, long
     # lines visibly escape the container. "auto" scrolls only when needed.
-    if "overflow_x" not in properties and "overflow" not in properties:
+    # Not when the text can wrap: a scroll container never constrains its
+    # child's width, so white_space="normal" would scroll instead of wrap.
+    if "overflow_x" not in properties and "overflow" not in properties \
+            and properties.get("white_space", "nowrap") == "nowrap":
         properties["overflow_x"] = "auto"
 
     if properties.get("copyable"):
