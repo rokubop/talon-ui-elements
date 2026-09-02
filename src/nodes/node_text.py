@@ -100,12 +100,19 @@ class NodeText(Node):
             return self.properties.gap
         return round(self.text_line_height * 1.0)
 
+    def _wrap_inset(self):
+        """Content-box width that text can't wrap into. NodeCode reserves its
+        line-number gutter here."""
+        return 0
+
     def _compute_lines(self, paint):
         """Compute multiline layout. Sets text_multiline, text_width, text_body_height."""
         text = self.text
         gap = self._get_line_gap()
         has_newlines = "\n" in text
         container_width = self.properties.width or self.properties.max_width
+        if isinstance(container_width, (int, float)):
+            container_width -= self._wrap_inset()
 
         if has_newlines and container_width and isinstance(container_width, (int, float)):
             self.text_multiline = wrap_lines(text, container_width, paint.measure_text)
@@ -157,17 +164,18 @@ class NodeText(Node):
         if self.properties.white_space == "nowrap":
             return
 
+        inset = self._wrap_inset()
         constrained_width = self.box_model.content_size.width
         if constrained_width and constrained_width < self.text_width:
             paint = self._make_paint()
             old_height = self.text_body_height
             gap = self._get_line_gap()
 
-            self.text_multiline = wrap_lines(self.text, constrained_width, paint.measure_text)
+            self.text_multiline = wrap_lines(self.text, constrained_width - inset, paint.measure_text)
 
             if self.text_multiline:
                 widths = [paint.measure_text(line or " ")[0] for line, _ in self.text_multiline]
-                self.text_width = max(widths) if widths else 0
+                self.text_width = (max(widths) if widths else 0) + inset
                 num_lines = len(self.text_multiline)
                 self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
 

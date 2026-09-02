@@ -46,11 +46,21 @@ class NodeCode(NodeText):
         self.gutter_width = 0
         self.row_line_numbers = []
 
+    def _wrap_inset(self):
+        return self.gutter_width
+
     def _compute_lines(self, paint):
+        # measured before wrapping: the gutter is sized from logical lines,
+        # and wrapping needs to know the width it can't have
+        self.gutter_width = self._measure_gutter(paint)
         super()._compute_lines(paint)
         self._compute_line_numbers()
-        self.gutter_width = self._measure_gutter(paint)
         self.text_width += self.gutter_width
+
+    def v2_constrain_size(self, available_size=None):
+        super().v2_constrain_size(available_size)
+        # the base class may have re-wrapped, which invalidates the row map
+        self._compute_line_numbers()
 
     def _compute_line_numbers(self):
         """Row -> line number. None where a row is a wrapped continuation."""
@@ -69,12 +79,11 @@ class NodeCode(NodeText):
         self.row_line_numbers = numbers
 
     def _measure_gutter(self, paint):
-        if not self.row_line_numbers:
+        if not self.line_numbers:
             return 0
-        last = max(
-            (n for n in self.row_line_numbers if n is not None),
-            default=self.line_number_start,
-        )
+        # logical lines, not wrapped rows, so the width is stable no matter
+        # how the text ends up wrapping
+        last = self.line_number_start + self.text.count("\n")
         # monospace, so one char width covers every digit
         return paint.measure_text("0")[0] * (len(str(last)) + 2)
 
