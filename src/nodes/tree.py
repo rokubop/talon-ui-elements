@@ -39,7 +39,7 @@ from ..constants import (
     KEY_SPACE, KEY_ENTER, KEY_RETURN, KEY_ESCAPE,
 )
 from ..utils import draw_rect, get_scale, scale_value
-from ..canvas_wrapper import CanvasWeakRef
+from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
 from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
@@ -581,7 +581,7 @@ class RenderCauseState(RenderCauseStateType):
         return self.state
 
 class Tree(TreeType):
-    Canvas = RealCanvas # override for testing
+    Canvas = ThrottledCanvas # override for testing
     def __init__(
             self,
             tree_constructor: callable,
