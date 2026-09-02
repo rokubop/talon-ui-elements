@@ -103,6 +103,29 @@ def code_stories():
             }),
 
             component(example_with_code, props={
+                "title": "Line Numbers",
+                "example": div(background_color=t.BG_CODE, border_radius=8, padding=16)[
+                    code_el(PYTHON_EXAMPLE, line_numbers=True),
+                ],
+                "code": textwrap.dedent("""\
+                    code(python_text, line_numbers=True)""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Line Numbers Starting Mid-File",
+                "example": div(background_color=t.BG_CODE, border_radius=8, padding=16)[
+                    code_el(TALON_EXAMPLE, language="talon", line_numbers=True, line_number_start=42),
+                ],
+                "code": textwrap.dedent("""\
+                    code(
+                        talon_text,
+                        language="talon",
+                        line_numbers=True,
+                        line_number_start=42,
+                    )""")
+            }),
+
+            component(example_with_code, props={
                 "title": "Diff Mode",
                 "example": div(background_color=t.BG_CODE, border_radius=8, padding=16)[
                     code_el(DIFF_EXAMPLE, language="python", diff=True),

@@ -597,6 +597,8 @@ class NodeTextValidationProperties(ValidationProperties):
 class NodeCodeValidationProperties(ValidationProperties):
     copyable: bool
     diff: bool
+    line_numbers: bool
+    line_number_start: int
     font_size: Union[int, float]
     font_family: str
     font_style: str
@@ -655,6 +657,8 @@ class NodeCodeProperties(Properties):
     language: str = "python"
     copyable: bool = True
     diff: bool = False
+    line_numbers: bool = False
+    line_number_start: int = 1
     on_click: any = None
     theme: Union[str, dict] = None
     selectable: bool = True

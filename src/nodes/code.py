@@ -6,6 +6,7 @@ from .component import Component
 
 CODE_ONLY_PROPS = {
     "language", "theme", "diff", "selectable", "selection_color",
+    "line_numbers", "line_number_start",
     "font_family", "font_size", "font_style", "font_weight",
     "text_align", "white_space", "color", "stroke_width", "stroke_color",
     "gap",
