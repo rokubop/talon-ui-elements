@@ -32,6 +32,11 @@ PYTHON_EXAMPLE = textwrap.dedent("""\
             print(f"Hello {name}!")
             return True""")
 
+WRAP_EXAMPLE = textwrap.dedent("""\
+    result = process(data, config, timeout=30, retries=3, on_error=handle_error)
+    count = 1
+    values = [transform(item) for item in collection if item.enabled and item.ready]""")
+
 TALON_EXAMPLE = textwrap.dedent("""\
     tag: user.ui_elements_hints_active
     mode: command
@@ -122,6 +127,21 @@ def code_stories():
                         language="talon",
                         line_numbers=True,
                         line_number_start=42,
+                    )""")
+            }),
+
+            component(example_with_code, props={
+                "title": "Line Numbers with Wrapping",
+                "example": div(background_color=t.BG_CODE, border_radius=8, padding=16, width=420)[
+                    code_el(WRAP_EXAMPLE, line_numbers=True, white_space="normal"),
+                ],
+                "code": textwrap.dedent("""\
+                    # narrow container, so lines 1 and 3 wrap.
+                    # continuation rows get a blank gutter cell
+                    code(
+                        long_text,
+                        line_numbers=True,
+                        white_space="normal",
                     )""")
             }),
 
