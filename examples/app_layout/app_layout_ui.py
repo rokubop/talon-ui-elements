@@ -1,10 +1,10 @@
 from talon import actions
 
 FILE_CONTENT = {
-    "main.py": "\n".join([f"line {i}: result = process(data, config)" for i in range(200)]),
-    "utils.py": "\n".join([f"line {i}: return transform(value)" for i in range(50)]),
-    "config.py": "\n".join([f"line {i}: SETTING_{i} = {i * 10}" for i in range(30)]),
-    "models.py": "\n".join([f"line {i}: class Model{i}(Base):" for i in range(80)]),
+    "main.py": "\n".join([f"result_{i} = process(data, config)" for i in range(200)]),
+    "utils.py": "\n".join([f"    return transform(value_{i})" for i in range(50)]),
+    "config.py": "\n".join([f"SETTING_{i} = {i * 10}" for i in range(30)]),
+    "models.py": "\n".join([f"class Model{i}(Base):" for i in range(80)]),
 }
 
 
@@ -12,8 +12,8 @@ def show_app_layout():
     actions.user.ui_elements_show(app_layout_ui)
 
 def app_layout_ui():
-    screen, div, text, window, input_text = actions.user.ui_elements(
-        ["screen", "div", "text", "window", "input_text"]
+    screen, div, text, window, input_text, code = actions.user.ui_elements(
+        ["screen", "div", "text", "window", "input_text", "code"]
     )
     state = actions.user.ui_elements(["state"])
 
@@ -71,8 +71,7 @@ def app_layout_ui():
                     ],
                     # Code area
                     div(flex=1, padding=16, overflow_x="auto", overflow_y="auto")[
-                        text(content, font_size=16, font_family="monospace",
-                             color="#e4e8f0", white_space="pre"),
+                        code(content, font_size=16, line_numbers=True, copyable=False),
                     ],
                 ],
             ],
