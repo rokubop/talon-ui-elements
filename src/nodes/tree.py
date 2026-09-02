@@ -6,7 +6,7 @@ import threading
 import traceback
 import weakref
 from talon import cron, settings, ctrl, storage
-from talon.canvas import Canvas as RealCanvas, MouseEvent
+from talon.canvas import MouseEvent
 from talon.skia import RoundRect
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.types import Rect, Point2d
@@ -581,7 +581,7 @@ class RenderCauseState(RenderCauseStateType):
         return self.state
 
 class Tree(TreeType):
-    Canvas = ThrottledCanvas # override for testing
+    Canvas = ThrottledCanvas # MockTree overrides this
     def __init__(
             self,
             tree_constructor: callable,
