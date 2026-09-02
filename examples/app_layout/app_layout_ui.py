@@ -1,7 +1,14 @@
 from talon import actions
 
 FILE_CONTENT = {
-    "main.py": "\n".join([f"result_{i} = process(data, config)" for i in range(200)]),
+    # every 7th line is long, so the editor pane actually scrolls sideways
+    "main.py": "\n".join([
+        f"result_{i} = process(data, config, timeout=30, retries=3, on_error=handle_{i}, "
+        f"logger=logger, cache=cache_store, backoff=exponential, validate=True, "
+        f"normalize=True, dry_run=False, tags=['batch', 'nightly', 'region_{i}'])"
+        if i % 7 == 0 else f"result_{i} = process(data, config)"
+        for i in range(200)
+    ]),
     "utils.py": "\n".join([f"    return transform(value_{i})" for i in range(50)]),
     "config.py": "\n".join([f"SETTING_{i} = {i * 10}" for i in range(30)]),
     "models.py": "\n".join([f"class Model{i}(Base):" for i in range(80)]),
