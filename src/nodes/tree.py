@@ -1660,6 +1660,45 @@ class Tree(TreeType):
 
             self.canvas_base.freeze()
 
+    def recover_stalled_canvases(self):
+        """Drop the canvases so the next paint rebuilds them.
+        A dead CanvasWeakRef draw handler no-ops silently: the canvas never
+        paints, the task never completes, the queue stalls behind it."""
+        if self.destroying or self.render_manager.is_destroying:
+            return False
+        if not self.root_node:
+            # create_canvas() reads root_node.boundary_rect
+            return False
+
+        try:
+            if self.canvas_base:
+                self.canvas_base.unregister("draw", self.on_draw_base_canvas)
+                self.canvas_base.close()
+        except Exception as e:
+            print(f"ui_elements: error dropping stalled base canvas: {e}")
+        self.canvas_base = None
+        self.current_base_canvas = None
+
+        try:
+            if self.canvas_decorator:
+                if self.is_key_controls_init:
+                    self.canvas_decorator.unregister("key", self.on_key)
+                    self.canvas_decorator.unregister("scroll", self.on_scroll)
+                    self.is_key_controls_init = False
+                self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
+                self.canvas_decorator.close()
+        except Exception as e:
+            print(f"ui_elements: error dropping stalled decorator canvas: {e}")
+        self.canvas_decorator = None
+
+        if self._decorator_freeze_pending_job:
+            cron.cancel(self._decorator_freeze_pending_job)
+            self._decorator_freeze_pending_job = None
+
+        # no _pending_render: render() sets it when needed, and a plain
+        # repaint keeps local state and scroll position
+        return True
+
     def render(self, props: dict[str, Any] = {}, on_mount: callable = None, on_unmount: callable = None, show_hints: bool = None):
         if not self.render_manager.is_destroying:
             self.props = self.props or props

@@ -1,4 +1,5 @@
 
+import traceback
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -142,6 +143,7 @@ class RenderManager(RenderManagerType):
         self._decorator_completion_task = None
         self._watchdog_job = None
         self._task_seq = 0
+        self._wedge_recovered = False
 
     def _begin_task(self, render_task: RenderTask):
         """Single entry point for a task going current. current_render_task
@@ -149,7 +151,13 @@ class RenderManager(RenderManagerType):
         self.current_render_task = render_task
         self._task_seq += 1
         self._arm_watchdog(self._task_seq)
-        render_task.on_start(self.tree, *render_task.args)
+        try:
+            render_task.on_start(self.tree, *render_task.args)
+        except Exception:
+            # nothing scheduled a draw, so nothing will ever complete this task
+            print(f"ui_elements: render task {render_task.cause.value} failed to start:")
+            print(traceback.format_exc())
+            self.finish_current_render()
 
     def _arm_watchdog(self, seq: int):
         # one-shot, not a persistent poller - a cron.interval orphaned by a
@@ -180,12 +188,22 @@ class RenderManager(RenderManagerType):
         print(
             f"ui_elements: render task {self.current_render_task.cause.value} has "
             f"been current for {RENDER_WATCHDOG_MS / 1000:.1f}s - the render queue "
-            f"is wedged and this tree will not repaint again. Blocked behind it: "
-            f"{blocked}"
+            f"is wedged. Blocked behind it: {blocked}"
         )
-        # Recovery, deliberately off until the log confirms no legitimate
-        # long-running cause trips this (DRAGGING is the one to watch):
-        # self.finish_current_render()
+
+        # once per wedge: a second identical rebuild won't help either
+        rebuilt = False
+        if not self._wedge_recovered:
+            try:
+                rebuilt = self.tree.recover_stalled_canvases()
+            except Exception:
+                print("ui_elements: canvas rebuild failed:")
+                print(traceback.format_exc())
+
+        self.finish_current_render(recovered=True)
+
+        if rebuilt and not self._destroying and not self.current_render_task:
+            self.queue_render(RenderStateChange)
 
     @property
     def render_cause(self):
@@ -325,9 +343,10 @@ class RenderManager(RenderManagerType):
         return self.current_render_task is not None and \
             self.current_render_task is self._decorator_completion_task
 
-    def finish_current_render(self):
+    def finish_current_render(self, recovered: bool = False):
         self._decorator_completion_task = None
         self._cancel_watchdog()
+        self._wedge_recovered = recovered
         if self.current_render_task and self.current_render_task.on_end:
             self.current_render_task.on_end(RenderCallbackEvent(
                 tree=self.tree,
