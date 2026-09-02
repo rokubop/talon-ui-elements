@@ -52,8 +52,7 @@ class NodeCode(NodeText):
         return self.gutter_width
 
     def _compute_lines(self, paint):
-        # measured before wrapping: the gutter is sized from logical lines,
-        # and wrapping needs to know the width it can't have
+        # before super(): wrapping needs the width the gutter takes
         self.gutter_width = self._measure_gutter(paint)
         super()._compute_lines(paint)
         self._compute_line_numbers()
@@ -96,10 +95,9 @@ class NodeCode(NodeText):
     def _measure_gutter(self, paint):
         if not self.line_numbers:
             return 0
-        # logical lines, not wrapped rows, so the width is stable no matter
-        # how the text ends up wrapping
+        # logical lines, not wrapped rows, so the width is stable
         last = self.line_number_start + self.text.count("\n")
-        # monospace, so one char width covers every digit
+        # monospace, so one char covers every digit
         return paint.measure_text("0")[0] * (len(str(last)) + 2)
 
     def _draw_line_number(self, c, paint, row, x, y):
