@@ -68,7 +68,6 @@ from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint
 from ..style import Style
 from ..utils import (
     draw_text_simple,
-    find_closest_parent_with_id,
     get_active_color_from_highlight_color,
     get_combined_screens_rect,
     subtract_rect,
@@ -3302,7 +3301,12 @@ class Tree(TreeType):
 
         if ((node.disabled and node.properties.disabled_style) or node.properties.highlight_style) \
                 and node.uses_decoration_render == False:
-            target_node = node if node.id else find_closest_parent_with_id(node.parent_node)
+            # An id-less node only ever varies through its interactive
+            # ancestor, so that ancestor owns the render. Taking the nearest
+            # ancestor that merely had an id reached past it to the window,
+            # and drew that whole subtree on the decorator canvas unclipped.
+            target_node = node if node.id else (
+                self.meta_state.id_to_node.get(node.interactive_id))
             if target_node and target_node.id:
                 self.meta_state.add_decoration_render(target_node.id)
                 node.uses_decoration_render = True
