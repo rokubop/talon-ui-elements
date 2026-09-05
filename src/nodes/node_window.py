@@ -280,7 +280,9 @@ class NodeWindow(NodeContainer):
                 ],
             ],
 
-        self.body = div(flex=1, **body_properties)
+        # Clip the body so content cannot draw over the title bar and the
+        # close button on it. overflow on window() lands in body_properties.
+        self.body = div(flex=1, **{"overflow": "hidden", **body_properties})
         if window_properties.get("show_title_bar", True):
             self.add_child(title_bar())
         if self.is_minimized:
