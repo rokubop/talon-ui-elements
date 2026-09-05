@@ -1305,6 +1305,11 @@ class Tree(TreeType):
                 if modal_scope is not None and id not in modal_scope:
                     continue
                 node = self.meta_state.id_to_node[id]
+                # text_mutations is never pruned and ids are positional, so a
+                # later render can put a different element at this id.
+                if node.element_type not in (
+                        ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]):
+                    continue
                 self.draw_text_mutation(canvas, node, id, offset)
 
     def finish_current_render(self):
