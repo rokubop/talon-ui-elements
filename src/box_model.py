@@ -274,15 +274,23 @@ class BoxModelV2(BoxModelV2Type):
     def position_bottom(self):
         return BoxModelV2._resolve_percent(self._position_bottom, self.border_size.height)
 
+    @staticmethod
+    def _used_size_cap(size, max_size):
+        """Largest size a node can reach. `max_size` only reduces `size`,
+        it never stands in for it."""
+        if size and max_size:
+            return min(size, max_size)
+        return max_size or size
+
     @property
     def intrinsic_margin_size_with_bounding_constraints(self):
         width = self.intrinsic_margin_size.width
-        max_width = self.width or self.max_width
+        max_width = BoxModelV2._used_size_cap(self.width, self.max_width)
         max_width = max_width + self.margin_spacing.left + self.margin_spacing.right if max_width is not None else None
         if max_width and max_width < width:
             width = max_width
         height = self.intrinsic_margin_size.height
-        max_height = self.height or self.max_height
+        max_height = BoxModelV2._used_size_cap(self.height, self.max_height)
         max_height = max_height + self.margin_spacing.top + self.margin_spacing.bottom if max_height is not None else None
         if max_height and max_height < height:
             height = max_height
@@ -537,7 +545,11 @@ class BoxModelV2(BoxModelV2Type):
         available_size_height = available_size.height if available_size else None
 
         # if not getattr(overflow, 'scrollable_x', False):
+        # Ceiling for shrinking, not the used size: a flex child grown past
+        # its own width must not be cut back to it here.
         max_width = self.max_width or self.width
+        # What the node can still grow into, which is what children get.
+        growable_max_width = BoxModelV2._used_size_cap(self.width, self.max_width)
 
         if max_width:
             margin_width = min(margin_width, max_width + self.margin_spacing.left + self.margin_spacing.right)
@@ -566,7 +578,7 @@ class BoxModelV2(BoxModelV2Type):
             padding_width = self.calculated_padding_size.width
             content_width = self.calculated_content_size.width
             content_constraint_width = BoxModelV2._upper_content_size(
-                margin_width, content_width, max_width, available_size_width,
+                margin_width, content_width, growable_max_width, available_size_width,
                 self.margin_spacing.left + self.margin_spacing.right,
                 self.border_spacing.left + self.border_spacing.right,
                 self.padding_spacing.left + self.padding_spacing.right,
@@ -585,6 +597,7 @@ class BoxModelV2(BoxModelV2Type):
 
         # if not getattr(overflow, 'scrollable_y', False):
         max_height = self.max_height or self.height
+        growable_max_height = BoxModelV2._used_size_cap(self.height, self.max_height)
 
         if max_height:
             margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
@@ -609,7 +622,7 @@ class BoxModelV2(BoxModelV2Type):
             padding_height = self.calculated_padding_size.height
             content_height = self.calculated_content_size.height
             content_constraint_height = BoxModelV2._upper_content_size(
-                margin_height, content_height, max_height, available_size_height,
+                margin_height, content_height, growable_max_height, available_size_height,
                 self.margin_spacing.top + self.margin_spacing.bottom,
                 self.border_spacing.top + self.border_spacing.bottom,
                 self.padding_spacing.top + self.padding_spacing.bottom,
