@@ -33,6 +33,9 @@ from ..constants import (
     RESIZE_EDGE_THRESHOLD,
     RESIZE_GHOST_COLOR,
     RESIZE_GHOST_STROKE_WIDTH,
+    DRAG_GHOST_COLOR,
+    DRAG_GHOST_STROKE_WIDTH,
+    DRAG_DIM_COLOR,
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
     PRIMARY_MOD,
@@ -191,6 +194,9 @@ class MetaState(MetaStateType):
         self.resize_start_pos = None
         self.resize_start_rect = None
         self.resize_ghost_rect = None
+        # Where the dragged node will land. Set while a move drag is active
+        # so the decorator can preview it without repainting the tree.
+        self.drag_ghost_rect = None
         # True when any node in the current tree is a floating overlay
         # (uses_decoration_render and z_index > 0). Used to fast-exit
         # hit-test filtering when no overlay is open.
@@ -595,6 +601,8 @@ class Tree(TreeType):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
+        self.canvas_drag_preview = None
+        self._drag_preview_origin = None
         self._decorator_freeze_pending_job = None
         self._last_decorator_freeze_ts = 0.0
         self.current_base_canvas = None
@@ -852,9 +860,9 @@ class Tree(TreeType):
         ]
         self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
-    def move_canvas(self, canvas: SkiaCanvas):
-        offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-        transforms = RenderTransforms(offset=offset)
+    def move_canvas(self, canvas: SkiaCanvas, in_place: bool = False):
+        offset = None if in_place else             self.meta_state.get_current_drag_offset(self.draggable_node.id)
+        transforms = RenderTransforms(offset=offset) if offset else None
         for layer in self.render_layers:
             layer.draw_to_canvas(canvas, transforms)
 
@@ -1071,7 +1079,6 @@ class Tree(TreeType):
                         self.meta_state.scroll_button_overlays.clear()
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
-                    self.draw_resize_ghost(draw_canvas)
                     canvas.paint.color = "FFFFFF"
                     self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
                     if self.interactive_node_list or self.draggable_node:
@@ -1099,8 +1106,12 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
         try:
-            self.move_canvas(canvas)
-            self.move_inputs()
+            # While the outline previews the drag the tree stays put, so this
+            # runs once at drag start and paints it where it already was.
+            previewing = self.canvas_drag_preview is not None
+            self.move_canvas(canvas, in_place=previewing)
+            if not previewing:
+                self.move_inputs()
             # Raise on the drag-start tick only, not every dragging tick:
             # focused= is an OS focus call and doing it ~100Hz across a drag
             # is laggy. Talon sinks the canvas once at the start of the drag,
@@ -1142,6 +1153,12 @@ class Tree(TreeType):
         if self.canvas_decorator:
             try:
                 self.canvas_decorator.focused = True
+            except Exception:
+                pass
+        # Last, so the outline sits above both.
+        if self.canvas_drag_preview:
+            try:
+                self.canvas_drag_preview.focused = True
             except Exception:
                 pass
 
@@ -1675,6 +1692,11 @@ class Tree(TreeType):
             return False
 
         try:
+            self.destroy_drag_preview_canvas()
+        except Exception as e:
+            print(f"ui_elements: error dropping drag preview canvas: {e}")
+
+        try:
             if self.canvas_base:
                 self.canvas_base.unregister("draw", self.on_draw_base_canvas)
                 self.canvas_base.close()
@@ -2110,7 +2132,7 @@ class Tree(TreeType):
             new_h = max_h
 
         ms.resize_ghost_rect = Rect(new_x, new_y, new_w, new_h)
-        self.render_manager.render_resize_ghost()
+        self.refresh_drag_preview()
 
     def _compute_resize_layout_compensation(self, node, old_width, old_height, new_width, new_height):
         """Compute drag offset adjustment to counteract layout repositioning after resize.
@@ -2188,6 +2210,7 @@ class Tree(TreeType):
                 node.save_resize_dimensions(unscaled_w, unscaled_h)
 
         ms.clear_resize_drag()
+        self.destroy_drag_preview_canvas()
         self.destroy_blockable_canvas()
         self.render_manager.resume()
         self.render_base_canvas()
@@ -2232,6 +2255,95 @@ class Tree(TreeType):
         canvas.paint.color = RESIZE_GHOST_COLOR
         canvas.paint.stroke_width = scale_value(RESIZE_GHOST_STROKE_WIDTH)
         canvas.draw_rect(ghost)
+
+    def create_drag_preview_canvas(self):
+        """A canvas of its own for the drag outline.
+
+        Nothing else draws on it, so a drag tick never touches the base or
+        decorator canvas and never enters the render queue. Both keep the
+        paint they had when the drag started.
+        """
+        if self.canvas_drag_preview or self.render_manager.is_destroying:
+            return
+        self.canvas_drag_preview = self.create_canvas()
+        self.canvas_drag_preview.register("draw", self.on_draw_drag_preview)
+
+    def destroy_drag_preview_canvas(self):
+        if self.canvas_drag_preview:
+            self.canvas_drag_preview.unregister("draw", self.on_draw_drag_preview)
+            self.canvas_drag_preview.close()
+            self.canvas_drag_preview = None
+
+    def on_draw_drag_preview(self, canvas: SkiaCanvas):
+        try:
+            self.draw_drag_preview(canvas)
+        except Exception as e:
+            print(f"talon_ui_elements drag preview error: {e}")
+            log_trace()
+
+    def refresh_drag_preview(self):
+        if self.canvas_drag_preview:
+            self.canvas_drag_preview.freeze()
+
+    def begin_drag_preview(self, offset):
+        """Freeze the window and start previewing where it will land.
+
+        The base canvas is not repainted for the rest of the drag, so
+        border_rect stays where the last committed layout put it. That is
+        what the ghost moves from and what gets dimmed.
+        """
+        node = self.draggable_node
+        if not node or not node.box_model or not node.box_model.border_pos:
+            return
+        self._drag_preview_origin = node.box_model.border_rect.copy()
+        self.create_drag_preview_canvas()
+        self.update_drag_preview(offset)
+
+    def update_drag_preview(self, offset):
+        origin = getattr(self, "_drag_preview_origin", None)
+        if not origin or not offset:
+            return
+        self.meta_state.drag_ghost_rect = Rect(
+            origin.x + offset.x, origin.y + offset.y, origin.width, origin.height
+        )
+        self.refresh_drag_preview()
+
+    def end_drag_preview(self):
+        self._drag_preview_origin = None
+        self.meta_state.drag_ghost_rect = None
+        self.destroy_drag_preview_canvas()
+
+    def resolve_drag_dim_rect(self):
+        """The node being dragged, where it still sits on screen."""
+        ms = self.meta_state
+        if ms.is_resize_dragging():
+            node = ms.id_to_node.get(ms.resize_dragging_id)
+            if node and node.box_model and node.box_model.border_pos:
+                return node.box_model.border_rect
+            return None
+        return getattr(self, "_drag_preview_origin", None)
+
+    def draw_drag_preview(self, canvas):
+        """Dim the node being dragged and outline where it will land.
+
+        Everything else on the decorator is skipped while this runs, and the
+        base canvas is left alone, so a drag tick costs two draws instead of
+        a repaint of the tree.
+        """
+        dim_rect = self.resolve_drag_dim_rect()
+        if dim_rect:
+            canvas.paint.style = canvas.paint.Style.FILL
+            canvas.paint.color = DRAG_DIM_COLOR
+            canvas.draw_rect(dim_rect)
+
+        self.draw_resize_ghost(canvas)
+
+        ghost = self.meta_state.drag_ghost_rect
+        if ghost:
+            canvas.paint.style = canvas.paint.Style.STROKE
+            canvas.paint.color = DRAG_GHOST_COLOR
+            canvas.paint.stroke_width = scale_value(DRAG_GHOST_STROKE_WIDTH)
+            canvas.draw_rect(ghost)
 
     def on_hover(self, gpos):
         try:
@@ -2388,15 +2500,14 @@ class Tree(TreeType):
                     self.draggable_node.id,
                     offset
                 )
+                self.begin_drag_preview(offset)
                 return
 
         if state_manager.get_mousedown_start_pos() and state_manager.is_drag_active():
             offset = state_manager.get_mousedown_start_offset()
-            self.render_manager.render_dragging(
-                mouse_pos=gpos,
-                mousedown_start_pos=state_manager.get_mousedown_start_pos(),
-                mousedown_start_offset=offset
-            )
+            # No render task. The outline is a canvas of its own, so a tick
+            # is one freeze instead of a repaint of the tree.
+            self.update_drag_preview(offset)
             self.meta_state.set_drag_offset(
                 self.draggable_node.id,
                 offset
@@ -2418,6 +2529,8 @@ class Tree(TreeType):
                     }
                 self.meta_state.start_resize_drag(node_id, edge, gpos, start_rect)
                 self.render_manager.pause()
+                self.create_drag_preview_canvas()
+                self.refresh_drag_preview()
                 return
 
         if self.handle_scrollbar_mousedown(gpos):
@@ -2549,6 +2662,7 @@ class Tree(TreeType):
 
     def on_drag_mouseup_begin(self, e):
         self.drag_end_phase = True
+        self.end_drag_preview()
         self.meta_state.commit_drag_offset(self.draggable_node.id)
         state_manager.set_drag_active(False)
         state_manager.set_drag_relative_offset(None)
@@ -3187,6 +3301,7 @@ class Tree(TreeType):
                 self.canvas_decorator = None
 
             self.destroy_blockable_canvas()
+            self.destroy_drag_preview_canvas()
 
             from ..platform.custom_input import custom_input_manager
             if custom_input_manager.has_focused_input:

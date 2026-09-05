@@ -87,6 +87,11 @@ DRAG_INIT_THRESHOLD = 4.0
 RESIZE_EDGE_THRESHOLD = 6
 RESIZE_GHOST_COLOR = "FFFFFF55"
 RESIZE_GHOST_STROKE_WIDTH = 2.0
+# Drag and resize both preview with an outline over a dimmed window, so the
+# tree is painted once at drag start instead of on every mouse tick.
+DRAG_GHOST_COLOR = "FFFFFF55"
+DRAG_GHOST_STROKE_WIDTH = 2.0
+DRAG_DIM_COLOR = "00000099"
 RESIZE_EDGE_HIGHLIGHT_COLOR = "FFFFFF44"
 RESIZE_EDGE_HIGHLIGHT_WIDTH = 3.0
 
