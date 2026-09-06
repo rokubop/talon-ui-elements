@@ -773,19 +773,23 @@ class Tree(TreeType):
                     raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
                 self.auto_wrap_root_node()
             except Exception as e:
-                from .error_boundary import build_error_card
+                from .error_boundary import build_error_card, build_error_window
                 tb_str = traceback.format_exc()
                 label = getattr(self._tree_constructor, "__qualname__", None) or "tree"
                 print(f"ui_elements: error while rendering tree '{label}':\n{tb_str}")
-                # the error card must not be able to crash the render itself
-                try:
-                    self.root_node = build_error_card(label, type(e).__name__, str(e), tb_str)
-                    self.absolute_nodes.clear()
-                    self.fixed_nodes.clear()
-                    self.auto_wrap_root_node()
-                except Exception:
-                    self.root_node = None
-                    print(f"ui_elements: error card failed to render for '{label}':\n{traceback.format_exc()}")
+                # The consumer's window went down with the tree, so the error
+                # brings its own close button. window() does more work than the
+                # card, and the error must not be able to crash the render.
+                for build in (build_error_window, build_error_card):
+                    try:
+                        self.root_node = build(label, type(e).__name__, str(e), tb_str)
+                        self.absolute_nodes.clear()
+                        self.fixed_nodes.clear()
+                        self.auto_wrap_root_node()
+                        break
+                    except Exception:
+                        self.root_node = None
+                        print(f"ui_elements: {build.__name__} failed for '{label}':\n{traceback.format_exc()}")
         finally:
             state_manager.set_processing_tree(None)
 
