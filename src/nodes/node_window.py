@@ -3,7 +3,10 @@ from .node_container import NodeContainer
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     DEFAULT_DROP_SHADOW,
+    DEFAULT_MINIMIZE_FLASH_COLOR,
+    DEFAULT_MINIMIZE_FLASH_MS,
     DEFAULT_WINDOW_BACKGROUND_COLOR,
+    MINIMIZE_FLASH_Z_INDEX,
 )
 from ..events import WindowCloseEvent
 from ..icons import VALID_ICON_NAMES
