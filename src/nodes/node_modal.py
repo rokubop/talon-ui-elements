@@ -67,9 +67,9 @@ class NodeModal(NodeContainer):
             # Use "fixed" rather than "absolute" (modal-relative) so
             # nonlayout_flow can lay it out without depending on the modal's
             # box_model already being computed (it's also a fixed node).
-            # anchors_to_modal_host makes the tree resolve it against the same
-            # host the modal itself uses - the enclosing window, or the root
-            # when there isn't one - so backdrop and panel stay together.
+            # anchors_to_window resolves it against the same host the modal
+            # itself uses - the enclosing window, or the root when there
+            # isn't one - so backdrop and panel stay together.
             backdrop_props = {
                 "position": "fixed",
                 "top": 0,
@@ -84,7 +84,7 @@ class NodeModal(NodeContainer):
                 backdrop = button(**backdrop_props)
             else:
                 backdrop = div(**backdrop_props)
-            backdrop.anchors_to_modal_host = True
+            backdrop.anchors_to_window = True
             self.backdrop_node = backdrop
             self.add_child(backdrop)
 

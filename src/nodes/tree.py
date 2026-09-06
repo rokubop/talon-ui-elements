@@ -1214,8 +1214,9 @@ class Tree(TreeType):
             # Start mount animations immediately after base canvas commits,
             # since mount_style values are already visible at this point.
             # Waiting for the decorator canvas roundtrip adds ~150-300ms delay.
-            if not self.is_mounted:
-                self.transition_manager.start_mount_animations()
+            # Not gated on first mount: nodes appear and reappear for as long
+            # as the tree lives, and each one is a mount.
+            self.transition_manager.start_mount_animations()
             # Set up cursor refresh cycle after tree is fully processed
             self.setup_cursor_refresh_cycle()
         except Exception as e:
@@ -3577,7 +3578,7 @@ class Tree(TreeType):
                 # pointing a modal at its window is all it takes to scope it
                 # there. Plain fixed nodes keep anchoring to the root.
                 host = None
-                if node.element_type == ELEMENT_ENUM_TYPE["modal"] or                         getattr(node, "anchors_to_modal_host", False):
+                if node.element_type == ELEMENT_ENUM_TYPE["modal"] or                         getattr(node, "anchors_to_window", False):
                     host = self._find_enclosing_window_ref(node)
                 node.relative_positional_node = host or weakref.ref(self.root_node)
                 node.z_subindex += 1

@@ -317,8 +317,36 @@ class NodeWindow(NodeContainer):
             if minimized_body is not None and not minimized_body.id:
                 minimized_body.id = f"minimized_body_{self.hash}"
             self.add_child(minimized_body)
+            if window_properties.get("flash_on_minimize", True):
+                self.add_child(self.minimize_flash(div, window_properties))
         else:
             self.add_child(self.body)
+
+    def minimize_flash(self, div, window_properties):
+        """A wash over the whole window as it collapses. A window minimises to
+        a corner while the eye is somewhere else entirely, so without motion
+        there the collapse goes unnoticed. Only exists while minimised, so it
+        mounts - and flashes - on every minimise."""
+        color = window_properties.get("flash_color", None) or DEFAULT_MINIMIZE_FLASH_COLOR
+        duration = window_properties.get("flash_duration", None) or DEFAULT_MINIMIZE_FLASH_MS
+        # Same colour at zero alpha, so it fades out rather than to black.
+        transparent = color.lstrip("#")[:6] + "00"
+        flash = div(
+            position="fixed",
+            top=0,
+            left=0,
+            width="100%",
+            height="100%",
+            z_index=MINIMIZE_FLASH_Z_INDEX,
+            background_color=transparent,
+            mount_style={"background_color": color},
+            transition={"background_color": duration},
+        )
+        # Fixed nodes anchor to the root by default; the window is not
+        # reliably a positioned ancestor when minimised.
+        flash.anchors_to_window = True
+        flash.id = f"minimize_flash_{self.hash}"
+        return flash
 
     def init_position(self):
         if not last_pos_map.get(self.hash):

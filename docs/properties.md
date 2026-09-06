@@ -167,6 +167,9 @@ Properties mostly match standard CSS properties.
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
 | close_on_click_outside | bool | False | Close the window when a mouse press lands outside it |
+| flash_color | str | "FFFFFF59" | Colour of the minimize flash |
+| flash_duration | int | 450 | Milliseconds the minimize flash takes to fade |
+| flash_on_minimize | bool | True | Wash the window as it minimizes, so the collapse is noticed |
 | drag_title_bar_only | bool | True | Whether window can only be dragged by title bar |
 | icon | Union[str, SVG element] | None | Window icon in the title bar. Pass a built-in icon name string or a custom SVG element. Auto-scales to match title font size |
 | minimize_on_click_outside | bool | False | Minimize the window when a mouse press lands outside it. No-op if already minimized |
