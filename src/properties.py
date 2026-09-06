@@ -1158,6 +1158,9 @@ class NodeWindowProperties(Properties):
     minimized: bool = False
     minimized_style: dict = None
     minimized_body: callable = None
+    close_on_click_outside: bool = False
+    minimize_on_click_outside: bool = False
+    on_click_outside: callable = None
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
@@ -1177,6 +1180,8 @@ class NodeWindowProperties(Properties):
             self.on_minimize = None
         if self.on_restore:
             self.on_restore = None
+        if self.on_click_outside:
+            self.on_click_outside = None
         if self.minimized_body:
             self.minimized_body = None
 
@@ -1186,6 +1191,9 @@ class NodeWindowValidationProperties(ValidationProperties):
     minimized: bool
     minimized_style: dict
     minimized_body: callable
+    close_on_click_outside: bool
+    minimize_on_click_outside: bool
+    on_click_outside: callable
     on_close: callable
     on_minimize: callable
     on_restore: callable

@@ -40,6 +40,7 @@ from ..constants import (
 )
 from ..utils import draw_rect, get_scale, scale_value
 from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
+from ..click_outside import click_outside_watcher
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
 from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
@@ -595,6 +596,7 @@ class Tree(TreeType):
         self.canvas_base = None
         self.canvas_blockable = []
         self.canvas_decorator = None
+        self._click_outside_key = None
         self._decorator_freeze_pending_job = None
         self._last_decorator_freeze_ts = 0.0
         self.current_base_canvas = None
@@ -1827,6 +1829,8 @@ class Tree(TreeType):
                             cleanup = effect.callback()
                         if cleanup and not effect.cleanup:
                             effect.cleanup = cleanup
+
+            self.sync_click_outside()
 
             # component mounted
             if self.meta_state.new_component_ids:
@@ -3106,6 +3110,66 @@ class Tree(TreeType):
             self.last_blockable_rects.clear()
             self.canvas_blockable.clear()
 
+    def windows_wanting_click_outside(self):
+        nodes = []
+        if self.meta_state.windows:
+            for id in list(self.meta_state.windows):
+                node = self.meta_state.id_to_node.get(id)
+                if node and getattr(node, "wants_click_outside", False) and not node.destroying:
+                    nodes.append(node)
+        return nodes
+
+    def sync_click_outside(self):
+        """A click outside the window never reaches our blocking canvases, so
+        it has to be detected globally. The poll only runs while a window
+        actually asks for it, and a re-render can add or drop that ask."""
+        wanted = bool(self.windows_wanting_click_outside())
+        if wanted and not self._click_outside_key:
+            self._click_outside_key = self.guid
+            click_outside_watcher.watch(self._click_outside_key, self.on_click_outside)
+        elif not wanted and self._click_outside_key:
+            self.destroy_click_outside()
+
+    def destroy_click_outside(self):
+        if self._click_outside_key:
+            click_outside_watcher.unwatch(self._click_outside_key)
+            self._click_outside_key = None
+
+    def on_click_outside(self, gpos: Point2d):
+        if self.destroying or self.unmounting or self.render_manager.is_destroying:
+            return
+        if state_manager.are_mouse_events_disabled():
+            return
+        # An open modal makes the rest of the tree inert - it scopes hover,
+        # hints, scrollbars and clicks, and blocks dragging. Click outside
+        # follows the same rule. A modal is laid out fixed at 100% of the
+        # root, so its panel is usually outside the window's border_rect;
+        # without this, clicking a modal opened from inside the window would
+        # minimize the window underneath it, and a backdrop click would both
+        # close the modal and minimize.
+        if self._active_modal_node_ref:
+            return
+        # A drag, resize or scrollbar grab started inside the window; the
+        # release can land anywhere and isn't a click off.
+        if (state_manager.is_drag_active()
+                or self.meta_state.is_resize_dragging()
+                or self.meta_state.is_scrollbar_dragging()):
+            return
+
+        for node in self.windows_wanting_click_outside():
+            if not node.box_model or not node.box_model.border_rect:
+                continue
+            # border_rect covers the whole window, including the holes carved
+            # out of the blockable rects for text inputs - clicking an input
+            # is inside the window, not off it.
+            if node.box_model.border_rect.contains(gpos):
+                continue
+            try:
+                node.on_click_outside()
+            except Exception as e:
+                print(f"Error during window on_click_outside: {e}")
+                log_trace()
+
     def minimize(self):
         if self.meta_state.windows:
             for id in list(self.meta_state.windows):
@@ -3199,6 +3263,7 @@ class Tree(TreeType):
                 self.canvas_decorator = None
 
             self.destroy_blockable_canvas()
+            self.destroy_click_outside()
 
             from ..platform.custom_input import custom_input_manager
             if custom_input_manager.has_focused_input:
@@ -3374,6 +3439,19 @@ class Tree(TreeType):
             for child_node in node.get_children_nodes():
                 child_node.properties.flex = 1
 
+    def _find_enclosing_window_ref(self, node: NodeType):
+        """Nearest window ancestor, or None when there isn't one. A modal
+        anchors to the window it lives in so it follows that window - across
+        screens included - instead of sitting wherever the screen's centre
+        happens to be. Outside a window this returns None and the caller
+        falls back to the root, which is the old behaviour."""
+        current = getattr(node, "parent_node", None)
+        while current is not None:
+            if getattr(current, "element_type", None) == ELEMENT_ENUM_TYPE["window"]:
+                return weakref.ref(current)
+            current = getattr(current, "parent_node", None)
+        return None
+
     def _find_parent_relative_positional_node(self, node: NodeType):
         if node.properties.position != "static":
             return weakref.ref(node)
@@ -3492,7 +3570,15 @@ class Tree(TreeType):
                 node.relative_positional_node = weakref.ref(self.root_node)
             elif node.properties.position == "fixed":
                 self.fixed_nodes.append(weakref.ref(node))
-                node.relative_positional_node = weakref.ref(self.root_node)
+                # relative_positional_node drives both placement (nonlayout_flow
+                # lays out from its margin_pos) and percentage sizing
+                # (init_intrinsic_sizes resolves against its border_size), so
+                # pointing a modal at its window is all it takes to scope it
+                # there. Plain fixed nodes keep anchoring to the root.
+                host = None
+                if node.element_type == ELEMENT_ENUM_TYPE["modal"] or                         getattr(node, "anchors_to_modal_host", False):
+                    host = self._find_enclosing_window_ref(node)
+                node.relative_positional_node = host or weakref.ref(self.root_node)
                 node.z_subindex += 1
             elif node.properties.position == "absolute":
                 self.absolute_nodes.append(weakref.ref(node))

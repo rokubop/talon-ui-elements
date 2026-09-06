@@ -132,6 +132,77 @@ def my_window_ui():
 
 The window element handles the minimize/maximize/close buttons automatically. You just provide the callbacks for what should happen.
 
+## Click Outside
+
+A window can react to a click that lands anywhere off it. The common case is
+collapsing to the minimized body, which needs no callback:
+
+```python
+def my_window_ui():
+    screen, window, div, text = actions.user.ui_elements(
+        ["screen", "window", "div", "text"]
+    )
+
+    return screen(justify_content="center", align_items="center")[
+        window(
+            title="My Window",
+            minimize_on_click_outside=True,
+            minimized_body=minimized_content,
+        )[
+            div(padding=16)[
+                text("Click anywhere off this window to minimize it")
+            ]
+        ]
+    ]
+```
+
+Use `close_on_click_outside=True` to hide the window instead, or
+`on_click_outside` for anything else:
+
+```python
+window(
+    title="My Window",
+    on_click_outside=lambda: print("clicked off"),
+)
+```
+
+All three can be combined - the declarative action runs first, then
+`on_click_outside`.
+
+**Note:** the click still reaches whatever is underneath. This is detection,
+not interception, so an overlay sitting on top of a game does not swallow the
+click that dismissed it. If you want the click consumed instead, use `modal`
+with `backdrop_click_close=True` - its backdrop is a real full-viewport button,
+so the press stops there.
+
+Anything inside the window's border counts as inside, including text inputs.
+Dragging, resizing, or grabbing a scrollbar and releasing off the window does
+not count as a click outside.
+
+While a `modal` is open anywhere in the tree, click outside is suppressed
+entirely - the modal owns dismissal through `backdrop_click_close`. This
+matches the rest of the tree, which a modal already makes inert.
+
+## Modals in a window
+
+A `modal` declared inside a window is anchored to that window rather than the
+screen: it covers the window, its panel centers on the window, and it follows
+the window when you drag it - onto another monitor included. A modal with no
+enclosing window still covers the screen, as before.
+
+```python
+window(title="My Window", resizable=True)[
+    div(padding=16)[text("Content")],
+    modal(open=is_open, title="Confirm", on_close=close)[
+        text("Centered on the window, not the screen")
+    ],
+]
+```
+
+The modal covers the title bar too. While it is open the title bar is inert
+anyway - dragging is disabled and the minimize and close buttons are scoped
+out - so leaving it undimmed would show live-looking controls that do nothing.
+
 ## Customize Window Controls
 
 You can hide the minimize button, close button, or entire title bar:

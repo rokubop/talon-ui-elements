@@ -196,8 +196,30 @@ class NodeWindow(NodeContainer):
         def on_button_click_close():
             on_close(WindowCloseEvent(hide=True))
 
+        def on_click_outside():
+            """A mouse press landed outside this window. Runs the declarative
+            action, if any, then the user's callback."""
+            if self.destroying:
+                return
+
+            if window_properties.get("minimize_on_click_outside", False):
+                if not self.is_minimized:
+                    on_minimize()
+            elif window_properties.get("close_on_click_outside", False):
+                on_close(WindowCloseEvent(hide=True))
+
+            callback = window_properties.get("on_click_outside", None)
+            if callback:
+                callback()
+
         self.on_minimize = on_minimize
         self.on_close = on_close
+        self.on_click_outside = on_click_outside
+        self.wants_click_outside = bool(
+            window_properties.get("on_click_outside", None)
+            or window_properties.get("minimize_on_click_outside", False)
+            or window_properties.get("close_on_click_outside", False)
+        )
 
         if window_properties.get("title_bar_style", None):
             for key, value in window_properties.get("title_bar_style", {}).items():
@@ -375,11 +397,21 @@ class NodeWindow(NodeContainer):
             children_nodes = [children_nodes]
 
         for node in children_nodes:
-            self.body.add_child(node)
+            # A modal covers the whole window, title bar included, so it hangs
+            # off the window rather than the body. Body children inherit the
+            # body's overflow clip, which would cut the modal off at the title
+            # bar; the window has its own overflow clip, so hanging it here
+            # still trims it to the window's rounded border. Being fixed, it
+            # takes no part in the title-bar/body flex column.
+            if getattr(node, "element_type", None) == ELEMENT_ENUM_TYPE["modal"]:
+                self.add_child(node)
+            else:
+                self.body.add_child(node)
 
         return self
 
     def destroy(self):
         self.on_minimize = None
         self.on_close = None
+        self.on_click_outside = None
         super().destroy()
