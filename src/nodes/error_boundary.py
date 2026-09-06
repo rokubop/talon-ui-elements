@@ -74,6 +74,8 @@ class ErrorBoundary(Component):
             self._root_node = weakref.ref(error_node)
             try:
                 self.replace_self_with_nodes(error_node)
+                # replace_self_with_nodes only swaps the child list entry
+                error_node.parent_node = self.parent_node
             except Exception:
                 # no parent when the boundary is the tree root
                 print(

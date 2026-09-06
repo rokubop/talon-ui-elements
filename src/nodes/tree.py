@@ -1595,12 +1595,20 @@ class Tree(TreeType):
             self.canvas_decorator.register("scroll", self.on_scroll)
 
     def _is_draggable_ui(self):
-        # Just check 1 level deep
-        return any([node.properties.draggable for node in self.root_node.get_children_nodes()])
+        # Just check 1 level deep. Canvas size is decided before components
+        # resolve, so an unresolved one is unknown: a canvas too small to drag
+        # in is worse than one too large.
+        return any(
+            True if isinstance(node, ComponentType) else node.properties.draggable
+            for node in self.root_node.get_children_nodes()
+        )
 
     def _has_cursor_element(self):
         """Check if any child of root is a cursor element (1 level deep)."""
-        return any([node.element_type == "cursor" for node in self.root_node.get_children_nodes()])
+        return any(
+            getattr(node, "element_type", None) == "cursor"
+            for node in self.root_node.get_children_nodes()
+        )
 
     def create_canvas(self):
         rect = self.root_node.boundary_rect
