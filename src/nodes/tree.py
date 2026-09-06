@@ -1198,6 +1198,7 @@ class Tree(TreeType):
             self.meta_state.clear_nodes()
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
+            self.transition_manager.end_render()
             self._handle_modal_open_transition()
             self.transition_manager.apply_pending_mount_values()
             self.consume_components()
@@ -3614,6 +3615,7 @@ class Tree(TreeType):
             # Root call: clear per-render modal tracking before walking the tree.
             self._active_modal_node_ref = None
             self._cached_modal_scope_ids = None
+            self.transition_manager.begin_render()
 
         current_node = self._resolve_component(current_node, node_index_path)
 

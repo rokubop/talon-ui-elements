@@ -311,7 +311,12 @@ class NodeWindow(NodeContainer):
             minimized_body_fn = window_properties.get("minimized_body", None) or (
                 lambda: div(height=24, width=200)
             )
-            self.add_child(minimized_body_fn())
+            minimized_body = minimized_body_fn()
+            # It replaces the body at the same child index, so it would
+            # generate the same id and read as the same node - no mount.
+            if minimized_body is not None and not minimized_body.id:
+                minimized_body.id = f"minimized_body_{self.hash}"
+            self.add_child(minimized_body)
         else:
             self.add_child(self.body)
 
