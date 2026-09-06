@@ -1,6 +1,6 @@
 # UI Elements
 
-![Version](https://img.shields.io/badge/version-0.21.1-blue)
+![Version](https://img.shields.io/badge/version-0.22.0-blue)
 ![Status](https://img.shields.io/badge/status-stable-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
