@@ -12,6 +12,7 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_is_active()` | `renderer: Union[str, Callable]` | Check if a specific UI is active by renderer function or tree ID. Returns boolean |
 | `user.ui_elements_set_state()` | `name: Union[str, dict]`<br>`value: Any = UNSET` | Set global state value(s). Triggers full re-render with relayout. Pass dict to set multiple: `{"key": value}`. Pass callable to update: `lambda current: current + 1` |
 | `user.ui_elements_get_state()` | `name: str = None`<br>`initial_state: Any = None` | Get global state value by name. Returns `initial_state` if not found. Pass no args to get all states. Does not trigger re-render |
+| `user.ui_elements_store()` | `name: str`<br>`initial_state: dict = None` | Create a named store owned by your package instead of by a UI. Values survive hiding the UI. Read them in a render as `state.get("name.key")`, or anywhere with `store.get()` / `store.set()`. Calling again with the same name returns the same store. See [Store documentation](./concepts/store.md) |
 | `user.ui_elements_set_text()` | `id: str`<br>`text_or_callable: Any` | Set text content by element ID. Fast update on decoration layer only, no rerender or relayout. Pass callable to update: `lambda current: current + "!"` |
 | `user.ui_elements_highlight()` | `id: str`<br>`color: str = None` | Highlight element by ID. Optional color override. Renders on decoration layer only, no relayout |
 | `user.ui_elements_unhighlight()` | `id: str` | Remove highlight from element by ID. Decoration layer only, no relayout |
@@ -97,6 +98,25 @@ actions.user.ui_elements_set_state({"name": "John", "age": 30})
 # Get state
 value = actions.user.ui_elements_get_state("counter", 0)
 all_states = actions.user.ui_elements_get_state()
+```
+
+### Store (State That Outlives The UI)
+
+```python
+# once, at module level
+gk = actions.user.ui_elements_store("gk", {"game": None, "bindings": {}})
+
+# anywhere, with or without a UI open
+gk.set("game", "celeste")
+gk.get("game")
+gk.get_all()
+gk.reset()
+
+# save it yourself, ui_elements does not write files
+gk.subscribe(lambda: save_config(gk.get_all()))
+
+# in a UI, read it by its full name
+game = state.get("gk.game")
 ```
 
 ### Property Updates (Full Rerender)

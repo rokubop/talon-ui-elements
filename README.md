@@ -59,7 +59,7 @@ Interactive component explorer for testing elements and tweaking properties in r
 
 **References:** [Elements](docs/elements.md) · [Properties](docs/properties.md) · [Actions](docs/actions.md) · [Icons](docs/icons.md)
 
-**Concepts:** [Components](docs/concepts/components.md) · [Cursor](docs/concepts/cursor.md) · [Defaults](docs/concepts/defaults.md) · [Effect](docs/concepts/effect.md) · [Ref](docs/concepts/ref.md) · [Rendering](docs/concepts/rendering.md) · [State](docs/concepts/state.md) · [Style](docs/concepts/style.md) · [SVG](docs/concepts/svgs.md) · [Window](docs/concepts/window.md)
+**Concepts:** [Components](docs/concepts/components.md) · [Cursor](docs/concepts/cursor.md) · [Defaults](docs/concepts/defaults.md) · [Effect](docs/concepts/effect.md) · [Ref](docs/concepts/ref.md) · [Rendering](docs/concepts/rendering.md) · [State](docs/concepts/state.md) · [Store](docs/concepts/store.md) · [Style](docs/concepts/style.md) · [SVG](docs/concepts/svgs.md) · [Window](docs/concepts/window.md)
 
 **More examples:** [Dashboard](examples/dashboard/dashboard_ui.py) · [Todo List](examples/todo_list/todo_list_ui.py) · [Inputs](examples/inputs/inputs_ui.py) · [Alignment](examples/alignment/alignment_ui.py)
 
