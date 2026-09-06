@@ -277,10 +277,14 @@ class BoxModelV2(BoxModelV2Type):
     @staticmethod
     def _used_size_cap(size, max_size):
         """Largest size a node can reach. `max_size` only reduces `size`,
-        it never stands in for it."""
+        it never stands in for it.
+
+        width and height default to 0 for unset, so a falsy result is no cap
+        at all. Returning 0 reads as a real cap and collapses the node to its
+        own margins."""
         if size and max_size:
             return min(size, max_size)
-        return max_size or size
+        return max_size or size or None
 
     @property
     def intrinsic_margin_size_with_bounding_constraints(self):
