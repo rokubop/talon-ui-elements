@@ -203,6 +203,25 @@ The modal covers the title bar too. While it is open the title bar is inert
 anyway - dragging is disabled and the minimize and close buttons are scoped
 out - so leaving it undimmed would show live-looking controls that do nothing.
 
+## Minimize Flash
+
+A window minimizes to a corner while the eye is somewhere else, so the collapse
+is easy to miss. Every window washes white on the way out.
+
+On by default. Nothing to opt into.
+
+```python
+window(
+    title="My Window",
+    flash_on_minimize=False,     # off
+    flash_color="4a9af5AA",      # default "FFFFFF59"
+    flash_duration=800,          # ms, default 450
+)
+```
+
+Covers the whole window, title bar included. Fires on every minimize, not
+just the first.
+
 ## Customize Window Controls
 
 You can hide the minimize button, close button, or entire title bar:
