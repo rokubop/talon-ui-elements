@@ -61,10 +61,50 @@ def _custom_fallback(exc_kind, exc_msg, tb_str):
     ]
 
 
-def error_boundary_stories():
-    component, div, text, error_boundary, state = actions.user.ui_elements([
-        "component", "div", "text", "error_boundary", "state",
+def _boundary_without_window():
+    screen, error_boundary = actions.user.ui_elements(["screen", "error_boundary"])
+    return screen(align_items="center", justify_content="center")[
+        error_boundary(_boom_view),
+    ]
+
+
+def _broken_tree():
+    screen, window, div, text = actions.user.ui_elements([
+        "screen", "window", "div", "text",
     ])
+    settings = None
+    return screen(align_items="center", justify_content="center")[
+        window(title="My app")[
+            div(padding=24, gap=12)[
+                text(settings["theme"]),
+            ],
+        ],
+    ]
+
+
+def _launch(fn):
+    try:
+        actions.user.ui_elements_hide(fn)
+    except Exception:
+        pass
+    actions.user.ui_elements_show(fn)
+
+
+def error_boundary_stories():
+    component, div, text, button, error_boundary, state = actions.user.ui_elements([
+        "component", "div", "text", "button", "error_boundary", "state",
+    ])
+
+    btn_kwargs = dict(
+        font_size=14, color=t.TEXT,
+        background_color=t.BG_ACTIVE,
+        border_radius=6,
+        border_width=1, border_color=t.BORDER,
+        padding=8, padding_left=14, padding_right=14,
+    )
+
+    def open_btn(fn, label="Open"):
+        return button(label, on_click=lambda: _launch(fn), **btn_kwargs)
 
     cs = build_controls_state(state, "eb", CONTROLS)
     preview_props = build_preview_props(CONTROLS, cs)
@@ -137,6 +177,48 @@ def error_boundary_stories():
                     # boundary swaps in the error card. State change
                     # elsewhere re-renders and the boundary tries
                     # again -- so fixes hot-reload cleanly."""),
+            }),
+
+            text("Dismissing the error", font_size=18, font_weight="bold",
+                 color=t.TEXT, border_bottom=1, padding_bottom=12,
+                 border_color=t.BORDER, margin_top=16),
+            text(
+                "The cards above are bare because the storybook is itself a "
+                "window: its close button already gets rid of them. With no "
+                "window in the tree the card brings its own title bar. These "
+                "two open as separate trees so you can see it.",
+                color=t.TEXT_SECONDARY, font_size=14,
+            ),
+
+            component(example_with_code, props={
+                "title": "No window in the tree",
+                "example": open_btn(_boundary_without_window),
+                "code": textwrap.dedent("""\
+                    def my_ui():
+                        return screen()[
+                            error_boundary(my_view),
+                        ]
+
+                    # Nothing else can close this tree, so the card
+                    # gets a title bar and close button of its own."""),
+            }),
+
+            component(example_with_code, props={
+                "title": "Tree constructor raises (no boundary reached)",
+                "example": open_btn(_broken_tree),
+                "code": textwrap.dedent("""\
+                    def my_ui():
+                        settings = None
+                        return screen()[
+                            window(title="My app")[
+                                div(padding=24)[text(settings["theme"])],
+                            ],
+                        ]
+
+                    # The throw happens while the tree is being built,
+                    # before any boundary runs, so the whole tree is
+                    # replaced. The card is windowed so your close
+                    # button isn't lost with it."""),
             }),
 
             component(example_with_code, props={
