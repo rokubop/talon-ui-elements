@@ -829,13 +829,6 @@ class Tree(TreeType):
         ]
         self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
-    def move_canvas(self, canvas: SkiaCanvas, in_place: bool = False):
-        offset = None if in_place \
-            else self.meta_state.get_current_drag_offset(self.draggable_node.id)
-        transforms = RenderTransforms(offset=offset) if offset else None
-        for layer in self.render_layers:
-            layer.draw_to_canvas(canvas, transforms)
-
     def commit_base_canvas(self):
         cursor_transforms = RenderTransforms(offset=self.cursor_position) \
             if self.has_cursor_node \
@@ -1028,14 +1021,10 @@ class Tree(TreeType):
         try:
             if not self.render_manager.is_destroying:
                 draw_canvas = canvas
-                # A previewed drag leaves the tree where it was and moves an
-                # outline instead, so the decorator must not be offset either.
-                offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
-                    if self.render_manager.is_drag_start() and not self.drag.previewing \
-                    else Point2d(0, 0)
-                transforms = None
-                if offset:
-                    transforms = RenderTransforms(offset=offset)
+                # Nothing offsets the decorator any more. A drag previews
+                # with an outline, so the tree it decorates never moves.
+                offset = Point2d(0, 0)
+                transforms = RenderTransforms(offset=offset)
                 state_manager.set_processing_tree(self)
                 try:
                     if self.interactive_node_list and self.render_manager.render_cause in (
@@ -1076,41 +1065,20 @@ class Tree(TreeType):
             self.finish_current_render()
             self.destroy()
 
-    def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
-        try:
-            # Previewing, so this runs once at drag start and paints the tree
-            # where it already is. Inputs are OS widgets and stay put until
-            # the drop, which is also when the tree catches up.
-            previewing = self.drag.previewing
-            self.move_canvas(canvas, in_place=previewing)
-            if not previewing:
-                self.move_inputs()
-            # Raise on the drag-start tick only, not every dragging tick:
-            # focused= is an OS focus call and doing it ~100Hz across a drag
-            # is laggy. Talon sinks the canvas once at the start of the drag,
-            # so a single raise is enough to ride out the whole drag.
-            if self.render_manager.is_drag_start():
-                self._raise_dragging_canvases_to_top()
-        except Exception as e:
-            print(f"Error during dragging rendering: {e}")
-            log_trace()
-            self.finish_current_render()
-            self.destroy()
-
     def on_draw_base_canvas_drag_end(self, canvas: SkiaCanvas):
         try:
             self.root_node.v2_reposition()
             self.compute_clip_regions_cache()
             self.build_base_render_layers()
             self.commit_base_canvas()
-            self._raise_dragging_canvases_to_top()
+            self.raise_dragging_canvases_to_top()
         except Exception as e:
             print(f"Error during drag end rendering: {e}")
             log_trace()
             self.finish_current_render()
             self.destroy()
 
-    def _raise_dragging_canvases_to_top(self):
+    def raise_dragging_canvases_to_top(self):
         # Talon sinks a draggable canvas below other on-screen canvases
         # (other ui_elements trees and this tree's own hint/decorator layer)
         # when it becomes the drag source. Re-assert focus to raise back to
@@ -1211,10 +1179,7 @@ class Tree(TreeType):
             state_manager.set_processing_tree(self)
             try:
                 self._commit_pending_render()
-                dragging = self.render_manager.is_drag_start()
-                if dragging:
-                    self.on_draw_base_canvas_dragging(canvas)
-                elif self.is_drag_end():
+                if self.is_drag_end():
                     self.on_draw_base_canvas_drag_end(canvas)
                 elif self.render_manager.is_scrolling() or self.render_manager.is_scrollbar_dragging():
                     self.on_draw_base_canvas_scroll(canvas)
@@ -1225,8 +1190,7 @@ class Tree(TreeType):
                 else:
                     self.on_draw_base_canvas_default(canvas)
 
-                if not dragging:
-                    self.show_inputs()
+                self.show_inputs()
                 if self.render_manager.is_rendering:
                     self.render_manager.expect_decorator_completion()
                 self.render_decorator_canvas()
@@ -3423,7 +3387,6 @@ class Tree(TreeType):
 
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
-            or self.render_manager.render_cause == RenderCause.DRAG_START \
             or self.is_drag_end()
 
     def calculate_blockable_rects(self):
@@ -3491,11 +3454,8 @@ class Tree(TreeType):
 
             blockable_rects = self.calculate_blockable_rects()
 
-            if self.render_manager.render_cause == RenderCause.DRAG_START:
-                offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-                self.move_blockable_canvas_rects(blockable_rects, offset)
-                return
-            elif self.render_manager.render_cause == RenderCause.DRAG_END:
+            if self.render_manager.render_cause == RenderCause.DRAG_END:
+                # The drag session already put them where the drop lands.
                 return
 
             if is_rerender:

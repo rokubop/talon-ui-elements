@@ -37,8 +37,13 @@ mouseup:
 - the render queue is paused, so state changes wait for the drop
 - on mouseup the outline is dropped and one render puts the element there
 
-A drag tick is one `freeze` of one canvas drawing two shapes, capped at ~125Hz.
-It used to be a repaint of the whole tree per mouse report.
+A drag queues no renders at all. A tick is one `freeze` of one canvas drawing
+one stroked rect, capped at ~125Hz. It used to be a repaint of the whole tree
+per mouse report.
+
+`DRAG_GHOST_FILL_COLOR` and `DRAG_DIM_COLOR` add a fill behind the outline and
+a wash over where the element still sits. Both are off by default - each is a
+fill the size of the window on every frame of the drag.
 
 Scrollbar and text-selection drags do not change layout, so they stay live and
 draw no outline.

@@ -101,12 +101,20 @@ RESIZE_EDGE_HIGHLIGHT_WIDTH = 3.0
 DRAG_GHOST_COLOR = "FFFFFFAA"
 DRAG_GHOST_STROKE_WIDTH = 2.0
 # Behind the outline, so the target reads as a solid shape and not a wire.
-DRAG_GHOST_FILL_COLOR = "FFFFFF11"
-# Over the node where it still sits. None to leave it undimmed.
-DRAG_DIM_COLOR = "00000055"
+# Off by default: it is a fill the size of the window on every frame, and a
+# drag is the one thing where that cost is felt. Set a colour to turn it on.
+DRAG_GHOST_FILL_COLOR = None
+# Over the node where it still sits. Off by default: it is a fill the size
+# of the window on every frame of the drag, which is the one thing moving a
+# window paints that resizing one does not. Set a colour to turn it on.
+DRAG_DIM_COLOR = None
 # Floor between overlay repaints. One freeze costs a display frame, and a
 # 1000Hz mouse would otherwise queue a thousand of them a second.
 DRAG_OVERLAY_MIN_FRAME_MS = 8
+# How close the cursor may get to the edge of a drag's mouse capture rect
+# before it is re-centred. Slack for a flick between two mouse reports, not
+# a share of the window - a bigger margin just means more native moves.
+DRAG_CAPTURE_MARGIN = 48
 # How long a freeze may sit undrawn before the overlay stops waiting
 # for it. Well past a dropped frame, well short of a noticeable stall.
 DRAG_OVERLAY_STALL_MS = 120

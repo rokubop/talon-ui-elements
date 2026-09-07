@@ -714,10 +714,6 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
-    def is_drag_start(self):
-        pass
-
-    @abstractmethod
     def is_drag_end(self):
         pass
 
@@ -765,10 +761,6 @@ class RenderManagerType(ABC):
 
     @abstractmethod
     def render_ref_change(self):
-        pass
-
-    @abstractmethod
-    def render_drag_start(self):
         pass
 
     @abstractmethod

@@ -13,7 +13,6 @@ class RenderCause(Enum):
     SCROLLING = "SCROLLING"
     STATE_CHANGE = "STATE_CHANGE"
     REF_CHANGE = "REF_CHANGE"
-    DRAG_START = "DRAG_START"
     DRAG_END = "DRAG_END"
     SCROLLBAR_DRAGGING = "SCROLLBAR_DRAGGING"
     TEXT_MUTATION = "TEXT_MUTATION"
@@ -87,11 +86,6 @@ RenderTaskScrolling = RenderTask(
     on_base_canvas_change,
 )
 
-RenderTaskDragStart = RenderTask(
-    RenderCause.DRAG_START,
-    on_base_canvas_change,
-)
-
 RenderTaskDragEnd = RenderTask(
     RenderCause.DRAG_END,
     on_base_canvas_change,
@@ -120,7 +114,6 @@ RenderTaskCursorUpdate = RenderTask(
 # Causes that run even with renders paused. A held drag pauses the queue for
 # its whole life, and these are the repaints it still needs.
 DRAG_CAUSES = (
-    RenderCause.DRAG_START,
     RenderCause.DRAG_END,
     RenderCause.SCROLLBAR_DRAGGING,
 )
@@ -261,10 +254,6 @@ class RenderManager(RenderManagerType):
         return self.current_render_task and \
             self.current_render_task.cause == RenderCause.DRAG_END
 
-    def is_drag_start(self):
-        return self.current_render_task and \
-            self.current_render_task.cause == RenderCause.DRAG_START
-
     def is_scrolling(self):
         return self.current_render_task and \
             self.current_render_task.cause == RenderCause.SCROLLING
@@ -367,26 +356,6 @@ class RenderManager(RenderManagerType):
 
     def render_ref_change(self):
         self._queue_render_after_debounce("1ms", RenderTaskRefChange)
-
-    def render_drag_start(
-        self,
-        mouse_pos: Point2d,
-        mousedown_start_pos: Point2d,
-        mousedown_start_offset: Point2d
-    ):
-        render_task = RenderTask(
-            cause=RenderCause.DRAG_START,
-            on_start=lambda tree: (
-                self.pause(),
-                on_base_canvas_change(tree),
-            ),
-            metadata = {
-                "mouse_pos": mouse_pos,
-                "mousedown_start_pos": mousedown_start_pos,
-                "mousedown_start_offset": mousedown_start_offset,
-            }
-        )
-        self.queue_render(render_task)
 
     def render_drag_end(
         self,
