@@ -1176,6 +1176,15 @@ class Tree(TreeType):
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
             self.current_base_canvas = canvas
+
+            if self.drag.previewing and not self.render_manager.is_rendering:
+                # A repaint nobody asked for, mid-drag: a canvas opening over
+                # us, a focus change. The tree is frozen for the drag, so
+                # re-blit the layers it already has. Laying out again would
+                # run component code behind a paused queue.
+                self.commit_base_canvas()
+                return
+
             state_manager.set_processing_tree(self)
             try:
                 self._commit_pending_render()
@@ -1410,17 +1419,6 @@ class Tree(TreeType):
             self.meta_state.unhighlight_jobs.pop(id, None)
             self.unhighlight(id)
         self.meta_state.unhighlight_jobs[id] = (cron.after(f"{duration}ms", pending_unhighlight), pending_unhighlight)
-
-    def move_inputs(self):
-        offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-        for id, input_data in list(self.meta_state.inputs.items()):
-            if input_data.input:
-                input_data.input.rect = Rect(
-                    input_data.rect.x + offset.x,
-                    input_data.rect.y + offset.y,
-                    input_data.rect.width,
-                    input_data.rect.height
-                )
 
     def show_inputs(self):
         if self.meta_state.inputs and not self.is_mounted:
@@ -3375,8 +3373,9 @@ class Tree(TreeType):
         return dimension_change, position_change
 
     def move_blockable_canvas_rects(self, blockable_rects, offset: Point2d = None):
-        if offset is None:
-            offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
+        # The rects already carry every committed drag. Only a session in
+        # flight has an offset on top, and it passes its own.
+        offset = offset or Point2d(0, 0)
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
                 x = rect.x + offset.x

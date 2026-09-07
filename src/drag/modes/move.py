@@ -67,7 +67,13 @@ class MoveSession(DragSession):
 
     def commit(self, gpos: Point2d) -> None:
         self._apply(gpos)
-        # They only tracked the cursor loosely. Land them on the drop.
+        # Only now does the tree get told. Layout adds this offset to a
+        # draggable node's position (Node.v2_drag_offset), so publishing it
+        # mid-drag means any repaint we did not ask for - a canvas opening
+        # over us, a focus change - moves the real window under the outline.
+        self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
+        # The capture rects only tracked the cursor loosely. Land them on
+        # the drop.
         self._move_capture(self.offset)
 
     def cancel(self) -> None:
@@ -97,7 +103,6 @@ class MoveSession(DragSession):
 
     def _apply(self, gpos: Point2d) -> None:
         self.offset = gpos - self._mouse_start
-        self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
         self._keep_capture_under(gpos)
 
     def _keep_capture_under(self, gpos: Point2d) -> None:
