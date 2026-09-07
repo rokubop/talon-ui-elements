@@ -38,8 +38,8 @@ class ResizeSession(DragSession):
         self.ghost = self.start_rect.copy()
         self._radius = self.node.properties.get_border_radius()
 
-        # The constraints the consumer declared, before any earlier resize
-        # overrode them. Saved once per node, and outlives this session.
+        # What the consumer declared, before any earlier resize overrode it.
+        # Saved once per node, and outlives this session.
         constraints = self.tree.meta_state.resize_original_constraints
         if self.node_id not in constraints:
             constraints[self.node_id] = {
@@ -60,9 +60,8 @@ class ResizeSession(DragSession):
         width = self.ghost.width / scale
         height = self.ghost.height / scale
 
-        # Only the dragged axis is pinned. A side panel resized by its right
-        # edge keeps stretching to its parent's height; pinning that too
-        # froze it at whatever the window was tall when you let go.
+        # Only the dragged axis. Pinning both froze a side panel at whatever
+        # its parent was tall when you let go.
         if "left" in self.edge or "right" in self.edge:
             ms.set_ref_property_override(self.node_id, "width", width)
             ms.set_ref_property_override(self.node_id, "max_width", width)
@@ -70,8 +69,8 @@ class ResizeSession(DragSession):
             ms.set_ref_property_override(self.node_id, "height", height)
             ms.set_ref_property_override(self.node_id, "max_height", height)
 
-        # A parent that centers or end-aligns its children moves the node when
-        # its size changes. Cancel that out so it lands on the outline.
+        # A parent that centres or end-aligns moves the node when its size
+        # changes. Cancel that out so it lands on the outline.
         compensation = self._layout_compensation()
         dx = (self.ghost.x - self.start_rect.x) + compensation.x
         dy = (self.ghost.y - self.start_rect.y) + compensation.y

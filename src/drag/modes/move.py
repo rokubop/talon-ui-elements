@@ -13,8 +13,8 @@ from ..shapes import Dim, Outline
 
 
 def _bounds(rects) -> Rect:
-    """One rect around all of them. Inputs carve holes out of the capture
-    area, so there can be several, and they move as a group."""
+    """Inputs carve holes out of the capture area, so there can be several.
+    They move as a group."""
     if not rects:
         return None
     left = min(r.x for r in rects)
@@ -48,8 +48,8 @@ class MoveSession(DragSession):
 
         self.start_pos = gpos
         self._mouse_start = state_manager.get_mousedown_start_pos() or gpos
-        # Where the last committed layout put it. The base canvas is not
-        # repainted for the rest of the drag, so this stays true.
+        # Where the last committed layout put it. Nothing repaints the base
+        # for the rest of the drag, so it stays true.
         self.origin = box_model.border_rect.copy()
         self._radius = self.node.properties.get_border_radius()
         self._blockable_rects = self.tree.calculate_blockable_rects()
@@ -57,11 +57,9 @@ class MoveSession(DragSession):
 
         state_manager.set_drag_active(True)
         self._apply(gpos)
-        # Nothing is raised here. focused=True is an OS raise, and doing it to
-        # the base canvas flickers the UI you are about to drag. The old
-        # reason for it was that Talon sank the base canvas when it became the
-        # drag source, which it no longer is - it does not move, and the
-        # outline is a canvas of its own that opens on top.
+        # Nothing is raised. focused=True is an OS raise, and doing it to the
+        # base canvas flickers the window you are about to drag. Talon only
+        # sank that canvas when it was the drag source, which it no longer is.
         return True
 
     def move(self, gpos: Point2d) -> None:
@@ -69,13 +67,11 @@ class MoveSession(DragSession):
 
     def commit(self, gpos: Point2d) -> None:
         self._apply(gpos)
-        # Only now does the tree get told. Layout adds this offset to a
-        # draggable node's position (Node.v2_drag_offset), so publishing it
-        # mid-drag means any repaint we did not ask for - a canvas opening
-        # over us, a focus change - moves the real window under the outline.
+        # Only now. Layout adds this offset to the node's position
+        # (Node.v2_drag_offset), so publishing it mid-drag lets any repaint we
+        # did not ask for move the real window under its own outline.
         self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
-        # The capture rects only tracked the cursor loosely. Land them on
-        # the drop.
+        # They only tracked the cursor loosely. Land them on the drop.
         self._move_capture(self.offset)
 
     def cancel(self) -> None:
@@ -108,14 +104,13 @@ class MoveSession(DragSession):
         self._keep_capture_under(gpos)
 
     def _keep_capture_under(self, gpos: Point2d) -> None:
-        """The blockable canvases are where mouse events come from, so the
-        cursor has to stay inside them or the drag dies mid-air.
+        """Mouse events come from the blockable canvases, so the cursor has
+        to stay inside them or the drag dies mid-air.
 
-        Each one is a native window move, and doing that per mouse report is
-        what made moving a window cost more than resizing one, which never
-        touches them. Where they sit during a drag does not matter, only that
-        events keep arriving, so they are re-centred on the cursor when it
-        nears an edge. That buys half the window before the next move.
+        Each is a native window move, and doing that per mouse report is what
+        made moving a window cost more than resizing one. Where they sit
+        mid-drag does not matter, so they re-centre on the cursor when it
+        nears an edge, which buys half a window before the next move.
         """
         bounds = self._capture_bounds
         if not bounds:

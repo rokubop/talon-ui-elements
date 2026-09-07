@@ -32,20 +32,23 @@ If you give an element an `id` or a `highlight_style`, it will be rendered on th
 Moving or resizing an element does not re-lay out the tree. From mousedown to
 mouseup:
 
-- the base and decorator canvases keep the paint they had when the drag started
-- an outline of where the element will land is drawn on a canvas of its own
+- base and decorator keep the paint they had at drag start
+- an outline of where the element lands is drawn on a canvas of its own
 - the render queue is paused, so state changes wait for the drop
 - on mouseup the outline is dropped and one render puts the element there
 
-A drag queues no renders at all. A tick is one `freeze` of one canvas drawing
-one stroked rect, capped at ~125Hz. It used to be a repaint of the whole tree
-per mouse report.
+No renders are queued for the drag. A tick is one `freeze` of one canvas
+drawing one stroked rect, capped at ~125Hz. It used to be a repaint of the
+whole tree per mouse report.
+
+The outline canvas is built hidden as soon as a render finds a draggable or
+resizable node, and closes with the tree.
 
 `DRAG_GHOST_FILL_COLOR` and `DRAG_DIM_COLOR` add a fill behind the outline and
-a wash over where the element still sits. Both are off by default - each is a
-fill the size of the window on every frame of the drag.
+a wash over where the element still sits. Both off by default: each is a fill
+the size of the window on every frame.
 
-Scrollbar and text-selection drags do not change layout, so they stay live and
-draw no outline.
+Scrollbar and text-selection drags change no layout, so they stay live and draw
+no outline.
 
 Esc abandons a drag and puts everything back.

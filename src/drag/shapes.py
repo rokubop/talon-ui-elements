@@ -1,7 +1,7 @@
 """What a drag draws while it is held.
 
-A session emits shapes; the overlay draws them. The overlay never learns
-which kind of drag it is, so a new drag mode is a new session file.
+A session emits shapes, the overlay draws them. The overlay never learns which
+drag it is, so a new mode is a new session file.
 """
 
 from dataclasses import dataclass

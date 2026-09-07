@@ -1,16 +1,13 @@
 """The canvas a drag previews on.
 
-Nothing else draws on it. While a preview drag is held the base and decorator
-canvases keep the paint they had at drag start, so a tick is one freeze and a
-handful of shapes instead of a repaint of the tree.
+Nothing else draws on it, so a drag tick is one freeze of a few shapes instead
+of a repaint of the tree. The base and decorator keep the paint they had at
+drag start.
 
-Display only: no blocks_mouse, so Talon never calls on_mouse on it and it
-costs nothing per mouse report. It does answer for Esc while it is up, since
-it sits over the decorator that normally owns keys.
+Display only: no blocks_mouse, so Talon never calls on_mouse on it.
 
-Built once and then hidden between drags rather than closed. Creating a
-canvas is not free and the moment a drag starts is the worst time to pay for
-it. It closes with the tree.
+Hidden between drags rather than closed. Creating a canvas is not free and a
+drag starting is the worst time to pay for it. It closes with the tree.
 """
 
 import time
@@ -43,8 +40,7 @@ class DragOverlay:
             return
         self._canvas = self._create_canvas()
         self._canvas.register("draw", self.on_draw)
-        # It sits over the decorator, which owns the tree's key handler, so it
-        # answers for keys itself while it is up.
+        # It sits over the decorator, which owns the tree's keys.
         if self._on_key:
             self._canvas.register("key", self._on_key)
         self._hide()
@@ -118,8 +114,7 @@ class DragOverlay:
 
         elapsed_ms = (time.monotonic() - self._last_paint_ts) * 1000
         if self._painting:
-            # A freeze that never draws would otherwise strand the outline
-            # for the rest of the drag.
+            # A freeze that never draws would strand the outline.
             if elapsed_ms < DRAG_OVERLAY_STALL_MS:
                 self._pending = True
                 return

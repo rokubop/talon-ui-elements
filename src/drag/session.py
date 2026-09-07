@@ -1,17 +1,11 @@
 """One drag, from mousedown to mouseup.
 
-Two flags decide how a drag behaves for its whole life:
+`preview` outlines where it lands instead of moving the real thing.
+`pause_renders` holds the tree's render queue for the duration. A session that
+previews must also pause, or the tree re-lays out under its own outline.
 
-    preview        outline where it will land instead of moving the real
-                   thing. Only geometry drags want this.
-    pause_renders  hold the tree's render queue for the duration.
-
-A session that previews must also pause, or the tree would re-lay out
-underneath its own outline.
-
-Ending a drag is two steps because renders are still paused for the first
-one. `commit` mutates state, the controller resumes, then `settle` paints
-and fires callbacks.
+Ending is two steps: `commit` mutates state while renders are still paused,
+the controller resumes, `settle` paints and fires callbacks.
 """
 
 from talon.types import Point2d
@@ -27,7 +21,7 @@ class DragSession:
         self.start_pos: Point2d = None
 
     def begin(self, gpos: Point2d) -> bool:
-        """False to abandon the drag before it starts."""
+        """False abandons the drag before it starts."""
         self.start_pos = gpos
         return True
 
@@ -35,17 +29,17 @@ class DragSession:
         pass
 
     def commit(self, gpos: Point2d) -> None:
-        """Mouseup. Apply the result. Renders are still paused."""
+        """Mouseup. Renders are still paused."""
         pass
 
     def cancel(self) -> None:
-        """Escape. Leave nothing behind. Renders are still paused."""
+        """Esc. Renders are still paused."""
         pass
 
     def settle(self) -> None:
-        """Renders are live again. Paint, and call the consumer back."""
+        """Renders are live again."""
         pass
 
     def shapes(self) -> list:
-        """What the overlay draws. Empty unless preview is set."""
+        """Empty unless preview is set."""
         return []

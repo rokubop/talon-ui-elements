@@ -1,8 +1,7 @@
 """Dragging a scrollbar thumb.
 
-Scrolling does not change layout, so this one stays live: no outline, and
-the content follows the thumb. It is a session anyway, so there is still
-only one thing that owns "a drag is happening".
+Scrolling changes no layout, so this stays live: no outline, content follows
+the thumb. Still a session, so one thing owns "a drag is happening".
 """
 
 from talon.types import Point2d

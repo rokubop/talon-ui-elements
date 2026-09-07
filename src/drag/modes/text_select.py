@@ -1,8 +1,7 @@
 """Dragging across text to select it.
 
-Selection does not change layout, so this one stays live too. The tree keeps
-the click-count and focus work that decides a selection has started; the
-session only carries it from mousedown to mouseup.
+Selection changes no layout, so this stays live too. The tree keeps the
+click-count and focus work; the session only carries it to mouseup.
 """
 
 from talon.types import Point2d

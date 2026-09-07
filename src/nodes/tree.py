@@ -1021,8 +1021,8 @@ class Tree(TreeType):
         try:
             if not self.render_manager.is_destroying:
                 draw_canvas = canvas
-                # Nothing offsets the decorator any more. A drag previews
-                # with an outline, so the tree it decorates never moves.
+                # Nothing offsets the decorator now. A drag previews with an
+                # outline, so the tree it decorates never moves.
                 offset = Point2d(0, 0)
                 transforms = RenderTransforms(offset=offset)
                 state_manager.set_processing_tree(self)
@@ -1178,10 +1178,9 @@ class Tree(TreeType):
             self.current_base_canvas = canvas
 
             if self.drag.previewing and not self.render_manager.is_rendering:
-                # A repaint nobody asked for, mid-drag: a canvas opening over
-                # us, a focus change. The tree is frozen for the drag, so
-                # re-blit the layers it already has. Laying out again would
-                # run component code behind a paused queue.
+                # A repaint nobody asked for, mid-drag. The tree is frozen,
+                # so re-blit the layers it has. Laying out again would run
+                # component code behind a paused queue.
                 self.commit_base_canvas()
                 return
 
@@ -1579,8 +1578,8 @@ class Tree(TreeType):
         return CanvasWeakRef(self.Canvas.from_rect(safe_rect))
 
     def create_overlay_canvas(self):
-        """Always every screen. A drag outline is free to leave the tree's
-        own bounds - that is most of what resizing an edge outward is."""
+        """Every screen. An outline is free to leave the tree's own bounds,
+        which is most of what dragging an edge outward is."""
         return self.create_canvas(get_combined_screens_rect())
 
     def request_decorator_freeze(self):
@@ -1773,8 +1772,8 @@ class Tree(TreeType):
         )
 
     def prepare_drag_overlay(self):
-        """Build the outline canvas while there is time, not at the moment a
-        drag starts. It stays hidden until one does."""
+        """Build it while there is time, not when a drag starts. Stays
+        hidden until one does."""
         if self.draggable_node or self.has_resizable_nodes():
             self.drag.prepare()
 
@@ -2117,8 +2116,8 @@ class Tree(TreeType):
         return None
 
     def on_mousemove(self, gpos):
-        """No session is active here - DragController.move already answered
-        for those. All that is left is deciding a move drag has begun."""
+        """No session is active - DragController.move answered for those.
+        All that is left is deciding a move drag has begun."""
         if self.is_drag_end():
             return
 
@@ -2469,8 +2468,8 @@ class Tree(TreeType):
             self.last_mouse_event_time = time.time()
 
             if e.event == "mousemove":
-                # A held drag owns the cursor. Hover hit-testing is per-event
-                # work on the canvas draw thread and nothing would use it.
+                # A held drag owns the cursor. Hover hit-testing is
+                # per-event work nothing would use.
                 if self.drag.move(e.gpos):
                     return
                 self.on_mousemove(e.gpos)
@@ -3389,8 +3388,8 @@ class Tree(TreeType):
         return dimension_change, position_change
 
     def move_blockable_canvas_rects(self, blockable_rects, offset: Point2d = None):
-        # The rects already carry every committed drag. Only a session in
-        # flight has an offset on top, and it passes its own.
+        # The rects carry every committed drag already. Only a session in
+        # flight adds an offset, and it passes its own.
         offset = offset or Point2d(0, 0)
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
