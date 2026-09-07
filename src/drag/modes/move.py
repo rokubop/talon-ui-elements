@@ -57,9 +57,11 @@ class MoveSession(DragSession):
 
         state_manager.set_drag_active(True)
         self._apply(gpos)
-        # Talon sinks a canvas when a drag starts on it. Raising is an OS
-        # call, so it happens once here and not again for the rest of the drag.
-        self.tree.raise_dragging_canvases_to_top()
+        # Nothing is raised here. focused=True is an OS raise, and doing it to
+        # the base canvas flickers the UI you are about to drag. The old
+        # reason for it was that Talon sank the base canvas when it became the
+        # drag source, which it no longer is - it does not move, and the
+        # outline is a canvas of its own that opens on top.
         return True
 
     def move(self, gpos: Point2d) -> None:
