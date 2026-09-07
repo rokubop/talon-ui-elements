@@ -31,14 +31,12 @@ from ..constants import (
     DEFAULT_SCROLL_BUTTON_BORDER_COLOR,
     DEFAULT_SCROLL_BUTTON_ICON_COLOR,
     RESIZE_EDGE_THRESHOLD,
-    RESIZE_GHOST_COLOR,
-    RESIZE_GHOST_STROKE_WIDTH,
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
     PRIMARY_MOD,
     KEY_SPACE, KEY_ENTER, KEY_RETURN, KEY_ESCAPE,
 )
-from ..utils import draw_rect, get_scale, scale_value
+from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..click_outside import click_outside_watcher
 from ..border_radius import draw_manual_rounded_rect_path
@@ -48,7 +46,14 @@ from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
 from ..core.store import store
 from ..cursor import Cursor, CursorV2
-from ..events import StateEvent, DragEndEvent, ResizeEndEvent, WindowCloseEvent
+from ..drag import (
+    DragController,
+    MoveSession,
+    ResizeSession,
+    ScrollbarSession,
+    TextSelectSession,
+)
+from ..events import StateEvent, DragEndEvent, WindowCloseEvent
 from ..interfaces import (
     TreeType,
     NodeType,
@@ -71,21 +76,12 @@ from ..utils import (
     draw_text_simple,
     get_active_color_from_highlight_color,
     get_combined_screens_rect,
+    log_trace,
     subtract_rect,
 )
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
-
-debug = True
-
-def log_trace():
-    if debug:
-        traceback.print_exc()
-
-def log(*args):
-    if debug:
-        print("LOG:", *args)
 
 def scroll_throttle_clear():
     global scroll_throttle_job
@@ -187,11 +183,6 @@ class MetaState(MetaStateType):
         self.scroll_button_hovered_id: str = None
         self.resize_edge_hovered = None
         self.resize_original_constraints = {}
-        self.resize_dragging_id = None
-        self.resize_edge = None
-        self.resize_start_pos = None
-        self.resize_start_rect = None
-        self.resize_ghost_rect = None
         # True when any node in the current tree is a floating overlay
         # (uses_decoration_render and z_index > 0). Used to fast-exit
         # hit-test filtering when no overlay is open.
@@ -451,26 +442,7 @@ class MetaState(MetaStateType):
         if job:
             cron.cancel(job)
 
-    # Resize interaction state management
-    def start_resize_drag(self, node_id, edge, mouse_pos, start_rect):
-        self.resize_dragging_id = node_id
-        self.resize_edge = edge
-        self.resize_start_pos = mouse_pos
-        self.resize_start_rect = start_rect
-        self.resize_ghost_rect = Rect(start_rect.x, start_rect.y, start_rect.width, start_rect.height)
-
-    def clear_resize_drag(self):
-        self.resize_dragging_id = None
-        self.resize_edge = None
-        self.resize_start_pos = None
-        self.resize_start_rect = None
-        self.resize_ghost_rect = None
-
-    def is_resize_dragging(self, node_id=None):
-        if node_id:
-            return self.resize_dragging_id == node_id
-        return self.resize_dragging_id is not None
-
+    # Resize hover. The drag itself lives in ResizeSession.
     def set_resize_edge_hover(self, node_id, edge):
         self.resize_edge_hovered = (node_id, edge)
 
@@ -523,7 +495,6 @@ class MetaState(MetaStateType):
         self.ref_property_overrides.clear()
         self.new_component_ids.clear()
         self.removed_component_ids.clear()
-        self.clear_resize_drag()
         self.resize_edge_hovered = None
         self.resize_original_constraints.clear()
         self.clear_nodes()
@@ -612,7 +583,6 @@ class Tree(TreeType):
         self.unmounting = False
         self._unmount_complete = False
         self.drag_end_phase = False
-        self._text_selecting_node = None
         self._text_selected_nodes = []
         self._input_click_count = 0
         self._input_last_click_time = 0
@@ -638,6 +608,7 @@ class Tree(TreeType):
         self.name = tree_constructor.__name__
         self.props = props
         self.render_manager = RenderManager(self)
+        self.drag = DragController(self)
         self.render_cause = RenderCauseState()
         self.render_list = []
         self.render_layers = []
@@ -858,9 +829,10 @@ class Tree(TreeType):
         ]
         self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
-    def move_canvas(self, canvas: SkiaCanvas):
-        offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
-        transforms = RenderTransforms(offset=offset)
+    def move_canvas(self, canvas: SkiaCanvas, in_place: bool = False):
+        offset = None if in_place \
+            else self.meta_state.get_current_drag_offset(self.draggable_node.id)
+        transforms = RenderTransforms(offset=offset) if offset else None
         for layer in self.render_layers:
             layer.draw_to_canvas(canvas, transforms)
 
@@ -1056,8 +1028,10 @@ class Tree(TreeType):
         try:
             if not self.render_manager.is_destroying:
                 draw_canvas = canvas
+                # A previewed drag leaves the tree where it was and moves an
+                # outline instead, so the decorator must not be offset either.
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id) \
-                    if (self.render_manager.is_dragging() or self.render_manager.is_drag_start()) \
+                    if self.render_manager.is_drag_start() and not self.drag.previewing \
                     else Point2d(0, 0)
                 transforms = None
                 if offset:
@@ -1077,7 +1051,6 @@ class Tree(TreeType):
                         self.meta_state.scroll_button_overlays.clear()
                     self.draw_highlight_overlays(draw_canvas, transforms.offset)
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
-                    self.draw_resize_ghost(draw_canvas)
                     canvas.paint.color = "FFFFFF"
                     self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
                     if self.interactive_node_list or self.draggable_node:
@@ -1105,8 +1078,13 @@ class Tree(TreeType):
 
     def on_draw_base_canvas_dragging(self, canvas: SkiaCanvas):
         try:
-            self.move_canvas(canvas)
-            self.move_inputs()
+            # Previewing, so this runs once at drag start and paints the tree
+            # where it already is. Inputs are OS widgets and stay put until
+            # the drop, which is also when the tree catches up.
+            previewing = self.drag.previewing
+            self.move_canvas(canvas, in_place=previewing)
+            if not previewing:
+                self.move_inputs()
             # Raise on the drag-start tick only, not every dragging tick:
             # focused= is an OS focus call and doing it ~100Hz across a drag
             # is laggy. Talon sinks the canvas once at the start of the drag,
@@ -1150,6 +1128,8 @@ class Tree(TreeType):
                 self.canvas_decorator.focused = True
             except Exception:
                 pass
+        # Last, so the outline sits above both.
+        self.drag.raise_to_top()
 
     def on_draw_base_canvas_scroll(self, canvas: SkiaCanvas):
         try:
@@ -1231,7 +1211,7 @@ class Tree(TreeType):
             state_manager.set_processing_tree(self)
             try:
                 self._commit_pending_render()
-                dragging = self.render_manager.is_dragging() or self.render_manager.is_drag_start()
+                dragging = self.render_manager.is_drag_start()
                 if dragging:
                     self.on_draw_base_canvas_dragging(canvas)
                 elif self.is_drag_end():
@@ -1497,6 +1477,11 @@ class Tree(TreeType):
         for mod in e.mods:
             key_string = mod.lower() + "-" + key_string
 
+        # Esc abandons a drag in progress and puts everything back.
+        if key_string == KEY_ESCAPE and e.down and self.drag.active:
+            self.drag.cancel()
+            return
+
         # Esc dismisses an open dismissible modal. Takes priority over input
         # focus / other handlers — convention is that Esc always escapes the
         # modal first. Locked modals (backdrop_click_close=False) ignore Esc.
@@ -1614,8 +1599,8 @@ class Tree(TreeType):
             for node in self.root_node.get_children_nodes()
         )
 
-    def create_canvas(self):
-        rect = self.root_node.boundary_rect
+    def create_canvas(self, rect: Rect = None):
+        rect = rect or self.root_node.boundary_rect
 
         if self._is_draggable_ui() or self._has_cursor_element():
             rect = get_combined_screens_rect()
@@ -1630,6 +1615,11 @@ class Tree(TreeType):
             rect.height - 1.0
         )
         return CanvasWeakRef(self.Canvas.from_rect(safe_rect))
+
+    def create_overlay_canvas(self):
+        """Always every screen. A drag outline is free to leave the tree's
+        own bounds - that is most of what resizing an edge outward is."""
+        return self.create_canvas(get_combined_screens_rect())
 
     def request_decorator_freeze(self):
         """Coalesced decorator repaint: first request paints immediately,
@@ -1689,6 +1679,8 @@ class Tree(TreeType):
         if not self.root_node:
             # create_canvas() reads root_node.boundary_rect
             return False
+
+        self.drag.destroy()
 
         try:
             if self.canvas_base:
@@ -1844,127 +1836,60 @@ class Tree(TreeType):
             self.render_cause.clear()
             self.drag_end_phase = False
 
-    def handle_scrollbar_drag_move(self, gpos):
-        """Handle scrollbar dragging movement and scroll calculation."""
-        node_id = self.meta_state.scrollbar_dragging_id
-        node = self.meta_state.id_to_node.get(node_id)
-        scrollable_data = self.meta_state.scrollable.get(node_id)
-
-        if not (node and scrollable_data and node.box_model):
-            return
-
-        axis = self.meta_state.scrollbar_dragging_axis
-
-        if axis == "x":
-            mouse_delta_x = gpos.x - self.meta_state.scrollbar_drag_start_x
-            view_width = scrollable_data.view_width
-            max_width = scrollable_data.max_width
-            thumb_width = node.box_model.scroll_bar_x_thumb_rect.width
-            track_width = node.box_model.padding_size.width
-
-            thumb_travel_distance = track_width - thumb_width
-            content_travel_distance = max_width - view_width
-
-            if thumb_travel_distance > 0 and content_travel_distance > 0:
-                scroll_delta = -(mouse_delta_x / thumb_travel_distance) * content_travel_distance
-                new_offset_x = self.meta_state.scrollbar_drag_start_offset_x + scroll_delta
-                new_offset_x = max(view_width - max_width, min(0, new_offset_x))
-                scrollable_data.offset_x = new_offset_x
-                scrollable_data.target_offset_x = new_offset_x
-                self.render_manager.render_scrollbar_dragging()
-        else:
-            mouse_delta_y = gpos.y - self.meta_state.scrollbar_drag_start_y
-            view_height = scrollable_data.view_height
-            max_height = scrollable_data.max_height
-            thumb_height = node.box_model.scroll_bar_thumb_rect.height
-            track_height = node.box_model.padding_size.height
-
-            thumb_travel_distance = track_height - thumb_height
-            content_travel_distance = max_height - view_height
-
-            if thumb_travel_distance > 0 and content_travel_distance > 0:
-                scroll_delta = -(mouse_delta_y / thumb_travel_distance) * content_travel_distance
-                new_offset_y = self.meta_state.scrollbar_drag_start_offset_y + scroll_delta
-                new_offset_y = max(view_height - max_height, min(0, new_offset_y))
-                scrollable_data.offset_y = new_offset_y
-                scrollable_data.target_offset_y = new_offset_y
-                self.render_manager.render_scrollbar_dragging()
-
     def handle_scrollbar_mousedown(self, gpos):
-        """Check for scrollbar click and initiate drag if found."""
+        """Start a scrollbar drag if the click landed on a thumb or a track."""
         modal_scope = self.get_modal_scope_ids()
-        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
+        for node_id, scrollable in list(self.meta_state.scrollable.items()):
             if modal_scope is not None and node_id not in modal_scope:
                 continue
             node = self.meta_state.id_to_node.get(node_id)
-            if node and node.box_model:
-                if node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos):
-                    self.meta_state.start_scrollbar_drag(node_id, gpos.y, scrollable_data.offset_y, axis="y")
-                    self._scrollbar_show(node_id)
-                    self.render_manager.pause()
-                    self.render_base_canvas()
-                    return True
-                if node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos):
-                    self.meta_state.start_scrollbar_drag(node_id, gpos.x, scrollable_data.offset_x, axis="x")
-                    self._scrollbar_show(node_id)
-                    self.render_manager.pause()
-                    self.render_base_canvas()
-                    return True
-                if node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos):
-                    self._scrollbar_track_jump(node_id, scrollable_data, node, gpos, axis="y")
-                    return True
-                if node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos):
-                    self._scrollbar_track_jump(node_id, scrollable_data, node, gpos, axis="x")
-                    return True
+            if not (node and node.box_model):
+                continue
+            box_model = node.box_model
+
+            if box_model.scroll_bar_thumb_rect and box_model.scroll_bar_thumb_rect.contains(gpos):
+                return self._start_scrollbar_drag(node, gpos, "y", scrollable.offset_y)
+            if box_model.scroll_bar_x_thumb_rect and box_model.scroll_bar_x_thumb_rect.contains(gpos):
+                return self._start_scrollbar_drag(node, gpos, "x", scrollable.offset_x)
+
+            for axis, track in (("y", box_model.scroll_bar_track_rect),
+                                ("x", box_model.scroll_bar_x_track_rect)):
+                if not (track and track.contains(gpos)):
+                    continue
+                offset = self._scrollbar_track_offset(node, scrollable, gpos, axis)
+                if offset is None:
+                    continue
+                if axis == "y":
+                    scrollable.offset_y = scrollable.target_offset_y = offset
+                else:
+                    scrollable.offset_x = scrollable.target_offset_x = offset
+                return self._start_scrollbar_drag(node, gpos, axis, offset)
         return False
 
-    def _scrollbar_track_jump(self, node_id, scrollable_data, node, gpos, axis="y"):
-        """Jump scroll to click position on the track, then start drag."""
-        if axis == "y":
-            track_rect = node.box_model.scroll_bar_track_rect
-            thumb_rect = node.box_model.scroll_bar_thumb_rect
-            if not track_rect or not thumb_rect:
-                return
-            view_height = scrollable_data.view_height
-            max_height = scrollable_data.max_height
-            content_travel = max_height - view_height
-            thumb_center_y = gpos.y - thumb_rect.height / 2
-            ratio = (thumb_center_y - track_rect.y) / (track_rect.height - thumb_rect.height)
-            ratio = max(0, min(1, ratio))
-            new_offset = -ratio * content_travel
-            new_offset = max(view_height - max_height, min(0, new_offset))
-            scrollable_data.offset_y = new_offset
-            scrollable_data.target_offset_y = new_offset
-            self.meta_state.start_scrollbar_drag(node_id, gpos.y, new_offset, axis="y")
-        else:
-            track_rect = node.box_model.scroll_bar_x_track_rect
-            thumb_rect = node.box_model.scroll_bar_x_thumb_rect
-            if not track_rect or not thumb_rect:
-                return
-            view_width = scrollable_data.view_width
-            max_width = scrollable_data.max_width
-            content_travel = max_width - view_width
-            thumb_center_x = gpos.x - thumb_rect.width / 2
-            ratio = (thumb_center_x - track_rect.x) / (track_rect.width - thumb_rect.width)
-            ratio = max(0, min(1, ratio))
-            new_offset = -ratio * content_travel
-            new_offset = max(view_width - max_width, min(0, new_offset))
-            scrollable_data.offset_x = new_offset
-            scrollable_data.target_offset_x = new_offset
-            self.meta_state.start_scrollbar_drag(node_id, gpos.x, new_offset, axis="x")
-        self._scrollbar_show(node_id)
-        self.render_manager.pause()
-        self.render_base_canvas()
+    def _start_scrollbar_drag(self, node, gpos, axis, start_offset):
+        return self.drag.start(ScrollbarSession(self, node, axis, start_offset), gpos)
 
-    def handle_scrollbar_mouseup(self, gpos):
-        """Handle scrollbar drag end and restore hover state."""
-        dragging_id = self.meta_state.scrollbar_dragging_id
-        self.render_manager.resume()
-        self.meta_state.clear_scrollbar_drag()
-        self.render_base_canvas()
-        self.check_scrollbar_hover(gpos)
-        if dragging_id:
-            self._scrollbar_schedule_idle_hide(dragging_id)
+    def _scrollbar_track_offset(self, node, scrollable, gpos, axis="y"):
+        """Where a click on the track jumps to: the thumb centred on the
+        cursor. None when the bar has no travel."""
+        if axis == "y":
+            track = node.box_model.scroll_bar_track_rect
+            thumb = node.box_model.scroll_bar_thumb_rect
+            view, content = scrollable.view_height, scrollable.max_height
+            thumb_travel = (track.height - thumb.height) if (track and thumb) else 0
+            position = gpos.y - thumb.height / 2 - track.y if (track and thumb) else 0
+        else:
+            track = node.box_model.scroll_bar_x_track_rect
+            thumb = node.box_model.scroll_bar_x_thumb_rect
+            view, content = scrollable.view_width, scrollable.max_width
+            thumb_travel = (track.width - thumb.width) if (track and thumb) else 0
+            position = gpos.x - thumb.width / 2 - track.x if (track and thumb) else 0
+
+        if not (track and thumb) or thumb_travel <= 0:
+            return None
+
+        ratio = max(0, min(1, position / thumb_travel))
+        return max(view - content, min(0, -ratio * (content - view)))
 
     def check_scrollbar_hover(self, gpos):
         """Check if mouse is hovering over any scrollbar thumb and update visual state."""
@@ -2018,7 +1943,7 @@ class Tree(TreeType):
         keeps everything outside the 6px band, which is most of its
         width, and it is a drag most people never make.
         """
-        if self.meta_state.is_scrollbar_dragging():
+        if self.drag.is_kind("scrollbar"):
             return (None, None)
 
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
@@ -2075,161 +2000,10 @@ class Tree(TreeType):
 
         return (None, None)
 
-    def handle_resize_drag_move(self, gpos):
-        """Compute ghost rect during resize drag."""
-        ms = self.meta_state
-        dx = gpos.x - ms.resize_start_pos.x
-        dy = gpos.y - ms.resize_start_pos.y
-        edge = ms.resize_edge
-        sr = ms.resize_start_rect
-
-        new_x, new_y = sr.x, sr.y
-        new_w, new_h = sr.width, sr.height
-
-        # Use original user constraints (before any resize overrides)
-        oc = ms.resize_original_constraints.get(ms.resize_dragging_id, {})
-        min_w = oc.get('min_width') or scale_value(100)
-        min_h = oc.get('min_height') or scale_value(40)
-        max_w = oc.get('max_width')
-        max_h = oc.get('max_height')
-
-        if "right" in edge:
-            new_w = sr.width + dx
-        if "left" in edge:
-            new_w = sr.width - dx
-            new_x = sr.x + dx
-        if "bottom" in edge:
-            new_h = sr.height + dy
-        if "top" in edge:
-            new_h = sr.height - dy
-            new_y = sr.y + dy
-
-        # Clamp width
-        if new_w < min_w:
-            if "left" in edge:
-                new_x = sr.x + sr.width - min_w
-            new_w = min_w
-        if max_w and new_w > max_w:
-            if "left" in edge:
-                new_x = sr.x + sr.width - max_w
-            new_w = max_w
-
-        # Clamp height
-        if new_h < min_h:
-            if "top" in edge:
-                new_y = sr.y + sr.height - min_h
-            new_h = min_h
-        if max_h and new_h > max_h:
-            if "top" in edge:
-                new_y = sr.y + sr.height - max_h
-            new_h = max_h
-
-        ms.resize_ghost_rect = Rect(new_x, new_y, new_w, new_h)
-        self.render_manager.render_resize_ghost()
-
-    def _compute_resize_layout_compensation(self, node, old_width, old_height, new_width, new_height):
-        """Compute drag offset adjustment to counteract layout repositioning after resize.
-
-        When a parent uses center/flex_end alignment, changing the window size
-        shifts its natural (layout-computed) position. We compensate so the
-        window stays where the ghost outline was.
-        """
-        parent = node.parent_node
-        if not parent:
-            return Point2d(0, 0)
-
-        dw = new_width - old_width
-        dh = new_height - old_height
-        flex_dir = parent.properties.flex_direction or "column"
-        justify = parent.properties.justify_content or "flex_start"
-        align = parent.properties.align_items or "stretch"
-
-        def axis_compensation(delta, alignment):
-            if alignment == "center":
-                return delta / 2
-            elif alignment == "flex_end":
-                return delta
-            return 0
-
-        if flex_dir == "column":
-            # Main axis = Y (justify), Cross axis = X (align)
-            comp_x = axis_compensation(dw, align)
-            comp_y = axis_compensation(dh, justify)
-        else:
-            # Main axis = X (justify), Cross axis = Y (align)
-            comp_x = axis_compensation(dw, justify)
-            comp_y = axis_compensation(dh, align)
-
-        return Point2d(comp_x, comp_y)
-
-    def handle_resize_mouseup(self, gpos):
-        """Apply final size from resize ghost and resume rendering."""
-        ms = self.meta_state
-        node_id = ms.resize_dragging_id
-        ghost = ms.resize_ghost_rect
-        node = ms.id_to_node.get(node_id)
-        on_resize_end = None
-        resized = None
-
-        if node and ghost:
-            start_rect = ms.resize_start_rect
-
-            # Unscale ghost dimensions since update_property will re-scale
-            scale = get_scale() or 1.0
-            unscaled_w = ghost.width / scale
-            unscaled_h = ghost.height / scale
-
-            # Only the dragged axis is pinned. A side panel resized by
-            # its right edge keeps stretching to its parent's height;
-            # pinning that too froze it at whatever the window was tall
-            # when you let go.
-            edge = ms.resize_edge or ""
-            if "left" in edge or "right" in edge:
-                ms.set_ref_property_override(node_id, "width", unscaled_w)
-                # Also cap max so layout can't expand beyond resized size
-                ms.set_ref_property_override(node_id, "max_width", unscaled_w)
-            if "top" in edge or "bottom" in edge:
-                ms.set_ref_property_override(node_id, "height", unscaled_h)
-                ms.set_ref_property_override(node_id, "max_height", unscaled_h)
-
-            # Compensate for layout repositioning (e.g. centering shifts)
-            compensation = self._compute_resize_layout_compensation(
-                node, start_rect.width, start_rect.height, ghost.width, ghost.height
-            )
-
-            # Combine left/top edge movement + layout compensation
-            offset_dx = (ghost.x - start_rect.x) + compensation.x
-            offset_dy = (ghost.y - start_rect.y) + compensation.y
-            if offset_dx != 0 or offset_dy != 0:
-                if node_id in ms._draggable_offset:
-                    ms._draggable_offset[node_id] = Point2d(
-                        ms._draggable_offset[node_id].x + offset_dx,
-                        ms._draggable_offset[node_id].y + offset_dy,
-                    )
-
-            # Save dimensions for persistence (unscaled)
-            if hasattr(node, 'save_resize_dimensions'):
-                node.save_resize_dimensions(unscaled_w, unscaled_h)
-
-            on_resize_end = getattr(node.properties, 'on_resize_end', None)
-            resized = ResizeEndEvent(
-                id=node_id, width=unscaled_w, height=unscaled_h, edge=edge,
-            )
-
-        ms.clear_resize_drag()
-        self.destroy_blockable_canvas()
-        self.render_manager.resume()
-        self.render_base_canvas()
-
-        # After the render, so a callback that sets state is the second
-        # one and not a render inside a render.
-        if on_resize_end:
-            on_resize_end(resized)
-
     def draw_resize_edge_highlight(self, canvas, offset):
         """Draw colored bars on hovered resize edges."""
         ms = self.meta_state
-        if not ms.resize_edge_hovered or ms.is_resize_dragging():
+        if not ms.resize_edge_hovered or self.drag.is_kind("resize"):
             return
 
         node_id, edge = ms.resize_edge_hovered
@@ -2254,18 +2028,6 @@ class Tree(TreeType):
             canvas.draw_rect(Rect(x, y, hw, h))
         if "right" in edge:
             canvas.draw_rect(Rect(x + w - hw, y, hw, h))
-
-    def draw_resize_ghost(self, canvas):
-        """Draw stroke outline during resize drag."""
-        ms = self.meta_state
-        if not ms.is_resize_dragging() or not ms.resize_ghost_rect:
-            return
-
-        ghost = ms.resize_ghost_rect
-        canvas.paint.style = canvas.paint.Style.STROKE
-        canvas.paint.color = RESIZE_GHOST_COLOR
-        canvas.paint.stroke_width = scale_value(RESIZE_GHOST_STROKE_WIDTH)
-        canvas.draw_rect(ghost)
 
     def on_hover(self, gpos):
         try:
@@ -2377,81 +2139,32 @@ class Tree(TreeType):
         return None
 
     def on_mousemove(self, gpos):
-        if self.meta_state.is_resize_dragging():
-            self.handle_resize_drag_move(gpos)
-            return
-
-        if self.meta_state.is_scrollbar_dragging():
-            self.handle_scrollbar_drag_move(gpos)
-            return
-
+        """No session is active here - DragController.move already answered
+        for those. All that is left is deciding a move drag has begun."""
         if self.is_drag_end():
             return
 
-        if self._text_selecting_node:
-            if self._text_selecting_node.element_type in (ELEMENT_ENUM_TYPE["textarea"], ELEMENT_ENUM_TYPE["text"], ELEMENT_ENUM_TYPE["code"]):
-                self._text_selecting_node.update_selection_from_drag(gpos.x, click_y=gpos.y)
-            else:
-                self._text_selecting_node.update_selection_from_drag(gpos.x)
+        start_pos = state_manager.get_mousedown_start_pos()
+        if not start_pos:
+            return
+        state_manager.set_mousedown_start_offset(gpos - start_pos)
+
+        if self._active_modal_node_ref or not state_manager.get_drag_relative_offset():
+            return
+        if not self.draggable_node:
             return
 
-        start_pos = state_manager.get_mousedown_start_pos()
-        if start_pos:
-            state_manager.set_mousedown_start_offset(gpos - start_pos)
+        threshold = scale_value(DRAG_INIT_THRESHOLD)
+        if abs(gpos.x - start_pos.x) <= threshold and abs(gpos.y - start_pos.y) <= threshold:
+            return
 
-        if start_pos and not self._active_modal_node_ref and state_manager.get_drag_relative_offset():
-            is_drag_start = False
-            if not state_manager.is_drag_active():
-                threshold = scale_value(DRAG_INIT_THRESHOLD)
-                if abs(gpos.x - start_pos.x) > threshold or abs(gpos.y - start_pos.y) > threshold:
-                    state_manager.set_drag_active(True)
-                    is_drag_start = True
-
-            if is_drag_start:
-                offset = state_manager.get_mousedown_start_offset()
-                hovered_id = state_manager.get_hovered_id()
-                if hovered_id:
-                    self.meta_state.set_unhighlighted(hovered_id)
-                    self.render_manager.render_mouse_highlight()
-                self.render_manager.render_drag_start(
-                    mouse_pos=gpos,
-                    mousedown_start_pos=state_manager.get_mousedown_start_pos(),
-                    mousedown_start_offset=offset
-                )
-                self.meta_state.set_drag_offset(
-                    self.draggable_node.id,
-                    offset
-                )
-                return
-
-        if state_manager.get_mousedown_start_pos() and state_manager.is_drag_active():
-            offset = state_manager.get_mousedown_start_offset()
-            self.render_manager.render_dragging(
-                mouse_pos=gpos,
-                mousedown_start_pos=state_manager.get_mousedown_start_pos(),
-                mousedown_start_offset=offset
-            )
-            self.meta_state.set_drag_offset(
-                self.draggable_node.id,
-                offset
-            )
+        self.drag.start(MoveSession(self, self.draggable_node), gpos)
 
     def on_mousedown(self, gpos):
         if self.meta_state.resize_edge_hovered:
             node_id, edge = self.meta_state.resize_edge_hovered
             node = self.meta_state.id_to_node.get(node_id)
-            if node and node.box_model and node.box_model.border_rect:
-                start_rect = node.box_model.border_rect
-                # Save original user constraints on first resize
-                if node_id not in self.meta_state.resize_original_constraints:
-                    self.meta_state.resize_original_constraints[node_id] = {
-                        'min_width': node.box_model.min_width if node.box_model else getattr(node.properties, 'min_width', None),
-                        'min_height': node.box_model.min_height if node.box_model else getattr(node.properties, 'min_height', None),
-                        'max_width': node.box_model.max_width if node.box_model else getattr(node.properties, 'max_width', None),
-                        'max_height': node.box_model.max_height if node.box_model else getattr(node.properties, 'max_height', None),
-                    }
-                self.meta_state.start_resize_drag(node_id, edge, gpos, start_rect)
-                self.render_manager.pause()
+            if node and self.drag.start(ResizeSession(self, node, edge), gpos):
                 return
 
         if self.handle_scrollbar_mousedown(gpos):
@@ -2518,7 +2231,7 @@ class Tree(TreeType):
                     else:
                         node.set_cursor_from_click(gpos.x, self._input_click_count)
                     if self._input_click_count == 1:
-                        self._text_selecting_node = node
+                        self.drag.start(TextSelectSession(self, node), gpos)
                 return
 
         selectable_node = self._get_selectable_text_at(gpos)
@@ -2543,7 +2256,7 @@ class Tree(TreeType):
             self._input_last_click_y = click_y
             selectable_node.set_selection_from_click(gpos.x, gpos.y, self._input_click_count)
             if self._input_click_count == 1:
-                self._text_selecting_node = selectable_node
+                self.drag.start(TextSelectSession(self, selectable_node), gpos)
             return
 
         # Clear any text selections when clicking elsewhere
@@ -2589,16 +2302,10 @@ class Tree(TreeType):
 
     def on_mouseup(self, gpos):
         try:
-            if self._text_selecting_node and hasattr(self._text_selecting_node, 'finalize_selection'):
-                self._text_selecting_node.finalize_selection()
-            self._text_selecting_node = None
-
-            if self.meta_state.is_resize_dragging():
-                self.handle_resize_mouseup(gpos)
-                return
-
-            if self.meta_state.is_scrollbar_dragging():
-                self.handle_scrollbar_mouseup(gpos)
+            if self.drag.active:
+                state_manager.set_mousedown_start_pos(None)
+                state_manager.set_drag_relative_offset(None)
+                self.drag.commit(gpos)
                 return
 
             hovered_id = state_manager.get_hovered_id()
@@ -2608,30 +2315,11 @@ class Tree(TreeType):
                 node = self.meta_state.id_to_node.get(mousedown_start_id)
                 if node:
                     self.meta_state.set_highlighted(mousedown_start_id, node.properties.highlight_color)
-                    if not state_manager.is_drag_active():
-                        state_manager.set_last_clicked_pos(gpos)
-                        self.click_node(node)
+                    state_manager.set_last_clicked_pos(gpos)
+                    self.click_node(node)
 
             state_manager.set_mousedown_start_pos(None)
             state_manager.set_drag_relative_offset(None)
-
-            if self.draggable_node and self.drag_handle_node:
-                if state_manager.is_drag_active():
-                    # move delay to render manager with proper queue
-                    offset = state_manager.get_mousedown_start_offset()
-                    self.meta_state.set_drag_offset(
-                        self.draggable_node.id,
-                        offset
-                    )
-                    self.render_manager.render_drag_end(
-                        mouse_pos=gpos,
-                        mousedown_start_pos=state_manager.get_mousedown_start_pos(),
-                        mousedown_start_offset=offset,
-                        on_start=self.on_drag_mouseup_begin,
-                        # on_end=self.on_drag_mouseup_cleanup
-                    )
-
-            state_manager.set_mousedown_start_pos(None)
         except Exception as e:
             print(f"talon_ui_elements on_mouseup error: {e}")
             log_trace()
@@ -2803,6 +2491,10 @@ class Tree(TreeType):
             self.last_mouse_event_time = time.time()
 
             if e.event == "mousemove":
+                # A held drag owns the cursor. Hover hit-testing is per-event
+                # work on the canvas draw thread and nothing would use it.
+                if self.drag.move(e.gpos):
+                    return
                 self.on_mousemove(e.gpos)
                 self.check_scrollbar_hover(e.gpos)
                 self.on_hover(e.gpos)
@@ -3167,11 +2859,9 @@ class Tree(TreeType):
         # close the modal and minimize.
         if self._active_modal_node_ref:
             return
-        # A drag, resize or scrollbar grab started inside the window; the
-        # release can land anywhere and isn't a click off.
-        if (state_manager.is_drag_active()
-                or self.meta_state.is_resize_dragging()
-                or self.meta_state.is_scrollbar_dragging()):
+        # A grab started inside the window; the release can land anywhere
+        # and isn't a click off.
+        if self.drag.active or state_manager.is_drag_active():
             return
 
         for node in self.windows_wanting_click_outside():
@@ -3280,6 +2970,7 @@ class Tree(TreeType):
                 self.canvas_decorator.close()
                 self.canvas_decorator = None
 
+            self.drag.destroy()
             self.destroy_blockable_canvas()
             self.destroy_click_outside()
 
@@ -3719,10 +3410,11 @@ class Tree(TreeType):
 
         return dimension_change, position_change
 
-    def move_blockable_canvas_rects(self, blockable_rects, offset=Point2d):
+    def move_blockable_canvas_rects(self, blockable_rects, offset: Point2d = None):
+        if offset is None:
+            offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
-                offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
                 x = rect.x + offset.x
                 y = rect.y + offset.y
                 self.canvas_blockable[i].move(x, y)
@@ -3732,7 +3424,6 @@ class Tree(TreeType):
     def should_rerender_blockable_canvas(self):
         return self.render_manager.render_cause == RenderCause.STATE_CHANGE \
             or self.render_manager.render_cause == RenderCause.DRAG_START \
-            or self.render_manager.render_cause == RenderCause.DRAGGING \
             or self.is_drag_end()
 
     def calculate_blockable_rects(self):
@@ -3800,8 +3491,7 @@ class Tree(TreeType):
 
             blockable_rects = self.calculate_blockable_rects()
 
-            if self.render_manager.render_cause == RenderCause.DRAGGING \
-                    or self.render_manager.render_cause == RenderCause.DRAG_START:
+            if self.render_manager.render_cause == RenderCause.DRAG_START:
                 offset = self.meta_state.get_current_drag_offset(self.draggable_node.id)
                 self.move_blockable_canvas_rects(blockable_rects, offset)
                 return

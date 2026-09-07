@@ -90,10 +90,26 @@ RENDER_WATCHDOG_MS = 5000
 DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
 DRAG_INIT_THRESHOLD = 4.0
 RESIZE_EDGE_THRESHOLD = 6
-RESIZE_GHOST_COLOR = "FFFFFF55"
-RESIZE_GHOST_STROKE_WIDTH = 2.0
+RESIZE_MIN_WIDTH = 100
+RESIZE_MIN_HEIGHT = 40
 RESIZE_EDGE_HIGHLIGHT_COLOR = "FFFFFF44"
 RESIZE_EDGE_HIGHLIGHT_WIDTH = 3.0
+
+# Drag preview. A drag that changes geometry outlines where it will land
+# instead of moving the real thing, so the tree is never re-laid out while
+# the mouse is held. See src/drag/.
+DRAG_GHOST_COLOR = "FFFFFFAA"
+DRAG_GHOST_STROKE_WIDTH = 2.0
+# Behind the outline, so the target reads as a solid shape and not a wire.
+DRAG_GHOST_FILL_COLOR = "FFFFFF11"
+# Over the node where it still sits. None to leave it undimmed.
+DRAG_DIM_COLOR = "00000055"
+# Floor between overlay repaints. One freeze costs a display frame, and a
+# 1000Hz mouse would otherwise queue a thousand of them a second.
+DRAG_OVERLAY_MIN_FRAME_MS = 8
+# How long a freeze may sit undrawn before the overlay stops waiting
+# for it. Well past a dropped frame, well short of a noticeable stall.
+DRAG_OVERLAY_STALL_MS = 120
 
 CASCADED_PROPERTIES = {
     "color",

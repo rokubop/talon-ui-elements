@@ -1,5 +1,6 @@
 import hashlib
 import inspect
+import traceback
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
@@ -11,6 +12,16 @@ from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
 from .fonts import apply_text_rendering, resolve_font
 from .border_radius import BorderRadius, draw_manual_rounded_rect_path
+
+debug = True
+
+def log_trace():
+    if debug:
+        traceback.print_exc()
+
+def log(*args):
+    if debug:
+        print("LOG:", *args)
 
 def get_scale() -> float:
     try:

@@ -718,10 +718,6 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
-    def is_dragging(self):
-        pass
-
-    @abstractmethod
     def is_drag_end(self):
         pass
 
