@@ -48,7 +48,7 @@ from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
 from ..core.store import store
 from ..cursor import Cursor, CursorV2
-from ..events import StateEvent, DragEndEvent, WindowCloseEvent
+from ..events import StateEvent, DragEndEvent, ResizeEndEvent, WindowCloseEvent
 from ..interfaces import (
     TreeType,
     NodeType,
@@ -2010,19 +2010,16 @@ class Tree(TreeType):
             self.render_base_canvas()
 
     def detect_resize_edge(self, gpos):
-        """Detect if mouse is near a resizable element's edge. Returns (node_id, edge_str) or (None, None)."""
-        # Scrollbar takes priority over resize edges
-        for node_id, scrollable_data in list(self.meta_state.scrollable.items()):
-            node = self.meta_state.id_to_node.get(node_id)
-            if node and node.box_model:
-                if (node.box_model.scroll_bar_thumb_rect and node.box_model.scroll_bar_thumb_rect.contains(gpos)):
-                    return (None, None)
-                if (node.box_model.scroll_bar_x_thumb_rect and node.box_model.scroll_bar_x_thumb_rect.contains(gpos)):
-                    return (None, None)
-                if (node.box_model.scroll_bar_track_rect and node.box_model.scroll_bar_track_rect.contains(gpos)):
-                    return (None, None)
-                if (node.box_model.scroll_bar_x_track_rect and node.box_model.scroll_bar_x_track_rect.contains(gpos)):
-                    return (None, None)
+        """Detect if mouse is near a resizable element's edge. Returns (node_id, edge_str) or (None, None).
+
+        A resize edge wins over a scrollbar under it. An overlay bar sits
+        in the last 10px of its node, so a scrolling list flush with a
+        resizable edge used to make that whole edge un-grabbable. The bar
+        keeps everything outside the 6px band, which is most of its
+        width, and it is a drag most people never make.
+        """
+        if self.meta_state.is_scrollbar_dragging():
+            return (None, None)
 
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
         resizable_ids = self.meta_state.resizable_nodes | {
@@ -2171,6 +2168,8 @@ class Tree(TreeType):
         node_id = ms.resize_dragging_id
         ghost = ms.resize_ghost_rect
         node = ms.id_to_node.get(node_id)
+        on_resize_end = None
+        resized = None
 
         if node and ghost:
             start_rect = ms.resize_start_rect
@@ -2180,11 +2179,18 @@ class Tree(TreeType):
             unscaled_w = ghost.width / scale
             unscaled_h = ghost.height / scale
 
-            ms.set_ref_property_override(node_id, "width", unscaled_w)
-            ms.set_ref_property_override(node_id, "height", unscaled_h)
-            # Also cap max so layout can't expand beyond resized size
-            ms.set_ref_property_override(node_id, "max_width", unscaled_w)
-            ms.set_ref_property_override(node_id, "max_height", unscaled_h)
+            # Only the dragged axis is pinned. A side panel resized by
+            # its right edge keeps stretching to its parent's height;
+            # pinning that too froze it at whatever the window was tall
+            # when you let go.
+            edge = ms.resize_edge or ""
+            if "left" in edge or "right" in edge:
+                ms.set_ref_property_override(node_id, "width", unscaled_w)
+                # Also cap max so layout can't expand beyond resized size
+                ms.set_ref_property_override(node_id, "max_width", unscaled_w)
+            if "top" in edge or "bottom" in edge:
+                ms.set_ref_property_override(node_id, "height", unscaled_h)
+                ms.set_ref_property_override(node_id, "max_height", unscaled_h)
 
             # Compensate for layout repositioning (e.g. centering shifts)
             compensation = self._compute_resize_layout_compensation(
@@ -2205,10 +2211,20 @@ class Tree(TreeType):
             if hasattr(node, 'save_resize_dimensions'):
                 node.save_resize_dimensions(unscaled_w, unscaled_h)
 
+            on_resize_end = getattr(node.properties, 'on_resize_end', None)
+            resized = ResizeEndEvent(
+                id=node_id, width=unscaled_w, height=unscaled_h, edge=edge,
+            )
+
         ms.clear_resize_drag()
         self.destroy_blockable_canvas()
         self.render_manager.resume()
         self.render_base_canvas()
+
+        # After the render, so a callback that sets state is the second
+        # one and not a render inside a render.
+        if on_resize_end:
+            on_resize_end(resized)
 
     def draw_resize_edge_highlight(self, canvas, offset):
         """Draw colored bars on hovered resize edges."""
@@ -3325,6 +3341,8 @@ class Tree(TreeType):
                 and getattr(node, 'on_click', None):
             requires_id = True
         elif node.properties.is_scrollable() or getattr(node.properties, "draggable", False):
+            requires_id = True
+        elif getattr(node.properties, "resizable", False):
             requires_id = True
         elif node.element_type == ELEMENT_ENUM_TYPE["window"]:
             requires_id = True

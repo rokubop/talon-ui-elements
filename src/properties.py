@@ -119,6 +119,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     on_change: callable = None
     on_click: callable = None
     on_drag_end: callable = None
+    on_resize_end: callable = None
     opacity: Union[int, float] = None
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)
@@ -556,6 +557,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    on_resize_end: callable
     resizable: Union[bool, str, list]
     right: Union[int, str, float]
     top: Union[int, str, float]

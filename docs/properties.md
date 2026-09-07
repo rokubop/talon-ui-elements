@@ -138,6 +138,8 @@ Properties mostly match standard CSS properties.
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
+| on_resize_end | callable | None | Callback when a resize drag ends. Accepts 1 event argument with `id`, `width`, `height` and `edge`. |
+| resizable | bool \| str \| list | False | Drag an element's edges to resize it. `True` is all four; a string or list names the edges (`"right"`, `["right", "bottom"]`). Clamped by `min_width`/`max_width`/`min_height`/`max_height`. Only the dragged axis is pinned, so a panel resized by its right edge keeps stretching to its parent's height. The size lasts until the UI is hidden. |
 | value | str | None | Value of `input_text`, `textarea`, or `select` |
 | placeholder | str | "" | Placeholder hint text for `input_text`, `textarea`, or `select`, shown when empty/unfocused |
 | placeholder_color | str | "FFFFFF55" | Color of placeholder text |
