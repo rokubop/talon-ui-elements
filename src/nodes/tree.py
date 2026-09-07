@@ -1763,8 +1763,24 @@ class Tree(TreeType):
             self.effects = list(reversed(effects_to_keep))
             self.meta_state.removed_component_ids.clear()
 
+    def has_resizable_nodes(self):
+        """A node whose edges can be dragged. `resizable` on a window is not
+        in resizable_nodes, so the windows are checked too."""
+        return bool(self.meta_state.resizable_nodes) or any(
+            self.meta_state.id_to_node.get(wid) and
+            getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
+            for wid in self.meta_state.windows
+        )
+
+    def prepare_drag_overlay(self):
+        """Build the outline canvas while there is time, not at the moment a
+        drag starts. It stays hidden until one does."""
+        if self.draggable_node or self.has_resizable_nodes():
+            self.drag.prepare()
+
     def on_fully_rendered(self):
         if not self.render_manager.is_destroying:
+            self.prepare_drag_overlay()
             if self.is_mounted:
                 if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
                     self.on_state_change_effect_callbacks()
@@ -3402,12 +3418,7 @@ class Tree(TreeType):
                 else self.root_node.box_model.content_children_rect
 
             # Expand blockable area to cover resize edge detection zone
-            has_resizable = bool(self.meta_state.resizable_nodes) or any(
-                self.meta_state.id_to_node.get(wid) and
-                getattr(self.meta_state.id_to_node[wid].properties, 'resizable', False)
-                for wid in self.meta_state.windows
-            )
-            if has_resizable:
+            if self.has_resizable_nodes():
                 threshold = scale_value(RESIZE_EDGE_THRESHOLD)
                 full_rect = Rect(
                     full_rect.x - threshold,

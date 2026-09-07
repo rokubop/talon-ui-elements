@@ -88,7 +88,12 @@ class DragController:
 
     def destroy(self) -> None:
         self.session = None
-        self.overlay.close()
+        self.overlay.destroy()
+
+    def prepare(self) -> None:
+        """Build the outline canvas ahead of a drag, so starting one does not
+        pay for it."""
+        self.overlay.prepare()
 
     def raise_to_top(self) -> None:
         self.overlay.raise_to_top()

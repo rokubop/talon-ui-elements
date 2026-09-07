@@ -3,6 +3,14 @@
 Nothing else draws on it. While a preview drag is held the base and decorator
 canvases keep the paint they had at drag start, so a tick is one freeze and a
 handful of shapes instead of a repaint of the tree.
+
+Display only: no blocks_mouse, so Talon never calls on_mouse on it and it
+costs nothing per mouse report. It does answer for Esc while it is up, since
+it sits over the decorator that normally owns keys.
+
+Built once and then hidden between drags rather than closed. Creating a
+canvas is not free and the moment a drag starts is the worst time to pay for
+it. It closes with the tree.
 """
 
 import time
@@ -29,21 +37,36 @@ class DragOverlay:
     def is_open(self) -> bool:
         return self._canvas is not None
 
-    def open(self) -> None:
+    def prepare(self) -> None:
+        """Build it hidden, ahead of any drag. Cheap to call every render."""
         if self._canvas:
             return
         self._canvas = self._create_canvas()
         self._canvas.register("draw", self.on_draw)
-        # The overlay is raised over the decorator, which owns the tree's key
-        # handler, so it has to answer for keys itself while it is up.
+        # It sits over the decorator, which owns the tree's key handler, so it
+        # answers for keys itself while it is up.
         if self._on_key:
             self._canvas.register("key", self._on_key)
+        self._hide()
+
+    def open(self) -> None:
+        self.prepare()
+        try:
+            self._canvas.show()
+        except Exception as e:
+            print(f"ui_elements: error showing drag overlay: {e}")
 
     def close(self) -> None:
+        """End of a drag. The canvas stays, emptied and hidden."""
         self._cancel_trailing()
         self._shapes = []
         self._pending = False
         self._painting = False
+        self._hide()
+
+    def destroy(self) -> None:
+        """End of the tree."""
+        self.close()
         if self._canvas:
             try:
                 self._canvas.unregister("draw", self.on_draw)
@@ -53,6 +76,13 @@ class DragOverlay:
             except Exception as e:
                 print(f"ui_elements: error closing drag overlay: {e}")
             self._canvas = None
+
+    def _hide(self) -> None:
+        if self._canvas:
+            try:
+                self._canvas.hide()
+            except Exception as e:
+                print(f"ui_elements: error hiding drag overlay: {e}")
 
     def set_shapes(self, shapes) -> None:
         self._shapes = shapes or []
