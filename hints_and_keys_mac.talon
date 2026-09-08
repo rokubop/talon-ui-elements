@@ -1,4 +1,4 @@
-tag: user.ui_elements_hints_active
+tag: user.ui_elements_keys_active
 and app: Talon
 os: mac
 -

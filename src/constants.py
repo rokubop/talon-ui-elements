@@ -83,6 +83,10 @@ DEFAULT_MINIMIZE_FLASH_MS = 450
 MINIMIZE_FLASH_Z_INDEX = 200
 DEFAULT_HIGHLIGHT_DURATION_MS = 150
 DECORATOR_COALESCE_MS = 16
+# Floor for user.ui_elements_unfocused_opacity. A tree washed all the way
+# to nothing still blocks the mouse where its canvases are, with nothing
+# on screen to say so.
+UNFOCUSED_OPACITY_FLOOR = 0.05
 # liveness check on the render queue - see RenderManager._on_watchdog.
 # Well clear of the ~1s GIL stalls a render can legitimately hit.
 RENDER_WATCHDOG_MS = 5000

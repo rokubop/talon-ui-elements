@@ -14,3 +14,5 @@ mod.setting("ui_elements_text_hinting", type=str, default="", desc="Glyph hintin
 mod.setting("ui_elements_scroll_speed", type=int, default=45)
 mod.setting("ui_elements_mouse_rate", type=int, default=125, desc="Max mouse move (e.g. hover) events per second. Only applies to UIs with clickable elements. Set to 0 to disable the cap")
 mod.setting("ui_elements_smooth_scroll_duration", type=int, default=80, desc="Smooth scroll duration in ms (0 to disable)")
+mod.setting("ui_elements_focus_strategy", type=str, default="both", desc="How losing window focus is detected: 'canvas' (Talon canvas focused event), 'win_focus' (OS focus changes), 'click' (a press outside every tree rect), 'both' (canvas + win_focus), 'all', or 'off'")
+mod.setting("ui_elements_unfocused_opacity", type=float, default=1.0, desc="Opacity of the whole UI while the window does not have focus. 1.0 leaves it alone")

@@ -12,12 +12,14 @@ from .interfaces import RenderTransforms
 # Store references to the Context objects from hints_and_keys
 _hint_ctx = None
 _hint_ctx_browser = None
+_key_ctx = None
 
-def set_hint_context(ctx, ctx_browser):
+def set_hint_context(ctx, ctx_browser, ctx_keys=None):
     """Called by hints_and_keys.py to provide context references"""
-    global _hint_ctx, _hint_ctx_browser
+    global _hint_ctx, _hint_ctx_browser, _key_ctx
     _hint_ctx = ctx
     _hint_ctx_browser = ctx_browser
+    _key_ctx = ctx_keys
     # Initialize rango override
     if registry.captures.get("user.rango_target"):
         def rango_target(m) -> str:
@@ -36,6 +38,18 @@ def hint_tag_disable():
     """This pattern is done so that if the files get reloaded, the ctx can be set again"""
     if _hint_ctx:
         _hint_ctx.tags = []
+
+# The key and scroll bindings used to ride on the hints tag, which tied them to
+# whether the UI was labelled. They are separate concerns: a UI can want tab,
+# escape and scroll while showing no hints at all. This tag tracks "a tree is
+# mounted", the hints tag tracks "that tree is showing hints".
+def key_tag_enable():
+    if _key_ctx and not _key_ctx.tags:
+        _key_ctx.tags = ["user.ui_elements_keys_active"]
+
+def key_tag_disable():
+    if _key_ctx:
+        _key_ctx.tags = []
 
 class HintGenerator:
     def __init__(self):

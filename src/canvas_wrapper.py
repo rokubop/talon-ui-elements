@@ -49,6 +49,7 @@ class CanvasWeakRef:
         self.weak_mouse = None
         self.weak_scroll = None
         self.weak_key = None
+        self.weak_focused = None
 
     def register(self, event, callback):
         weak_attr = f"weak_{event}"
@@ -88,10 +89,12 @@ class CanvasWeakRef:
             "weak_mouse",
             "weak_scroll",
             "weak_key",
+            "weak_focused",
             "_draw_handler",
             "_mouse_handler",
             "_scroll_handler",
-            "_key_handler"
+            "_key_handler",
+            "_focused_handler",
         ]:
             super().__setattr__(name, value)
         else:

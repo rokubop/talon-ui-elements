@@ -7,6 +7,7 @@ from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
+from .src.window_focus import window_focus_manager
 from .src.syntax import register_theme, register_language
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
@@ -227,6 +228,18 @@ class Actions:
     def ui_elements_toggle_hints(enabled: bool = None):
         """Toggle hints visibility"""
         state_manager.toggle_hints(enabled)
+
+    def ui_elements_window_focused() -> bool:
+        """True while a ui_elements canvas still holds OS focus"""
+        return window_focus_manager.is_focused
+
+    def ui_elements_focus_debug():
+        """Print how window focus is currently being detected and what it says"""
+        state = window_focus_manager.debug_state()
+        print("ui_elements window focus:")
+        for key, value in state.items():
+            print(f"  {key}: {value}")
+        return state
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""

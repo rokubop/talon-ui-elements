@@ -33,12 +33,14 @@ from ..constants import (
     RESIZE_EDGE_THRESHOLD,
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
+    UNFOCUSED_OPACITY_FLOOR,
     PRIMARY_MOD,
     KEY_SPACE, KEY_ENTER, KEY_RETURN, KEY_ESCAPE,
 )
 from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..click_outside import click_outside_watcher
+from ..window_focus import window_focus_manager
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
 from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
@@ -70,7 +72,7 @@ from ..interfaces import (
     ScrollableType,
     Size2d,
 )
-from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable
+from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable, key_tag_disable, key_tag_enable
 from ..style import Style
 from ..utils import (
     draw_text_simple,
@@ -599,6 +601,12 @@ class Tree(TreeType):
         self.interactive_node_list = []
         self.is_key_controls_init = False
         self.is_blockable_canvas_init = False
+        # Whether a ui_elements canvas still holds OS focus.
+        # window_focus_manager owns the decision; this is its answer.
+        self.is_window_focused = True
+        # Set by repaint_base_canvas: re-blit the layers already built
+        # instead of laying the tree out again.
+        self._repaint_only = False
         self.is_mounted = False
         self.last_blockable_rects = []
         self.last_base_snapshot = None
@@ -837,6 +845,8 @@ class Tree(TreeType):
         for layer in self.render_layers:
             layer.draw_to_canvas(self.current_base_canvas, cursor_transforms)
 
+        self.draw_unfocused_wash(self.current_base_canvas)
+
     def apply_clip_regions(self, canvas: SkiaCanvas, node: NodeType, transforms: RenderTransforms = None):
         clip_count = 0
         if node.clip_nodes:
@@ -1047,7 +1057,11 @@ class Tree(TreeType):
                             self.draw_focus_outline(draw_canvas, offset)
                         if self.show_hints:
                             self.draw_hints(draw_canvas, transforms)
+                    # Not gated on show_hints: the key bindings answer to
+                    # whether a tree is up, not to whether it is labelled.
+                    key_tag_enable()
                     self.init_key_controls()
+                    self.draw_unfocused_wash(draw_canvas)
                     self.draw_blockable_canvases()
                     completing_task = self.render_manager.should_complete_on_decorator_draw()
                     if completing_task or not self.render_manager.is_rendering:
@@ -1176,6 +1190,13 @@ class Tree(TreeType):
     def on_draw_base_canvas(self, canvas: SkiaCanvas):
         if not self.render_manager.is_destroying:
             self.current_base_canvas = canvas
+
+            # A paint asked for by something that only changed how the tree
+            # looks, not what it is - the unfocused wash going on or off.
+            repaint_only, self._repaint_only = self._repaint_only, False
+            if repaint_only and not self.render_manager.is_rendering:
+                self.commit_base_canvas()
+                return
 
             if self.drag.previewing and not self.render_manager.is_rendering:
                 # A repaint nobody asked for, mid-drag. The tree is frozen,
@@ -1538,6 +1559,96 @@ class Tree(TreeType):
             if apply_clip:
                 canvas.restore()
 
+    # -- window focus ---------------------------------------------------
+
+    def on_canvas_focused(self, focused: bool):
+        """Talon's Canvas.on_focused, when that strategy is live. Noisy on its
+        own - our own blockable canvases going up and down look like this too -
+        so it is a vote, not a verdict."""
+        window_focus_manager.signal(focused, "canvas")
+
+    def on_window_focus_changed(self, focused: bool):
+        """The manager's verdict, after the grace period and the OS check."""
+        if self.is_window_focused == focused:
+            return
+        self.is_window_focused = focused
+        if self._unfocused_opacity_setting() >= 1.0:
+            # Nothing about the paint depends on focus, so nothing to redraw.
+            return
+        self.repaint_base_canvas()
+        self.render_decorator_canvas()
+
+    def contains_global_pos(self, gpos) -> bool:
+        """Is this screen position over the tree? Window border rects when the
+        tree has windows - they cover the holes carved out of the blockable
+        rects for text inputs - and otherwise the blockable rects themselves,
+        which are the only regions that take mouse input."""
+        rects = []
+        if self.meta_state.windows:
+            for id in list(self.meta_state.windows):
+                node = self.meta_state.id_to_node.get(id)
+                if node and node.box_model and node.box_model.border_rect:
+                    rects.append(node.box_model.border_rect)
+        if not rects:
+            rects = list(self.last_blockable_rects)
+        return any(rect and rect.contains(gpos) for rect in rects)
+
+    def repaint_base_canvas(self):
+        """Re-blit the layers already built. No layout, no component code: the
+        tree has not changed, only how it is painted."""
+        if not self.canvas_base or self.render_manager.is_destroying or self.destroying:
+            return
+        self._repaint_only = True
+        self.canvas_base.freeze()
+
+    def _unfocused_opacity_setting(self) -> float:
+        try:
+            value = float(settings.get("user.ui_elements_unfocused_opacity", 1.0))
+        except Exception:
+            return 1.0
+        # Floored rather than allowed to reach 0: a fully invisible tree still
+        # blocks the mouse where its canvases are, with nothing on screen to
+        # say so.
+        return max(UNFOCUSED_OPACITY_FLOOR, min(1.0, value))
+
+    def unfocused_opacity(self) -> float:
+        if self.is_window_focused:
+            return 1.0
+        return self._unfocused_opacity_setting()
+
+    def draw_unfocused_wash(self, canvas: SkiaCanvas):
+        """Scale everything already on this canvas by one flat alpha.
+
+        DSTIN keeps the destination and multiplies it by the source alpha,
+        which is a group opacity: the tree goes see-through as one picture.
+        Redrawing each element at a lower alpha instead would let the overlaps
+        show through each other. Verified on an offscreen surface - two
+        overlapping opaque rects washed at 50% both read back alpha 128, the
+        overlap included, and untouched pixels stay at 0.
+
+        draw_paint fills the whole clip region, so there is no rect to get
+        wrong. Has to be the last thing drawn on the canvas.
+        """
+        opacity = self.unfocused_opacity()
+        if opacity >= 1.0:
+            return
+        paint = canvas.paint
+        prev_blend = paint.blendmode
+        prev_style = paint.style
+        prev_antialias = paint.antialias
+        try:
+            paint.blendmode = paint.Blend.DSTIN
+            paint.style = paint.Style.FILL
+            paint.antialias = False
+            paint.color = f"FFFFFF{round(opacity * 255):02X}"
+            canvas.draw_paint()
+        except Exception as e:
+            print(f"ui_elements: unfocused wash failed: {e}")
+        finally:
+            paint.blendmode = prev_blend
+            paint.style = prev_style
+            paint.antialias = prev_antialias
+
     def init_key_controls(self):
         if not self.is_key_controls_init and self.canvas_decorator:
             self.is_key_controls_init = True
@@ -1612,6 +1723,8 @@ class Tree(TreeType):
         if not self.canvas_decorator and not self.render_manager.is_destroying:
             self.canvas_decorator = self.create_canvas()
             self.canvas_decorator.register("draw", self.on_draw_decorator_canvas)
+            window_focus_manager.watch(self)
+            window_focus_manager.register_canvas(self, self.canvas_decorator)
             if self.interactive_node_list:
                 focused_tree = state_manager.get_focused_tree()
                 if focused_tree == self:
@@ -1658,6 +1771,7 @@ class Tree(TreeType):
                     self.canvas_decorator.unregister("key", self.on_key)
                     self.canvas_decorator.unregister("scroll", self.on_scroll)
                     self.is_key_controls_init = False
+                window_focus_manager.unregister_canvas(self, self.canvas_decorator)
                 self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
                 self.canvas_decorator.close()
         except Exception as e:
@@ -2943,9 +3057,11 @@ class Tree(TreeType):
                     self.canvas_decorator.unregister("key", self.on_key)
                     self.canvas_decorator.unregister("scroll", self.on_scroll)
                     self.is_key_controls_init = False
+                window_focus_manager.unregister_canvas(self, self.canvas_decorator)
                 self.canvas_decorator.unregister("draw", self.on_draw_decorator_canvas)
                 self.canvas_decorator.close()
                 self.canvas_decorator = None
+            window_focus_manager.unwatch(self)
 
             self.drag.destroy()
             self.destroy_blockable_canvas()
@@ -2984,6 +3100,8 @@ class Tree(TreeType):
             )
             if not has_other_trees_with_hints:
                 hint_clear_state()
+            if not any(tree is not self for tree in store.trees):
+                key_tag_disable()
             self.render_cause.clear()
             self.last_base_snapshot = None
             self.last_hints_snapshot = None
