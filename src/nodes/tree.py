@@ -41,6 +41,7 @@ from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..click_outside import click_outside_watcher
 from ..window_focus import (
     get_unfocused_mask_color,
+    get_unfocused_mask_strength,
     get_unfocused_opacity,
     window_focus_manager,
 )
@@ -1575,7 +1576,7 @@ class Tree(TreeType):
         if self.is_window_focused == focused:
             return
         self.is_window_focused = focused
-        if get_unfocused_opacity() >= 1.0 and not get_unfocused_mask_color():
+        if get_unfocused_opacity() >= 1.0 and not self._mask_is_active():
             # Nothing about the paint depends on focus, so nothing to redraw.
             return
         self.repaint_base_canvas()
@@ -1609,9 +1610,15 @@ class Tree(TreeType):
             return 1.0
         return get_unfocused_opacity()
 
+    @staticmethod
+    def _mask_is_active() -> bool:
+        return bool(get_unfocused_mask_color()) and get_unfocused_mask_strength() > 0.0
+
     def unfocused_mask_color(self) -> str:
         """The colour an unfocused tree flattens to, or "" for none."""
         if self.is_window_focused:
+            return ""
+        if not self._mask_is_active():
             return ""
         value = get_unfocused_mask_color()
         if value.lower() != "auto":
@@ -1648,12 +1655,16 @@ class Tree(TreeType):
         overlapping opaque rects washed at 50% both read back alpha 128, the
         overlap included, and untouched pixels stay at 0.
 
-        With a mask colour it is SRCIN instead: the source colour replaces
-        every pixel and the destination alpha is kept, so the tree collapses to
-        a flat silhouette. Text stops reading as detail because it ends up the
-        same colour as the background behind it. Same offscreen check - the
-        background and a "text" rect inside it come back identical, and the
-        space outside stays at 0.
+        A mask colour adds a pass before it: SRCATOP, which is
+        src*dst_alpha + dst*(1 - src_alpha). Drawing the mask at alpha S pulls
+        the tree S of the way toward that colour, keeps the silhouette, and
+        leaves the space outside untouched. At S=1 nothing of the original
+        survives and the tree is a flat shape, which is the point - text stops
+        reading as detail once it is the colour of the background behind it.
+        Checked offscreen at 0.5, 0.85 and 1.0.
+
+        The two are separate passes because they are separate questions: how
+        much detail is left, and how much you can see through it.
 
         draw_paint fills the whole clip region, so there is no rect to get
         wrong. Has to be the last thing drawn on the canvas.
@@ -1662,7 +1673,6 @@ class Tree(TreeType):
         mask_color = self.unfocused_mask_color()
         if opacity >= 1.0 and not mask_color:
             return
-        alpha = max(0, min(255, round(opacity * 255)))
         paint = canvas.paint
         prev_blend = paint.blendmode
         prev_style = paint.style
@@ -1670,18 +1680,20 @@ class Tree(TreeType):
         try:
             paint.style = paint.Style.FILL
             paint.antialias = False
+
             if mask_color:
                 channels = parse_hex_channels(mask_color)
                 if channels:
                     r, g, b, _ = channels
-                    paint.blendmode = paint.Blend.SRCIN
-                    paint.color = f"{r:02X}{g:02X}{b:02X}{alpha:02X}"
-                else:
-                    mask_color = ""
-            if not mask_color:
+                    strength = round(get_unfocused_mask_strength() * 255)
+                    paint.blendmode = paint.Blend.SRCATOP
+                    paint.color = f"{r:02X}{g:02X}{b:02X}{strength:02X}"
+                    canvas.draw_paint()
+
+            if opacity < 1.0:
                 paint.blendmode = paint.Blend.DSTIN
-                paint.color = f"FFFFFF{alpha:02X}"
-            canvas.draw_paint()
+                paint.color = f"FFFFFF{round(opacity * 255):02X}"
+                canvas.draw_paint()
         except Exception as e:
             print(f"ui_elements: unfocused wash failed: {e}")
         finally:

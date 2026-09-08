@@ -89,20 +89,26 @@ enough to see past it.
 | `"auto"` | The tree's own background: its window background, else the outermost node under the root that paints one |
 | a hex colour | That colour |
 
+`user.ui_elements_unfocused_mask_strength` says how far the colour pulls. At
+`1.0` nothing of the original survives and you get a flat shape. Below that the
+text is still faintly there - `0.5` reads as a tint over what is already drawn.
+
 ```talon
 settings():
     user.ui_elements_unfocused_mask_color = "auto"
+    user.ui_elements_unfocused_mask_strength = 1.0
     user.ui_elements_unfocused_opacity = 0.9
 ```
 
 ```python
 actions.user.ui_elements_set_unfocused_mask_color("auto")  # None restores the setting
-actions.user.ui_elements_get_unfocused_mask_color()
+actions.user.ui_elements_set_unfocused_mask_strength(1.0)
 ```
 
-The two are independent: flattening at opacity `1.0` gives an opaque silhouette,
-fading with no mask keeps the colours. One `SRCIN` pass does both when both are
-on, so the cost is the same either way.
+Flattening and fading are separate questions - how much detail is left, and how
+much you can see through it - and separate passes. Flattening at opacity `1.0`
+gives an opaque shape, which is usually not what you want on its own; pair it
+with a light fade.
 
 The decorator canvas is a separate layered window from the base, so anything it
 paints - hints, highlights, the focus outline - flattens on its own and its

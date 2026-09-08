@@ -47,6 +47,7 @@ BLUR_GRACE = "120ms"
 STRATEGY_SETTING = "user.ui_elements_focus_strategy"
 OPACITY_SETTING = "user.ui_elements_unfocused_opacity"
 MASK_SETTING = "user.ui_elements_unfocused_mask_color"
+MASK_STRENGTH_SETTING = "user.ui_elements_unfocused_mask_strength"
 DEFAULT_STRATEGY = "both"
 VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
 
@@ -57,6 +58,7 @@ VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
 _strategy_override = None
 _opacity_override = None
 _mask_override = None
+_mask_strength_override = None
 
 
 def _strategy():
@@ -131,6 +133,28 @@ def set_unfocused_mask_color(value):
     window_focus_manager.repaint_trees()
 
 
+def get_unfocused_mask_strength() -> float:
+    """How far the mask colour pulls the tree's own colours toward it. 1.0
+    replaces them outright, 0.5 is a tint over what is there, 0.0 is off."""
+    value = _mask_strength_override
+    if value is None:
+        try:
+            value = settings.get(MASK_STRENGTH_SETTING, 1.0)
+        except Exception:
+            return 1.0
+    try:
+        return max(0.0, min(1.0, float(value)))
+    except (TypeError, ValueError):
+        return 1.0
+
+
+def set_unfocused_mask_strength(value):
+    """Override the mask strength setting. None hands it back to the setting."""
+    global _mask_strength_override
+    _mask_strength_override = None if value is None else float(value)
+    window_focus_manager.repaint_trees()
+
+
 def _uses(name: str) -> bool:
     strategy = _strategy()
     if strategy == "off":
@@ -174,6 +198,8 @@ class WindowFocusManager:
         self._strategy_cb = None
         self._click_key = "__ui_elements_window_focus__"
         self._click_watching = False
+        self._last_strategy = None
+        self._refresh_count = 0
 
     # -- registration ---------------------------------------------------
 
@@ -213,11 +239,21 @@ class WindowFocusManager:
             pass
 
     def refresh(self):
-        """Re-read the strategy and attach or drop listeners to match. Called
-        for you when the setting or the override changes."""
-        self._cancel_pending()
-        self._set_focused(True, "refresh")
+        """Re-read the strategy and attach or drop listeners to match.
+
+        Idempotent when the strategy has not moved, and that matters: this is
+        wired to the settings callback, and Talon re-resolves settings whenever
+        the active context set changes - which includes every app switch, the
+        exact moment a blur is in flight. Cancelling the pending blur and
+        resetting the verdict here made the window unable to ever unfocus.
+        """
+        self._refresh_count += 1
+        changed = _strategy() != self._last_strategy
         self._sync_listeners()
+        if changed:
+            # A genuine strategy change has no history to carry over.
+            self._cancel_pending()
+            self._set_focused(True, "refresh")
 
     def repaint_trees(self):
         """Push a repaint through every watched tree. For a change that alters
@@ -269,6 +305,8 @@ class WindowFocusManager:
                 click_outside_watcher.unwatch(self._click_key)
             self._click_watching = want_click
 
+        self._last_strategy = _strategy()
+
     # -- signal sources -------------------------------------------------
 
     def signal(self, focused: bool, source: str = ""):
@@ -312,9 +350,11 @@ class WindowFocusManager:
         """Pin the verdict, or None to hand it back to the strategies. Splits
         "detection never fired" from "the fade never rendered"."""
         self._forced = focused
-        if focused is None:
-            return
         self._cancel_pending()
+        if focused is None:
+            # Do not leave a pinned verdict standing after the pin is gone.
+            self._set_focused(_talon_holds_focus(), "released")
+            return
         self._set_focused(focused, "forced")
 
     def _commit_blur(self, source: str):
@@ -351,11 +391,13 @@ class WindowFocusManager:
             "strategy_from": "override" if _strategy_override else "setting",
             "unfocused_opacity": get_unfocused_opacity(),
             "unfocused_mask_color": get_unfocused_mask_color() or None,
+            "unfocused_mask_strength": get_unfocused_mask_strength(),
             "focused": self._focused,
             "forced": self._forced,
             "trees": len(self._trees),
             "talon_holds_focus": _talon_holds_focus(),
             "blur_pending": bool(self._pending_blur_job),
+            "refreshes": self._refresh_count,
             "win_focus_registered": bool(self._win_focus_cb),
             "click_watching": self._click_watching,
         }
