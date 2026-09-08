@@ -233,6 +233,14 @@ class Actions:
         """True while a ui_elements canvas still holds OS focus"""
         return window_focus_manager.is_focused
 
+    def ui_elements_force_unfocused(unfocused: bool = True):
+        """Pin the window to unfocused (or focused) to test the fade on its own"""
+        window_focus_manager.force(not unfocused)
+
+    def ui_elements_release_forced_focus():
+        """Hand the focused/unfocused verdict back to the detection strategies"""
+        window_focus_manager.force(None)
+
     def ui_elements_focus_debug():
         """Print how window focus is currently being detected and what it says"""
         state = window_focus_manager.debug_state()

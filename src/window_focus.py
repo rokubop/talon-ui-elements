@@ -91,6 +91,8 @@ class WindowFocusManager:
         # reaching destroy() should not be kept alive by this.
         self._trees = weakref.WeakValueDictionary()
         self._focused = True
+        # Testing hook: True/False pins the verdict, None hands it back.
+        self._forced = None
         self._pending_blur_job = None
         self._win_focus_cb = None
         self._strategy_cb = None
@@ -186,7 +188,7 @@ class WindowFocusManager:
     def signal(self, focused: bool, source: str = ""):
         """Every strategy funnels here. Focus is taken at once; blur is only a
         proposal until _commit_blur has checked it against the OS."""
-        if not self._trees or not _uses(source):
+        if not self._trees or self._forced is not None or not _uses(source):
             return
         if focused:
             self._cancel_pending()
@@ -220,8 +222,19 @@ class WindowFocusManager:
             cron.cancel(self._pending_blur_job)
             self._pending_blur_job = None
 
+    def force(self, focused):
+        """Pin the verdict, or None to hand it back to the strategies. Splits
+        "detection never fired" from "the fade never rendered"."""
+        self._forced = focused
+        if focused is None:
+            return
+        self._cancel_pending()
+        self._set_focused(focused, "forced")
+
     def _commit_blur(self, source: str):
         self._pending_blur_job = None
+        if self._forced is not None:
+            return
         # The OS is the tiebreaker for anything that watches OS focus. A
         # click-only strategy has no OS opinion to check - a press outside our
         # rects is the whole signal - so it skips this.
@@ -250,6 +263,7 @@ class WindowFocusManager:
         return {
             "strategy": _strategy(),
             "focused": self._focused,
+            "forced": self._forced,
             "trees": len(self._trees),
             "talon_holds_focus": _talon_holds_focus(),
             "blur_pending": bool(self._pending_blur_job),
