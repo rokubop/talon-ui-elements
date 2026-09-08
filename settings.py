@@ -16,3 +16,4 @@ mod.setting("ui_elements_mouse_rate", type=int, default=125, desc="Max mouse mov
 mod.setting("ui_elements_smooth_scroll_duration", type=int, default=80, desc="Smooth scroll duration in ms (0 to disable)")
 mod.setting("ui_elements_focus_strategy", type=str, default="both", desc="How losing window focus is detected: 'canvas' (Talon canvas focused event), 'win_focus' (OS focus changes), 'click' (a press outside every tree rect), 'both' (canvas + win_focus), 'all', or 'off'")
 mod.setting("ui_elements_unfocused_opacity", type=float, default=1.0, desc="Opacity of the whole UI while the window does not have focus. 1.0 leaves it alone")
+mod.setting("ui_elements_unfocused_mask_color", type=str, default="", desc="Flatten the UI to one color while the window does not have focus, so text stops reading as detail. Empty leaves its colors alone, 'auto' uses the UI's own background color, anything else is a hex color")

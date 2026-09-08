@@ -46,6 +46,7 @@ BLUR_GRACE = "120ms"
 
 STRATEGY_SETTING = "user.ui_elements_focus_strategy"
 OPACITY_SETTING = "user.ui_elements_unfocused_opacity"
+MASK_SETTING = "user.ui_elements_unfocused_mask_color"
 DEFAULT_STRATEGY = "both"
 VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
 
@@ -55,6 +56,7 @@ VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
 # change these at runtime goes through here instead.
 _strategy_override = None
 _opacity_override = None
+_mask_override = None
 
 
 def _strategy():
@@ -107,6 +109,25 @@ def set_unfocused_opacity(value):
     """Override the opacity setting. None hands it back to the setting."""
     global _opacity_override
     _opacity_override = None if value is None else float(value)
+    window_focus_manager.repaint_trees()
+
+
+def get_unfocused_mask_color() -> str:
+    """Flatten an unfocused tree to one colour. "" leaves its colours alone,
+    "auto" takes the tree's own background, anything else is a hex colour."""
+    value = _mask_override
+    if value is None:
+        try:
+            value = settings.get(MASK_SETTING, "")
+        except Exception:
+            return ""
+    return (value or "").strip().lstrip("#")
+
+
+def set_unfocused_mask_color(value):
+    """Override the mask setting. None hands it back to the setting."""
+    global _mask_override
+    _mask_override = value
     window_focus_manager.repaint_trees()
 
 
@@ -329,6 +350,7 @@ class WindowFocusManager:
             "strategy": _strategy(),
             "strategy_from": "override" if _strategy_override else "setting",
             "unfocused_opacity": get_unfocused_opacity(),
+            "unfocused_mask_color": get_unfocused_mask_color() or None,
             "focused": self._focused,
             "forced": self._forced,
             "trees": len(self._trees),

@@ -39,10 +39,14 @@ from ..constants import (
 from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..click_outside import click_outside_watcher
-from ..window_focus import get_unfocused_opacity, window_focus_manager
+from ..window_focus import (
+    get_unfocused_mask_color,
+    get_unfocused_opacity,
+    window_focus_manager,
+)
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
-from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
+from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES, parse_hex_channels
 from ..core.render_manager import RenderManager, RenderCause
 from ..core.state_manager import state_manager
 from ..core.store import store
@@ -1571,7 +1575,7 @@ class Tree(TreeType):
         if self.is_window_focused == focused:
             return
         self.is_window_focused = focused
-        if get_unfocused_opacity() >= 1.0:
+        if get_unfocused_opacity() >= 1.0 and not get_unfocused_mask_color():
             # Nothing about the paint depends on focus, so nothing to redraw.
             return
         self.repaint_base_canvas()
@@ -1605,6 +1609,35 @@ class Tree(TreeType):
             return 1.0
         return get_unfocused_opacity()
 
+    def unfocused_mask_color(self) -> str:
+        """The colour an unfocused tree flattens to, or "" for none."""
+        if self.is_window_focused:
+            return ""
+        value = get_unfocused_mask_color()
+        if value.lower() != "auto":
+            return value
+        return self.background_color_hint() or ""
+
+    def background_color_hint(self) -> str:
+        """The colour this tree reads as: its window background, else the
+        outermost node under the root that paints one. Breadth first, so an
+        inner panel does not win over the window it sits in."""
+        for id in list(self.meta_state.windows):
+            node = self.meta_state.id_to_node.get(id)
+            color = getattr(getattr(node, "properties", None), "background_color", None)
+            if color:
+                return color
+        if not self.root_node:
+            return ""
+        queue = list(self.root_node.get_children_nodes())
+        while queue:
+            node = queue.pop(0)
+            color = getattr(getattr(node, "properties", None), "background_color", None)
+            if color:
+                return color
+            queue.extend(node.get_children_nodes())
+        return ""
+
     def draw_unfocused_wash(self, canvas: SkiaCanvas):
         """Scale everything already on this canvas by one flat alpha.
 
@@ -1615,21 +1648,39 @@ class Tree(TreeType):
         overlapping opaque rects washed at 50% both read back alpha 128, the
         overlap included, and untouched pixels stay at 0.
 
+        With a mask colour it is SRCIN instead: the source colour replaces
+        every pixel and the destination alpha is kept, so the tree collapses to
+        a flat silhouette. Text stops reading as detail because it ends up the
+        same colour as the background behind it. Same offscreen check - the
+        background and a "text" rect inside it come back identical, and the
+        space outside stays at 0.
+
         draw_paint fills the whole clip region, so there is no rect to get
         wrong. Has to be the last thing drawn on the canvas.
         """
         opacity = self.unfocused_opacity()
-        if opacity >= 1.0:
+        mask_color = self.unfocused_mask_color()
+        if opacity >= 1.0 and not mask_color:
             return
+        alpha = max(0, min(255, round(opacity * 255)))
         paint = canvas.paint
         prev_blend = paint.blendmode
         prev_style = paint.style
         prev_antialias = paint.antialias
         try:
-            paint.blendmode = paint.Blend.DSTIN
             paint.style = paint.Style.FILL
             paint.antialias = False
-            paint.color = f"FFFFFF{round(opacity * 255):02X}"
+            if mask_color:
+                channels = parse_hex_channels(mask_color)
+                if channels:
+                    r, g, b, _ = channels
+                    paint.blendmode = paint.Blend.SRCIN
+                    paint.color = f"{r:02X}{g:02X}{b:02X}{alpha:02X}"
+                else:
+                    mask_color = ""
+            if not mask_color:
+                paint.blendmode = paint.Blend.DSTIN
+                paint.color = f"FFFFFF{alpha:02X}"
             canvas.draw_paint()
         except Exception as e:
             print(f"ui_elements: unfocused wash failed: {e}")

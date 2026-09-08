@@ -12,8 +12,10 @@ from talon import actions, cron
 
 from ...src.window_focus import (
     get_strategy,
+    get_unfocused_mask_color,
     get_unfocused_opacity,
     set_strategy,
+    set_unfocused_mask_color,
     set_unfocused_opacity,
     window_focus_manager,
 )
@@ -27,7 +29,11 @@ FOCUSED_COLOR = "2E7D32"
 BLURRED_COLOR = "B03A3A"
 
 STRATEGIES = ["both", "canvas", "win_focus", "click", "all", "off"]
-OPACITIES = [1.0, 0.75, 0.5, 0.25]
+# Tight steps near the top: a barely-there fade is the useful range, and 0.5
+# was already far past it.
+OPACITIES = [1.0, 0.97, 0.95, 0.92, 0.9, 0.85, 0.8, 0.75]
+# "auto" takes the UI's own background colour.
+MASKS = ["off", "auto", "000000", "2D2D30"]
 
 _poll_job = None
 _blur_count = 0
@@ -62,6 +68,11 @@ def _pick_opacity(value):
     actions.user.ui_elements_set_state("opacity", value)
 
 
+def _pick_mask(value):
+    set_unfocused_mask_color("" if value == "off" else value)
+    actions.user.ui_elements_set_state("mask", value)
+
+
 def _force_unfocused():
     """Fade without waiting on detection. Splits "never detected" from
     "never rendered"."""
@@ -84,6 +95,7 @@ def window_focus_ui():
     blur_count = state.get("blur_count", 0)
     strategy = state.get("strategy", get_strategy())
     opacity = state.get("opacity", get_unfocused_opacity())
+    mask = state.get("mask", get_unfocused_mask_color() or "off")
 
     style({
         ".row": {"flex_direction": "row", "gap": 6, "flex_wrap": "wrap"},
@@ -136,11 +148,22 @@ def window_focus_ui():
                         *[chip(o, opacity, _pick_opacity) for o in OPACITIES]
                     ],
                 ],
+                div(gap=6)[
+                    text("Flatten to one color", class_name="label"),
+                    div(class_name="row")[
+                        *[chip(m, mask, _pick_mask) for m in MASKS]
+                    ],
+                ],
                 div(gap=4)[
                     text(f"Times blurred: {blur_count}", class_name="label"),
                     text(
                         "Click another app, alt-tab, or click the desktop. "
                         "Nothing should flicker while you click inside this window.",
+                        class_name="label",
+                    ),
+                    text(
+                        "Flattening drops the text out, so a light fade is "
+                        "enough to see through. Try auto at 0.9.",
                         class_name="label",
                     ),
                 ],

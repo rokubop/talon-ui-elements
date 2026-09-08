@@ -9,8 +9,10 @@ from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.window_focus import (
     get_strategy,
+    get_unfocused_mask_color,
     get_unfocused_opacity,
     set_strategy,
+    set_unfocused_mask_color,
     set_unfocused_opacity,
     window_focus_manager,
 )
@@ -246,6 +248,14 @@ class Actions:
     def ui_elements_get_unfocused_opacity() -> float:
         """How see-through the UI goes while unfocused"""
         return get_unfocused_opacity()
+
+    def ui_elements_set_unfocused_mask_color(color: str = None):
+        """Flatten the UI to one color while unfocused. "" for none, "auto" for its own background, or a hex color. None restores the setting"""
+        set_unfocused_mask_color(color)
+
+    def ui_elements_get_unfocused_mask_color() -> str:
+        """The color the UI flattens to while unfocused"""
+        return get_unfocused_mask_color()
 
     def ui_elements_set_focus_strategy(strategy: str = None):
         """Set how losing focus is detected. None restores the setting"""

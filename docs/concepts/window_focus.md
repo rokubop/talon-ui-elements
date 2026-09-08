@@ -42,7 +42,9 @@ actions.user.ui_elements_focus_debug()         # prints the verdict and what eac
 ```
 
 Talon settings are read-only from Python, so the setters hold a runtime
-override that beats the setting. Passing `None` hands it back.
+override that beats the setting. Passing `None` hands it back. An override
+lasts until it is cleared or Talon reloads; the settings are the persistent
+way to configure this.
 
 To test the fade without waiting on detection:
 
@@ -71,6 +73,41 @@ actions.user.ui_elements_get_unfocused_opacity()
 It is one group opacity over the finished canvas, not a per-element alpha, so
 overlapping elements do not show through each other. The repaint re-blits the
 layers already built - no layout, no component code.
+
+## Flattening to one colour
+
+Fading alone does not help much with a dense UI: at any opacity you can see
+through, the text is still there as texture. `user.ui_elements_unfocused_mask_color`
+collapses the tree to a single colour while unfocused, keeping only its
+silhouette. Text, borders and highlights all become the colour of the
+background behind them and stop reading as detail, so a much lighter fade is
+enough to see past it.
+
+| Value | Effect |
+| --- | --- |
+| `""` | Off. Colours are left alone. |
+| `"auto"` | The tree's own background: its window background, else the outermost node under the root that paints one |
+| a hex colour | That colour |
+
+```talon
+settings():
+    user.ui_elements_unfocused_mask_color = "auto"
+    user.ui_elements_unfocused_opacity = 0.9
+```
+
+```python
+actions.user.ui_elements_set_unfocused_mask_color("auto")  # None restores the setting
+actions.user.ui_elements_get_unfocused_mask_color()
+```
+
+The two are independent: flattening at opacity `1.0` gives an opaque silhouette,
+fading with no mask keeps the colours. One `SRCIN` pass does both when both are
+on, so the cost is the same either way.
+
+The decorator canvas is a separate layered window from the base, so anything it
+paints - hints, highlights, the focus outline - flattens on its own and its
+alpha stacks over the base. With `auto` the colours match and it reads as
+slightly more solid in those spots.
 
 ## Keys without hints
 
