@@ -9,11 +9,15 @@ from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.window_focus import (
     get_strategy,
+    get_unfocused_inert,
     get_unfocused_mask_color,
+    get_unfocused_mask_scope,
     get_unfocused_mask_strength,
     get_unfocused_opacity,
     set_strategy,
+    set_unfocused_inert,
     set_unfocused_mask_color,
+    set_unfocused_mask_scope,
     set_unfocused_mask_strength,
     set_unfocused_opacity,
     window_focus_manager,
@@ -266,6 +270,22 @@ class Actions:
     def ui_elements_get_unfocused_mask_strength() -> float:
         """How far the unfocused mask color replaces the UI's own colors"""
         return get_unfocused_mask_strength()
+
+    def ui_elements_set_unfocused_mask_scope(scope: str = None):
+        """What the unfocused mask covers: "all" or "title_bar". None restores the setting"""
+        set_unfocused_mask_scope(scope)
+
+    def ui_elements_get_unfocused_mask_scope() -> str:
+        """What the unfocused mask covers"""
+        return get_unfocused_mask_scope()
+
+    def ui_elements_set_unfocused_inert(inert: bool = True):
+        """While unfocused: no hints, no hover, and a click anywhere but a title bar only takes focus back. None restores the setting"""
+        set_unfocused_inert(inert)
+
+    def ui_elements_get_unfocused_inert() -> bool:
+        """Whether an unfocused UI stops responding until clicked back"""
+        return get_unfocused_inert()
 
     def ui_elements_set_focus_strategy(strategy: str = None):
         """Set how losing focus is detected. None restores the setting"""

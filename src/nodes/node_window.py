@@ -27,6 +27,7 @@ class NodeWindow(NodeContainer):
         })
         self.init_position()
         self.destroying = False
+        self.title_bar_node = None
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
@@ -309,7 +310,8 @@ class NodeWindow(NodeContainer):
         # close button on it. overflow on window() lands in body_properties.
         self.body = div(flex=1, **{"overflow": "hidden", **body_properties})
         if window_properties.get("show_title_bar", True):
-            self.add_child(title_bar())
+            self.title_bar_node = title_bar()
+            self.add_child(self.title_bar_node)
         if self.is_minimized:
             minimized_body_fn = window_properties.get("minimized_body", None) or (
                 lambda: div(height=24, width=200)
@@ -450,4 +452,5 @@ class NodeWindow(NodeContainer):
         self.on_minimize = None
         self.on_close = None
         self.on_click_outside = None
+        self.title_bar_node = None
         super().destroy()

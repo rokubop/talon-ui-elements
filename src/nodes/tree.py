@@ -40,7 +40,9 @@ from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..click_outside import click_outside_watcher
 from ..window_focus import (
+    get_unfocused_inert,
     get_unfocused_mask_color,
+    get_unfocused_mask_scope,
     get_unfocused_mask_strength,
     get_unfocused_opacity,
     window_focus_manager,
@@ -76,7 +78,7 @@ from ..interfaces import (
     ScrollableType,
     Size2d,
 )
-from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable, key_tag_disable, key_tag_enable
+from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_disable, hint_tag_enable, key_tag_disable, key_tag_enable
 from ..style import Style
 from ..utils import (
     draw_text_simple,
@@ -608,6 +610,9 @@ class Tree(TreeType):
         # Whether a ui_elements canvas still holds OS focus.
         # window_focus_manager owns the decision; this is its answer.
         self.is_window_focused = True
+        # Resolved on focus change and when a focus setting moves, not per
+        # event: is_inert() is read on every mouse event.
+        self._inert = False
         # Set by repaint_base_canvas: re-blit the layers already built
         # instead of laying the tree out again.
         self._repaint_only = False
@@ -1056,11 +1061,16 @@ class Tree(TreeType):
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
                     canvas.paint.color = "FFFFFF"
                     self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
-                    if self.interactive_node_list or self.draggable_node:
+                    inert = self.is_inert()
+                    if (self.interactive_node_list or self.draggable_node) and not inert:
                         if state_manager.is_focus_visible():
                             self.draw_focus_outline(draw_canvas, offset)
                         if self.show_hints:
                             self.draw_hints(draw_canvas, transforms)
+                    elif inert:
+                        # Focus is one verdict for every tree, so no tree is
+                        # drawing hints right now and the tag can go.
+                        hint_tag_disable()
                     # Not gated on show_hints: the key bindings answer to
                     # whether a tree is up, not to whether it is labelled.
                     key_tag_enable()
@@ -1576,7 +1586,8 @@ class Tree(TreeType):
         if self.is_window_focused == focused:
             return
         self.is_window_focused = focused
-        if get_unfocused_opacity() >= 1.0 and not self._mask_is_active():
+        self.refresh_unfocused_state()
+        if not self._focus_changes_anything():
             # Nothing about the paint depends on focus, so nothing to redraw.
             return
         self.repaint_base_canvas()
@@ -1609,6 +1620,42 @@ class Tree(TreeType):
         if self.is_window_focused:
             return 1.0
         return get_unfocused_opacity()
+
+    def is_inert(self) -> bool:
+        """Unfocused and configured to stop responding until clicked back."""
+        return self._inert
+
+    @staticmethod
+    def _focus_changes_anything() -> bool:
+        """Whether losing focus alters anything about this tree at all."""
+        return (
+            get_unfocused_opacity() < 1.0
+            or Tree._mask_is_active()
+            or get_unfocused_inert()
+        )
+
+    def refresh_unfocused_state(self):
+        """Re-resolve what being unfocused means for this tree. Cheap to call,
+        and the only place the setting is read."""
+        self._inert = not self.is_window_focused and get_unfocused_inert()
+
+    def claim_window_focus(self):
+        """Click to focus. Takes the keyboard back too, so the tree is usable
+        straight after the click that woke it."""
+        if self.canvas_decorator and self.interactive_node_list:
+            self.canvas_decorator.focused = True
+        window_focus_manager.claim_focus()
+
+    def title_bar_rects(self) -> list:
+        """The title bar of each window in the tree. A window built with
+        show_title_bar=False has none."""
+        rects = []
+        for id in list(self.meta_state.windows):
+            node = self.meta_state.id_to_node.get(id)
+            title_bar = getattr(node, "title_bar_node", None) if node else None
+            if title_bar and title_bar.box_model:
+                rects.append(title_bar.box_model.border_rect)
+        return rects
 
     @staticmethod
     def _mask_is_active() -> bool:
@@ -1673,6 +1720,18 @@ class Tree(TreeType):
         mask_color = self.unfocused_mask_color()
         if opacity >= 1.0 and not mask_color:
             return
+
+        # "title_bar" scope greys only the bars, the way an inactive OS window
+        # does. draw_paint fills the clip, so scoping is a clip per bar.
+        regions = None
+        if mask_color and get_unfocused_mask_scope() == "title_bar":
+            regions = self.title_bar_rects()
+            if not regions:
+                # Nothing to grey. A fade still applies to the whole tree.
+                mask_color = ""
+                if opacity >= 1.0:
+                    return
+
         paint = canvas.paint
         prev_blend = paint.blendmode
         prev_style = paint.style
@@ -1688,7 +1747,14 @@ class Tree(TreeType):
                     strength = round(get_unfocused_mask_strength() * 255)
                     paint.blendmode = paint.Blend.SRCATOP
                     paint.color = f"{r:02X}{g:02X}{b:02X}{strength:02X}"
-                    canvas.draw_paint()
+                    if regions is None:
+                        canvas.draw_paint()
+                    else:
+                        for rect in regions:
+                            canvas.save()
+                            canvas.clip_rect(rect)
+                            canvas.draw_paint()
+                            canvas.restore()
 
             if opacity < 1.0:
                 paint.blendmode = paint.Blend.DSTIN
@@ -2632,6 +2698,19 @@ class Tree(TreeType):
         if not state_manager.are_mouse_events_disabled() and \
                 not self.render_manager.is_destroying:
             self.last_mouse_event_time = time.time()
+
+            if self.is_inert() and not self.drag.active:
+                if e.event == "mousemove":
+                    return
+                in_title_bar = any(
+                    rect.contains(e.gpos) for rect in self.title_bar_rects()
+                )
+                if e.event == "mousedown":
+                    self.claim_window_focus()
+                if not in_title_bar:
+                    # Swallowed, so the matching mouseup finds no mousedown
+                    # target and nothing under the cursor is clicked.
+                    return
 
             if e.event == "mousemove":
                 # A held drag owns the cursor. Hover hit-testing is

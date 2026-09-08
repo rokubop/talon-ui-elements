@@ -90,25 +90,52 @@ enough to see past it.
 | a hex colour | That colour |
 
 `user.ui_elements_unfocused_mask_strength` says how far the colour pulls. At
-`1.0` nothing of the original survives and you get a flat shape. Below that the
-text is still faintly there - `0.5` reads as a tint over what is already drawn.
+`1.0` nothing of the original survives and you get a flat shape. `0.25`, the
+default, is a light tint over what is already drawn - enough to read as
+inactive without losing the content.
+
+`user.ui_elements_unfocused_mask_scope` says what it covers: `all` for the
+whole tree, or `title_bar` to grey only the title bars the way an inactive OS
+window does. A window built with `show_title_bar=False` has none, so `title_bar`
+leaves it alone.
 
 ```talon
 settings():
     user.ui_elements_unfocused_mask_color = "auto"
-    user.ui_elements_unfocused_mask_strength = 1.0
-    user.ui_elements_unfocused_opacity = 0.9
+    user.ui_elements_unfocused_mask_strength = 0.25
+    user.ui_elements_unfocused_mask_scope = "all"
 ```
 
 ```python
 actions.user.ui_elements_set_unfocused_mask_color("auto")  # None restores the setting
-actions.user.ui_elements_set_unfocused_mask_strength(1.0)
+actions.user.ui_elements_set_unfocused_mask_strength(0.25)
+actions.user.ui_elements_set_unfocused_mask_scope("title_bar")
 ```
 
 Flattening and fading are separate questions - how much detail is left, and how
-much you can see through it - and separate passes. Flattening at opacity `1.0`
-gives an opaque shape, which is usually not what you want on its own; pair it
-with a light fade.
+much you can see through it - and separate passes. Neither needs the other.
+
+## Going inert
+
+`user.ui_elements_unfocused_inert` makes an unfocused tree stop responding, the
+way an inactive OS window does:
+
+- no hints, and the hints tag drops
+- no hover highlighting
+- a click anywhere but a title bar takes focus back instead of pressing what is
+  under it, hints included if they were on
+
+The title bar stays live throughout, so close, minimise and drag still work on
+an unfocused window without waking it first.
+
+```talon
+settings():
+    user.ui_elements_unfocused_inert = true
+```
+
+Off by default, because it changes what a click does for every UI in the
+library. Clicking back in also takes keyboard focus, so the tree is usable
+straight after the click that woke it.
 
 The decorator canvas is a separate layered window from the base, so anything it
 paints - hints, highlights, the focus outline - flattens on its own and its

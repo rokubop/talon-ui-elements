@@ -12,11 +12,15 @@ from talon import actions, cron
 
 from ...src.window_focus import (
     get_strategy,
+    get_unfocused_inert,
     get_unfocused_mask_color,
+    get_unfocused_mask_scope,
     get_unfocused_mask_strength,
     get_unfocused_opacity,
     set_strategy,
+    set_unfocused_inert,
     set_unfocused_mask_color,
+    set_unfocused_mask_scope,
     set_unfocused_mask_strength,
     set_unfocused_opacity,
     window_focus_manager,
@@ -38,7 +42,8 @@ OPACITIES = [1.0, 0.97, 0.95, 0.92, 0.9, 0.85, 0.8, 0.75]
 MASKS = ["off", "auto", "000000", "2D2D30"]
 # How far the mask pulls the colours toward it. 1.0 is a flat shape with no
 # detail left; below that the text is still faintly there.
-STRENGTHS = [1.0, 0.9, 0.75, 0.5, 0.25]
+STRENGTHS = [0.15, 0.25, 0.4, 0.5, 0.75, 1.0]
+SCOPES = ["all", "title_bar"]
 
 _poll_job = None
 _blur_count = 0
@@ -83,6 +88,17 @@ def _pick_strength(value):
     actions.user.ui_elements_set_state("strength", value)
 
 
+def _pick_scope(value):
+    set_unfocused_mask_scope(value)
+    actions.user.ui_elements_set_state("scope", value)
+
+
+def _toggle_inert():
+    value = not get_unfocused_inert()
+    set_unfocused_inert(value)
+    actions.user.ui_elements_set_state("inert", value)
+
+
 def _force_unfocused():
     """Fade without waiting on detection. Splits "never detected" from
     "never rendered"."""
@@ -107,6 +123,8 @@ def window_focus_ui():
     opacity = state.get("opacity", get_unfocused_opacity())
     mask = state.get("mask", get_unfocused_mask_color() or "off")
     strength = state.get("strength", get_unfocused_mask_strength())
+    scope = state.get("scope", get_unfocused_mask_scope())
+    inert = state.get("inert", get_unfocused_inert())
 
     style({
         ".row": {"flex_direction": "row", "gap": 6, "flex_wrap": "wrap"},
@@ -171,6 +189,12 @@ def window_focus_ui():
                         *[chip(s, strength, _pick_strength) for s in STRENGTHS]
                     ],
                 ],
+                div(gap=6)[
+                    text("Flatten covers", class_name="label"),
+                    div(class_name="row")[
+                        *[chip(s, scope, _pick_scope) for s in SCOPES]
+                    ],
+                ],
                 div(gap=4)[
                     text(f"Times blurred: {blur_count}", class_name="label"),
                     text(
@@ -179,10 +203,17 @@ def window_focus_ui():
                         class_name="label",
                     ),
                     text(
-                        "Flatten strength 1.0 leaves a shape with no detail; "
-                        "below that the text is still faintly there. Opacity "
-                        "is separate. Try auto, strength 1.0, opacity 0.9.",
+                        "Try auto, strength 0.25, opacity 1.0. Inert drops the "
+                        "hints and hover while unfocused, and a click anywhere "
+                        "but the title bar only takes focus back.",
                         class_name="label",
+                    ),
+                ],
+                div(class_name="row")[
+                    button(
+                        f"Inert when unfocused: {'on' if inert else 'off'}",
+                        on_click=_toggle_inert,
+                        class_name="chip_on" if inert else "chip",
                     ),
                 ],
                 div(class_name="row")[

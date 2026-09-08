@@ -48,6 +48,10 @@ STRATEGY_SETTING = "user.ui_elements_focus_strategy"
 OPACITY_SETTING = "user.ui_elements_unfocused_opacity"
 MASK_SETTING = "user.ui_elements_unfocused_mask_color"
 MASK_STRENGTH_SETTING = "user.ui_elements_unfocused_mask_strength"
+MASK_SCOPE_SETTING = "user.ui_elements_unfocused_mask_scope"
+INERT_SETTING = "user.ui_elements_unfocused_inert"
+
+MASK_SCOPES = ("all", "title_bar")
 DEFAULT_STRATEGY = "both"
 VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
 
@@ -59,6 +63,8 @@ _strategy_override = None
 _opacity_override = None
 _mask_override = None
 _mask_strength_override = None
+_mask_scope_override = None
+_inert_override = None
 
 
 def _strategy():
@@ -152,6 +158,45 @@ def set_unfocused_mask_strength(value):
     """Override the mask strength setting. None hands it back to the setting."""
     global _mask_strength_override
     _mask_strength_override = None if value is None else float(value)
+    window_focus_manager.repaint_trees()
+
+
+def get_unfocused_mask_scope() -> str:
+    """What the mask covers: the whole tree, or only its title bars the way an
+    inactive OS window greys only its own."""
+    value = _mask_scope_override
+    if value is None:
+        try:
+            value = settings.get(MASK_SCOPE_SETTING, "all")
+        except Exception:
+            return "all"
+    value = (value or "").strip().lower()
+    return value if value in MASK_SCOPES else "all"
+
+
+def set_unfocused_mask_scope(value):
+    """Override the mask scope setting. None hands it back to the setting."""
+    global _mask_scope_override
+    _mask_scope_override = value
+    window_focus_manager.repaint_trees()
+
+
+def get_unfocused_inert() -> bool:
+    """Whether an unfocused tree stops responding: no hints, no hover, and a
+    click anywhere but a title bar only takes focus back."""
+    value = _inert_override
+    if value is None:
+        try:
+            value = settings.get(INERT_SETTING, False)
+        except Exception:
+            return False
+    return bool(value)
+
+
+def set_unfocused_inert(value):
+    """Override the inert setting. None hands it back to the setting."""
+    global _inert_override
+    _inert_override = None if value is None else bool(value)
     window_focus_manager.repaint_trees()
 
 
@@ -260,6 +305,7 @@ class WindowFocusManager:
         how an unfocused tree looks without altering whether it is focused."""
         for tree in list(self._trees.values()):
             try:
+                tree.refresh_unfocused_state()
                 tree.repaint_base_canvas()
                 tree.render_decorator_canvas()
             except Exception as e:
@@ -346,6 +392,14 @@ class WindowFocusManager:
             cron.cancel(self._pending_blur_job)
             self._pending_blur_job = None
 
+    def claim_focus(self):
+        """The user clicked one of our trees. Not a strategy signal - it is not
+        filtered by the strategy and it does not wait out the grace period."""
+        if self._forced is not None:
+            return
+        self._cancel_pending()
+        self._set_focused(True, "claim")
+
     def force(self, focused):
         """Pin the verdict, or None to hand it back to the strategies. Splits
         "detection never fired" from "the fade never rendered"."""
@@ -392,6 +446,8 @@ class WindowFocusManager:
             "unfocused_opacity": get_unfocused_opacity(),
             "unfocused_mask_color": get_unfocused_mask_color() or None,
             "unfocused_mask_strength": get_unfocused_mask_strength(),
+            "unfocused_mask_scope": get_unfocused_mask_scope(),
+            "unfocused_inert": get_unfocused_inert(),
             "focused": self._focused,
             "forced": self._forced,
             "trees": len(self._trees),
