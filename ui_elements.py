@@ -7,7 +7,13 @@ from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
-from .src.window_focus import window_focus_manager
+from .src.window_focus import (
+    get_strategy,
+    get_unfocused_opacity,
+    set_strategy,
+    set_unfocused_opacity,
+    window_focus_manager,
+)
 from .src.syntax import register_theme, register_language
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
@@ -232,6 +238,22 @@ class Actions:
     def ui_elements_window_focused() -> bool:
         """True while a ui_elements canvas still holds OS focus"""
         return window_focus_manager.is_focused
+
+    def ui_elements_set_unfocused_opacity(opacity: float = None):
+        """Set how see-through the UI goes while unfocused. None restores the setting"""
+        set_unfocused_opacity(opacity)
+
+    def ui_elements_get_unfocused_opacity() -> float:
+        """How see-through the UI goes while unfocused"""
+        return get_unfocused_opacity()
+
+    def ui_elements_set_focus_strategy(strategy: str = None):
+        """Set how losing focus is detected. None restores the setting"""
+        set_strategy(strategy)
+
+    def ui_elements_get_focus_strategy() -> str:
+        """How losing focus is currently being detected"""
+        return get_strategy()
 
     def ui_elements_force_unfocused(unfocused: bool = True):
         """Pin the window to unfocused (or focused) to test the fade on its own"""

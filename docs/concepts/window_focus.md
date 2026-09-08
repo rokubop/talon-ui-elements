@@ -32,11 +32,23 @@ That is what makes the canvas signal usable - our own blockable canvases going
 up and down look exactly like a blur followed by a focus, and the grace period
 swallows the pair.
 
-Reading the state:
+Reading and driving it:
 
 ```python
-actions.user.ui_elements_window_focused()  # -> bool
-actions.user.ui_elements_focus_debug()     # prints strategy, verdict, and what each source says
+actions.user.ui_elements_window_focused()      # -> bool
+actions.user.ui_elements_get_focus_strategy()  # -> str
+actions.user.ui_elements_set_focus_strategy("click")   # None restores the setting
+actions.user.ui_elements_focus_debug()         # prints the verdict and what each source says
+```
+
+Talon settings are read-only from Python, so the setters hold a runtime
+override that beats the setting. Passing `None` hands it back.
+
+To test the fade without waiting on detection:
+
+```python
+actions.user.ui_elements_force_unfocused()        # pin it unfocused
+actions.user.ui_elements_release_forced_focus()   # back to the strategies
 ```
 
 ## Fading while unfocused
@@ -49,6 +61,11 @@ blocks the mouse where its canvases are, with nothing on screen to say so.
 ```talon
 settings():
     user.ui_elements_unfocused_opacity = 0.6
+```
+
+```python
+actions.user.ui_elements_set_unfocused_opacity(0.6)  # None restores the setting
+actions.user.ui_elements_get_unfocused_opacity()
 ```
 
 It is one group opacity over the finished canvas, not a per-element alpha, so

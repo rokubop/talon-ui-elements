@@ -4,18 +4,19 @@ Click into another app, alt-tab away, click your desktop, click back. The
 banner says whether ui_elements thinks it still has focus, and the whole
 window goes see-through while it thinks it does not.
 
-Strategy and opacity are switched from the window rather than from settings so
-you can flip between them without a reload and watch the difference.
+Strategy and opacity are picked from the window so you can flip between them
+and watch the difference without a reload.
 """
 
-from talon import Context, actions, cron, settings
+from talon import actions, cron
 
-from ...src.window_focus import window_focus_manager
-
-# Talon settings are read-only from Python; a Context override is how you move
-# one at runtime. Here so the two pickers below can switch strategy and opacity
-# without a settings file edit and a reload.
-ctx = Context()
+from ...src.window_focus import (
+    get_strategy,
+    get_unfocused_opacity,
+    set_strategy,
+    set_unfocused_opacity,
+    window_focus_manager,
+)
 
 ACCENT = "3B82F6"
 WINDOW_BG = "2D2D30"
@@ -30,42 +31,48 @@ OPACITIES = [1.0, 0.75, 0.5, 0.25]
 
 _poll_job = None
 _blur_count = 0
-_last_pushed = None
+_last_focused = None
 
 
 def _poll():
-    """The library has no focus-changed callback for consumers yet, so the
-    window asks. Only pushes state when something actually moved - setting it
-    every tick would re-render the tree ten times a second for nothing."""
-    global _blur_count, _last_pushed
+    """Focus is the only thing here that changes behind the UI's back, so it is
+    the only thing polled. The pickers own their own state - having the poll
+    push those too would overwrite a value the moment after you clicked it."""
+    global _blur_count, _last_focused
     if not actions.user.ui_elements_is_active(window_focus_ui):
         # Something else took the tree down - "Go back", hide_all, escape.
         _stop_poll()
         return
     focused = window_focus_manager.is_focused
-    was_focused = _last_pushed["focused"] if _last_pushed else focused
-    if focused != was_focused and not focused:
-        _blur_count += 1
-    next_state = {
-        "focused": focused,
-        "blur_count": _blur_count,
-        "strategy": settings.get("user.ui_elements_focus_strategy", "both"),
-        "opacity": round(float(settings.get("user.ui_elements_unfocused_opacity", 1.0)), 2),
-    }
-    if next_state == _last_pushed:
+    if focused == _last_focused:
         return
-    _last_pushed = next_state
-    actions.user.ui_elements_set_state(next_state)
+    if _last_focused is not None and not focused:
+        _blur_count += 1
+    _last_focused = focused
+    actions.user.ui_elements_set_state({"focused": focused, "blur_count": _blur_count})
 
 
-def _set_strategy(value):
-    ctx.settings["user.ui_elements_focus_strategy"] = value
+def _pick_strategy(value):
+    set_strategy(value)
     actions.user.ui_elements_set_state("strategy", value)
 
 
-def _set_opacity(value):
-    ctx.settings["user.ui_elements_unfocused_opacity"] = value
+def _pick_opacity(value):
+    set_unfocused_opacity(value)
     actions.user.ui_elements_set_state("opacity", value)
+
+
+def _force_unfocused():
+    """Fade without waiting on detection. Splits "never detected" from
+    "never rendered"."""
+    actions.user.ui_elements_force_unfocused()
+    actions.user.ui_elements_set_state("focused", False)
+
+
+def _release_forced():
+    global _last_focused
+    actions.user.ui_elements_release_forced_focus()
+    _last_focused = None
 
 
 def window_focus_ui():
@@ -75,8 +82,8 @@ def window_focus_ui():
 
     focused = state.get("focused", True)
     blur_count = state.get("blur_count", 0)
-    strategy = state.get("strategy", settings.get("user.ui_elements_focus_strategy", "both"))
-    opacity = state.get("opacity", float(settings.get("user.ui_elements_unfocused_opacity", 1.0)))
+    strategy = state.get("strategy", get_strategy())
+    opacity = state.get("opacity", get_unfocused_opacity())
 
     style({
         ".row": {"flex_direction": "row", "gap": 6, "flex_wrap": "wrap"},
@@ -98,9 +105,9 @@ def window_focus_ui():
         ".label": {"font_size": 13, "color": TEXT_SECONDARY},
     })
 
-    def chip(label, value, current, on_pick):
+    def chip(value, current, on_pick):
         klass = "chip_on" if value == current else "chip"
-        return button(str(label), class_name=klass, on_click=lambda: on_pick(value))
+        return button(str(value), class_name=klass, on_click=lambda: on_pick(value))
 
     return screen(justify_content="center", align_items="center")[
         window(title="Window focus", width=460, background_color=WINDOW_BG)[
@@ -120,13 +127,13 @@ def window_focus_ui():
                 div(gap=6)[
                     text("Detection strategy", class_name="label"),
                     div(class_name="row")[
-                        *[chip(s, s, strategy, _set_strategy) for s in STRATEGIES]
+                        *[chip(s, strategy, _pick_strategy) for s in STRATEGIES]
                     ],
                 ],
                 div(gap=6)[
                     text("Unfocused opacity", class_name="label"),
                     div(class_name="row")[
-                        *[chip(o, o, opacity, _set_opacity) for o in OPACITIES]
+                        *[chip(o, opacity, _pick_opacity) for o in OPACITIES]
                     ],
                 ],
                 div(gap=4)[
@@ -138,21 +145,14 @@ def window_focus_ui():
                     ),
                 ],
                 div(class_name="row")[
-                    button("Focus debug to log", on_click=actions.user.ui_elements_focus_debug, class_name="chip"),
+                    button("Force unfocused", on_click=_force_unfocused, class_name="chip"),
+                    button("Release", on_click=_release_forced, class_name="chip"),
+                    button("Debug to log", on_click=actions.user.ui_elements_focus_debug, class_name="chip"),
                     button("Close", on_click=hide_window_focus, class_name="chip"),
                 ],
             ],
         ],
     ]
-
-
-def show_window_focus():
-    global _poll_job, _blur_count, _last_pushed
-    _blur_count = 0
-    _last_pushed = None
-    actions.user.ui_elements_show(window_focus_ui)
-    if not _poll_job:
-        _poll_job = cron.interval("100ms", _poll)
 
 
 def _stop_poll():
@@ -162,6 +162,16 @@ def _stop_poll():
         _poll_job = None
 
 
+def show_window_focus():
+    global _poll_job, _blur_count, _last_focused
+    _blur_count = 0
+    _last_focused = None
+    actions.user.ui_elements_show(window_focus_ui)
+    if not _poll_job:
+        _poll_job = cron.interval("100ms", _poll)
+
+
 def hide_window_focus():
     _stop_poll()
+    actions.user.ui_elements_release_forced_focus()
     actions.user.ui_elements_hide(window_focus_ui)

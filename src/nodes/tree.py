@@ -33,14 +33,13 @@ from ..constants import (
     RESIZE_EDGE_THRESHOLD,
     RESIZE_EDGE_HIGHLIGHT_COLOR,
     RESIZE_EDGE_HIGHLIGHT_WIDTH,
-    UNFOCUSED_OPACITY_FLOOR,
     PRIMARY_MOD,
     KEY_SPACE, KEY_ENTER, KEY_RETURN, KEY_ESCAPE,
 )
 from ..utils import draw_rect, scale_value
 from ..canvas_wrapper import CanvasWeakRef, ThrottledCanvas
 from ..click_outside import click_outside_watcher
-from ..window_focus import window_focus_manager
+from ..window_focus import get_unfocused_opacity, window_focus_manager
 from ..border_radius import draw_manual_rounded_rect_path
 from ..core.entity_manager import entity_manager
 from ..core.animations import TransitionManager, ANIMATABLE_COLOR_PROPERTIES
@@ -1572,7 +1571,7 @@ class Tree(TreeType):
         if self.is_window_focused == focused:
             return
         self.is_window_focused = focused
-        if self._unfocused_opacity_setting() >= 1.0:
+        if get_unfocused_opacity() >= 1.0:
             # Nothing about the paint depends on focus, so nothing to redraw.
             return
         self.repaint_base_canvas()
@@ -1601,20 +1600,10 @@ class Tree(TreeType):
         self._repaint_only = True
         self.canvas_base.freeze()
 
-    def _unfocused_opacity_setting(self) -> float:
-        try:
-            value = float(settings.get("user.ui_elements_unfocused_opacity", 1.0))
-        except Exception:
-            return 1.0
-        # Floored rather than allowed to reach 0: a fully invisible tree still
-        # blocks the mouse where its canvases are, with nothing on screen to
-        # say so.
-        return max(UNFOCUSED_OPACITY_FLOOR, min(1.0, value))
-
     def unfocused_opacity(self) -> float:
         if self.is_window_focused:
             return 1.0
-        return self._unfocused_opacity_setting()
+        return get_unfocused_opacity()
 
     def draw_unfocused_wash(self, canvas: SkiaCanvas):
         """Scale everything already on this canvas by one flat alpha.

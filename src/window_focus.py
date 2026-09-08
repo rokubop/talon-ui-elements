@@ -38,21 +38,76 @@ import weakref
 from talon import cron, settings, ui
 from talon.types import Point2d
 
+from .constants import UNFOCUSED_OPACITY_FLOOR
+
 # Long enough to swallow a blur/focus pair from our own canvas churn, short
 # enough that the window visibly reacts to a real click away.
 BLUR_GRACE = "120ms"
 
 STRATEGY_SETTING = "user.ui_elements_focus_strategy"
+OPACITY_SETTING = "user.ui_elements_unfocused_opacity"
 DEFAULT_STRATEGY = "both"
 VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
 
+# Runtime overrides beat the settings. Talon settings are read-only from
+# Python - moving one needs a Context, and a Context declared in a file Talon
+# imports rather than loads does not reliably take - so anything that wants to
+# change these at runtime goes through here instead.
+_strategy_override = None
+_opacity_override = None
+
 
 def _strategy():
+    if _strategy_override in VALID_STRATEGIES:
+        return _strategy_override
     try:
         value = (settings.get(STRATEGY_SETTING) or "").strip().lower()
     except Exception:
         value = ""
     return value if value in VALID_STRATEGIES else DEFAULT_STRATEGY
+
+
+def get_strategy() -> str:
+    return _strategy()
+
+
+def set_strategy(value):
+    """Override the strategy setting. None hands it back to the setting."""
+    global _strategy_override
+    if value is not None:
+        value = str(value).strip().lower()
+        if value not in VALID_STRATEGIES:
+            raise ValueError(
+                f"unknown focus strategy {value!r}, expected one of {VALID_STRATEGIES}"
+            )
+    _strategy_override = value
+    window_focus_manager.refresh()
+
+
+def get_unfocused_opacity() -> float:
+    """How see-through a tree goes while unfocused. 1.0 leaves it alone."""
+    value = _opacity_override
+    if value is None:
+        try:
+            value = settings.get(OPACITY_SETTING, 1.0)
+        except Exception:
+            return 1.0
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return 1.0
+    if value >= 1.0:
+        return 1.0
+    # Floored rather than allowed to reach 0: a tree faded to nothing still
+    # blocks the mouse where its canvases are, with nothing on screen to say so.
+    return max(UNFOCUSED_OPACITY_FLOOR, value)
+
+
+def set_unfocused_opacity(value):
+    """Override the opacity setting. None hands it back to the setting."""
+    global _opacity_override
+    _opacity_override = None if value is None else float(value)
+    window_focus_manager.repaint_trees()
 
 
 def _uses(name: str) -> bool:
@@ -138,10 +193,20 @@ class WindowFocusManager:
 
     def refresh(self):
         """Re-read the strategy and attach or drop listeners to match. Called
-        for you when the setting changes."""
+        for you when the setting or the override changes."""
         self._cancel_pending()
         self._set_focused(True, "refresh")
         self._sync_listeners()
+
+    def repaint_trees(self):
+        """Push a repaint through every watched tree. For a change that alters
+        how an unfocused tree looks without altering whether it is focused."""
+        for tree in list(self._trees.values()):
+            try:
+                tree.repaint_base_canvas()
+                tree.render_decorator_canvas()
+            except Exception as e:
+                print(f"ui_elements: focus repaint error: {e}")
 
     def _sync_listeners(self):
         has_trees = bool(self._trees)
@@ -262,6 +327,8 @@ class WindowFocusManager:
     def debug_state(self) -> dict:
         return {
             "strategy": _strategy(),
+            "strategy_from": "override" if _strategy_override else "setting",
+            "unfocused_opacity": get_unfocused_opacity(),
             "focused": self._focused,
             "forced": self._forced,
             "trees": len(self._trees),
