@@ -79,7 +79,10 @@ layers already built - no layout, no component code.
 Fading alone does not help much with a dense UI: at any opacity you can see
 through, the text is still there as texture. `user.ui_elements_unfocused_mask_color`
 collapses the tree to a single colour while unfocused, keeping only its
-silhouette. Text, borders and highlights all become the colour of the
+silhouette.
+
+**It is the on switch.** Strength and scope below do nothing while it is empty,
+which is the default. Text, borders and highlights all become the colour of the
 background behind them and stop reading as detail, so a much lighter fade is
 enough to see past it.
 

@@ -83,14 +83,41 @@ def _pick_mask(value):
     actions.user.ui_elements_set_state("mask", value)
 
 
+def _ensure_mask_on():
+    """Scope and strength are inert without a colour, and picking one is always
+    meant as "switch this on"."""
+    if get_unfocused_mask_color():
+        return
+    set_unfocused_mask_color("auto")
+    actions.user.ui_elements_set_state("mask", "auto")
+
+
 def _pick_strength(value):
     set_unfocused_mask_strength(value)
     actions.user.ui_elements_set_state("strength", value)
+    _ensure_mask_on()
 
 
 def _pick_scope(value):
     set_unfocused_mask_scope(value)
     actions.user.ui_elements_set_state("scope", value)
+    _ensure_mask_on()
+
+
+def _effect_summary() -> str:
+    """Exactly what will happen on blur, so nothing armed or unarmed is a
+    surprise."""
+    parts = []
+    mask = get_unfocused_mask_color()
+    if mask and get_unfocused_mask_strength() > 0:
+        where = "whole window" if get_unfocused_mask_scope() == "all" else "title bar"
+        parts.append(f"flatten {mask} at {get_unfocused_mask_strength()} over the {where}")
+    opacity = get_unfocused_opacity()
+    if opacity < 1.0:
+        parts.append(f"fade to {opacity}")
+    if get_unfocused_inert():
+        parts.append("go inert")
+    return ", ".join(parts) if parts else "nothing - pick a flatten color"
 
 
 def _toggle_inert():
@@ -125,6 +152,9 @@ def window_focus_ui():
     strength = state.get("strength", get_unfocused_mask_strength())
     scope = state.get("scope", get_unfocused_mask_scope())
     inert = state.get("inert", get_unfocused_inert())
+    # Read live rather than from state: it is derived from all four pickers,
+    # and any of them can move it.
+    summary = _effect_summary()
 
     style({
         ".row": {"flex_direction": "row", "gap": 6, "flex_wrap": "wrap"},
@@ -195,6 +225,16 @@ def window_focus_ui():
                         *[chip(s, scope, _pick_scope) for s in SCOPES]
                     ],
                 ],
+                div(
+                    padding=10,
+                    border_radius=6,
+                    border_width=1,
+                    border_color=BORDER,
+                    gap=2,
+                )[
+                    text("On unfocus", class_name="label"),
+                    text(summary, font_size=14, color=TEXT_PRIMARY),
+                ],
                 div(gap=4)[
                     text(f"Times blurred: {blur_count}", class_name="label"),
                     text(
@@ -203,9 +243,9 @@ def window_focus_ui():
                         class_name="label",
                     ),
                     text(
-                        "Try auto, strength 0.25, opacity 1.0. Inert drops the "
-                        "hints and hover while unfocused, and a click anywhere "
-                        "but the title bar only takes focus back.",
+                        "Flatten color is the on switch - strength and scope do "
+                        "nothing without it. These are runtime overrides and "
+                        "reset when Talon reloads; the settings persist.",
                         class_name="label",
                     ),
                 ],
