@@ -81,15 +81,16 @@ through, the text is still there as texture. `user.ui_elements_unfocused_mask_co
 collapses the tree to a single colour while unfocused, keeping only its
 silhouette.
 
-**It is the on switch.** Strength and scope below do nothing while it is empty,
-which is the default. Text, borders and highlights all become the colour of the
+**It is the on switch.** Strength and scope below do nothing while it is empty.
+It defaults to `auto`, so this is on out of the box; set it to `""` to turn the
+whole thing off. Text, borders and highlights all become the colour of the
 background behind them and stop reading as detail, so a much lighter fade is
 enough to see past it.
 
 | Value | Effect |
 | --- | --- |
+| `"auto"` | Default. The tree's own background: its window background, else the outermost node under the root that paints one |
 | `""` | Off. Colours are left alone. |
-| `"auto"` | The tree's own background: its window background, else the outermost node under the root that paints one |
 | a hex colour | That colour |
 
 `user.ui_elements_unfocused_mask_strength` says how far the colour pulls. At
@@ -102,11 +103,12 @@ whole tree, or `title_bar` to grey only the title bars the way an inactive OS
 window does. A window built with `show_title_bar=False` has none, so `title_bar`
 leaves it alone.
 
+The defaults are `auto` at `0.25` over `all`, which reads as inactive without
+losing the content. To turn it off:
+
 ```talon
 settings():
-    user.ui_elements_unfocused_mask_color = "auto"
-    user.ui_elements_unfocused_mask_strength = 0.25
-    user.ui_elements_unfocused_mask_scope = "all"
+    user.ui_elements_unfocused_mask_color = ""
 ```
 
 ```python
@@ -131,14 +133,19 @@ way an inactive OS window does:
 The title bar stays live throughout, so close, minimise and drag still work on
 an unfocused window without waking it first.
 
+On by default, paired with the flatten. A body drawn as one flat shape is
+saying its inputs are dead, and it should be telling the truth. Clicking back in
+also takes keyboard focus, so the tree is usable straight after the click that
+woke it.
+
 ```talon
 settings():
-    user.ui_elements_unfocused_inert = true
+    user.ui_elements_unfocused_inert = false
 ```
 
-Off by default, because it changes what a click does for every UI in the
-library. Clicking back in also takes keyboard focus, so the tree is usable
-straight after the click that woke it.
+Worth knowing for voice-first overlays: a hint can be spoken while another app
+holds focus, but an inert tree draws no hints, so a HUD you read while working
+in another window goes hint-less until you click it. Turn this off for those.
 
 The decorator canvas is a separate layered window from the base, so anything it
 paints - hints, highlights, the focus outline - flattens on its own and its

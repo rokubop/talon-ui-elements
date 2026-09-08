@@ -243,6 +243,7 @@ def window_focus_ui():
                         class_name="label",
                     ),
                     text(
+                        "Defaults: flatten auto at 0.25 over all, inert on. "
                         "Flatten color is the on switch - strength and scope do "
                         "nothing without it. These are runtime overrides and "
                         "reset when Talon reloads; the settings persist.",

@@ -132,9 +132,9 @@ def get_unfocused_mask_color() -> str:
     value = _mask_override
     if value is None:
         try:
-            value = settings.get(MASK_SETTING, "")
+            value = settings.get(MASK_SETTING, "auto")
         except Exception:
-            return ""
+            return "auto"
     return (value or "").strip().lstrip("#")
 
 
@@ -189,13 +189,16 @@ def set_unfocused_mask_scope(value):
 
 def get_unfocused_inert() -> bool:
     """Whether an unfocused tree stops responding: no hints, no hover, and a
-    click anywhere but a title bar only takes focus back."""
+    click anywhere but a title bar only takes focus back.
+
+    On by default, paired with the flatten: a body drawn as one flat shape is
+    saying its inputs are dead, and it had better be telling the truth."""
     value = _inert_override
     if value is None:
         try:
-            value = settings.get(INERT_SETTING, False)
+            value = settings.get(INERT_SETTING, True)
         except Exception:
-            return False
+            return True
     return bool(value)
 
 
