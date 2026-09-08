@@ -259,7 +259,17 @@ class WindowFocusManager:
     # -- registration ---------------------------------------------------
 
     def watch(self, tree):
-        """Called when a tree's decorator canvas comes up."""
+        """Called on every decorator paint, not only when the canvas is built.
+
+        Saving a file re-imports src/ and leaves this module with a fresh
+        manager while the trees stay mounted. Those trees never call watch()
+        again, so a manager that only learned about them at canvas creation
+        would sit there with no trees and silently detect nothing until the UI
+        was re-shown. Cheap enough to call every paint: a hit on the dict and
+        nothing else.
+        """
+        if self._trees.get(tree.guid) is tree:
+            return
         is_first = not self._trees
         self._trees[tree.guid] = tree
         if is_first:

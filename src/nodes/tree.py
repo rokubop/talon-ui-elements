@@ -1842,7 +1842,6 @@ class Tree(TreeType):
         if not self.canvas_decorator and not self.render_manager.is_destroying:
             self.canvas_decorator = self.create_canvas()
             self.canvas_decorator.register("draw", self.on_draw_decorator_canvas)
-            window_focus_manager.watch(self)
             window_focus_manager.register_canvas(self, self.canvas_decorator)
             if self.interactive_node_list:
                 focused_tree = state_manager.get_focused_tree()
@@ -1852,6 +1851,8 @@ class Tree(TreeType):
                     self.canvas_decorator.focused = True
 
         if self.canvas_decorator:
+            # Every paint, not just on creation - see WindowFocusManager.watch.
+            window_focus_manager.watch(self)
             self._freeze_decorator_now()
 
     def render_base_canvas(self):
