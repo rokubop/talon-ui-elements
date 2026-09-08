@@ -34,7 +34,7 @@ TEXT_SECONDARY = "A0A0A4"
 FOCUSED_COLOR = "2E7D32"
 BLURRED_COLOR = "B03A3A"
 
-STRATEGIES = ["both", "canvas", "win_focus", "click", "all", "off"]
+STRATEGIES = ["poll", "both", "canvas", "win_focus", "click", "all", "off"]
 # Tight steps near the top: a barely-there fade is the useful range, and 0.5
 # was already far past it.
 OPACITIES = [1.0, 0.97, 0.95, 0.92, 0.9, 0.85, 0.8, 0.75]

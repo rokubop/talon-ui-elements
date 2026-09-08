@@ -304,7 +304,7 @@ class NodeWindow(NodeContainer):
                         icon("close", size=20, **icon_style),
                     ] if window_properties.get("show_close", True) else None,
                 ],
-            ],
+            ]
 
         # Clip the body so content cannot draw over the title bar and the
         # close button on it. overflow on window() lands in body_properties.

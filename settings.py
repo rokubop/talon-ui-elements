@@ -14,7 +14,7 @@ mod.setting("ui_elements_text_hinting", type=str, default="", desc="Glyph hintin
 mod.setting("ui_elements_scroll_speed", type=int, default=45)
 mod.setting("ui_elements_mouse_rate", type=int, default=125, desc="Max mouse move (e.g. hover) events per second. Only applies to UIs with clickable elements. Set to 0 to disable the cap")
 mod.setting("ui_elements_smooth_scroll_duration", type=int, default=80, desc="Smooth scroll duration in ms (0 to disable)")
-mod.setting("ui_elements_focus_strategy", type=str, default="both", desc="How losing window focus is detected: 'canvas' (Talon canvas focused event), 'win_focus' (OS focus changes), 'click' (a press outside every tree rect), 'both' (canvas + win_focus), 'all', or 'off'")
+mod.setting("ui_elements_focus_strategy", type=str, default="poll", desc="How losing window focus is detected: 'poll' (ask the OS which window is active on an interval), 'canvas' (Talon canvas focused event), 'win_focus' (OS focus change events), 'click' (a press outside every tree rect), 'both' (canvas + win_focus), 'all', or 'off'")
 mod.setting("ui_elements_unfocused_opacity", type=float, default=1.0, desc="Opacity of the whole UI while the window does not have focus. 1.0 leaves it alone")
 mod.setting("ui_elements_unfocused_mask_color", type=str, default="", desc="Flatten the UI to one color while the window does not have focus, so text stops reading as detail. Empty leaves its colors alone, 'auto' uses the UI's own background color, anything else is a hex color")
 mod.setting("ui_elements_unfocused_mask_strength", type=float, default=0.25, desc="How far ui_elements_unfocused_mask_color pulls the UI's own colors toward it. 1.0 replaces them outright and leaves a flat shape, 0.25 is a light tint over what is there")

@@ -18,7 +18,10 @@ The candidates:
                presses that land outside every tree rect. Works even for a UI
                that never took OS focus at all, but says nothing about focus
                moving by alt-tab or a keyboard shortcut.
-- "both"       canvas + win_focus. The default.
+- "poll"       Ask the OS on an interval which window is active. No event to
+               go missing, and measured against the others it was the only one
+               that produced a verdict at all here. The default.
+- "both"       canvas + win_focus.
 - "all"        every signal.
 - "off"        none; the tree is always treated as focused.
 
@@ -43,6 +46,9 @@ from .constants import UNFOCUSED_OPACITY_FLOOR
 # Long enough to swallow a blur/focus pair from our own canvas churn, short
 # enough that the window visibly reacts to a real click away.
 BLUR_GRACE = "120ms"
+# One ui.active_window() call per tick, and a fade nobody is looking at does not
+# need to be quicker than this.
+POLL_INTERVAL = "200ms"
 
 STRATEGY_SETTING = "user.ui_elements_focus_strategy"
 OPACITY_SETTING = "user.ui_elements_unfocused_opacity"
@@ -52,8 +58,8 @@ MASK_SCOPE_SETTING = "user.ui_elements_unfocused_mask_scope"
 INERT_SETTING = "user.ui_elements_unfocused_inert"
 
 MASK_SCOPES = ("all", "title_bar")
-DEFAULT_STRATEGY = "both"
-VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "both", "all")
+DEFAULT_STRATEGY = "poll"
+VALID_STRATEGIES = ("off", "canvas", "win_focus", "click", "poll", "both", "all")
 
 # Runtime overrides beat the settings. Talon settings are read-only from
 # Python - moving one needs a Context, and a Context declared in a file Talon
@@ -245,6 +251,10 @@ class WindowFocusManager:
         self._click_watching = False
         self._last_strategy = None
         self._refresh_count = 0
+        self._poll_job = None
+        # Which sources are actually producing events, as opposed to being
+        # registered and silent.
+        self._source_counts = {}
 
     # -- registration ---------------------------------------------------
 
@@ -261,6 +271,7 @@ class WindowFocusManager:
         if not self._trees:
             self._cancel_pending()
             self._focused = True
+        # Drops the poll and the click watcher with the last tree.
         self._sync_listeners()
 
     def register_canvas(self, tree, canvas):
@@ -341,7 +352,8 @@ class WindowFocusManager:
                 pass
             self._win_focus_cb = None
 
-        # The only source with a running cost, so this one tracks the strategy.
+        # The sources with a running cost track the strategy rather than
+        # staying attached like the passive ones.
         want_click = has_trees and _uses("click")
         if want_click != self._click_watching:
             from .click_outside import click_outside_watcher
@@ -351,6 +363,13 @@ class WindowFocusManager:
                 click_outside_watcher.unwatch(self._click_key)
             self._click_watching = want_click
 
+        want_poll = has_trees and _uses("poll")
+        if want_poll and not self._poll_job:
+            self._poll_job = cron.interval(POLL_INTERVAL, self._on_poll)
+        elif not want_poll and self._poll_job:
+            cron.cancel(self._poll_job)
+            self._poll_job = None
+
         self._last_strategy = _strategy()
 
     # -- signal sources -------------------------------------------------
@@ -358,6 +377,7 @@ class WindowFocusManager:
     def signal(self, focused: bool, source: str = ""):
         """Every strategy funnels here. Focus is taken at once; blur is only a
         proposal until _commit_blur has checked it against the OS."""
+        self._source_counts[source] = self._source_counts.get(source, 0) + 1
         if not self._trees or self._forced is not None or not _uses(source):
             return
         if focused:
@@ -367,6 +387,9 @@ class WindowFocusManager:
             self._pending_blur_job = cron.after(
                 BLUR_GRACE, lambda: self._commit_blur(source)
             )
+
+    def _on_poll(self):
+        self.signal(_talon_holds_focus(), "poll")
 
     def _on_win_focus(self, window):
         try:
@@ -454,6 +477,8 @@ class WindowFocusManager:
             "talon_holds_focus": _talon_holds_focus(),
             "blur_pending": bool(self._pending_blur_job),
             "refreshes": self._refresh_count,
+            "source_events": dict(self._source_counts),
+            "polling": bool(self._poll_job),
             "win_focus_registered": bool(self._win_focus_cb),
             "click_watching": self._click_watching,
         }

@@ -1653,8 +1653,9 @@ class Tree(TreeType):
         for id in list(self.meta_state.windows):
             node = self.meta_state.id_to_node.get(id)
             title_bar = getattr(node, "title_bar_node", None) if node else None
-            if title_bar and title_bar.box_model:
-                rects.append(title_bar.box_model.border_rect)
+            box_model = getattr(title_bar, "box_model", None)
+            if box_model and box_model.border_rect:
+                rects.append(box_model.border_rect)
         return rects
 
     @staticmethod
