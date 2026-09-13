@@ -1,13 +1,10 @@
 """The canvas a drag previews on.
 
-Nothing else draws on it, so a drag tick is one freeze of a few shapes instead
-of a repaint of the tree. The base and decorator keep the paint they had at
-drag start.
+Nothing else draws on it, so a drag tick is one freeze of a few shapes rather
+than a repaint of the tree. Display only: no blocks_mouse.
 
-Display only: no blocks_mouse, so Talon never calls on_mouse on it.
-
-Hidden between drags rather than closed. Creating a canvas is not free and a
-drag starting is the worst time to pay for it. It closes with the tree.
+Hidden between drags rather than closed, since a drag starting is the worst
+time to pay for building a canvas. It closes with the tree.
 """
 
 import time

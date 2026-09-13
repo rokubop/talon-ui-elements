@@ -487,17 +487,11 @@ def _set_paint_attr(target, attr, value, label):
 def apply_text_rendering(paint):
     """Apply the global text rendering settings to a text paint.
 
-    Text is drawn with the paint passed to c.draw_text, not with c.paint, so
-    every place that builds its own Paint for text has to go through here or
-    it silently renders with Skia's defaults.
+    c.draw_text uses the paint passed to it, not c.paint, so anything building
+    its own text Paint must come through here or it gets Skia's defaults.
 
-    Only two knobs in Talon's Skia actually change rasterized glyphs. Measured
-    against pixel hashes on this build, `antialias` and `lcd_render_text` are
-    inert for text (Talon builds the font separately from the paint, and this
-    Skia predates SkFont::setEdging), and `hinting` is really a two-state
-    toggle -- SLIGHT, NORMAL and FULL all rasterize identically. antialias is
-    still set unconditionally because node_input_text and node_textarea have
-    always set it and it costs nothing.
+    Only `subpixel` and `hinting` change rasterized glyphs on this build, and
+    hinting is really two-state: slight, normal and full are identical.
     """
     _set_paint_attr(paint, "antialias", True, "paint.antialias")
     _set_paint_attr(

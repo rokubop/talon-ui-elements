@@ -414,8 +414,6 @@ def window(props=None, **additional_props):
             "minimize_on_click_outside",
             "close_on_click_outside",
             "flash_on_minimize",
-            "flash_color",
-            "flash_duration",
             "title",
             "show_title_bar",
             "resizable",

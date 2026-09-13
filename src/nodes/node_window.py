@@ -140,12 +140,9 @@ class NodeWindow(NodeContainer):
                     pct = float(val.replace("%", "")) / 100
                     resolved_window_props[key] = int(screen_size * pct)
 
-        # Last-resort cap: a window with no explicit size is sized by its
-        # content, so runaway content (a long traceback, an unbounded table)
-        # grows it past the display. Centered, that puts the title bar - and
-        # the close button on it - off screen with no way to drag or dismiss
-        # the window. An explicit width/height/max_* is the consumer's call
-        # and is left alone.
+        # An unsized window is sized by its content, so runaway content grows
+        # it past the display and takes the title bar off screen with it. An
+        # explicit width/height/max_* is the consumer's call and is left alone.
         for dim, screen_size in [("width", screen_rect.width), ("height", screen_rect.height)]:
             max_dim = f"max_{dim}"
             if resolved_window_props.get(dim) is None and resolved_window_props.get(max_dim) is None:
@@ -326,14 +323,23 @@ class NodeWindow(NodeContainer):
             self.add_child(self.body)
 
     def minimize_flash(self, div, window_properties):
-        """A wash over the whole window as it collapses. A window minimises to
-        a corner while the eye is somewhere else entirely, so without motion
-        there the collapse goes unnoticed. Only exists while minimised, so it
-        mounts - and flashes - on every minimise."""
-        color = window_properties.get("flash_color", None) or DEFAULT_MINIMIZE_FLASH_COLOR
-        duration = window_properties.get("flash_duration", None) or DEFAULT_MINIMIZE_FLASH_MS
+        """A wash over the window as it collapses. It minimises to a corner
+        while the eye is elsewhere, so the collapse is easy to miss. Exists
+        only while minimised, so it mounts - and flashes - every time."""
+        # True, a colour, or {"color", "duration"}. Same shape as `resizable`.
+        flash = window_properties.get("flash_on_minimize", True)
+        options = (
+            flash if isinstance(flash, dict)
+            else {"color": flash} if isinstance(flash, str)
+            else {}
+        )
+        color = options.get("color") or DEFAULT_MINIMIZE_FLASH_COLOR
+        duration = options.get("duration") or DEFAULT_MINIMIZE_FLASH_MS
         # Same colour at zero alpha, so it fades out rather than to black.
-        transparent = color.lstrip("#")[:6] + "00"
+        rgb = color.lstrip("#")
+        if len(rgb) in (3, 4):
+            rgb = "".join(channel * 2 for channel in rgb)
+        transparent = rgb[:6] + "00"
         flash = div(
             position="fixed",
             top=0,

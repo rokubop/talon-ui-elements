@@ -133,13 +133,13 @@ Properties mostly match standard CSS properties.
 | autofocus | bool | False | Autofocus for `input_text`, `textarea`, or `button` |
 | disabled | bool | False | Whether element is disabled (for interactive elements) |
 | disabled_style | dict | None | Style overrides when disabled |
-| draggable | bool | False | Whether element can be dragged. Dragging previews with an outline; the element moves on release. |
+| draggable | bool | False | Whether element can be dragged. See [Drag](concepts/drag.md) |
 | drag_handle | bool | False | Treat this area as the drag handle for a parent draggable |
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
 | on_resize_end | callable | None | Callback when a resize drag ends. Accepts 1 event argument with `id`, `width`, `height` and `edge`. |
-| resizable | bool \| str \| list | False | Drag an element's edges to resize it. `True` is all four; a string or list names the edges (`"right"`, `["right", "bottom"]`). Clamped by `min_width`/`max_width`/`min_height`/`max_height`. Only the dragged axis is pinned, so a panel resized by its right edge keeps stretching to its parent's height. The size lasts until the UI is hidden. |
+| resizable | bool \| str \| list | False | Drag an element's edges to resize. `True` is all four, or name them: `"right"`, `["right", "bottom"]`. Clamped by `min_width`/`max_width`/`min_height`/`max_height`. Lasts until the UI hides. See [Drag](concepts/drag.md) |
 | value | str | None | Value of `input_text`, `textarea`, or `select` |
 | placeholder | str | "" | Placeholder hint text for `input_text`, `textarea`, or `select`, shown when empty/unfocused |
 | placeholder_color | str | "FFFFFF55" | Color of placeholder text |
@@ -169,9 +169,7 @@ Properties mostly match standard CSS properties.
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
 | close_on_click_outside | bool | False | Close the window when a mouse press lands outside it |
-| flash_color | str | "FFFFFF59" | Colour of the minimize flash |
-| flash_duration | int | 450 | Milliseconds the minimize flash takes to fade |
-| flash_on_minimize | bool | True | Wash the window as it minimizes, so the collapse is noticed |
+| flash_on_minimize | bool \| str \| dict | True | Wash the window as it minimizes, so the collapse is noticed. A colour string or `{"color", "duration"}` overrides the default `"FFFFFF59"` over 450ms |
 | drag_title_bar_only | bool | True | Whether window can only be dragged by title bar |
 | icon | Union[str, SVG element] | None | Window icon in the title bar. Pass a built-in icon name string or a custom SVG element. Auto-scales to match title font size |
 | minimize_on_click_outside | bool | False | Minimize the window when a mouse press lands outside it. No-op if already minimized |

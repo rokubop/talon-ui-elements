@@ -1924,13 +1924,10 @@ class Tree(TreeType):
             self.render_base_canvas()
 
     def detect_resize_edge(self, gpos):
-        """Detect if mouse is near a resizable element's edge. Returns (node_id, edge_str) or (None, None).
+        """Near a resizable edge? Returns (node_id, edge) or (None, None).
 
-        A resize edge wins over a scrollbar under it. An overlay bar sits
-        in the last 10px of its node, so a scrolling list flush with a
-        resizable edge used to make that whole edge un-grabbable. The bar
-        keeps everything outside the 6px band, which is most of its
-        width, and it is a drag most people never make.
+        A resize edge wins over a scrollbar under it: an overlay bar in the
+        last 10px of a list flush with that edge made it un-grabbable.
         """
         if self.drag.is_kind("scrollbar"):
             return (None, None)
@@ -2839,13 +2836,9 @@ class Tree(TreeType):
             return
         if state_manager.are_mouse_events_disabled():
             return
-        # An open modal makes the rest of the tree inert - it scopes hover,
-        # hints, scrollbars and clicks, and blocks dragging. Click outside
-        # follows the same rule. A modal is laid out fixed at 100% of the
-        # root, so its panel is usually outside the window's border_rect;
-        # without this, clicking a modal opened from inside the window would
-        # minimize the window underneath it, and a backdrop click would both
-        # close the modal and minimize.
+        # An open modal makes the rest of the tree inert, and click outside
+        # follows that. Its panel sits outside the window's border_rect, so
+        # without this a click on the modal would minimize the window under it.
         if self._active_modal_node_ref:
             return
         # A grab started inside the window; the release can land anywhere
@@ -3270,13 +3263,11 @@ class Tree(TreeType):
                 node.relative_positional_node = weakref.ref(self.root_node)
             elif node.properties.position == "fixed":
                 self.fixed_nodes.append(weakref.ref(node))
-                # relative_positional_node drives both placement (nonlayout_flow
-                # lays out from its margin_pos) and percentage sizing
-                # (init_intrinsic_sizes resolves against its border_size), so
-                # pointing a modal at its window is all it takes to scope it
+                # relative_positional_node drives placement and percentage
+                # sizing both, so pointing a modal at its window scopes it
                 # there. Plain fixed nodes keep anchoring to the root.
                 host = None
-                if node.element_type == ELEMENT_ENUM_TYPE["modal"] or                         getattr(node, "anchors_to_window", False):
+                if node.element_type == ELEMENT_ENUM_TYPE["modal"]                         or getattr(node, "anchors_to_window", False):
                     host = self._find_enclosing_window_ref(node)
                 node.relative_positional_node = host or weakref.ref(self.root_node)
                 node.z_subindex += 1

@@ -1,6 +1,15 @@
 import traceback
 import weakref
 
+from ..constants import (
+    ERROR_CARD_FALLBACK_SIZE,
+    ERROR_CARD_MAX_HEIGHT,
+    ERROR_CARD_MAX_HEIGHT_RATIO,
+    ERROR_CARD_MAX_WIDTH,
+    ERROR_CARD_MAX_WIDTH_RATIO,
+    ERROR_WINDOW_BACKGROUND_COLOR,
+    ERROR_WINDOW_BORDER_COLOR,
+)
 from ..core.state_manager import state_manager
 from .component import Component
 
@@ -101,23 +110,12 @@ def contains_window(node, depth: int = 0):
     return any(contains_window(child, depth + 1) for child in children())
 
 
-# Fractions of the screen the default error card is allowed to occupy, and
-# the absolute pixel ceilings it prefers when the screen is large.
-ERROR_CARD_MAX_WIDTH_RATIO = 0.7
-ERROR_CARD_MAX_HEIGHT_RATIO = 0.6
-ERROR_CARD_MAX_WIDTH = 900
-ERROR_CARD_MAX_HEIGHT = 560
-ERROR_CARD_FALLBACK_SIZE = (800, 500)
-
-
 def error_card_max_size():
     """Upper bound for the default error card, in pixels.
 
-    A traceback is arbitrarily long and arbitrarily wide, and the card has no
-    intrinsic size of its own, so without a cap it grows to the full content
-    size and drags its container with it. Inside a `window` that pushes the
-    title bar - and the close button on it - off screen, leaving no way to
-    dismiss the error.
+    A traceback has no natural size, so an uncapped card grows to its content
+    and takes its container with it, pushing the title bar and its close
+    button off screen.
     """
     try:
         from ..utils import get_screen
@@ -196,10 +194,6 @@ def build_error_card(
         ),
         code(tb_str, **code_final),
     ]
-
-
-ERROR_WINDOW_BACKGROUND_COLOR = "1a0e0e"
-ERROR_WINDOW_BORDER_COLOR = "aa3333"
 
 
 def build_error_window(

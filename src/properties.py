@@ -1161,9 +1161,7 @@ class NodeWindowProperties(Properties):
     minimized_style: dict = None
     minimized_body: callable = None
     close_on_click_outside: bool = False
-    flash_color: str = None
-    flash_duration: int = None
-    flash_on_minimize: bool = True
+    flash_on_minimize: Union[bool, str, dict] = True
     minimize_on_click_outside: bool = False
     on_click_outside: callable = None
     on_close: callable = None
@@ -1197,9 +1195,7 @@ class NodeWindowValidationProperties(ValidationProperties):
     minimized_style: dict
     minimized_body: callable
     close_on_click_outside: bool
-    flash_color: str
-    flash_duration: int
-    flash_on_minimize: bool
+    flash_on_minimize: Union[bool, str, dict]
     minimize_on_click_outside: bool
     on_click_outside: callable
     on_close: callable

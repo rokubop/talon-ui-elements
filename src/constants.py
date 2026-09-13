@@ -77,14 +77,22 @@ DEFAULT_ERROR_COLOR = "BD2F3E"
 DEFAULT_ERROR_LINK_COLOR = "5F9FE3"
 DEFAULT_DROP_SHADOW = (0, 20, 25, 25, "000000CC")
 
-# A wash over a window as it minimises, so the collapse is not missed.
+ERROR_WINDOW_BACKGROUND_COLOR = "1a0e0e"
+ERROR_WINDOW_BORDER_COLOR = "aa3333"
+# A traceback has no natural size, so the card is capped. Ratios first,
+# pixel ceilings on a large screen.
+ERROR_CARD_MAX_WIDTH_RATIO = 0.7
+ERROR_CARD_MAX_HEIGHT_RATIO = 0.6
+ERROR_CARD_MAX_WIDTH = 900
+ERROR_CARD_MAX_HEIGHT = 560
+ERROR_CARD_FALLBACK_SIZE = (800, 500)
+
 DEFAULT_MINIMIZE_FLASH_COLOR = "FFFFFF59"
 DEFAULT_MINIMIZE_FLASH_MS = 450
 MINIMIZE_FLASH_Z_INDEX = 200
 DEFAULT_HIGHLIGHT_DURATION_MS = 150
 DECORATOR_COALESCE_MS = 16
-# liveness check on the render queue - see RenderManager._on_watchdog.
-# Well clear of the ~1s GIL stalls a render can legitimately hit.
+# Clear of the ~1s GIL stalls a render can legitimately hit.
 RENDER_WATCHDOG_MS = 5000
 # DEFAULT_LINK_COLOR = "#589ADB"
 DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
@@ -95,28 +103,18 @@ RESIZE_MIN_HEIGHT = 40
 RESIZE_EDGE_HIGHLIGHT_COLOR = "FFFFFF44"
 RESIZE_EDGE_HIGHLIGHT_WIDTH = 3.0
 
-# Drag preview. A drag that changes geometry outlines where it will land
-# instead of moving the real thing, so the tree is never re-laid out while
-# the mouse is held. See src/drag/.
+# Drag preview. See docs/concepts/drag.md.
 DRAG_GHOST_COLOR = "FFFFFFAA"
 DRAG_GHOST_STROKE_WIDTH = 2.0
-# Behind the outline, so the target reads as a solid shape and not a wire.
-# Off by default: it is a fill the size of the window on every frame, and a
-# drag is the one thing where that cost is felt. Set a colour to turn it on.
+# Fill behind the outline, and a wash over where the node still sits. Both
+# off: each is a window-sized fill on every frame of the drag.
 DRAG_GHOST_FILL_COLOR = None
-# Over the node where it still sits. Off by default: it is a fill the size
-# of the window on every frame of the drag, which is the one thing moving a
-# window paints that resizing one does not. Set a colour to turn it on.
 DRAG_DIM_COLOR = None
-# Floor between overlay repaints. One freeze costs a display frame, and a
-# 1000Hz mouse would otherwise queue a thousand of them a second.
+# Floor between overlay repaints. One freeze costs a display frame.
 DRAG_OVERLAY_MIN_FRAME_MS = 8
-# How close the cursor may get to the edge of a drag's mouse capture rect
-# before it is re-centred. Slack for a flick between two mouse reports, not
-# a share of the window - a bigger margin just means more native moves.
+# Cursor slack before the mouse capture rect re-centres on it.
 DRAG_CAPTURE_MARGIN = 48
-# How long a freeze may sit undrawn before the overlay stops waiting
-# for it. Well past a dropped frame, well short of a noticeable stall.
+# How long a freeze may sit undrawn before the overlay stops waiting.
 DRAG_OVERLAY_STALL_MS = 120
 
 CASCADED_PROPERTIES = {

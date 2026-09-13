@@ -1,18 +1,11 @@
 from talon import cron, ctrl
 from talon.types import Point2d
 
-# A click that lands outside a window never reaches ui_elements: mouse events
-# only arrive through the blocking canvases sized to the window's own rect
-# (see Tree.draw_blockable_canvases). A full-screen canvas is not an option
-# either - one with blocks_mouse=False receives no events at all, and one with
-# blocks_mouse=True would swallow the click before the app underneath sees it,
-# which is exactly wrong for an overlay sitting on top of a game.
+# Mouse events only reach ui_elements through the blockable canvases, so a
+# click outside one is never delivered and has to be polled for instead.
+# Why not a full-screen canvas: docs/concepts/mouse.md.
 #
-# So we poll the global button state instead. Measured on Windows: physical
-# click holds run 65-96ms, so a 16ms poll samples each click 4-6 times. The
-# poll runs only while at least one tree is watching, and reads global
-# coordinates, so it works across every display rather than one screen's
-# canvas.
+# A physical click holds 65-96ms, so 16ms samples each one 4-6 times.
 POLL_INTERVAL = "16ms"
 
 

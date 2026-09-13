@@ -134,64 +134,32 @@ The window element handles the minimize/maximize/close buttons automatically. Yo
 
 ## Click Outside
 
-A window can react to a click that lands anywhere off it. The common case is
-collapsing to the minimized body, which needs no callback:
-
-```python
-def my_window_ui():
-    screen, window, div, text = actions.user.ui_elements(
-        ["screen", "window", "div", "text"]
-    )
-
-    return screen(justify_content="center", align_items="center")[
-        window(
-            title="My Window",
-            minimize_on_click_outside=True,
-            minimized_body=minimized_content,
-        )[
-            div(padding=16)[
-                text("Click anywhere off this window to minimize it")
-            ]
-        ]
-    ]
-```
-
-Use `close_on_click_outside=True` to hide the window instead, or
-`on_click_outside` for anything else:
+A window can react to a press that lands anywhere off it.
 
 ```python
 window(
     title="My Window",
-    on_click_outside=lambda: print("clicked off"),
+    minimize_on_click_outside=True,
+    minimized_body=minimized_content,
 )
 ```
 
-All three can be combined - the declarative action runs first, then
-`on_click_outside`.
+- `minimize_on_click_outside=True` collapses it to the minimized body
+- `close_on_click_outside=True` hides it
+- `on_click_outside=callback` for anything else
 
-**Note:** the click still reaches whatever is underneath. This is detection,
-not interception, so an overlay sitting on top of a game does not swallow the
-click that dismissed it. If you want the click consumed instead, use `modal`
-with `backdrop_click_close=True` - its backdrop is a real full-viewport button,
-so the press stops there.
+Combine them and the declarative action runs first.
 
-Anything inside the window's border counts as inside, including text inputs.
-Dragging, resizing, or grabbing a scrollbar and releasing off the window does
-not count as a click outside.
+Anything inside the window's border counts as inside, text inputs included. Releasing off the window after a drag, resize or scrollbar grab does not count. While a `modal` is open anywhere in the tree, click outside is suppressed, because the modal owns dismissal.
 
-While a `modal` is open anywhere in the tree, click outside is suppressed
-entirely - the modal owns dismissal through `backdrop_click_close`. This
-matches the rest of the tree, which a modal already makes inert.
+The click still reaches whatever is underneath. For one that is consumed instead, use `modal` with `backdrop_click_close=True`. See [Mouse](./mouse.md).
 
 ## Modals in a window
 
-A `modal` declared inside a window is anchored to that window rather than the
-screen: it covers the window, its panel centers on the window, and it follows
-the window when you drag it - onto another monitor included. A modal with no
-enclosing window still covers the screen, as before.
+A `modal` declared inside a window anchors to that window rather than the screen. It covers the window, centers on it, and follows it when dragged, onto another monitor included. With no enclosing window it covers the screen, as before.
 
 ```python
-window(title="My Window", resizable=True)[
+window(title="My Window")[
     div(padding=16)[text("Content")],
     modal(open=is_open, title="Confirm", on_close=close)[
         text("Centered on the window, not the screen")
@@ -199,28 +167,19 @@ window(title="My Window", resizable=True)[
 ]
 ```
 
-The modal covers the title bar too. While it is open the title bar is inert
-anyway - dragging is disabled and the minimize and close buttons are scoped
-out - so leaving it undimmed would show live-looking controls that do nothing.
+It covers the title bar too. While a modal is open the title bar is inert anyway, so leaving it uncovered would show live-looking controls that do nothing.
 
 ## Minimize Flash
 
-A window minimizes to a corner while the eye is somewhere else, so the collapse
-is easy to miss. Every window washes white on the way out.
-
-On by default. Nothing to opt into.
+A window minimizes to a corner while the eye is elsewhere, so the collapse is easy to miss. Every window washes white on the way out. On by default.
 
 ```python
-window(
-    title="My Window",
-    flash_on_minimize=False,     # off
-    flash_color="4a9af5AA",      # default "FFFFFF59"
-    flash_duration=800,          # ms, default 450
-)
+window(flash_on_minimize=False)                                   # off
+window(flash_on_minimize="4a9af5AA")                              # colour
+window(flash_on_minimize={"color": "4a9af5AA", "duration": 800})  # both
 ```
 
-Covers the whole window, title bar included. Fires on every minimize, not
-just the first.
+Defaults to `"FFFFFF59"` over 450ms. Covers the whole window, and fires on every minimize rather than just the first.
 
 ## Customize Window Controls
 

@@ -27,7 +27,7 @@ gk = actions.user.ui_elements_store("gk", {
 
 Module level, one per package. The name cannot contain a `.`.
 
-The second argument seeds it. Values already set win, so saving the file picks up new seed keys without discarding what the user changed.
+The second argument seeds it. Existing values win, so saving the file picks up new keys without discarding what the user changed.
 
 ## Read it in a UI
 
@@ -40,9 +40,7 @@ def app():
     return div()[text(f"Game: {game}")]
 ```
 
-`state.get`, `state.use` and `state.set` all work. Rerenders like any other state.
-
-Nothing to pass to `ui_elements_show`. The `gk.` prefix does the routing.
+`state.get`, `state.use` and `state.set` all work, and it rerenders like any other state. Nothing to pass to `ui_elements_show` - the `gk.` prefix does the routing.
 
 ## Read and write it anywhere
 
@@ -68,17 +66,13 @@ gk.clear()            # empty it
 
 ## Save it to disk
 
-ui_elements does not write files. Your package does.
+ui_elements does not write files. Your package does, because a config file needs versioning, validation, and a plan for values that stopped making sense.
 
 ```py
 gk.subscribe(lambda: save_config(gk.get_all()))
 ```
 
-Runs after the values change. Returns a function that unsubscribes.
-
-Load at startup with `gk.set(...)`.
-
-Not built in because a config file needs versioning, validation, and a plan for values that stopped making sense. Only your package knows those.
+Runs after the values change, returns a function that unsubscribes. Load at startup with `gk.set(...)`.
 
 ## Defaults
 
@@ -88,15 +82,11 @@ A store's seed is its only default.
 state.get("gk.game", "celeste")
 ```
 
-Returns `"celeste"` when the store has no `game` key, and does not write it. Renders never mutate a store.
-
-`initial_state` cannot seed a store key either. It warns and skips.
+Returns `"celeste"` when the key is unset and does not write it, because renders never mutate a store. `initial_state` cannot seed a store key either - it warns and skips.
 
 ## What stays out of a store
 
-`state.use_local` is always local. Its keys come from the component's position in the tree, so a reordered list would swap values between rows.
-
-To remember one, name it and lift it up:
+`state.use_local` is always local. Its keys come from the component's position in the tree, so a reordered list would swap values between rows. To remember one, name it and lift it up:
 
 ```py
 checkbox(checked=state.get("gk.spoilers"), on_change=on_spoilers)
