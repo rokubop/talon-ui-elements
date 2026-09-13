@@ -7,6 +7,21 @@ from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
+from .src.window_focus import (
+    get_strategy,
+    get_unfocused_inert,
+    get_unfocused_mask_color,
+    get_unfocused_mask_scope,
+    get_unfocused_mask_strength,
+    get_unfocused_opacity,
+    set_strategy,
+    set_unfocused_inert,
+    set_unfocused_mask_color,
+    set_unfocused_mask_scope,
+    set_unfocused_mask_strength,
+    set_unfocused_opacity,
+    window_focus_manager,
+)
 from .src.syntax import register_theme, register_language
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
@@ -227,6 +242,74 @@ class Actions:
     def ui_elements_toggle_hints(enabled: bool = None):
         """Toggle hints visibility"""
         state_manager.toggle_hints(enabled)
+
+    def ui_elements_window_focused() -> bool:
+        """True while a ui_elements canvas still holds OS focus"""
+        return window_focus_manager.is_focused
+
+    def ui_elements_set_unfocused_opacity(opacity: float = None):
+        """Set how see-through the UI goes while unfocused. None restores the setting"""
+        set_unfocused_opacity(opacity)
+
+    def ui_elements_get_unfocused_opacity() -> float:
+        """How see-through the UI goes while unfocused"""
+        return get_unfocused_opacity()
+
+    def ui_elements_set_unfocused_mask_color(color: str = None):
+        """Flatten the UI to one color while unfocused. "" for none, "auto" for its own background, or a hex color. None restores the setting"""
+        set_unfocused_mask_color(color)
+
+    def ui_elements_get_unfocused_mask_color() -> str:
+        """The color the UI flattens to while unfocused"""
+        return get_unfocused_mask_color()
+
+    def ui_elements_set_unfocused_mask_strength(strength: float = None):
+        """How far the unfocused mask color replaces the UI's own colors. 1.0 replaces them, 0.5 tints. None restores the setting"""
+        set_unfocused_mask_strength(strength)
+
+    def ui_elements_get_unfocused_mask_strength() -> float:
+        """How far the unfocused mask color replaces the UI's own colors"""
+        return get_unfocused_mask_strength()
+
+    def ui_elements_set_unfocused_mask_scope(scope: str = None):
+        """What the unfocused mask covers: "all" or "title_bar". None restores the setting"""
+        set_unfocused_mask_scope(scope)
+
+    def ui_elements_get_unfocused_mask_scope() -> str:
+        """What the unfocused mask covers"""
+        return get_unfocused_mask_scope()
+
+    def ui_elements_set_unfocused_inert(inert: bool = True):
+        """While unfocused: no hints, no hover, and a click anywhere but a title bar only takes focus back. None restores the setting"""
+        set_unfocused_inert(inert)
+
+    def ui_elements_get_unfocused_inert() -> bool:
+        """Whether an unfocused UI stops responding until clicked back"""
+        return get_unfocused_inert()
+
+    def ui_elements_set_focus_strategy(strategy: str = None):
+        """Set how losing focus is detected. None restores the setting"""
+        set_strategy(strategy)
+
+    def ui_elements_get_focus_strategy() -> str:
+        """How losing focus is currently being detected"""
+        return get_strategy()
+
+    def ui_elements_force_unfocused(unfocused: bool = True):
+        """Pin the window to unfocused (or focused) to test the fade on its own"""
+        window_focus_manager.force(not unfocused)
+
+    def ui_elements_release_forced_focus():
+        """Hand the focused/unfocused verdict back to the detection strategies"""
+        window_focus_manager.force(None)
+
+    def ui_elements_focus_debug():
+        """Print how window focus is currently being detected and what it says"""
+        state = window_focus_manager.debug_state()
+        print("ui_elements window focus:")
+        for key, value in state.items():
+            print(f"  {key}: {value}")
+        return state
 
     def ui_elements_get_input_value(id: str):
         """Get the value of a `input_text` element based on its id"""

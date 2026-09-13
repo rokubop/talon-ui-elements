@@ -12,6 +12,7 @@ from .state_tests.state_tests_ui import show_state_tests
 from .todo_list.todo_list_ui import show_todo_list
 from .notification.notification_ui import show_notification
 from .transitions.transitions_ui import show_transitions
+from .window_focus.window_focus_ui import show_window_focus
 from ..storybook.main import show_storybook
 from ..src.dev_tools import DevTools
 from ..tests.test_runner_ui import show_test_runner
@@ -89,6 +90,7 @@ tools = {
     "Storybook": lambda: show_example(show_storybook, centered=True),
     "Test Runner": lambda: show_example(show_test_runner),
     "Dev Tools": lambda: actions.user.ui_elements_toggle(DevTools),
+    "Window Focus": lambda: show_example(show_window_focus, centered=True),
     "Simulate Error": lambda: (
         actions.user.ui_elements_hide_all(),
         simulate_error(),

@@ -3,6 +3,7 @@ from talon import Module, Context
 mod = Module()
 ctx = Context()
 ctx_hints_active_browser = Context()
+ctx_keys_active = Context()
 
 # Import after creating ctx so src/hints can access it
 from .src.hints import (
@@ -22,9 +23,13 @@ from .src.events import WindowCloseEvent
 # Pass ctx to src/hints so it can enable/disable tags. Context objects must stay here (not src/)
 # because user reloads trigger import chain reloading of src files, but this file isn't imported
 # by Python (only loaded by Talon), so Module/Context objects survive and .talon bindings stay intact.
-set_hint_context(ctx, ctx_hints_active_browser)
+set_hint_context(ctx, ctx_hints_active_browser, ctx_keys_active)
 
 mod.tag("ui_elements_hints_active", desc="tag for ui elements")
+# Active whenever a ui_elements tree is mounted, whether or not it shows
+# hints. Keys and scroll answer to this; the two-letter hint commands answer
+# to ui_elements_hints_active.
+mod.tag("ui_elements_keys_active", desc="Active while a ui_elements tree is mounted, independent of whether hints are showing")
 
 ctx_hints_active_browser.matches = """
 tag: user.ui_elements_hints_active

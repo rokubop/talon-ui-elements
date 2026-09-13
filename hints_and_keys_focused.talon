@@ -1,4 +1,4 @@
-tag: user.ui_elements_hints_active
+tag: user.ui_elements_keys_active
 and app: Talon
 -
 key(tab:down): user.ui_elements_key_action("focus_next", true)
