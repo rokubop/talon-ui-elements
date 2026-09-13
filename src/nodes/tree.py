@@ -613,6 +613,9 @@ class Tree(TreeType):
         # Resolved on focus change and when a focus setting moves, not per
         # event: is_inert() is read on every mouse event.
         self._inert = False
+        # The decorator canvas the focus handler is attached to, or None while
+        # this tree is not registered with window_focus_manager at all.
+        self._focus_canvas = None
         # Set by repaint_base_canvas: re-blit the layers already built
         # instead of laying the tree out again.
         self._repaint_only = False
@@ -1071,9 +1074,13 @@ class Tree(TreeType):
                         # Focus is one verdict for every tree, so no tree is
                         # drawing hints right now and the tag can go.
                         hint_tag_disable()
-                    # Not gated on show_hints: the key bindings answer to
-                    # whether a tree is up, not to whether it is labelled.
-                    key_tag_enable()
+                    # Not gated on show_hints - the bindings answer to what a
+                    # tree has, not to whether it is labelled - but gated on
+                    # having something for them to act on. The tag is one
+                    # global Context, so an overlay with nothing to press
+                    # would otherwise switch keys on for every tree.
+                    if self.is_interactive():
+                        key_tag_enable()
                     self.init_key_controls()
                     self.draw_unfocused_wash(draw_canvas)
                     self.draw_blockable_canvases()
@@ -1625,19 +1632,48 @@ class Tree(TreeType):
         """Unfocused and configured to stop responding until clicked back."""
         return self._inert
 
-    @staticmethod
-    def _focus_changes_anything() -> bool:
+    def is_interactive(self) -> bool:
+        """Whether this tree takes input at all.
+
+        Two things ask it. Window focus: nothing to click, drag, type into or
+        close means nothing is lost by being unfocused, so the mask, the fade,
+        inert and the poll behind them all stay off. The key tag: tab and the
+        arrows move focus, escape closes a modal, a dropdown or a window, and
+        the scroll commands need a scroll region - a tree with none of those
+        gets nothing from the tag but a way to lose itself to a stray escape.
+
+        A game HUD is the case that forces both. It is unfocused for its
+        entire life by definition, and it is a picture: neither how it draws,
+        nor what it costs, nor what a keypress does should follow from it
+        being on screen.
+        """
+        return bool(
+            self.interactive_node_list
+            or self.meta_state.buttons
+            or self.meta_state.inputs
+            or self.meta_state.scrollable
+            or self.draggable_node
+            or self.meta_state.windows
+        )
+
+    def _focus_changes_anything(self) -> bool:
         """Whether losing focus alters anything about this tree at all."""
+        if not self.is_interactive():
+            return False
         return (
             get_unfocused_opacity() < 1.0
-            or Tree._mask_is_active()
+            or self._mask_is_active()
             or get_unfocused_inert()
         )
 
     def refresh_unfocused_state(self):
         """Re-resolve what being unfocused means for this tree. Cheap to call,
         and the only place the setting is read."""
-        self._inert = not self.is_window_focused and get_unfocused_inert()
+        self._inert = (
+            self.is_interactive()
+            and not self.is_window_focused
+            and get_unfocused_inert()
+        )
 
     def claim_window_focus(self):
         """Click to focus. Takes the keyboard back too, so the tree is usable
@@ -1717,6 +1753,10 @@ class Tree(TreeType):
         draw_paint fills the whole clip region, so there is no rect to get
         wrong. Has to be the last thing drawn on the canvas.
         """
+        if not self.is_interactive():
+            # Ahead of the two settings reads below, not folded into them:
+            # this runs on every paint of both canvases.
+            return
         opacity = self.unfocused_opacity()
         mask_color = self.unfocused_mask_color()
         if opacity >= 1.0 and not mask_color:
@@ -1838,11 +1878,39 @@ class Tree(TreeType):
         self._last_decorator_freeze_ts = time.monotonic()
         self.canvas_decorator.freeze()
 
+    def sync_window_focus(self):
+        """Join window_focus_manager only while focus can mean something to
+        this tree, and drop out again when it stops.
+
+        Called every decorator paint: watch() has to be (see
+        WindowFocusManager.watch), and a tree gains and loses interactive
+        nodes over its life. Keyed on the canvas rather than a flag because
+        the decorator canvas is rebuilt while the tree stays registered.
+
+        A tree that never joins never receives a verdict, so is_window_focused
+        stays True and every unfocused path is dead for it: no focus poll, no
+        repaint when focus moves, no wash, no inert.
+        """
+        if self.is_interactive():
+            window_focus_manager.watch(self)
+            if self._focus_canvas is not self.canvas_decorator:
+                self._focus_canvas = self.canvas_decorator
+                window_focus_manager.register_canvas(self, self._focus_canvas)
+            return
+        if self._focus_canvas is None:
+            return
+        window_focus_manager.unregister_canvas(self, self._focus_canvas)
+        self._focus_canvas = None
+        window_focus_manager.unwatch(self)
+        # Back to what a tree that never joined looks like, so nothing it
+        # draws depends on a verdict it has stopped receiving.
+        self.is_window_focused = True
+        self.refresh_unfocused_state()
+
     def render_decorator_canvas(self):
         if not self.canvas_decorator and not self.render_manager.is_destroying:
             self.canvas_decorator = self.create_canvas()
             self.canvas_decorator.register("draw", self.on_draw_decorator_canvas)
-            window_focus_manager.register_canvas(self, self.canvas_decorator)
             if self.interactive_node_list:
                 focused_tree = state_manager.get_focused_tree()
                 if focused_tree == self:
@@ -1851,8 +1919,7 @@ class Tree(TreeType):
                     self.canvas_decorator.focused = True
 
         if self.canvas_decorator:
-            # Every paint, not just on creation - see WindowFocusManager.watch.
-            window_focus_manager.watch(self)
+            self.sync_window_focus()
             self._freeze_decorator_now()
 
     def render_base_canvas(self):
@@ -1897,6 +1964,7 @@ class Tree(TreeType):
         except Exception as e:
             print(f"ui_elements: error dropping stalled decorator canvas: {e}")
         self.canvas_decorator = None
+        self._focus_canvas = None
 
         if self._decorator_freeze_pending_job:
             cron.cancel(self._decorator_freeze_pending_job)
@@ -3233,7 +3301,8 @@ class Tree(TreeType):
             )
             if not has_other_trees_with_hints:
                 hint_clear_state()
-            if not any(tree is not self for tree in store.trees):
+            if not any(tree is not self and tree.is_interactive()
+                       for tree in store.trees):
                 key_tag_disable()
             self.render_cause.clear()
             self.last_base_snapshot = None
