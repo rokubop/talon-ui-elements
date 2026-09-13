@@ -265,6 +265,7 @@ class MetaState(MetaStateType):
 
     def map_id_to_node(self, id, node):
         self._id_to_node[id] = node
+        store.id_to_node[id] = node
 
     def add_scroll_region(self, id):
         self._scroll_regions[id] = ScrollRegion(0, 0)
@@ -321,12 +322,23 @@ class MetaState(MetaStateType):
         return None
 
     def set_highlighted(self, id, color = None):
-        if id in self._id_to_node:
-            self._highlighted[id] = color
+        self._highlighted[id] = color
 
     def set_unhighlighted(self, id):
         if id in self._highlighted:
             self._highlighted.pop(id)
+
+    def drop_highlights_for_missing_nodes(self):
+        """Run once the walk has registered every node. set_highlighted takes
+        any id, because during a walk an id is unknown right up until it is
+        reached; this is where one that never turns up goes."""
+        if not self._highlighted:
+            return
+        for id in [id for id in self._highlighted if id not in self._id_to_node]:
+            self._highlighted.pop(id, None)
+            job = self.unhighlight_jobs.pop(id, None)
+            if job:
+                cron.cancel(job[0])
 
     def scroll_y_increment(self, id, y):
         if id in self._id_to_node:
@@ -372,7 +384,6 @@ class MetaState(MetaStateType):
         self._buttons.clear()
         self._text_with_for_ids.clear()
         self.has_hit_priority_overlay = False
-        entity_manager.synchronize_global_ids()
 
     def prepare_node_transition(self):
         self._staged_id_to_node = {}
@@ -498,6 +509,7 @@ class MetaState(MetaStateType):
         self.resize_edge_hovered = None
         self.resize_original_constraints.clear()
         self.clear_nodes()
+        entity_manager.synchronize_global_ids()
 
 class RenderCauseState(RenderCauseStateType):
     def __init__(self):
@@ -3345,6 +3357,7 @@ class Tree(TreeType):
         if not node_index_path:
             # root call only - per-node rebuild is O(n^2)
             entity_manager.synchronize_global_ids()
+            self.meta_state.drop_highlights_for_missing_nodes()
 
     def consume_effects(self):
         for effect in list(store.staged_effects):
