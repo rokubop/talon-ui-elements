@@ -229,6 +229,26 @@ class Node(NodeType):
         return override
 
 
+    def normalize_children(self, children):
+        """Children as a flat list, however they were written.
+
+        `el[a, b]` arrives as a tuple, `el[rows()]` as a list, `el[rows(), a]`
+        as a tuple holding a list. Callers decide per child - window routes a
+        modal to itself and everything else to its body - so they need the
+        nodes, not whichever container they came in.
+        """
+        flat = []
+
+        def walk(item):
+            if isinstance(item, (list, tuple)):
+                for sub in item:
+                    walk(sub)
+            elif item is not None:
+                flat.append(item)
+
+        walk(children)
+        return flat
+
     def add_child(self, node):
         if isinstance(node, tuple):
             for n in node:
@@ -244,13 +264,7 @@ class Node(NodeType):
             node.parent_node = self
 
     def __getitem__(self, children_nodes=None):
-        if children_nodes is None:
-            children_nodes = []
-
-        if not isinstance(children_nodes, list):
-            children_nodes = [children_nodes]
-
-        for node in children_nodes:
+        for node in self.normalize_children(children_nodes):
             self.add_child(node)
 
         return self

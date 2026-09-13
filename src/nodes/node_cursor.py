@@ -15,13 +15,7 @@ class NodeCursor(NodeContainer):
         self.refresh_rate = inner_properties.get('refresh_rate', DEFAULT_CURSOR_REFRESH_RATE)
 
     def __getitem__(self, children_nodes=None):
-        if children_nodes is None:
-            children_nodes = []
-
-        if not isinstance(children_nodes, list):
-            children_nodes = [children_nodes]
-
-        for node in children_nodes:
+        for node in self.normalize_children(children_nodes):
             self.inner_wrapper.add_child(node)
 
         return self

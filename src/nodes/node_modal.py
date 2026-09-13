@@ -125,10 +125,6 @@ class NodeModal(NodeContainer):
     def __getitem__(self, children=None):
         if self.body is None:
             return self
-        if children is None:
-            children = []
-        if not isinstance(children, list):
-            children = [children]
-        for child in children:
+        for child in self.normalize_children(children):
             self.body.add_child(child)
         return self

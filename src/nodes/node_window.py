@@ -424,19 +424,14 @@ class NodeWindow(NodeContainer):
         if self.is_minimized:
             return self
 
-        if children_nodes is None:
-            children_nodes = []
-
-        if not isinstance(children_nodes, list):
-            children_nodes = [children_nodes]
-
-        for node in children_nodes:
+        # Flat, so the modal test below sees each child. `window()[head(),
+        # modal()]` arrives as one tuple, and a tuple is not a modal, so the
+        # whole group went to the body and the test never fired.
+        for node in self.normalize_children(children_nodes):
             # A modal covers the whole window, title bar included, so it hangs
-            # off the window rather than the body. Body children inherit the
-            # body's overflow clip, which would cut the modal off at the title
-            # bar; the window has its own overflow clip, so hanging it here
-            # still trims it to the window's rounded border. Being fixed, it
-            # takes no part in the title-bar/body flex column.
+            # off the window rather than the body, which is only the strip
+            # under the title bar. Being fixed, it takes no part in the
+            # title-bar/body flex column either way.
             if getattr(node, "element_type", None) == ELEMENT_ENUM_TYPE["modal"]:
                 self.add_child(node)
             else:
