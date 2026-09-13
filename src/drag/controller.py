@@ -7,6 +7,7 @@ One active session decides what a mouse event means. Was four independent
 from talon.types import Point2d
 
 from ..constants import KEY_ESCAPE
+from ..core.state_manager import state_manager
 from ..utils import log_trace
 from .overlay import DragOverlay
 from .session import DragSession
@@ -84,7 +85,16 @@ class DragController:
         return self._end(lambda session: session.cancel())
 
     def destroy(self) -> None:
-        self.session = None
+        """The tree is going, or its canvases are being rebuilt under it.
+        Neither path goes through commit or cancel, so undo what begin did."""
+        session, self.session = self.session, None
+        if session:
+            # pause_renders and is_drag_active are global, not per tree. A
+            # session dropped here would leave every other tree frozen and
+            # hover dead everywhere.
+            if session.pause_renders:
+                self.tree.render_manager.resume()
+            state_manager.set_drag_active(False)
         self.overlay.destroy()
 
     def prepare(self) -> None:
