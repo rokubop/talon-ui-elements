@@ -236,12 +236,6 @@ class Node(NodeType):
                     self.check_invalid_child(n)
                     n = self.wrap_component(n)
                     self.children_nodes.append(n)
-                    if isinstance(n, tuple):
-                        raise ValueError(
-                            f"Trailing comma detected for ui_elements node. "
-                            f"This can happen when a comma is mistakenly added after an element. "
-                            f"Remove the trailing comma to fix this issue."
-                        )
                     n.parent_node = self
         elif node:
             self.check_invalid_child(node)
@@ -583,6 +577,18 @@ class Node(NodeType):
         if isinstance(c, str):
             raise TypeError(
                 "Invalid child type: str. Use `ui_elements` `text` element."
+            )
+        if isinstance(c, (list, tuple)):
+            # A group of elements sitting where one element belongs. Without
+            # this it surfaces much later as `n.parent_node = self` raising
+            # AttributeError, which names the type and nothing else.
+            raise TypeError(
+                f"Invalid child type: {type(c).__name__}. A group of elements "
+                "is nested where a single element belongs. Usually a trailing "
+                "comma after something that returns several elements:\n"
+                "    div()[ rows(), ]   ->   div()[ rows() ]\n"
+                "To place it alongside others, unpack it:\n"
+                "    div()[ header(), *rows() ]"
             )
 
     def inherit_processing_style(self):
