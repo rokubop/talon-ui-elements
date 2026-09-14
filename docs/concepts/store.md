@@ -1,20 +1,42 @@
 # Store
 
-`state` is cleared when a UI hides. A store is not.
+Use `state` if you want data to be cleared when the UI hides.
+Use `store` if you want data to persist across UI hide/shows.
 
-Put data in a store when it still means something with no UI open: bindings, the selected game, an unsaved draft. Keep `state` for the window itself: active tab, selected row, is the sheet open.
+`store` creates a prefixed namespace in `state`, and you can still interact with it like a normal `state`
+
+Minimal example:
+```py
+my_store = actions.user.ui_elements_store("my_store", {
+    "color": None,
+})
+
+def app():
+    div, text, button, state = actions.user.ui_elements(["div", "text", "button", "state"])
+    color, set_color = state.use("my_store.color")
+    return div()[
+        text(f"Color: {color}"),
+        button("Change color", on_click=lambda: set_color("blue"))
+    ]
+
+actions.user.ui_elements_show(app)
+actions.user.ui_elements_hide(app)
+
+actions.user.ui_elements_get_state("my_store.color") # blue
+```
 
 - [Store](#store)
-  - [Create one](#create-one)
+  - [Create a store](#create-a-store)
   - [Read it in a UI](#read-it-in-a-ui)
   - [Read and write it anywhere](#read-and-write-it-anywhere)
+  - [Talon actions](#talon-actions)
   - [Reset](#reset)
   - [Save it to disk](#save-it-to-disk)
   - [Defaults](#defaults)
   - [What stays out of a store](#what-stays-out-of-a-store)
   - [Lifetime](#lifetime)
 
-## Create one
+## Create a store
 
 ```py
 from talon import actions
@@ -25,11 +47,13 @@ gk = actions.user.ui_elements_store("gk", {
 })
 ```
 
-Module level, one per package. The name cannot contain a `.`.
+Creates an arbitrary store named `gk` if it doesn't exist, seeded with initial values for "game" and "bindings".  If you call this a second time, you are just retrieving the store. The name cannot contain a `.`
 
-The second argument seeds it. Existing values win, so saving the file picks up new keys without discarding what the user changed.
+Recommend calling this before initializing a UI
 
 ## Read it in a UI
+
+We still use the `state` element to access the `store`. The only difference is we provide the full name with the `"<store>.<key>"` format.
 
 The full name is `"<store>.<key>"`.
 
@@ -55,6 +79,24 @@ gk.get_all()
 ```
 
 Works with the UI open or closed. Open, it rerenders. Closed, it just stores the value.
+
+## Talon actions
+
+`.talon` files have no Python handle. The global state actions take the full name and route on the `gk.` prefix.
+
+```
+set game <user.text>: user.ui_elements_set_state("gk.game", text)
+```
+
+```py
+actions.user.ui_elements_set_state("gk.game", "celeste")
+actions.user.ui_elements_get_state("gk.game")
+actions.user.ui_elements_get_state("gk.game", "default if unset")
+```
+
+Same writes as `gk.set`, `gk.subscribe` included.
+
+`ui_elements_get_state` does not register a rerender dependency. Use it outside a render, and `state.get("gk.game")` inside one.
 
 ## Reset
 
