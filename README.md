@@ -65,7 +65,7 @@ Interactive component explorer for testing elements and tweaking properties in r
 
 ## AI Agent Skill
 
-This package includes an [agent skill](https://agentskills.io) in `skills/ui-elements/` that teaches AI coding agents how to use this library. Copy the folder into your agent's skills directory:
+This package includes an [agent skill](skills/ui-elements/SKILL.md) in `skills/ui-elements/` that teaches AI coding agents how to use this library. Copy the folder into your agent's skills directory:
 
 ```sh
 # Claude Code
