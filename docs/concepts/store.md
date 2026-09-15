@@ -1,9 +1,6 @@
 # Store
 
-Use `state` if you want data to be cleared when the UI hides.
-Use `store` if you want data to persist across UI hide/shows.
-
-`store` creates a prefixed namespace in `state`, and you can still interact with it like a normal `state`
+`store` is similar to `state` but it persists across UI hide/shows. But does not survive Talon restarts.
 
 Minimal example:
 ```py
@@ -27,31 +24,27 @@ actions.user.ui_elements_get_state("my_store.color") # blue
 
 - [Store](#store)
   - [Create a store](#create-a-store)
-  - [Read it in a UI](#read-it-in-a-ui)
-  - [Read and write it anywhere](#read-and-write-it-anywhere)
+  - [Reading the store](#reading-the-store)
+  - [Read and write using the store variable](#read-and-write-using-the-store-variable)
   - [Talon actions](#talon-actions)
   - [Reset](#reset)
-  - [Save it to disk](#save-it-to-disk)
-  - [Defaults](#defaults)
-  - [What stays out of a store](#what-stays-out-of-a-store)
-  - [Lifetime](#lifetime)
+  - [Subscribe](#subscribe)
+  - [Exempt](#exempt)
 
 ## Create a store
 
 ```py
 from talon import actions
 
-gk = actions.user.ui_elements_store("gk", {
+my_store = actions.user.ui_elements_store("my_store", {
     "game": None,
     "bindings": {},
 })
 ```
 
-Creates an arbitrary store named `gk` if it doesn't exist, seeded with initial values for "game" and "bindings".  If you call this a second time, you are just retrieving the store. The name cannot contain a `.`
+Creates an arbitrary store named `my_store` if it doesn't exist, seeded with initial values.  If you call this a second time, you are just retrieving the store.
 
-Recommend calling this before initializing a UI
-
-## Read it in a UI
+## Reading the store
 
 We still use the `state` element to access the `store`. The only difference is we provide the full name with the `"<store>.<key>"` format.
 
@@ -60,84 +53,58 @@ The full name is `"<store>.<key>"`.
 ```py
 def app():
     div, text, state = actions.user.ui_elements(["div", "text", "state"])
-    game = state.get("gk.game")
+    game = state.get("my_store.game")
     return div()[text(f"Game: {game}")]
 ```
 
-`state.get`, `state.use` and `state.set` all work, and it rerenders like any other state. Nothing to pass to `ui_elements_show` - the `gk.` prefix does the routing.
+`state.get`, `state.use` and `state.set` all work, and it rerenders like any other state. Nothing to pass to `ui_elements_show` - the `my_store.` prefix does the routing.
 
-## Read and write it anywhere
+## Read and write using the store variable
 
 ```py
-gk.set("game", "celeste")
-gk.set({"game": "celeste", "folder": "Celeste"})
-gk.set("count", lambda count: count + 1)
+my_store.set("game", "celeste")
+my_store.set({"game": "celeste", "folder": "Celeste"})
+my_store.set("count", lambda count: count + 1)
 
-gk.get("game")
-gk.get("game", "default if unset")
-gk.get_all()
+my_store.get("game")
+my_store.get("game", "default if unset")
+my_store.get_all()
 ```
 
 Works with the UI open or closed. Open, it rerenders. Closed, it just stores the value.
 
 ## Talon actions
 
-`.talon` files have no Python handle. The global state actions take the full name and route on the `gk.` prefix.
-
 ```
-set game <user.text>: user.ui_elements_set_state("gk.game", text)
+set game <user.text>: user.ui_elements_set_state("my_store.game", text)
 ```
 
 ```py
-actions.user.ui_elements_set_state("gk.game", "celeste")
-actions.user.ui_elements_get_state("gk.game")
-actions.user.ui_elements_get_state("gk.game", "default if unset")
+actions.user.ui_elements_set_state("my_store.game", "celeste")
+actions.user.ui_elements_get_state("my_store.game")
+actions.user.ui_elements_get_state("my_store.game", "default if unset")
 ```
 
-Same writes as `gk.set`, `gk.subscribe` included.
+Same writes as `my_store.set`, `my_store.subscribe` included.
 
-`ui_elements_get_state` does not register a rerender dependency. Use it outside a render, and `state.get("gk.game")` inside one.
+`ui_elements_get_state` does not register a rerender dependency. Use it outside a render, and `state.get("my_store.game")` inside one.
 
 ## Reset
 
 ```py
-gk.reset()            # back to the seed
-gk.reset(["game"])    # only these
-gk.clear()            # empty it
+my_store.reset()            # back to the seed
+my_store.reset(["game"])    # only these
+my_store.clear()            # empty it
 ```
 
-## Save it to disk
-
-ui_elements does not write files. Your package does, because a config file needs versioning, validation, and a plan for values that stopped making sense.
+## Subscribe
 
 ```py
-gk.subscribe(lambda: save_config(gk.get_all()))
+my_store.subscribe(lambda: save_config(my_store.get_all()))
 ```
 
-Runs after the values change, returns a function that unsubscribes. Load at startup with `gk.set(...)`.
+Runs after the values change, returns a function that unsubscribes. Load at startup with `my_store.set(...)`.
 
-## Defaults
+## Exempt
 
-A store's seed is its only default.
-
-```py
-state.get("gk.game", "celeste")
-```
-
-Returns `"celeste"` when the key is unset and does not write it, because renders never mutate a store. `initial_state` cannot seed a store key either - it warns and skips.
-
-## What stays out of a store
-
-`state.use_local` is always local. Its keys come from the component's position in the tree, so a reordered list would swap values between rows. To remember one, name it and lift it up:
-
-```py
-checkbox(checked=state.get("gk.spoilers"), on_change=on_spoilers)
-```
-
-## Lifetime
-
-| | cleared when the UI hides | survives a Talon restart |
-| -- | -- | -- |
-| `state` | yes | no |
-| `state.use_local` | yes | no |
-| store | no | only if you save it |
+`state.use_local`

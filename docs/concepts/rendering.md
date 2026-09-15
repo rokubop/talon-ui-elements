@@ -1,19 +1,19 @@
 # Rendering
 
-Three canvases, plus one that exists only during a drag.
+UI Elements uses a 3 canvas system for rendering (+ 1 drag canvas if applicable).
 
-| Canvas | Draws | Present |
+| Canvas name | Draws | Present |
 | -- | -- | -- |
 | Base | Layout and static elements | Always |
-| Decorator | Changes that do not move layout | Always |
+| Decorator | Changes that do not move layout, such as highlights and hovers | Always |
 | Blockable | Nothing. Receives mouse events | When the UI is interactive or draggable |
 | Drag overlay | The outline of a held drag | Only mid-drag |
 
-Give an element an `id` or a `highlight_style` and it draws on the decorator canvas.
+If an element has an `id` or a `highlight_style`, it will draw on the decorator canvas.
 
 ## Full renders
 
-Relayout, then base and decorator. Triggered by:
+Relayout, base + decorator. Triggered by:
 
 - `actions.user.ui_elements_show`
 - `state` changes
@@ -22,7 +22,7 @@ Relayout, then base and decorator. Triggered by:
 
 ## Decorator-only renders
 
-No relayout, no base repaint. Much faster. Triggered by:
+Much faster. Triggered by:
 
 - `actions.user.ui_elements_highlight`, `..._highlight_briefly`, `..._unhighlight`
 - `actions.user.ui_elements_set_text`
@@ -32,8 +32,4 @@ Prefer these when only appearance changes. See [State](./state.md).
 
 ## Drags
 
-A drag never relayouts. See [Drag](./drag.md).
-
-## Mouse
-
-Events arrive through the blockable canvas, which is why a click landing outside the UI needs a separate mechanism. See [Mouse](./mouse.md).
+See [Drag](./drag.md).
