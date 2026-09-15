@@ -132,6 +132,55 @@ def my_window_ui():
 
 The window element handles the minimize/maximize/close buttons automatically. You just provide the callbacks for what should happen.
 
+## Click Outside
+
+A window can react to a press that lands anywhere off it.
+
+```python
+window(
+    title="My Window",
+    minimize_on_click_outside=True,
+    minimized_body=minimized_content,
+)
+```
+
+- `minimize_on_click_outside=True` collapses it to the minimized body
+- `close_on_click_outside=True` hides it
+- `on_click_outside=callback` for anything else
+
+Combine them and the declarative action runs first.
+
+Anything inside the window's border counts as inside, text inputs included. Releasing off the window after a drag, resize or scrollbar grab does not count. While a `modal` is open anywhere in the tree, click outside is suppressed, because the modal owns dismissal.
+
+The click still reaches whatever is underneath. For one that is consumed instead, use `modal` with `backdrop_click_close=True`. See [Mouse](./mouse.md).
+
+## Modals in a window
+
+A `modal` declared inside a window anchors to that window rather than the screen. It covers the window, centers on it, and follows it when dragged, onto another monitor included. With no enclosing window it covers the screen, as before.
+
+```python
+window(title="My Window")[
+    div(padding=16)[text("Content")],
+    modal(open=is_open, title="Confirm", on_close=close)[
+        text("Centered on the window, not the screen")
+    ],
+]
+```
+
+It covers the title bar too. While a modal is open the title bar is inert anyway, so leaving it uncovered would show live-looking controls that do nothing.
+
+## Minimize Flash
+
+A window minimizes to a corner while the eye is elsewhere, so the collapse is easy to miss. Every window washes white on the way out. On by default.
+
+```python
+window(flash_on_minimize=False)                                   # off
+window(flash_on_minimize="4a9af5AA")                              # colour
+window(flash_on_minimize={"color": "4a9af5AA", "duration": 800})  # both
+```
+
+Defaults to `"FFFFFF59"` over 450ms. Covers the whole window, and fires on every minimize rather than just the first.
+
 ## Customize Window Controls
 
 You can hide the minimize button, close button, or entire title bar:

@@ -119,6 +119,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     on_change: callable = None
     on_click: callable = None
     on_drag_end: callable = None
+    on_resize_end: callable = None
     opacity: Union[int, float] = None
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)
@@ -556,6 +557,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    on_resize_end: callable
     resizable: Union[bool, str, list]
     right: Union[int, str, float]
     top: Union[int, str, float]
@@ -597,6 +599,8 @@ class NodeTextValidationProperties(ValidationProperties):
 class NodeCodeValidationProperties(ValidationProperties):
     copyable: bool
     diff: bool
+    line_numbers: bool
+    line_number_start: int
     font_size: Union[int, float]
     font_family: str
     font_style: str
@@ -655,6 +659,8 @@ class NodeCodeProperties(Properties):
     language: str = "python"
     copyable: bool = True
     diff: bool = False
+    line_numbers: bool = False
+    line_number_start: int = 1
     on_click: any = None
     theme: Union[str, dict] = None
     selectable: bool = True
@@ -1154,6 +1160,10 @@ class NodeWindowProperties(Properties):
     minimized: bool = False
     minimized_style: dict = None
     minimized_body: callable = None
+    close_on_click_outside: bool = False
+    flash_on_minimize: Union[bool, str, dict] = True
+    minimize_on_click_outside: bool = False
+    on_click_outside: callable = None
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
@@ -1173,6 +1183,8 @@ class NodeWindowProperties(Properties):
             self.on_minimize = None
         if self.on_restore:
             self.on_restore = None
+        if self.on_click_outside:
+            self.on_click_outside = None
         if self.minimized_body:
             self.minimized_body = None
 
@@ -1182,6 +1194,10 @@ class NodeWindowValidationProperties(ValidationProperties):
     minimized: bool
     minimized_style: dict
     minimized_body: callable
+    close_on_click_outside: bool
+    flash_on_minimize: Union[bool, str, dict]
+    minimize_on_click_outside: bool
+    on_click_outside: callable
     on_close: callable
     on_minimize: callable
     on_restore: callable

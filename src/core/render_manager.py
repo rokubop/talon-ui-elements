@@ -1,4 +1,5 @@
 
+import traceback
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,9 +13,7 @@ class RenderCause(Enum):
     SCROLLING = "SCROLLING"
     STATE_CHANGE = "STATE_CHANGE"
     REF_CHANGE = "REF_CHANGE"
-    DRAG_START = "DRAG_START"
     DRAG_END = "DRAG_END"
-    DRAGGING = "DRAGGING"
     SCROLLBAR_DRAGGING = "SCROLLBAR_DRAGGING"
     TEXT_MUTATION = "TEXT_MUTATION"
     HIGHLIGHT_CHANGE = "HIGHLIGHT_CHANGE"
@@ -22,7 +21,6 @@ class RenderCause(Enum):
     FOCUS_CHANGE = "FOCUS_CHANGE"
     REQUEST_ANIMATION_FRAME = "REQUEST_ANIMATION_FRAME"
     CURSOR_UPDATE = "CURSOR_UPDATE"
-    RESIZE_GHOST = "RESIZE_GHOST"
 
 class Policy(Enum):
     TAKE_LATEST = "take_latest"
@@ -88,11 +86,6 @@ RenderTaskScrolling = RenderTask(
     on_base_canvas_change,
 )
 
-RenderTaskDragStart = RenderTask(
-    RenderCause.DRAG_START,
-    on_base_canvas_change,
-)
-
 RenderTaskDragEnd = RenderTask(
     RenderCause.DRAG_END,
     on_base_canvas_change,
@@ -118,9 +111,11 @@ RenderTaskCursorUpdate = RenderTask(
     on_base_canvas_change,
 )
 
-RenderTaskResizeGhost = RenderTask(
-    RenderCause.RESIZE_GHOST,
-    on_decorator_canvas_change_immediate,
+# Causes that run even with renders paused. A held drag pauses the queue for
+# its whole life, and these are the repaints it still needs.
+DRAG_CAUSES = (
+    RenderCause.DRAG_END,
+    RenderCause.SCROLLBAR_DRAGGING,
 )
 
 @dataclass
@@ -142,6 +137,7 @@ class RenderManager(RenderManagerType):
         self._decorator_completion_task = None
         self._watchdog_job = None
         self._task_seq = 0
+        self._wedge_recovered = False
 
     def _begin_task(self, render_task: RenderTask):
         """Single entry point for a task going current. current_render_task
@@ -149,7 +145,13 @@ class RenderManager(RenderManagerType):
         self.current_render_task = render_task
         self._task_seq += 1
         self._arm_watchdog(self._task_seq)
-        render_task.on_start(self.tree, *render_task.args)
+        try:
+            render_task.on_start(self.tree, *render_task.args)
+        except Exception:
+            # nothing scheduled a draw, so nothing will ever complete this task
+            print(f"ui_elements: render task {render_task.cause.value} failed to start:")
+            print(traceback.format_exc())
+            self.finish_current_render()
 
     def _arm_watchdog(self, seq: int):
         # one-shot, not a persistent poller - a cron.interval orphaned by a
@@ -180,12 +182,22 @@ class RenderManager(RenderManagerType):
         print(
             f"ui_elements: render task {self.current_render_task.cause.value} has "
             f"been current for {RENDER_WATCHDOG_MS / 1000:.1f}s - the render queue "
-            f"is wedged and this tree will not repaint again. Blocked behind it: "
-            f"{blocked}"
+            f"is wedged. Blocked behind it: {blocked}"
         )
-        # Recovery, deliberately off until the log confirms no legitimate
-        # long-running cause trips this (DRAGGING is the one to watch):
-        # self.finish_current_render()
+
+        # once per wedge: a second identical rebuild won't help either
+        rebuilt = False
+        if not self._wedge_recovered:
+            try:
+                rebuilt = self.tree.recover_stalled_canvases()
+            except Exception:
+                print("ui_elements: canvas rebuild failed:")
+                print(traceback.format_exc())
+
+        self.finish_current_render(recovered=True)
+
+        if rebuilt and not self._destroying and not self.current_render_task:
+            self.queue_render(RenderStateChange)
 
     @property
     def render_cause(self):
@@ -209,11 +221,7 @@ class RenderManager(RenderManagerType):
 
     def queue_render(self, render_task: RenderTask):
         if not self._destroying:
-            if store.pause_renders and not (render_task.cause == RenderCause.DRAGGING or \
-                    render_task.cause == RenderCause.DRAG_START or \
-                    render_task.cause == RenderCause.DRAG_END or \
-                    render_task.cause == RenderCause.SCROLLBAR_DRAGGING or \
-                    render_task.cause == RenderCause.RESIZE_GHOST):
+            if store.pause_renders and render_task.cause not in DRAG_CAUSES:
                 return
             if not self.current_render_task:
                 self._begin_task(render_task)
@@ -242,17 +250,9 @@ class RenderManager(RenderManagerType):
                 return True
         return False
 
-    def is_dragging(self):
-        return self.current_render_task and \
-            self.current_render_task.cause == RenderCause.DRAGGING
-
     def is_drag_end(self):
         return self.current_render_task and \
             self.current_render_task.cause == RenderCause.DRAG_END
-
-    def is_drag_start(self):
-        return self.current_render_task and \
-            self.current_render_task.cause == RenderCause.DRAG_START
 
     def is_scrolling(self):
         return self.current_render_task and \
@@ -308,12 +308,8 @@ class RenderManager(RenderManagerType):
 
     def process_next_render(self):
         if not self._destroying and self.queue:
-            if store.pause_renders and not (self.queue[0].cause == RenderCause.DRAGGING or \
-                        self.queue[0].cause == RenderCause.DRAG_START or \
-                        self.queue[0].cause == RenderCause.DRAG_END or \
-                        self.queue[0].cause == RenderCause.SCROLLBAR_DRAGGING or \
-                        self.queue[0].cause == RenderCause.RESIZE_GHOST):
-                    return
+            if store.pause_renders and self.queue[0].cause not in DRAG_CAUSES:
+                return
             self._begin_task(self.queue.popleft())
 
     def expect_decorator_completion(self):
@@ -325,9 +321,10 @@ class RenderManager(RenderManagerType):
         return self.current_render_task is not None and \
             self.current_render_task is self._decorator_completion_task
 
-    def finish_current_render(self):
+    def finish_current_render(self, recovered: bool = False):
         self._decorator_completion_task = None
         self._cancel_watchdog()
+        self._wedge_recovered = recovered
         if self.current_render_task and self.current_render_task.on_end:
             self.current_render_task.on_end(RenderCallbackEvent(
                 tree=self.tree,
@@ -360,26 +357,6 @@ class RenderManager(RenderManagerType):
     def render_ref_change(self):
         self._queue_render_after_debounce("1ms", RenderTaskRefChange)
 
-    def render_drag_start(
-        self,
-        mouse_pos: Point2d,
-        mousedown_start_pos: Point2d,
-        mousedown_start_offset: Point2d
-    ):
-        render_task = RenderTask(
-            cause=RenderCause.DRAG_START,
-            on_start=lambda tree: (
-                self.pause(),
-                on_base_canvas_change(tree),
-            ),
-            metadata = {
-                "mouse_pos": mouse_pos,
-                "mousedown_start_pos": mousedown_start_pos,
-                "mousedown_start_offset": mousedown_start_offset,
-            }
-        )
-        self.queue_render(render_task)
-
     def render_drag_end(
         self,
         mouse_pos: Point2d,
@@ -407,23 +384,6 @@ class RenderManager(RenderManagerType):
         )
         self.queue_render(render_task)
 
-    def render_dragging(
-        self,
-        mouse_pos: Point2d,
-        mousedown_start_pos: Point2d,
-        mousedown_start_offset: Point2d
-    ):
-        render_task = RenderTask(
-            cause=RenderCause.DRAGGING,
-            on_start=on_base_canvas_change,
-            metadata = {
-                "mouse_pos": mouse_pos,
-                "mousedown_start_pos": mousedown_start_pos,
-                "mousedown_start_offset": mousedown_start_offset,
-            }
-        )
-        self._render_throttle("10ms", render_task)
-
     def render_scroll(self):
         self._render_throttle("16ms", RenderTaskScrolling)
 
@@ -435,9 +395,6 @@ class RenderManager(RenderManagerType):
 
     def render_mouse_highlight(self):
         self.queue_render(RenderMouseHighlight)
-
-    def render_resize_ghost(self):
-        self._render_throttle("16ms", RenderTaskResizeGhost)
 
     def render_cursor_update(self):
         self._render_throttle("10ms", RenderTaskCursorUpdate)

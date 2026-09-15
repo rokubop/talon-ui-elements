@@ -76,19 +76,46 @@ DEFAULT_WINDOW_BACKGROUND_COLOR = "222222"
 DEFAULT_ERROR_COLOR = "BD2F3E"
 DEFAULT_ERROR_LINK_COLOR = "5F9FE3"
 DEFAULT_DROP_SHADOW = (0, 20, 25, 25, "000000CC")
+
+ERROR_WINDOW_BACKGROUND_COLOR = "1a0e0e"
+ERROR_WINDOW_BORDER_COLOR = "aa3333"
+# A traceback has no natural size, so the card is capped. Ratios first,
+# pixel ceilings on a large screen.
+ERROR_CARD_MAX_WIDTH_RATIO = 0.7
+ERROR_CARD_MAX_HEIGHT_RATIO = 0.6
+ERROR_CARD_MAX_WIDTH = 900
+ERROR_CARD_MAX_HEIGHT = 560
+ERROR_CARD_FALLBACK_SIZE = (800, 500)
+
+DEFAULT_MINIMIZE_FLASH_COLOR = "FFFFFF59"
+DEFAULT_MINIMIZE_FLASH_MS = 450
+MINIMIZE_FLASH_Z_INDEX = 200
 DEFAULT_HIGHLIGHT_DURATION_MS = 150
 DECORATOR_COALESCE_MS = 16
-# liveness check on the render queue - see RenderManager._on_watchdog.
-# Well clear of the ~1s GIL stalls a render can legitimately hit.
+# Clear of the ~1s GIL stalls a render can legitimately hit.
 RENDER_WATCHDOG_MS = 5000
 # DEFAULT_LINK_COLOR = "#589ADB"
 DEFAULT_LINK_HOVER_COLOR = "#90C1F2"
 DRAG_INIT_THRESHOLD = 4.0
 RESIZE_EDGE_THRESHOLD = 6
-RESIZE_GHOST_COLOR = "FFFFFF55"
-RESIZE_GHOST_STROKE_WIDTH = 2.0
+RESIZE_MIN_WIDTH = 100
+RESIZE_MIN_HEIGHT = 40
 RESIZE_EDGE_HIGHLIGHT_COLOR = "FFFFFF44"
 RESIZE_EDGE_HIGHLIGHT_WIDTH = 3.0
+
+# Drag preview. See docs/concepts/drag.md.
+DRAG_GHOST_COLOR = "FFFFFFAA"
+DRAG_GHOST_STROKE_WIDTH = 2.0
+# Fill behind the outline, and a wash over where the node still sits. Both
+# off: each is a window-sized fill on every frame of the drag.
+DRAG_GHOST_FILL_COLOR = None
+DRAG_DIM_COLOR = None
+# Floor between overlay repaints. One freeze costs a display frame.
+DRAG_OVERLAY_MIN_FRAME_MS = 8
+# Cursor slack before the mouse capture rect re-centres on it.
+DRAG_CAPTURE_MARGIN = 48
+# How long a freeze may sit undrawn before the overlay stops waiting.
+DRAG_OVERLAY_STALL_MS = 120
 
 CASCADED_PROPERTIES = {
     "color",

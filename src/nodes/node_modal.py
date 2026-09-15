@@ -19,10 +19,11 @@ _BODY_PROPS = {
 
 
 class NodeModal(NodeContainer):
-    """Full-viewport overlay layer. When `open=True` adds a backdrop and a
-    centered content panel; when `open=False` collapses to a zero-footprint
-    placeholder so reactive open=True re-renders work without leaving any
-    invisible click target behind."""
+    """Overlay layer covering its host - the enclosing window when there is
+    one, otherwise the screen. When `open=True` adds a backdrop and a centered
+    content panel; when `open=False` collapses to a zero-footprint placeholder
+    so reactive open=True re-renders work without leaving any invisible click
+    target behind."""
 
     def __init__(self, modal_properties: NodeModalProperties, content_properties: dict):
         is_open = bool(modal_properties.open)
@@ -63,9 +64,12 @@ class NodeModal(NodeContainer):
                     traceback.print_exc()
 
         if modal_properties.backdrop:
-            # Use "fixed" (root-relative) rather than "absolute" (modal-relative)
-            # so nonlayout_flow can lay it out without depending on the modal's
+            # Use "fixed" rather than "absolute" (modal-relative) so
+            # nonlayout_flow can lay it out without depending on the modal's
             # box_model already being computed (it's also a fixed node).
+            # anchors_to_window resolves it against the same host the modal
+            # itself uses - the enclosing window, or the root when there
+            # isn't one - so backdrop and panel stay together.
             backdrop_props = {
                 "position": "fixed",
                 "top": 0,
@@ -80,6 +84,7 @@ class NodeModal(NodeContainer):
                 backdrop = button(**backdrop_props)
             else:
                 backdrop = div(**backdrop_props)
+            backdrop.anchors_to_window = True
             self.backdrop_node = backdrop
             self.add_child(backdrop)
 
@@ -120,10 +125,6 @@ class NodeModal(NodeContainer):
     def __getitem__(self, children=None):
         if self.body is None:
             return self
-        if children is None:
-            children = []
-        if not isinstance(children, list):
-            children = [children]
-        for child in children:
+        for child in self.normalize_children(children):
             self.body.add_child(child)
         return self

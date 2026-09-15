@@ -23,7 +23,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `window` | Layout | Draggable window with title bar, close button, and drop shadow - must be first element after screen | `screen(justify_content="center", align_items="center")[window(title="My App")[...]]` |
 | `cursor` | Layout | Container that follows the mouse cursor position | `cursor()[text("Status")]` |
 | `text` | Content | Display text content | `text("Hello world", font_size=16)` |
-| `code` | Content | Syntax-highlighted code block. Built-in: Python, Talon. Themes: monokai (default), vscode_dark, dracula, one_dark, github_light | `code("def hello():", language="python", theme="dracula")` |
+| `code` | Content | Syntax-highlighted code block. Built-in: Python, Talon. Themes: monokai (default), vscode_dark, dracula, one_dark, github_light. `line_numbers=True` adds a gutter, `line_number_start` sets the first number | `code("def hello():", language="python", theme="dracula")` |
 | `input_text` | Content | Text input field with keyboard/mouse support | `input_text(id="my_input", placeholder="Search...", on_change=handler)` |
 | `textarea` | Content | Multi-line text input with word wrap and scrolling | `textarea(id="notes", rows=5, placeholder="Enter notes...", on_change=handler)` |
 | `select` | Interactive | Dropdown select with keyboard navigation | `select(id="color", options=["Red", "Green", "Blue"], on_change=handler)` |

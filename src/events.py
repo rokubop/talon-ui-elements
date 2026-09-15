@@ -10,6 +10,15 @@ class StateEvent:
 class DragEndEvent:
     not_implemented: Any = field(default=None)
 
+@dataclass
+class ResizeEndEvent:
+    """What on_resize_end receives. Sizes are unscaled, the units the
+    node was declared in."""
+    id: str = None
+    width: float = 0
+    height: float = 0
+    edge: str = ""
+
 class WindowCloseEvent:
     def __init__(self, hide: bool = True):
         self.hide = hide

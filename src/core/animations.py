@@ -147,6 +147,7 @@ class TransitionManager:
         self.active = {}  # {node_id: {property: ActiveAnimation}}
         self.highlight_anims = {}  # {node_id: HighlightAnimation}
         self.previous_values = {}  # {node_id: {property: value}}
+        self._seen_node_ids = set()
         self.tick_job = None
         self._unmount_callback = None
         self._pending_mount_values = []
@@ -304,9 +305,24 @@ class TransitionManager:
         easing_fn = EASING_FUNCTIONS.get(easing, ease_out)
         return easing_fn(raw_t)
 
+    def begin_render(self):
+        """Called before the tree walk. Pairs with end_render."""
+        self._seen_node_ids.clear()
+
+    def end_render(self):
+        """Drop nodes that left the tree so mount_style fires again when they
+        come back. A node that appears, leaves and returns - a minimized window
+        body, a conditional panel - otherwise animates only the first time."""
+        if not self.previous_values:
+            return
+        for node_id in list(self.previous_values):
+            if node_id not in self._seen_node_ids:
+                self.previous_values.pop(node_id, None)
+
     def detect_changes(self, node_id, node):
         """Compare new property values with stored previous values.
         Start animations for changed properties."""
+        self._seen_node_ids.add(node_id)
         transition_dict = node.properties.transition
         if not transition_dict or not isinstance(transition_dict, dict):
             return
