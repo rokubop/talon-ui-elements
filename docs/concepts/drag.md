@@ -1,49 +1,41 @@
 # Drag
 
-A drag does not move anything until you let go.
+## Decisions
 
-From mousedown to mouseup:
+- **Drag outline uses its own canvas on top**. Built at the end of the first full render, hidden, and only if the tree has a `draggable` or `resizable` node aka `window` element - 2026-09-07, v0.22.0.
+- **Use ghost lines until release, rather than relayout UI live.** Helps with performance and visual consistency - 2026-09-07, v0.22.0
+- **Throttle repaints rather than mouse events.** Uses `DRAG_OVERLAY_MIN_FRAME_MS` 8 ms and `DRAG_OVERLAY_STALL_MS` 120 ms - 2026-09-07, v0.22.0
 
-- base and decorator keep the paint they had when the drag started
-- an outline of where it will land draws on a canvas of its own
-- the render queue is paused, so state changes wait for the drop
-- on mouseup the outline goes and one render puts the element there
+## Affected by drag
 
-Esc abandons a drag and puts everything back.
+| Kind | Starts on | Outline | Pauses renders |
+| -- | -- | -- | -- |
+| `draggable` move | 4px past mousedown | yes | yes |
+| `resizable` edge | mousedown, 6px of the edge | yes | yes |
+| scrollbar thumb | mousedown on thumb | no | yes |
+| text selection | mousedown on text | no | no |
 
-## Why
+## Keyboard
 
-A drag used to relayout the whole tree on every mouse report. A high polling rate mouse reports far faster than the display refreshes, so the canvas draw thread fell behind and the window lagged the cursor.
+Esc during dragging will cancel
 
-A drag tick is now one `freeze` of one canvas drawing one stroked rect.
+## Properties
 
-## What drags
-
-| Kind | Outline | Pauses renders |
+| Property | On | Value |
 | -- | -- | -- |
-| `draggable` move | yes | yes |
-| `resizable` edge | yes | yes |
-| scrollbar thumb | no | yes |
-| text selection | no | no |
+| `draggable` | top level div | bool |
+| `drag_handle` | child of a draggable | bool, the grabbable area |
+| `resizable` | node or window | `True`, `"right"`, `["right", "bottom"]` |
+| `on_drag_end` | draggable | callable, 1 event arg |
+| `on_resize_end` | resizable | callable, arg: `id`, `width`, `height`, `edge` |
+| `drag_title_bar_only` | window | bool, default True |
 
-Scrollbar and text drags change no layout, so they stay live and follow the cursor directly.
+## Options
+`constants.py`:
 
-A resize pins only the axis it touched, so a panel dragged by its right edge keeps stretching to its parent's height. The new size lasts until the UI hides.
-
-## Appearance
-
-`DRAG_GHOST_COLOR` and `DRAG_GHOST_STROKE_WIDTH` set the outline.
-
-`DRAG_GHOST_FILL_COLOR` fills it, `DRAG_DIM_COLOR` washes over where the element still sits. Both off by default: each is a window-sized fill on every frame.
-
-## Adding a mode
-
-A mode is a `DragSession` subclass in `src/drag/modes/`.
-
-- `preview = True` to draw an outline, which requires `pause_renders = True`
-- `begin` returns False to abandon before the drag starts
-- `commit` mutates state while renders are still paused
-- `settle` paints and fires callbacks once they are live again
-- `shapes` returns what the overlay draws
-
-`DragController` owns the one active session and decides what a mouse event means.
+| Option | Description |
+| -- | -- |
+| `DRAG_GHOST_COLOR` | `FFFFFFAA` |
+| `DRAG_GHOST_STROKE_WIDTH` | `2.0` |
+| `DRAG_GHOST_FILL_COLOR` |  |
+| `DRAG_DIM_COLOR` |  |
