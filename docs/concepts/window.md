@@ -132,55 +132,6 @@ def my_window_ui():
 
 The window element handles the minimize/maximize/close buttons automatically. You just provide the callbacks for what should happen.
 
-## Click Outside
-
-A window can react to a press that lands anywhere off it.
-
-```python
-window(
-    title="My Window",
-    minimize_on_click_outside=True,
-    minimized_body=minimized_content,
-)
-```
-
-- `minimize_on_click_outside=True` collapses it to the minimized body
-- `close_on_click_outside=True` hides it
-- `on_click_outside=callback` for anything else
-
-Combine them and the declarative action runs first.
-
-Anything inside the window's border counts as inside, text inputs included. Releasing off the window after a drag, resize or scrollbar grab does not count. While a `modal` is open anywhere in the tree, click outside is suppressed, because the modal owns dismissal.
-
-The click still reaches whatever is underneath. For one that is consumed instead, use `modal` with `backdrop_click_close=True`. See [Mouse](./mouse.md).
-
-## Modals in a window
-
-A `modal` declared inside a window anchors to that window rather than the screen. It covers the window, centers on it, and follows it when dragged, onto another monitor included. With no enclosing window it covers the screen, as before.
-
-```python
-window(title="My Window")[
-    div(padding=16)[text("Content")],
-    modal(open=is_open, title="Confirm", on_close=close)[
-        text("Centered on the window, not the screen")
-    ],
-]
-```
-
-It covers the title bar too. While a modal is open the title bar is inert anyway, so leaving it uncovered would show live-looking controls that do nothing.
-
-## Minimize Flash
-
-A window minimizes to a corner while the eye is elsewhere, so the collapse is easy to miss. Every window washes white on the way out. On by default.
-
-```python
-window(flash_on_minimize=False)                                   # off
-window(flash_on_minimize="4a9af5AA")                              # colour
-window(flash_on_minimize={"color": "4a9af5AA", "duration": 800})  # both
-```
-
-Defaults to `"FFFFFF59"` over 450ms. Covers the whole window, and fires on every minimize rather than just the first.
-
 ## Customize Window Controls
 
 You can hide the minimize button, close button, or entire title bar:
@@ -208,5 +159,13 @@ def my_window_ui():
 Set `show_title_bar=False` to hide the entire title bar and make the window fully custom.
 
 ## Additional Properties
+
+- `flash_on_minimize`: Controls the flash effect when the window is minimized. Can be `False` to disable, a color string, or a dictionary with `color` and `duration`.
+- `show_minimize`: Controls the visibility of the minimize button. Can be `True` to show or `False` to hide.
+- `show_close`: Controls the visibility of the close button. Can be `True` to show or `False` to hide.
+- `show_title_bar`: Controls the visibility of the title bar. Can be `True` to show or `False` to hide.
+- `drag_title_bar_only`: Controls whether the window can only be dragged by the title bar. Can be `True` to restrict dragging to the title bar or `False` to allow dragging from anywhere.
+- `title_bar_style`: Controls the style of the title bar. Can be set to different predefined styles or custom styles.
+- `title`: Controls the title of the window. Can be set to a string representing the window's title.
 
 See [Window-Specific Properties](../properties.md#window-specific-properties) for all available window properties like `show_title_bar`, `drag_title_bar_only`, `title_bar_style`, and more.
