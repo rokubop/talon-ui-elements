@@ -10,7 +10,8 @@ from ..interfaces import Size2d, RenderTransforms
 from ..constants import DEFAULT_COLOR
 from ..properties import NodeTextProperties
 from ..fonts import (
-    get_typeface,
+    apply_text_rendering,
+    resolve_font,
     line_height_cache,
     text_width_cache,
     TEXT_WIDTH_CACHE_MAX,
@@ -62,12 +63,20 @@ class NodeText(Node):
     def _make_paint(self):
         paint = Paint()
         paint.textsize = self.properties.font_size
-        if self.properties.font_family:
-            typeface = get_typeface(self.properties.font_family, self.properties.font_weight)
-            if typeface:
-                paint.typeface = typeface
-        paint.font.embolden = self.properties.font_weight == "bold"
-        if self.properties.font_style == "italic":
+        # c.draw_text uses the paint passed to it, not c.paint, so the
+        # canvas-level antialias flag never reaches text.
+        apply_text_rendering(paint)
+        font = resolve_font(
+            self.properties.font_family,
+            self.properties.font_weight,
+            self.properties.font_style,
+        )
+        if font.typeface:
+            paint.typeface = font.typeface
+        # embolden and skew_x are synthesized and look visibly weaker than a
+        # real face -- only apply them for what the loaded face doesn't have.
+        paint.font.embolden = font.synthetic_bold
+        if font.synthetic_italic:
             paint.font.skew_x = -0.25
         return paint
 
@@ -91,12 +100,19 @@ class NodeText(Node):
             return self.properties.gap
         return round(self.text_line_height * 1.0)
 
+    def _wrap_inset(self):
+        """Content-box width that text can't wrap into. NodeCode reserves its
+        line-number gutter here."""
+        return 0
+
     def _compute_lines(self, paint):
         """Compute multiline layout. Sets text_multiline, text_width, text_body_height."""
         text = self.text
         gap = self._get_line_gap()
         has_newlines = "\n" in text
         container_width = self.properties.width or self.properties.max_width
+        if isinstance(container_width, (int, float)):
+            container_width -= self._wrap_inset()
 
         if has_newlines and container_width and isinstance(container_width, (int, float)):
             self.text_multiline = wrap_lines(text, container_width, paint.measure_text)
@@ -148,17 +164,18 @@ class NodeText(Node):
         if self.properties.white_space == "nowrap":
             return
 
+        inset = self._wrap_inset()
         constrained_width = self.box_model.content_size.width
         if constrained_width and constrained_width < self.text_width:
             paint = self._make_paint()
             old_height = self.text_body_height
             gap = self._get_line_gap()
 
-            self.text_multiline = wrap_lines(self.text, constrained_width, paint.measure_text)
+            self.text_multiline = wrap_lines(self.text, constrained_width - inset, paint.measure_text)
 
             if self.text_multiline:
                 widths = [paint.measure_text(line or " ")[0] for line, _ in self.text_multiline]
-                self.text_width = max(widths) if widths else 0
+                self.text_width = (max(widths) if widths else 0) + inset
                 num_lines = len(self.text_multiline)
                 self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
 

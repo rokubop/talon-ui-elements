@@ -1,7 +1,7 @@
 from talon import Module, actions, cron
 from typing import List, Any, Union, Callable
 from .src.core.entity_manager import entity_manager
-from .src.core.state_manager import state_manager, debug_gc
+from .src.core.state_manager import state_manager, debug_gc, create_store
 from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
 from .src.entry import render_ui
@@ -160,6 +160,34 @@ class Actions:
         if name:
             return state_manager.get_state_value(name, initial_state)
         return state_manager.get_all_states()
+
+    def ui_elements_store(name: str, initial_state: dict[str, Any] = None):
+        """
+        Create a named state store owned by your package instead of by a UI.
+        Its values survive hiding the UI, so they are the place for data
+        that means something with no UI open.
+
+        ```py
+        # once, at module level
+        gk = actions.user.ui_elements_store("gk", {
+            "game": None,
+            "bindings": {},
+        })
+
+        # anywhere, with or without a UI open
+        gk.set("game", "celeste")
+        gk.get("game")
+
+        # in a UI, read it by its full "<store>.<key>" name
+        game = state.get("gk.game")
+        ```
+
+        Calling this again with the same name returns the same store, so a
+        file save re-seeds new keys without discarding existing values.
+
+        See [Store documentation](./docs/concepts/store.md)
+        """
+        return create_store(name, initial_state)
 
     def ui_elements_set_text(id: str, text_or_callable: Any):
         """

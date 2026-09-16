@@ -1,27 +1,35 @@
 # Rendering
 
-UI Elements uses a 3 canvas system for rendering.
+UI Elements uses a 3 canvas system for rendering (+ 1 drag canvas if applicable).
 
-1. **Base Canvas** - The primary rendering layer. All static elements and layout are rendered here.
-2. **Decorator Canvas** - An overlay layer for dynamic rendering that do not affect the underlying layout. Elements with an `id` or `highlight_style` will be rendered here.
-3. **Blockable Canvas** - Used for mouse interaction, only applied when interactive elements are present, or if the UI is draggable.
+| Canvas name | Draws | Present |
+| -- | -- | -- |
+| Base | Layout and static elements | Always |
+| Decorator | Changes that do not move layout, such as highlights and hovers | Always |
+| Blockable | Nothing. Receives mouse events | When the UI is interactive or draggable |
+| Drag overlay | The outline of a held drag | Only mid-drag |
 
-## When renders happen
+If an element has an `id` or a `highlight_style`, it will draw on the decorator canvas.
 
-### Full Re-renders
-A complete re-render including base and decorator canvases happens when:
-- `actions.user.ui_elements_show` is called
+## Full renders
+
+Relayout, base + decorator. Triggered by:
+
+- `actions.user.ui_elements_show`
 - `state` changes
-- `actions.user.ui_elements_set_state` is called
-- `actions.user.ui_elements_set_property` is called
+- `actions.user.ui_elements_set_state`
+- `actions.user.ui_elements_set_property`
 
-### Decorator-Only Renders
-Faster decorator-only renders update just the decoration layer and do not update the layout / base layer:
+## Decorator-only renders
 
-- `actions.user.ui_elements_highlight`
-- `actions.user.ui_elements_highlight_briefly`
-- `actions.user.ui_elements_unhighlight`
+Much faster. Triggered by:
+
+- `actions.user.ui_elements_highlight`, `..._highlight_briefly`, `..._unhighlight`
 - `actions.user.ui_elements_set_text`
-- Keyboard navigation and focus changes
+- keyboard navigation and focus changes
 
-If you give an element an `id` or a `highlight_style`, it will be rendered on the decorator canvas.
+Prefer these when only appearance changes. See [State](./state.md).
+
+## Drags
+
+See [Drag](./drag.md).

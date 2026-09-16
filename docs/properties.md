@@ -117,7 +117,7 @@ Properties mostly match standard CSS properties.
 | font_family | str | "" | Font family |
 | font_size | Union[int, float] | 16 | Font size |
 | font_style | "normal", "italic" | "normal" | Font style |
-| font_weight | "normal", "bold" | "normal" | Font weight |
+| font_weight | "light", "normal", "medium", "semibold", "bold", "black" (or 100-900) | "normal" | Font weight. Resolves to a real installed face when one exists, and is synthesized otherwise |
 | for_id | str | None | Associates a label with an input (for `text` element) |
 | selectable | bool | False | Enable text selection by click-and-drag (for `text` element) |
 | selection_color | str | "4488FF88" | Highlight color for selected text (for `text` element) |
@@ -133,11 +133,13 @@ Properties mostly match standard CSS properties.
 | autofocus | bool | False | Autofocus for `input_text`, `textarea`, or `button` |
 | disabled | bool | False | Whether element is disabled (for interactive elements) |
 | disabled_style | dict | None | Style overrides when disabled |
-| draggable | bool | False | Whether element can be dragged |
+| draggable | bool | False | Whether element can be dragged. See [Drag](concepts/drag.md) |
 | drag_handle | bool | False | Treat this area as the drag handle for a parent draggable |
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
+| on_resize_end | callable | None | Callback when a resize drag ends. Accepts 1 event argument with `id`, `width`, `height` and `edge`. |
+| resizable | bool \| str \| list | False | Drag an element's edges to resize. `True` is all four, or name them: `"right"`, `["right", "bottom"]`. Clamped by `min_width`/`max_width`/`min_height`/`max_height`. Lasts until the UI hides. See [Drag](concepts/drag.md) |
 | value | str | None | Value of `input_text`, `textarea`, or `select` |
 | placeholder | str | "" | Placeholder hint text for `input_text`, `textarea`, or `select`, shown when empty/unfocused |
 | placeholder_color | str | "FFFFFF55" | Color of placeholder text |
@@ -166,11 +168,15 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
+| close_on_click_outside | bool | False | Close the window when a mouse press lands outside it |
+| flash_on_minimize | bool \| str \| dict | True | Wash the window as it minimizes, so the collapse is noticed. A colour string or `{"color", "duration"}` overrides the default `"FFFFFF59"` over 450ms |
 | drag_title_bar_only | bool | True | Whether window can only be dragged by title bar |
 | icon | Union[str, SVG element] | None | Window icon in the title bar. Pass a built-in icon name string or a custom SVG element. Auto-scales to match title font size |
+| minimize_on_click_outside | bool | False | Minimize the window when a mouse press lands outside it. No-op if already minimized |
 | minimized | bool | False | Whether window is minimized |
 | minimized_body | callable | None | Function that returns alternate body when minimized |
 | minimized_style | dict | None | Style overrides when minimized |
+| on_click_outside | callable | None | Callback when a mouse press lands outside the window. Runs after `minimize_on_click_outside` / `close_on_click_outside`, if either is set |
 | on_close | callable | None | Callback when window is closed |
 | on_minimize | callable | None | Callback when window is minimized |
 | on_restore | callable | None | Callback when window is restored from minimized state |

@@ -733,9 +733,11 @@ class NodeContainer(Node, NodeContainerType):
     def v2_render_decorator(self, c, transforms: RenderTransforms = None):
         if self.tree:
             self.v2_render_borders(c, transforms)
+            self.v2_crop_start(c, transforms)
             self.v2_render_background(c, transforms)
             for child in self.get_children_nodes():
                 child.v2_render_decorator(c, transforms)
+            self.v2_crop_end(c, transforms)
 
     def v2_render(self, c, transforms: RenderTransforms = None):
         if self.tree:

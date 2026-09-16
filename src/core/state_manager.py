@@ -40,9 +40,15 @@ class StateCoordinator:
                     self.request_state_change(key)
         store.mouse_state['disable_events'] = False
 
+    def apply_state(self, state_keys):
+        for key in state_keys:
+            reactive_state = store.reactive_state.get(key)
+            if reactive_state:
+                reactive_state.activate_next_state_value()
+        notify_stores(state_keys)
+
     def flush_state(self):
-        for key in self.current_state_keys:
-            store.reactive_state[key].activate_next_state_value()
+        self.apply_state(self.current_state_keys)
 
     def on_tree_render_start(self):
         def on_start(tree: TreeType, *args):
@@ -86,7 +92,14 @@ class StateCoordinator:
                     )
 
             if not self.pending_tree_renders:
-                self.finish_cycle(None)
+                # No render will end this cycle, so end it here and apply
+                # the values anyway. Clearing first lets a subscriber write.
+                state_keys = set(self.current_state_keys)
+                self.current_state_keys.clear()
+                self.next_state_keys.clear()
+                self.phase = self.PHASE_FREE
+                store.mouse_state['disable_events'] = False
+                self.apply_state(state_keys)
 
     def request_state_change(self, state_key: str):
         store.mouse_state['disable_events'] = True
@@ -125,6 +138,7 @@ class ReactiveState(ReactiveStateType):
     def __init__(self):
         self._initial_value = None
         self._value = None
+        self._initialized = False
         self.next_state_queue = []
 
     @property
@@ -141,7 +155,9 @@ class ReactiveState(ReactiveStateType):
         return value_or_callable
 
     def set_initial_value(self, value):
-        if self._initial_value is None:
+        # Tracked separately so an initial value of None initializes once.
+        if not self._initialized:
+            self._initialized = True
             self._initial_value = value
             self._value = value
 
@@ -153,6 +169,145 @@ class ReactiveState(ReactiveStateType):
             self._value = self.resolve_value(new_state)
 
         self.next_state_queue.clear()
+
+_UNSET = object()
+
+class StateStore:
+    """Named state a package owns instead of a tree.
+
+    Read in a UI as `state.get("gk.game")`, rerenders like any state.
+    Hiding the UI does not clear it.
+    """
+
+    def __init__(self, name: str, initial_state: dict = None):
+        self.name = name
+        self.prefix = f"{name}."
+        self._seed = dict(initial_state or {})
+        self._subscribers = []
+
+    def __repr__(self):
+        return f"<ui_elements store {self.name!r}>"
+
+    def key(self, key: str) -> str:
+        """The full key a UI reads this value by, e.g. `"gk.game"`."""
+        return f"{self.prefix}{key}"
+
+    def owns(self, full_key: str) -> bool:
+        return full_key.startswith(self.prefix)
+
+    def _full_keys(self):
+        return [key for key in store.reactive_state if key.startswith(self.prefix)]
+
+    def seed(self, initial_state: dict = None):
+        """Fill in unset keys. Existing values win, so a file save keeps them."""
+        if initial_state is not None:
+            self._seed = dict(initial_state)
+        for key, value in self._seed.items():
+            state_manager.init_state(self.key(key), value)
+
+    def get(self, key: str, default=None):
+        """Read one value. Registers the rerender dependency if in a render."""
+        full_key = self.key(key)
+        tree = state_manager.get_processing_tree()
+        if tree:
+            tree.meta_state.associate_state(
+                full_key, state_manager.get_processing_components()
+            )
+        reactive_state = store.reactive_state.get(full_key)
+        return reactive_state.value if reactive_state else default
+
+    def get_all(self) -> dict:
+        """Every value in the store, keyed without the store name."""
+        start = len(self.prefix)
+        return {
+            key[start:]: reactive_state.value
+            for key, reactive_state in store.reactive_state.items()
+            if key.startswith(self.prefix)
+        }
+
+    def set(self, key, value=_UNSET):
+        """Set one value, or several with a dict. Rerenders any UI using them."""
+        if isinstance(key, dict):
+            for k, v in key.items():
+                state_manager.set_state_value(self.key(k), v)
+            return
+        if value is _UNSET:
+            raise TypeError(
+                "store.set requires a key and a value, or a dict as the only "
+                'argument: store.set("game", "celeste") or '
+                'store.set({"game": "celeste"})'
+            )
+        state_manager.set_state_value(self.key(key), value)
+
+    def reset(self, keys: list = None):
+        """Put the seed values back. Pass `keys` to reset only some of them."""
+        seed = self._seed
+        if keys is not None:
+            seed = {k: v for k, v in self._seed.items() if k in keys}
+        for key, value in seed.items():
+            state_manager.set_state_value(self.key(key), value)
+        # Keys added after seeding have nothing to return to.
+        if keys is None:
+            seeded = {self.key(key) for key in self._seed}
+            for full_key in self._full_keys():
+                if full_key not in seeded:
+                    state_manager.drop_state(full_key)
+        else:
+            for key in keys:
+                if key not in self._seed:
+                    state_manager.drop_state(self.key(key))
+
+    def clear(self):
+        """Remove every value in the store, seeded or not."""
+        for full_key in self._full_keys():
+            state_manager.drop_state(full_key)
+
+    def subscribe(self, callback: Callable):
+        """Run `callback` after any value changes. Returns an unsubscribe."""
+        self._subscribers.append(callback)
+
+        def unsubscribe():
+            if callback in self._subscribers:
+                self._subscribers.remove(callback)
+
+        return unsubscribe
+
+    def notify(self):
+        for callback in list(self._subscribers):
+            try:
+                callback()
+            except Exception as e:
+                print(f"ui_elements store {self.name!r} subscriber failed: {e!r}")
+
+def create_store(name: str, initial_state: dict = None) -> StateStore:
+    if not isinstance(name, str) or not name:
+        raise ValueError(
+            "ui_elements_store(name, initial_state) requires a string name, "
+            'such as ui_elements_store("gk", {"game": None})'
+        )
+    if "." in name:
+        raise ValueError(
+            f"ui_elements_store name {name!r} cannot contain a '.'. The dot "
+            'separates the store name from the key, as in "gk.game".'
+        )
+    existing = store.named_stores.get(name)
+    if existing:
+        # Same name again means a file save. Keep values, drop the stale
+        # subscribers of the module being replaced.
+        existing._subscribers.clear()
+        existing.seed(initial_state)
+        return existing
+    named_store = StateStore(name, initial_state)
+    store.named_stores[name] = named_store
+    named_store.seed()
+    return named_store
+
+def notify_stores(state_keys):
+    if not store.named_stores or not state_keys:
+        return
+    for named_store in list(store.named_stores.values()):
+        if any(named_store.owns(key) for key in state_keys):
+            named_store.notify()
 
 class DeprecatedLifecycleEvent:
     def __init__(self, event_type: str, tree: TreeType):
@@ -286,6 +441,13 @@ class StateManager:
     def init_states(self, states):
         if states is not None:
             for key, value in states.items():
+                named_store = store.owning_store(key)
+                if named_store:
+                    print(
+                        f"Warning: initial_state cannot seed {key!r}. The "
+                        f"{named_store.name!r} store owns it. Use store.set()."
+                    )
+                    continue
                 self.init_state(key, value)
 
     def init_state(self, key, initial_value):
@@ -300,6 +462,9 @@ class StateManager:
     def get_state_value(self, key, initial_value=None):
         if key in store.reactive_state:
             return store.reactive_state[key].value
+        elif store.owning_store(key):
+            # A store's seed is its only default. Reading never writes.
+            return initial_value
         elif initial_value is not None:
             # State doesn't exist yet, initialize it with the default
             self.init_state(key, initial_value)
@@ -392,8 +557,22 @@ class StateManager:
             node.tree.render_manager.render_ref_change()
 
     def use_state(self, key, initial_value):
-        self.init_state(key, initial_value)
-        return store.reactive_state[key].value, lambda new_value: self.set_state_value(key, new_value)
+        if store.owning_store(key):
+            # A render must never write into a store, so the default is
+            # only what the caller gets back.
+            reactive_state = store.reactive_state.get(key)
+            value = reactive_state.value if reactive_state else initial_value
+        else:
+            self.init_state(key, initial_value)
+            value = store.reactive_state[key].value
+        return value, lambda new_value: self.set_state_value(key, new_value)
+
+    def drop_state(self, key):
+        """Remove a key outright and rerender anything that reads it."""
+        if key in store.reactive_state:
+            del store.reactive_state[key]
+        store.processing_states.add(key)
+        state_coordinator.request_state_change(key)
 
     def register_effect(self, effect: Effect):
         store.staged_effects.append(effect)
@@ -789,7 +968,9 @@ class StateManager:
                 tree.show_hints = not tree.show_hints
 
     def clear_state(self):
-        store.reactive_state.clear()
+        # Stores are owned by the consumer and outlive every tree.
+        for key in [k for k in store.reactive_state if not store.owning_store(k)]:
+            del store.reactive_state[key]
         store.processing_states.clear()
         store.reset_mouse_state()
         state_coordinator.reset()
@@ -801,6 +982,9 @@ class StateManager:
             if node.element_type in ("input_text", "textarea"):
                 custom_input_manager.remove_input(node.id)
         for state_key in tree.meta_state.states:
+            if store.owning_store(state_key):
+                # Outliving the tree is the point of a store.
+                continue
             if state_key in store.reactive_state:
                 del store.reactive_state[state_key]
             if state_key in store.processing_states:
