@@ -3089,7 +3089,11 @@ class Tree(TreeType):
                     child_node.uses_decoration_render = True
 
         if node.element_type == ELEMENT_ENUM_TYPE["select"] \
-                and getattr(node, 'is_open', False) and node.id:
+                and getattr(node, 'is_open', False) and node.id \
+                and not node.uses_decoration_render:
+            # When the flag is already set, an ancestor's highlight decoration
+            # render covers this select (dropdown included), so registering it
+            # here too would paint the dropdown twice.
             self.meta_state.add_decoration_render(node.id)
 
         if node.uses_decoration_render and (node.properties.z_index or 0) > 0:
