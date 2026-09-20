@@ -137,6 +137,10 @@ def _expand_shorthand_hex(color: str) -> str:
 def get_active_color_from_highlight_color(highlight_color: str) -> str:
     """If highlightcolor is "FFFFFF66", return "FFFFFF88"."""
     highlight_color = _expand_shorthand_hex(highlight_color)
+    if len(highlight_color) < 8:
+        # No alpha to raise. Slicing the last two chars off "4A9AF5" would
+        # eat half the blue channel and repaint the element a new color.
+        return highlight_color
     base_color = highlight_color[:-2]  # "FFFFFF"
     alpha = highlight_color[-2:]       # "66"
 

@@ -45,7 +45,9 @@ def inert_highlight_test_ui():
     return screen()[
         div(id="paints", border_color="4a5270",
             highlight_style={"border_color": "6db3ff"}, on_click=lambda e: None),
-        div(id="inert", border_color="4a5270",
+        # Spelled both ways on purpose. Colors normalize on the way in, so
+        # the "#" must not make an inert style look like it paints.
+        div(id="inert", border_color="#4a5270", highlight_color="#4a9af5",
             highlight_style={"border_color": "4a5270"}, on_click=lambda e: None),
     ]
 
@@ -80,6 +82,10 @@ class HighlightTests:
             # node out of the overlay and leave it with no highlight at all.
             it("should not decoration render an inert style", expect=False,
                 actual="inert" in renders)
+
+            inert = tree.meta_state.id_to_node["inert"]
+            it("should strip # from highlight_color", expect="4a9af5",
+                actual=inert.properties.highlight_color)
 
             tree.destroy()
             done()

@@ -32,9 +32,13 @@ from .constants import (
 from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex, parse_background
 
 COLOR_PROPERTIES = {
-    "background_color", "border_color", "color", "stroke", "fill",
+    "background_color", "border_color", "color", "stroke", "fill", "highlight_color",
     "border_top_color", "border_right_color", "border_bottom_color", "border_left_color",
 }
+
+# Dicts of style overrides whose colors feed the same paint calls, so they
+# need the same normalizing as the properties they override.
+STYLE_DICT_PROPERTIES = {"highlight_style", "disabled_style"}
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
@@ -393,6 +397,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     value = hex_color(value, property_name=key)
             elif key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
+            elif key in STYLE_DICT_PROPERTIES and isinstance(value, dict):
+                value = {
+                    k: hex_color(v, property_name=f"{key} {k}") if k in COLOR_PROPERTIES else v
+                    for k, v in value.items()
+                }
 
             if key == "border_radius" and value is not None:
                 if not isinstance(value, BorderRadius):

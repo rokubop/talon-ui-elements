@@ -3092,7 +3092,9 @@ class Tree(TreeType):
         style that matches the node's resting values used to leave it with no
         highlight at all. Those keep the overlay. Anything not provably inert
         counts as painting. A `transition` animates to the same value either
-        way, so it always owns the decorator layer.
+        way, so it always owns the decorator layer. So does `opacity`, which
+        rewrites the resting color and leaves the style alone - those two
+        really do paint differently.
         """
         style = node.properties.highlight_style
         if not style:
@@ -3105,8 +3107,8 @@ class Tree(TreeType):
                 continue
             base = getattr(properties, name, None)
             if name in COLOR_PROPERTIES and isinstance(value, str) and isinstance(base, str):
-                # `highlight_style` is a raw dict, so its colors never went
-                # through `hex_color` the way the resting ones did.
+                # hex_color leaves shorthand alone, so "FFF" and "FFFFFF"
+                # still need expanding before they compare equal.
                 if _expand_shorthand_hex(value).lower() != _expand_shorthand_hex(base).lower():
                     return True
             elif value != base:
