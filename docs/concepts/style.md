@@ -97,6 +97,17 @@ style({
 
 When both `highlight_style` and `transition` are present, hover highlights animate smoothly.
 
+## How highlighting works
+
+Every element has a `highlight_color`, defaulting to its text color at 20% opacity. Highlighting an element fills that color over it. This is what `button`, `checkbox` and any `div` with an `on_click` use by default.
+
+`highlight_style` replaces that overlay with real style overrides. If the overrides match the element's resting style, nothing would paint, so the overlay is kept:
+
+```py
+# no hover, the border is already BLUE
+div(border_color=BLUE, highlight_style={"border_color": BLUE}, on_click=...)
+```
+
 ## Component Scoping
 
 When used inside a `component()`, styles only apply within that component and won't leak outside:

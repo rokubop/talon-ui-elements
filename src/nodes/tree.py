@@ -73,12 +73,14 @@ from ..interfaces import (
 from ..hints import draw_hint, draw_scroll_button_hint, get_hint_generator, hint_clear_state, hint_tag_enable
 from ..style import Style
 from ..utils import (
+    _expand_shorthand_hex,
     draw_text_simple,
     get_active_color_from_highlight_color,
     get_combined_screens_rect,
     log_trace,
     subtract_rect,
 )
+from ..properties import COLOR_PROPERTIES
 
 scroll_throttle_job = None
 scroll_throttle_time = "30ms"
@@ -147,6 +149,7 @@ class ScrollButtonOverlay:
 class MetaState(MetaStateType):
     def __init__(self):
         self._buttons = []
+        self._hover_links = None
         self._components = {}
         self._staged_components = {}
         self.decoration_renders = {}
@@ -255,6 +258,7 @@ class MetaState(MetaStateType):
     def add_button(self, id):
         if id not in self._buttons:
             self._buttons.append(id)
+            self._hover_links = None
 
     def add_component(self, component):
         if component.id not in self._staged_components:
@@ -277,6 +281,7 @@ class MetaState(MetaStateType):
     def add_text_with_for_id(self, id, for_id):
         if id not in self._text_with_for_ids:
             self._text_with_for_ids[id] = for_id
+            self._hover_links = None
 
     def add_decoration_render(self, id):
         self.decoration_renders[id] = True
@@ -383,6 +388,7 @@ class MetaState(MetaStateType):
         self._staged_id_to_node.clear()
         self._buttons.clear()
         self._text_with_for_ids.clear()
+        self._hover_links = None
         self.has_hit_priority_overlay = False
 
     def prepare_node_transition(self):
@@ -394,11 +400,18 @@ class MetaState(MetaStateType):
         entity_manager.synchronize_global_ids()
 
     def get_hover_links(self):
-        return list(
-            (b, b) for b in reversed(self._buttons)
-        ) + list(
-            self._text_with_for_ids.items()
-        )
+        """(source_id, target_id) pairs to hit-test, innermost first.
+
+        Cached because this is called once per mousemove, and rebuilding it
+        allocated a tuple per button every time.
+        """
+        if self._hover_links is None:
+            self._hover_links = [
+                (b, b) for b in reversed(self._buttons)
+            ] + list(
+                self._text_with_for_ids.items()
+            )
+        return self._hover_links
 
     # Scrollbar interaction state management
     def set_scrollbar_hover(self, node_id, axis="y"):
@@ -479,6 +492,7 @@ class MetaState(MetaStateType):
                 cron.cancel(job[0])
 
         self._buttons.clear()
+        self._hover_links = None
         self._components.clear()
         self._staged_components.clear()
         self.decoration_renders.clear()
@@ -1229,8 +1243,12 @@ class Tree(TreeType):
         clip_count = self.apply_clip_regions(canvas, node, transforms)
 
         rect = node.box_model.visible_rect
-        rect.x += offset.x
-        rect.y += offset.y
+        if offset.x or offset.y:
+            # visible_rect can be the node's own padding_rect - shifting it
+            # in place would move the node itself.
+            rect = rect.copy()
+            rect.x += offset.x
+            rect.y += offset.y
         canvas.paint.color = color or node.properties.highlight_color
 
         if rect:
@@ -1241,8 +1259,9 @@ class Tree(TreeType):
     def draw_highlight_overlays(self, canvas: SkiaCanvas, offset: Point2d):
         canvas.paint.style = canvas.paint.Style.FILL
         for id, color in list(self.meta_state.highlighted.items()):
-            # migrating to new highlight system - decoration renders
-            # so if we have decoration renders, prioritize that instead
+            # The overlay and `highlight_style` are exclusive. A style that
+            # paints something owns the node's highlight and gets a
+            # decoration render; everything else falls back to here.
             if not id in self.meta_state.decoration_renders and id in self.meta_state.id_to_node:
                 node = self.meta_state.id_to_node[id]
                 self.draw_highlight_overlay(canvas, node, offset, color)
@@ -1930,6 +1949,11 @@ class Tree(TreeType):
         last 10px of a list flush with that edge made it un-grabbable.
         """
         if self.drag.is_kind("scrollbar"):
+            return (None, None)
+
+        if not self.meta_state.resizable_nodes and not self.meta_state.windows:
+            # Runs per mousemove, and the union below allocates two sets
+            # just to find out there is nothing to resize.
             return (None, None)
 
         threshold = scale_value(RESIZE_EDGE_THRESHOLD)
@@ -3061,6 +3085,34 @@ class Tree(TreeType):
             if node.properties.transition:
                 self.transition_manager.detect_changes(node.id, node)
 
+    def _highlight_style_paints(self, node: NodeType) -> bool:
+        """Whether `highlight_style` would look like anything.
+
+        Declaring it takes the node off the `highlight_color` overlay, so a
+        style that matches the node's resting values used to leave it with no
+        highlight at all. Those keep the overlay. Anything not provably inert
+        counts as painting. A `transition` animates to the same value either
+        way, so it always owns the decorator layer.
+        """
+        style = node.properties.highlight_style
+        if not style:
+            return False
+        if node.properties.transition:
+            return True
+        properties = node.properties
+        for name, value in style.items():
+            if value is None:
+                continue
+            base = getattr(properties, name, None)
+            if name in COLOR_PROPERTIES and isinstance(value, str) and isinstance(base, str):
+                # `highlight_style` is a raw dict, so its colors never went
+                # through `hex_color` the way the resting ones did.
+                if _expand_shorthand_hex(value).lower() != _expand_shorthand_hex(base).lower():
+                    return True
+            elif value != base:
+                return True
+        return False
+
     def _use_decorator(self, node: NodeType):
         if not node.properties.highlight_style and node.properties.transition \
                 and isinstance(node.properties.transition, dict) and node.interactive \
@@ -3074,8 +3126,14 @@ class Tree(TreeType):
                     "background_color": node.properties.highlight_color
                 }
 
-        if ((node.disabled and node.properties.disabled_style) or node.properties.highlight_style) \
-                and node.uses_decoration_render == False:
+        if node.uses_decoration_render:
+            # An ancestor already paints this subtree. Carry the flag down or
+            # a descendant that inherited the cascaded `highlight_style`
+            # registers a second render of the same pixels.
+            for child_node in node.get_children_nodes():
+                child_node.uses_decoration_render = True
+        elif (node.disabled and node.properties.disabled_style) \
+                or self._highlight_style_paints(node):
             # An id-less node only ever varies through its interactive
             # ancestor, so that ancestor owns the render. Taking the nearest
             # ancestor that merely had an id reached past it to the window,
@@ -3085,6 +3143,9 @@ class Tree(TreeType):
             if target_node and target_node.id:
                 self.meta_state.add_decoration_render(target_node.id)
                 node.uses_decoration_render = True
+                # The owner draws on the decorator, so it has to leave the
+                # base render list too, or it paints twice.
+                target_node.uses_decoration_render = True
                 for child_node in target_node.get_children_nodes():
                     child_node.uses_decoration_render = True
 

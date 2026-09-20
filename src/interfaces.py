@@ -204,6 +204,7 @@ class MetaStateType(ABC):
     decoration_renders: dict
     _highlighted: dict[str, str]
     _buttons: set[str]
+    _hover_links: list[tuple[str, str]]
     _draggable_offset: dict[str, Point2d]
     _last_drag_offset: dict[str, Point2d]
     _scrollable = dict[str, ScrollableType]

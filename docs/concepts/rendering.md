@@ -9,7 +9,7 @@ UI Elements uses a 3 canvas system for rendering (+ 1 drag canvas if applicable)
 | Blockable | Nothing. Receives mouse events | When the UI is interactive or draggable |
 | Drag overlay | The outline of a held drag | Only mid-drag |
 
-If an element has an `id` or a `highlight_style`, it will draw on the decorator canvas.
+An element draws on the decorator canvas instead of the base canvas when its appearance can change without moving layout: a `highlight_style` that differs from its resting style, a `disabled_style` while disabled, an open `select`, or an `input_text`. Its children go with it.
 
 ## Full renders
 
