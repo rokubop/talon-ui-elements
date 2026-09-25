@@ -3422,6 +3422,11 @@ class Tree(TreeType):
         current_node.tree = self
         current_node.depth = len(node_index_path)
         current_node.node_index_path = node_index_path
+        # A positioned ancestor cascades its z_subindex once, while a
+        # component below it is still unresolved, so the component's output
+        # never gets it and paints under the ancestor's background.
+        parent = getattr(current_node, 'parent_node', None)
+        current_node.z_subindex = parent.z_subindex if parent else 0
 
         if getattr(current_node, 'parent_node', None):
             current_node.inherit_cascaded_properties(current_node.parent_node)

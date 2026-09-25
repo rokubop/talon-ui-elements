@@ -64,6 +64,9 @@ class Component(ComponentType):
     def replace_self_with_nodes(self, node_tree: NodeType):
         index = self.parent_node.children_nodes.index(self)
         self.parent_node.children_nodes[index] = node_tree
+        # Without it the output is an orphan: it inherits no cascaded
+        # properties, z_index included, and paints under a modal panel.
+        node_tree.parent_node = self.parent_node
 
     def initialize(self, node_index_path: List[int]):
         self.id = (self.name, tuple(node_index_path))
