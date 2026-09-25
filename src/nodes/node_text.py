@@ -105,6 +105,11 @@ class NodeText(Node):
         line-number gutter here."""
         return 0
 
+    def _body_bottom_inset(self):
+        """Height below the last baseline. Lines are cap height, so
+        descenders hang out of the box. NodeCode is clipped and reserves them."""
+        return 0
+
     def _compute_lines(self, paint):
         """Compute multiline layout. Sets text_multiline, text_width, text_body_height."""
         text = self.text
@@ -137,7 +142,7 @@ class NodeText(Node):
             widths = [paint.measure_text(line or " ")[0] for line, _ in self.text_multiline]
             self.text_width = max(widths) if widths else 0
             num_lines = len(self.text_multiline)
-            self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
+            self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1) + self._body_bottom_inset()
         else:
             # Single line - append sentinel to accurately measure leading/trailing spaces
             if text:
@@ -153,7 +158,7 @@ class NodeText(Node):
                 self.text_width = cached
             else:
                 self.text_width = 0
-            self.text_body_height = self.text_line_height
+            self.text_body_height = self.text_line_height + self._body_bottom_inset()
 
     def v2_constrain_size(self, available_size=None):
         self.box_model.constrain_size(available_size, self.properties.overflow)
@@ -177,7 +182,7 @@ class NodeText(Node):
                 widths = [paint.measure_text(line or " ")[0] for line, _ in self.text_multiline]
                 self.text_width = (max(widths) if widths else 0) + inset
                 num_lines = len(self.text_multiline)
-                self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1)
+                self.text_body_height = self.text_line_height * num_lines + gap * max(0, num_lines - 1) + self._body_bottom_inset()
 
             height_delta = self.text_body_height - old_height
             if height_delta > 0:

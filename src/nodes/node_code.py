@@ -11,6 +11,10 @@ from ..syntax import (
 )
 
 
+# font cache key -> px the lowest glyphs drop below the baseline
+descent_cache = {}
+
+
 def _parse_diff_prefix(line):
     """Return (prefix, content, line_type) for a diff line."""
     if line.startswith("@@"):
@@ -44,6 +48,7 @@ class NodeCode(NodeText):
         self.line_numbers = bool(properties.line_numbers)
         self.line_number_start = properties.line_number_start or 1
         self.gutter_width = 0
+        self.descent = 0
         self.row_line_numbers = []
         self.row_starts_line = []
         self.row_logical_index = []
@@ -51,9 +56,22 @@ class NodeCode(NodeText):
     def _wrap_inset(self):
         return self.gutter_width
 
+    def _body_bottom_inset(self):
+        return self.descent
+
+    def _measure_descent(self, paint):
+        key = self._font_cache_key()
+        cached = descent_cache.get(key)
+        if cached is None:
+            bounds = paint.measure_text("gjpqy()[]{}|_,")[1]
+            cached = max(0, bounds.y + bounds.height)
+            descent_cache[key] = cached
+        return cached
+
     def _compute_lines(self, paint):
         # before super(): wrapping needs the width the gutter takes
         self.gutter_width = self._measure_gutter(paint)
+        self.descent = self._measure_descent(paint)
         super()._compute_lines(paint)
         self._compute_line_numbers()
         self.text_width += self.gutter_width
