@@ -638,6 +638,7 @@ class Tree(TreeType):
         self.render_cause = RenderCauseState()
         self.render_list = []
         self.render_layers = []
+        self.modal_render_layers = []
         self._tree_constructor = tree_constructor
         self.render_version = 2
         self.render_debounce_job = None
@@ -855,6 +856,41 @@ class Tree(TreeType):
         ]
         self.render_layers.sort(key=lambda l: (l.z_index, l.z_subindex))
 
+        # An open modal paints on the decorator, above the decorations behind
+        # it. The two canvases show their frames at different times, so
+        # opening or closing it has to change one canvas only: the base
+        # never has the modal in it.
+        self.modal_render_layers = []
+        modal = self.active_modal_node
+        if modal:
+            in_modal = set()
+            stack = [modal]
+            while stack:
+                node = stack.pop()
+                in_modal.add(id(node))
+                stack.extend(node.get_children_nodes())
+            base_layers = []
+            for layer in self.render_layers:
+                base_items = []
+                modal_items = []
+                for item in layer.items:
+                    if id(item.node) in in_modal:
+                        modal_items.append(item)
+                    else:
+                        base_items.append(item)
+                if base_items:
+                    base_layers.append(RenderLayer(layer.z_index, layer.z_subindex, base_items))
+                if modal_items:
+                    self.modal_render_layers.append(RenderLayer(layer.z_index, layer.z_subindex, modal_items))
+            self.render_layers = base_layers
+
+    def draw_modal_layers(self, canvas: SkiaCanvas):
+        transforms = RenderTransforms(offset=self.cursor_position) \
+            if self.has_cursor_node \
+            else None
+        for layer in self.modal_render_layers:
+            layer.draw_to_canvas(canvas, transforms)
+
     def commit_base_canvas(self):
         cursor_transforms = RenderTransforms(offset=self.cursor_position) \
             if self.has_cursor_node \
@@ -893,15 +929,14 @@ class Tree(TreeType):
         for _ in range(clip_count):
             canvas.restore()
 
-    def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None):
-        # The decorator canvas paints on top of the base canvas, so when a
-        # modal is open we must skip decoration renders for nodes outside the
-        # modal subtree. Otherwise input cursors/text and open select
-        # dropdowns from underneath the modal show through on top of it.
+    def draw_decoration_renders(self, canvas: SkiaCanvas, transforms: RenderTransforms = None, behind_modal: bool = False):
+        """With a modal open, draws either the decorations inside it or,
+        with `behind_modal`, the ones it covers. Those go first, so the
+        modal paints over them."""
         modal_scope = self.get_modal_scope_ids()
         for id in list(self.meta_state.decoration_renders.keys()):
             if id in self.meta_state.id_to_node:
-                if modal_scope is not None and id not in modal_scope:
+                if modal_scope is not None and (id in modal_scope) == behind_modal:
                     continue
                 node = self.meta_state.id_to_node[id]
                 clip_count = self.apply_clip_regions(canvas, node, transforms)
@@ -1057,6 +1092,9 @@ class Tree(TreeType):
                         RenderCause.STATE_CHANGE, RenderCause.REF_CHANGE
                     ):
                         self.reconcile_mouse_highlight()
+                    if self._active_modal_node_ref:
+                        self.draw_decoration_renders(draw_canvas, transforms, behind_modal=True)
+                        self.draw_modal_layers(draw_canvas)
                     self.draw_decoration_renders(draw_canvas, transforms)
                     if self.meta_state.scrollable:
                         self.draw_scrollbars(draw_canvas, transforms)
@@ -3006,6 +3044,7 @@ class Tree(TreeType):
             scroll_throttle_job = None
             self.render_list.clear()
             self.render_layers.clear()
+            self.modal_render_layers = []
             # Only clear hint state if no other trees have hints
             has_other_trees_with_hints = any(
                 tree != self and (tree.meta_state.inputs or tree.meta_state.buttons)
