@@ -300,13 +300,16 @@ class NodeWindow(NodeContainer):
                         icon("close", size=20, **icon_style),
                     ] if window_properties.get("show_close", True) else None,
                 ],
-            ],
+            ]
 
         # Clip the body so content cannot draw over the title bar and the
         # close button on it. overflow on window() lands in body_properties.
         self.body = div(flex=1, **{"overflow": "hidden", **body_properties})
+        # Stays live while a modal covers the body
+        self.title_bar_node = None
         if window_properties.get("show_title_bar", True):
-            self.add_child(title_bar())
+            self.title_bar_node = title_bar()
+            self.add_child(self.title_bar_node)
         if self.is_minimized:
             minimized_body_fn = window_properties.get("minimized_body", None) or (
                 lambda: div(height=24, width=200)
@@ -436,10 +439,9 @@ class NodeWindow(NodeContainer):
         # modal()]` arrives as one tuple, and a tuple is not a modal, so the
         # whole group went to the body and the test never fired.
         for node in self.normalize_children(children_nodes):
-            # A modal covers the whole window, title bar included, so it hangs
-            # off the window rather than the body, which is only the strip
-            # under the title bar. Being fixed, it takes no part in the
-            # title-bar/body flex column either way.
+            # A modal covers the body but hangs off the window, out of reach
+            # of the body's overflow clip. Being fixed, it takes no part in
+            # the title-bar/body flex column either way.
             if getattr(node, "element_type", None) == ELEMENT_ENUM_TYPE["modal"]:
                 self.add_child(node)
             else:

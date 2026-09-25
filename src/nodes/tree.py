@@ -2197,7 +2197,7 @@ class Tree(TreeType):
             return
         state_manager.set_mousedown_start_offset(gpos - start_pos)
 
-        if self._active_modal_node_ref or not state_manager.get_drag_relative_offset():
+        if not state_manager.get_drag_relative_offset():
             return
         if not self.draggable_node:
             return
@@ -2207,6 +2207,14 @@ class Tree(TreeType):
             return
 
         self.drag.start(MoveSession(self, self.draggable_node), gpos)
+
+    def _drag_allowed_at(self, gpos):
+        """With a modal open, only its window's title bar drags."""
+        if not self._active_modal_node_ref:
+            return True
+        title_bar = self.modal_title_bar_node()
+        return bool(title_bar and title_bar.box_model
+            and title_bar.box_model.border_rect.contains(gpos))
 
     def on_mousedown(self, gpos):
         if self.meta_state.resize_edge_hovered:
@@ -2239,7 +2247,7 @@ class Tree(TreeType):
         if self.draggable_node and self.drag_handle_node and self.draggable_node.box_model:
             draggable_top_left_pos = self.draggable_node.box_model.margin_pos
             drag_handle_rect = self.drag_handle_node.box_model.border_rect
-            if drag_handle_rect.contains(gpos):
+            if drag_handle_rect.contains(gpos) and self._drag_allowed_at(gpos):
                 relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
                 state_manager.set_drag_relative_offset(relative_offset)
 
@@ -3251,6 +3259,16 @@ class Tree(TreeType):
             current = getattr(current, "parent_node", None)
         return None
 
+    def _find_modal_host_ref(self, node: NodeType):
+        """The body of the enclosing window, so its title bar stays usable,
+        or None when there's no window."""
+        window_ref = self._find_enclosing_window_ref(node)
+        window = window_ref() if window_ref else None
+        body = getattr(window, "body", None)
+        if body is not None and body.parent_node is window:
+            return weakref.ref(body)
+        return window_ref
+
     def _find_parent_relative_positional_node(self, node: NodeType):
         if node.properties.position != "static":
             return weakref.ref(node)
@@ -3291,9 +3309,10 @@ class Tree(TreeType):
         return self._active_modal_node_ref() if self._active_modal_node_ref else None
 
     def get_modal_scope_ids(self) -> Optional[set]:
-        """Set of node ids inside the active modal's subtree, or None when no
-        modal is open. Hot-path callers can early-out on a single attr check
-        before invoking this. Computed lazily and cached per render."""
+        """Set of node ids inside the active modal's subtree, plus its
+        window's title bar, or None when no modal is open. Hot-path callers
+        can early-out on a single attr check before invoking this. Computed
+        lazily and cached per render."""
         if not self._active_modal_node_ref:
             return None
         if self._cached_modal_scope_ids is not None:
@@ -3303,6 +3322,9 @@ class Tree(TreeType):
             return None
         ids = set()
         stack = [modal]
+        title_bar = self.modal_title_bar_node()
+        if title_bar:
+            stack.append(title_bar)
         while stack:
             cur = stack.pop()
             cur_id = getattr(cur, 'id', None)
@@ -3311,6 +3333,14 @@ class Tree(TreeType):
             stack.extend(getattr(cur, 'children_nodes', None) or ())
         self._cached_modal_scope_ids = ids
         return ids
+
+    def modal_title_bar_node(self) -> Optional[NodeType]:
+        """Title bar of the window the open modal sits in, which the modal
+        leaves uncovered."""
+        modal = self.active_modal_node
+        window_ref = self._find_enclosing_window_ref(modal) if modal else None
+        window = window_ref() if window_ref else None
+        return getattr(window, "title_bar_node", None)
 
     def _handle_modal_open_transition(self):
         """Detect modal open events across renders and force-collapse any
@@ -3373,7 +3403,10 @@ class Tree(TreeType):
                 # sizing both, so pointing a modal at its window scopes it
                 # there. Plain fixed nodes keep anchoring to the root.
                 host = None
-                if node.element_type == ELEMENT_ENUM_TYPE["modal"]                         or getattr(node, "anchors_to_window", False):
+                if node.element_type == ELEMENT_ENUM_TYPE["modal"] \
+                        or getattr(node, "anchors_to_modal_host", False):
+                    host = self._find_modal_host_ref(node)
+                elif getattr(node, "anchors_to_window", False):
                     host = self._find_enclosing_window_ref(node)
                 node.relative_positional_node = host or weakref.ref(self.root_node)
                 node.z_subindex += 1

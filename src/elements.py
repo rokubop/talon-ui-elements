@@ -470,9 +470,9 @@ def modal(
     """Overlay layer. Pass content sizing (`width`, `height`, `padding`, etc.)
     directly — they apply to the centered content panel, not the wrapper.
     The wrapper covers its host and auto-scopes hints/clicks to its subtree
-    while open. The host is the enclosing `window` when there is one, so the
-    modal follows that window (across screens included); otherwise it is the
-    screen."""
+    while open. The host is the enclosing `window`'s body when there is one,
+    so the modal follows that window (across screens included) and its title
+    bar stays usable; otherwise it is the screen."""
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["modal"])
 
     content_defaults = {
