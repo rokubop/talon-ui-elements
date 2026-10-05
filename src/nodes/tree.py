@@ -824,9 +824,12 @@ class Tree(TreeType):
                 int(self.root_node.boundary_rect.width),
                 int(self.root_node.boundary_rect.height),
             )
-        for node in self.absolute_nodes + self.fixed_nodes:
-            node: NodeType = node()
-            if node and node.tree == self:
+        # Outermost first: an absolute node inside a fixed one (a modal)
+        # positions against a box that only exists once the fixed one is laid out.
+        nodes = [ref() for ref in self.absolute_nodes + self.fixed_nodes]
+        nodes = sorted((n for n in nodes if n), key=lambda n: n.depth)
+        for node in nodes:
+            if node.tree == self:
                 relative_positional_node: NodeType = node.relative_positional_node()
                 node.v2_measure_intrinsic_size(self.current_base_canvas)
                 node.v2_grow_size()
@@ -3463,6 +3466,11 @@ class Tree(TreeType):
 
         if getattr(current_node, 'parent_node', None):
             current_node.inherit_cascaded_properties(current_node.parent_node)
+            # z_index is global, so a popout's z_index=5 inside a modal (101)
+            # sank under the modal's own panel. Never below the parent.
+            parent_z = parent.properties.z_index or 0
+            if (current_node.properties.z_index or 0) < parent_z:
+                current_node.properties.z_index = parent_z
         self._assign_dragging_node_and_handle(current_node)
         self._assign_missing_ids(current_node, node_index_path)
         self._set_interactive_ids(current_node)
