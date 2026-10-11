@@ -85,6 +85,7 @@ class MoveSession(DragSession):
             mousedown_start_pos=self._mouse_start,
             mousedown_start_offset=self.offset,
             on_start=self.tree.on_drag_mouseup_begin,
+            node_id=self.node_id,
         )
 
     def shapes(self) -> list:

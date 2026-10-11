@@ -133,8 +133,8 @@ Properties mostly match standard CSS properties.
 | autofocus | bool | False | Autofocus for `input_text`, `textarea`, or `button` |
 | disabled | bool | False | Whether element is disabled (for interactive elements) |
 | disabled_style | dict | None | Style overrides when disabled |
-| draggable | bool | False | Whether element can be dragged. See [Drag](concepts/drag.md) |
-| drag_handle | bool | False | Treat this area as the drag handle for a parent draggable |
+| draggable | bool | False | Whether element can be dragged. Any number per tree, each with its own `id`. See [Drag](concepts/drag.md) |
+| drag_handle | bool | False | Treat this area as the drag handle for the nearest draggable above it |
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |

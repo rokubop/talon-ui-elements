@@ -614,9 +614,12 @@ class Tree(TreeType):
         self._input_last_click_time = 0
         self._input_last_click_x = 0
         self._input_last_click_y = 0
-        self.draggable_node = False
+        # Every draggable, in tree order. A mousedown picks one as drag_target.
+        self.draggable_nodes = []
+        # (draggable, handle) pairs. A draggable with none is its own handle.
+        self.drag_handles = []
+        self.drag_target = None
         self.draggable_node_delta_pos = None
-        self.drag_handle_node = None
         self.processing_states = set()
         self.fixed_nodes = []
         self.guid = uuid.uuid4().hex
@@ -1109,7 +1112,7 @@ class Tree(TreeType):
                     self.draw_resize_edge_highlight(draw_canvas, transforms.offset)
                     canvas.paint.color = "FFFFFF"
                     self.draw_text_mutations(draw_canvas, Point2d(0, 0)) # Why does 0,0 work here?
-                    if self.interactive_node_list or self.draggable_node:
+                    if self.interactive_node_list or self.draggable_nodes:
                         if state_manager.is_focus_visible():
                             self.draw_focus_outline(draw_canvas, offset)
                         if self.show_hints:
@@ -1846,7 +1849,7 @@ class Tree(TreeType):
     def prepare_drag_overlay(self):
         """Build it while there is time, not when a drag starts. Stays
         hidden until one does."""
-        if self.draggable_node or self.has_resizable_nodes():
+        if self.draggable_nodes or self.has_resizable_nodes():
             self.drag.prepare()
 
     def on_fully_rendered(self):
@@ -1856,11 +1859,14 @@ class Tree(TreeType):
                 if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
                     self.on_state_change_effect_callbacks()
                 elif self.render_manager.render_cause == RenderCause.DRAG_END:
-                    if self.draggable_node and self.draggable_node.properties and self.draggable_node.properties.on_drag_end:
-                        if len(inspect.signature(self.draggable_node.properties.on_drag_end).parameters) == 1:
-                            self.draggable_node.properties.on_drag_end(StateEvent())
+                    metadata = self.render_manager.current_render_task.metadata
+                    node = self.meta_state.id_to_node.get(metadata.get("node_id"))
+                    on_drag_end = getattr(node.properties, "on_drag_end", None) if node else None
+                    if on_drag_end:
+                        if len(inspect.signature(on_drag_end).parameters) == 1:
+                            on_drag_end(StateEvent())
                         else:
-                            self.draggable_node.properties.on_drag_end()
+                            on_drag_end()
             else:
                 self.is_mounted = True
 
@@ -2202,14 +2208,33 @@ class Tree(TreeType):
 
         if not state_manager.get_drag_relative_offset():
             return
-        if not self.draggable_node:
+        if not self.drag_target:
             return
 
         threshold = scale_value(DRAG_INIT_THRESHOLD)
         if abs(gpos.x - start_pos.x) <= threshold and abs(gpos.y - start_pos.y) <= threshold:
             return
 
-        self.drag.start(MoveSession(self, self.draggable_node), gpos)
+        # A render since mousedown rebuilds the nodes. Ids survive it.
+        node = self.meta_state.id_to_node.get(self.drag_target.id, self.drag_target)
+        self.drag.start(MoveSession(self, node), gpos)
+
+    def _drag_target_at(self, gpos):
+        """The draggable whose handle is under gpos. Where handles overlap,
+        the one painted on top wins: higher z_index, then deeper, then later."""
+        target = None
+        target_rank = None
+        for order, node in enumerate(self.draggable_nodes):
+            if not node.box_model:
+                continue
+            handles = [h for d, h in self.drag_handles if d is node] or [node]
+            for handle in handles:
+                if not handle.box_model or not handle.box_model.border_rect.contains(gpos):
+                    continue
+                rank = (handle.properties.z_index or 0, handle.depth, order)
+                if target_rank is None or rank > target_rank:
+                    target, target_rank = node, rank
+        return target
 
     def _drag_allowed_at(self, gpos):
         """With a modal open, only its window's title bar drags."""
@@ -2247,12 +2272,12 @@ class Tree(TreeType):
                 if hovered_interactive_id != node.id:
                     node._close()
 
-        if self.draggable_node and self.drag_handle_node and self.draggable_node.box_model:
-            draggable_top_left_pos = self.draggable_node.box_model.margin_pos
-            drag_handle_rect = self.drag_handle_node.box_model.border_rect
-            if drag_handle_rect.contains(gpos) and self._drag_allowed_at(gpos):
-                relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
-                state_manager.set_drag_relative_offset(relative_offset)
+        drag_target = self._drag_target_at(gpos) if self.draggable_nodes else None
+        self.drag_target = drag_target if drag_target and self._drag_allowed_at(gpos) else None
+        if self.drag_target:
+            draggable_top_left_pos = drag_target.box_model.margin_pos
+            relative_offset = Point2d(gpos.x - draggable_top_left_pos.x, gpos.y - draggable_top_left_pos.y)
+            state_manager.set_drag_relative_offset(relative_offset)
 
         if hovered_id in list(self.meta_state.buttons):
             node = self.meta_state.id_to_node.get(hovered_id)
@@ -2355,7 +2380,7 @@ class Tree(TreeType):
 
     def on_drag_mouseup_begin(self, e):
         self.drag_end_phase = True
-        self.meta_state.commit_drag_offset(self.draggable_node.id)
+        self.meta_state.commit_drag_offset(e.metadata["node_id"])
         state_manager.set_drag_active(False)
         state_manager.set_drag_relative_offset(None)
 
@@ -3047,8 +3072,9 @@ class Tree(TreeType):
             if self.root_node:
                 self.root_node.destroy()
             self.root_node = None
-            self.draggable_node = None
-            self.drag_handle_node = None
+            self.draggable_nodes.clear()
+            self.drag_handles.clear()
+            self.drag_target = None
             self.draggable_node_delta_pos = None
             self.absolute_nodes.clear()
             self.fixed_nodes.clear()
@@ -3071,13 +3097,17 @@ class Tree(TreeType):
 
     def _assign_dragging_node_and_handle(self, node: NodeType):
         if hasattr(node.properties, "draggable") and node.properties.draggable:
-            if node.depth > 1 or node.element_type not in [ELEMENT_ENUM_TYPE["div"], ELEMENT_ENUM_TYPE["form"], ELEMENT_ENUM_TYPE["window"]]:
-                raise Exception('Only top level divs can be draggable. Assign "draggable" property to the top level div (Not "screen" or "active_window").')
-            self.draggable_node = node
-            self.drag_handle_node = node
+            if node.depth < 1 or node.element_type not in [ELEMENT_ENUM_TYPE["div"], ELEMENT_ENUM_TYPE["form"], ELEMENT_ENUM_TYPE["window"]]:
+                raise Exception('Only divs can be draggable. Assign "draggable" property to a div (Not "screen" or "active_window").')
+            self.draggable_nodes.append(node)
 
         if node.properties.drag_handle:
-            self.drag_handle_node = node
+            # Belongs to the nearest draggable above it
+            owner = getattr(node, "parent_node", None)
+            while owner and not getattr(getattr(owner, "properties", None), "draggable", False):
+                owner = getattr(owner, "parent_node", None)
+            if owner:
+                self.drag_handles.append((owner, node))
 
     def _assign_missing_ids(self, node: NodeType, node_index_path: list[int]):
         requires_id = False
@@ -3446,6 +3476,8 @@ class Tree(TreeType):
         if not node_index_path:
             # Root call: clear per-render modal tracking before walking the tree.
             self._active_modal_node_ref = None
+            self.draggable_nodes.clear()
+            self.drag_handles.clear()
             self._cached_modal_scope_ids = None
             self.transition_manager.begin_render()
 
@@ -3567,22 +3599,27 @@ class Tree(TreeType):
         """
         blockable_rects = []
 
-        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_node or self.interactive_node_list or self.meta_state.scrollable:
-            full_rect = self.draggable_node.box_model.border_rect \
-                if getattr(self.draggable_node, 'box_model', None) \
-                else self.root_node.box_model.content_children_rect
+        if self.meta_state.buttons or self.meta_state.inputs or self.draggable_nodes or self.interactive_node_list or self.meta_state.scrollable:
+            # One per draggable, so the gaps between them stay click-through
+            full_rects = [
+                node.box_model.border_rect for node in self.draggable_nodes
+                if getattr(node, 'box_model', None)
+            ] or [self.root_node.box_model.content_children_rect]
 
             # Expand blockable area to cover resize edge detection zone
             if self.has_resizable_nodes():
                 threshold = scale_value(RESIZE_EDGE_THRESHOLD)
-                full_rect = Rect(
-                    full_rect.x - threshold,
-                    full_rect.y - threshold,
-                    full_rect.width + threshold * 2,
-                    full_rect.height + threshold * 2
-                )
+                full_rects = [
+                    Rect(
+                        full_rect.x - threshold,
+                        full_rect.y - threshold,
+                        full_rect.width + threshold * 2,
+                        full_rect.height + threshold * 2
+                    )
+                    for full_rect in full_rects
+                ]
 
-            blockable_rects = [full_rect]
+            blockable_rects = full_rects
 
             if self.meta_state.inputs:
                 for input_id, input_data in list(self.meta_state.inputs.items()):
@@ -3621,6 +3658,10 @@ class Tree(TreeType):
 
             if self.render_manager.render_cause == RenderCause.DRAG_END:
                 # The drag session already put them where the drop lands.
+                # It moves them as one, though, and with several draggables
+                # only one of them moved. Put each back on its own.
+                if len(self.draggable_nodes) > 1:
+                    self.move_blockable_canvas_rects(blockable_rects)
                 return
 
             if is_rerender:
