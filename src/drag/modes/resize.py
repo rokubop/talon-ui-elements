@@ -58,7 +58,7 @@ class ResizeSession(DragSession):
     def commit(self, gpos: Point2d) -> None:
         self.ghost = self._resolve_rect(gpos)
         ms = self.tree.meta_state
-        scale = get_scale() or 1.0
+        scale = getattr(self.tree, "scale", None) or get_scale() or 1.0
         width = self.ghost.width / scale
         height = self.ghost.height / scale
 
