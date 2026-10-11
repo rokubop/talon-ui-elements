@@ -92,7 +92,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     color: str = DEFAULT_COLOR
     disabled: bool = False
     disabled_style: dict = None
-    drag_bounds: Union[str, Rect] = None
+    drag_bounds: Union[str, tuple[int, int, int, int], Rect] = None
     drag_handle: bool = False
     draggable: bool = False
     drop_shadow: tuple[int, int, int, int, str] = None
@@ -239,12 +239,16 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             )
 
     def validate_drag_bounds(self):
-        if self.drag_bounds is not None and self.drag_bounds != "root" \
-                and not isinstance(self.drag_bounds, Rect):
-            raise ValueError(
-                f"\nInvalid value for drag_bounds: '{self.drag_bounds}'\n"
-                f"Valid values are: 'root', or a Rect in screen pixels"
-            )
+        bounds = self.drag_bounds
+        if bounds is None or bounds == "root" or isinstance(bounds, Rect):
+            return
+        if isinstance(bounds, (tuple, list)) and len(bounds) == 4 \
+                and all(isinstance(v, (int, float)) for v in bounds):
+            return
+        raise ValueError(
+            f"\nInvalid value for drag_bounds: '{bounds}'\n"
+            f"Valid values are: 'root', or (x, y, width, height) in screen pixels"
+        )
 
     def validate_transition(self):
         if self.transition:
@@ -542,7 +546,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     color: str
     disabled: bool
     disabled_style: dict
-    drag_bounds: Union[str, Rect]
+    drag_bounds: Union[str, tuple[int, int, int, int], Rect]
     drag_handle: bool
     draggable: bool
     drop_shadow: tuple[int, int, int, int, str]

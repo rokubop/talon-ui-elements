@@ -135,7 +135,7 @@ Properties mostly match standard CSS properties.
 | disabled_style | dict | None | Style overrides when disabled |
 | draggable | bool | False | Whether element can be dragged. Any number per tree, each with its own `id`. See [Drag](concepts/drag.md) |
 | drag_handle | bool | False | Treat this area as the drag handle for the nearest draggable above it |
-| drag_bounds | str \| Rect | None | Keep a drag or resize inside `"root"` (the tree's screen) or a `Rect` in screen pixels. See [Drag](concepts/drag.md) |
+| drag_bounds | str \| tuple | None | Keep a drag or resize inside `"root"` (the tree's screen) or `(x, y, width, height)` in screen pixels. See [Drag](concepts/drag.md) |
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
 | on_drag_end | callable | None | Callback when a draggable is dropped, not on Esc. Accepts 1 event argument with `id`, `dx` and `dy`, how far that drag moved it, unscaled. |

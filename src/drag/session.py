@@ -13,10 +13,13 @@ from talon.types import Point2d, Rect
 
 def drag_bounds(tree, node) -> Rect:
     """Where a node's `drag_bounds` keeps a move or resize: the tree's root
-    for "root", a Rect in screen pixels as given, or None for anywhere."""
+    for "root", an `(x, y, width, height)` or Rect in screen pixels, or None
+    for anywhere."""
     bounds = getattr(node.properties, "drag_bounds", None)
     if bounds == "root":
         return getattr(getattr(tree, "root_node", None), "boundary_rect", None)
+    if isinstance(bounds, (tuple, list)):
+        return Rect(*bounds)
     return bounds if isinstance(bounds, Rect) else None
 
 
