@@ -25,7 +25,6 @@ class MoveSession(DragSession):
         self.offset = Point2d(0, 0)
         self._radius = None
         self._mouse_start: Point2d = None
-        self._blockable_rects = []
         self._bounds: Rect = None
         self._dropped: DragEndEvent = None
 
@@ -40,7 +39,6 @@ class MoveSession(DragSession):
         # for the rest of the drag, so it stays true.
         self.origin = box_model.border_rect.copy()
         self._radius = self.node.properties.get_border_radius()
-        self._blockable_rects = self.tree.calculate_blockable_rects()
         self._bounds = drag_bounds(self.tree, self.node)
 
         state_manager.set_drag_active(True)
@@ -59,8 +57,6 @@ class MoveSession(DragSession):
         # (Node.v2_drag_offset), so publishing it mid-drag lets any repaint we
         # did not ask for move the real window under its own outline.
         self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
-        # They only tracked the cursor loosely. Land them on the drop.
-        self._move_capture(self.offset)
         scale = getattr(self.tree, "scale", None) or get_scale() or 1.0
         self._dropped = DragEndEvent(
             id=self.node_id, dx=self.offset.x / scale, dy=self.offset.y / scale
@@ -70,7 +66,6 @@ class MoveSession(DragSession):
         self.offset = Point2d(0, 0)
         self._dropped = None
         self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
-        self._move_capture(self.offset)
 
     def settle(self) -> None:
         self.tree.render_manager.render_drag_end(
@@ -96,7 +91,7 @@ class MoveSession(DragSession):
 
     def _apply(self, gpos: Point2d) -> None:
         # The drag overlay catches the mouse on every screen, so the
-        # blockable canvases stay put until the drop
+        # blockable canvases stay put. The drop's render moves them.
         offset = gpos - self._mouse_start
         b, o = self._bounds, self.origin
         if b:
@@ -106,6 +101,3 @@ class MoveSession(DragSession):
                 max(b.y - o.y, min(offset.y, b.y + b.height - o.y - o.height)),
             )
         self.offset = offset
-
-    def _move_capture(self, offset: Point2d) -> None:
-        self.tree.move_blockable_canvas_rects(self._blockable_rects, offset)

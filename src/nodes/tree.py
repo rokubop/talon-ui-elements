@@ -91,6 +91,11 @@ def scroll_throttle_clear():
         cron.cancel(scroll_throttle_job)
     scroll_throttle_job = None
 
+def _rect_contains_rect(outer: Rect, inner: Rect) -> bool:
+    return outer.x <= inner.x and outer.y <= inner.y \
+        and inner.x + inner.width <= outer.x + outer.width \
+        and inner.y + inner.height <= outer.y + outer.height
+
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int = 0, scroll_x: int = 0):
         self.scroll_y = scroll_y
@@ -3570,8 +3575,7 @@ class Tree(TreeType):
         position_change = False
 
         if len(blockable_rects) != len(self.last_blockable_rects):
-            dimension_change = True
-            position_change = True
+            return True, True
 
         for i, rect in enumerate(self.last_blockable_rects):
             if not rect.width == blockable_rects[i].width or not rect.height == blockable_rects[i].height:
@@ -3585,15 +3589,10 @@ class Tree(TreeType):
 
         return dimension_change, position_change
 
-    def move_blockable_canvas_rects(self, blockable_rects, offset: Point2d = None):
-        # The rects carry every committed drag already. Only a session in
-        # flight adds an offset, and it passes its own.
-        offset = offset or Point2d(0, 0)
+    def move_blockable_canvas_rects(self, blockable_rects):
         if blockable_rects and len(blockable_rects) == len(self.canvas_blockable):
             for i, rect in enumerate(blockable_rects):
-                x = rect.x + offset.x
-                y = rect.y + offset.y
-                self.canvas_blockable[i].move(x, y)
+                self.canvas_blockable[i].move(rect.x, rect.y)
         self.last_blockable_rects.clear()
         self.last_blockable_rects.extend(blockable_rects)
 
@@ -3610,11 +3609,24 @@ class Tree(TreeType):
         blockable_rects = []
 
         if self.meta_state.buttons or self.meta_state.inputs or self.draggable_nodes or self.interactive_node_list or self.meta_state.scrollable:
-            # One per draggable, so the gaps between them stay click-through
-            full_rects = [
+            draggable_rects = [
                 node.box_model.border_rect for node in self.draggable_nodes
                 if getattr(node, 'box_model', None)
-            ] or [self.root_node.box_model.content_children_rect]
+            ]
+            content_rect = self.root_node.box_model.content_children_rect
+            if draggable_rects and all(
+                getattr(node, 'parent_node', None) is self.root_node
+                for node in self.draggable_nodes
+            ):
+                # One per draggable, so the gaps between them stay click-through
+                full_rects = draggable_rects
+            else:
+                # Nested draggables sit among other UI that must still block.
+                # One dropped past the content area needs its own.
+                full_rects = [content_rect] + [
+                    rect for rect in draggable_rects
+                    if not _rect_contains_rect(content_rect, rect)
+                ]
 
             # Expand blockable area to cover resize edge detection zone
             if self.has_resizable_nodes():
@@ -3666,14 +3678,8 @@ class Tree(TreeType):
 
             blockable_rects = self.calculate_blockable_rects()
 
-            if self.render_manager.render_cause == RenderCause.DRAG_END:
-                # The drag session already put them where the drop lands.
-                # It moves them as one, though, and with several draggables
-                # only one of them moved. Put each back on its own.
-                if len(self.draggable_nodes) > 1:
-                    self.move_blockable_canvas_rects(blockable_rects)
-                return
-
+            # A drop lands here too: a move when only positions changed, a
+            # rebuild when a drop changed how many there are or their size.
             if is_rerender:
                 dimension_change, position_change = self.have_blockable_rects_changed(blockable_rects)
                 if dimension_change:
