@@ -96,6 +96,25 @@ def _rect_contains_rect(outer: Rect, inner: Rect) -> bool:
         and inner.x + inner.width <= outer.x + outer.width \
         and inner.y + inner.height <= outer.y + outer.height
 
+def _expand_rect(rect: Rect, by: float) -> Rect:
+    if not by:
+        return rect
+    return Rect(rect.x - by, rect.y - by, rect.width + by * 2, rect.height + by * 2)
+
+def _carve_rects(rects: list[Rect], hole: Rect) -> list[Rect]:
+    """Each rect minus the hole. Clipped first, since subtract_rect sizes its
+    side strips by the hole and they would spill past the rect."""
+    carved = []
+    for rect in rects:
+        if not rect.intersects(hole):
+            carved.append(rect)
+            continue
+        carved.extend(
+            r for r in subtract_rect(rect, rect.intersect(hole))
+            if r.width > 0 and r.height > 0
+        )
+    return carved
+
 class ScrollRegion(ScrollRegionType):
     def __init__(self, scroll_y: int = 0, scroll_x: int = 0):
         self.scroll_y = scroll_y
@@ -3647,55 +3666,73 @@ class Tree(TreeType):
         blockable_rects = []
 
         if self.meta_state.buttons or self.meta_state.inputs or self.draggable_nodes or self.interactive_node_list or self.meta_state.scrollable:
-            draggable_rects = [
-                node.box_model.border_rect for node in self.draggable_nodes
-                if getattr(node, 'box_model', None)
-            ]
-            content_rect = self.root_node.box_model.content_children_rect
-            if draggable_rects and all(
-                getattr(node, 'parent_node', None) is self.root_node
-                for node in self.draggable_nodes
-            ):
-                # One per draggable, so the gaps between them stay click-through
-                full_rects = draggable_rects
+            if self.draggable_nodes:
+                blockable_rects = self._draggable_tree_blockable_rects()
             else:
-                # Nested draggables sit among other UI that must still block.
-                # One dropped past the content area needs its own.
-                full_rects = [content_rect] + [
-                    rect for rect in draggable_rects
-                    if not _rect_contains_rect(content_rect, rect)
-                ]
-
-            # Expand blockable area to cover resize edge detection zone
-            if self.has_resizable_nodes():
-                threshold = scale_value(RESIZE_EDGE_THRESHOLD)
-                full_rects = [
-                    Rect(
-                        full_rect.x - threshold,
-                        full_rect.y - threshold,
-                        full_rect.width + threshold * 2,
-                        full_rect.height + threshold * 2
-                    )
-                    for full_rect in full_rects
-                ]
-
-            blockable_rects = full_rects
+                blockable_rects = [self.root_node.box_model.content_children_rect]
+                if self.has_resizable_nodes():
+                    blockable_rects = [_expand_rect(r, scale_value(RESIZE_EDGE_THRESHOLD)) for r in blockable_rects]
 
             if self.meta_state.inputs:
                 for input_id, input_data in list(self.meta_state.inputs.items()):
                     if not input_data.input or not self.meta_state.id_to_node.get(input_id):
                         continue
                     input_rect = self.meta_state.id_to_node[input_id].box_model.visible_rect
-
-                    new_rects = []
-                    for rect in blockable_rects:
-                        if rect.intersects(input_rect):
-                            new_rects.extend(subtract_rect(rect, input_rect))
-                        else:
-                            new_rects.append(rect)
-                    blockable_rects = new_rects
+                    blockable_rects = _carve_rects(blockable_rects, input_rect)
 
         return blockable_rects
+
+    def _draggable_tree_blockable_rects(self):
+        """Drag offsets move a draggable after layout, so nothing around it
+        knows it left. Its old spot must not keep blocking."""
+        threshold = scale_value(RESIZE_EDGE_THRESHOLD) if self.has_resizable_nodes() else 0
+        root = self.root_node
+        root_children = [c for c in root.get_children_nodes() if getattr(c, 'box_model', None)]
+
+        # Outermost draggables carry the ones inside them along
+        outer_draggables = []
+        rects = []
+        for node in self.draggable_nodes:
+            if not getattr(node, 'box_model', None):
+                continue
+            rect = node.box_model.border_rect
+            ancestor = node.parent_node
+            while ancestor and ancestor is not root \
+                    and not getattr(ancestor.properties, 'draggable', False):
+                ancestor = ancestor.parent_node
+            if ancestor and ancestor is not root:
+                # Inside its draggable it is already covered, unless dropped out
+                if ancestor.box_model and _rect_contains_rect(ancestor.box_model.border_rect, rect):
+                    continue
+            else:
+                outer_draggables.append(node)
+            rects.append(_expand_rect(rect, threshold))
+
+        if all(getattr(c.properties, 'draggable', False) for c in root_children):
+            # One per draggable, so the gaps between them stay click-through
+            return rects
+
+        # Other root children block where they are, minus the spots their
+        # draggables were laid out in
+        holes = {}
+        for node in outer_draggables:
+            top = node
+            while top.parent_node and top.parent_node is not root:
+                top = top.parent_node
+            offset = self.meta_state.get_accumulated_drag_offset(node.id) or Point2d(0, 0)
+            r = node.box_model.border_rect
+            holes.setdefault(id(top), []).append(
+                Rect(r.x - offset.x, r.y - offset.y, r.width, r.height)
+            )
+        base = []
+        for child in root_children:
+            if getattr(child.properties, 'draggable', False):
+                continue
+            child_rects = [_expand_rect(child.box_model.border_rect, threshold)]
+            for hole in holes.get(id(child), ()):
+                child_rects = _carve_rects(child_rects, hole)
+            base.extend(child_rects)
+        return base + rects
 
     def on_test_draw_blockable_canvas(self, canvas: SkiaCanvas):
         canvas.paint.color = "FF0000"
