@@ -261,7 +261,8 @@ class Actions:
         Render the UI to an image instead of showing it. Returns `(image, rect)`:
         a skia `Image` of the whole root area on a transparent background, and
         that area's `Rect` in screen coordinates. Nothing appears on screen and
-        UIs already showing are unaffected.
+        UIs already showing are unaffected. If the renderer raises, so does
+        this, where a shown UI would draw an error card.
 
         ```
         image, rect = actions.user.ui_elements_render_image(ui)
