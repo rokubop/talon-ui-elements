@@ -7,7 +7,7 @@ UI Elements uses a 3 canvas system for rendering (+ 1 drag canvas if applicable)
 | Base | Layout and static elements | Always |
 | Decorator | Changes that do not move layout, such as highlights and hovers | Always |
 | Blockable | Nothing. Receives mouse events | When the UI is interactive or draggable |
-| Drag overlay | The outline of a held drag | Only mid-drag |
+| Drag overlay | The outline of a held drag. Also catches the mouse on every screen mid-drag, so the mouseup always arrives | Only mid-drag |
 
 An element draws on the decorator canvas instead of the base canvas when its appearance can change without moving layout: a `highlight_style` that differs from its resting style, a `disabled_style` while disabled, an open `select`, or an `input_text`. Its children go with it.
 

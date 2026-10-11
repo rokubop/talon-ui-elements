@@ -4,6 +4,7 @@
 
 - **Drag outline uses its own canvas on top**. Built at the end of the first full render, hidden, and only if the tree has a `draggable` or `resizable` node aka `window` element - 2026-09-07, v0.22.0.
 - **Use ghost lines until release, rather than relayout UI live.** Helps with performance and visual consistency - 2026-09-07, v0.22.0
+- **Drag overlay catches the mouse, nothing chases the cursor.** The blockable canvases used to follow the cursor mid-drag, a native window move each time; on small draggables that was every mouse report, and dragging lagged - 2026-10-10.
 - **Throttle repaints rather than mouse events.** Uses `DRAG_OVERLAY_MIN_FRAME_MS` 8 ms and `DRAG_OVERLAY_STALL_MS` 120 ms - 2026-09-07, v0.22.0
 
 ## Affected by drag
@@ -23,10 +24,11 @@ Esc during dragging will cancel
 
 | Property | On | Value |
 | -- | -- | -- |
-| `draggable` | top level div | bool |
+| `draggable` | any div but the root | bool |
 | `drag_handle` | child of a draggable | bool, the grabbable area |
+| `drag_bounds` | draggable or resizable | `"root"` (the root's area: its screen for `screen`, the window for `active_window`), or `(x, y, width, height)` in screen pixels. Move and resize stop at its edges |
 | `resizable` | node or window | `True`, `"right"`, `["right", "bottom"]` |
-| `on_drag_end` | draggable | callable, 1 event arg |
+| `on_drag_end` | draggable | callable, arg: `id`, `dx`, `dy` (unscaled, this drag only) |
 | `on_resize_end` | resizable | callable, arg: `id`, `width`, `height`, `edge` |
 | `drag_title_bar_only` | window | bool, default True |
 

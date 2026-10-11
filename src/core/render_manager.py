@@ -363,24 +363,32 @@ class RenderManager(RenderManagerType):
         mousedown_start_pos: Point2d,
         mousedown_start_offset: Point2d,
         on_start: callable = None,
-        on_end: callable = None
+        on_end: callable = None,
+        node_id: str = None,
+        drag_end_event: Any = None,
     ):
+        metadata = {
+            "mouse_pos": mouse_pos,
+            "mousedown_start_pos": mousedown_start_pos,
+            "mousedown_start_offset": mousedown_start_offset,
+            # The draggable that moved. A tree can have many.
+            "node_id": node_id,
+            # For on_drag_end. None when the drag was cancelled.
+            "drag_end_event": drag_end_event,
+        }
         render_task = RenderTask(
             cause=RenderCause.DRAG_END,
             on_start=lambda tree: (
                 on_start(RenderCallbackEvent(
                     tree=tree,
                     cause=RenderCause.DRAG_END,
+                    metadata=metadata,
                 )),
                 on_base_canvas_change(tree),
                 self.resume()
             ),
             on_end=on_end,
-            metadata = {
-                "mouse_pos": mouse_pos,
-                "mousedown_start_pos": mousedown_start_pos,
-                "mousedown_start_offset": mousedown_start_offset,
-            }
+            metadata=metadata,
         )
         self.queue_render(render_task)
 

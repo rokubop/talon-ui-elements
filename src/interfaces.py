@@ -803,9 +803,10 @@ class TreeType(ABC):
     canvas_mouse: Canvas
     current_canvas: SkiaCanvas
     cursor: CursorType
-    draggable_node: NodeType
+    draggable_nodes: List[NodeType]
     draggable_node_delta_pos: Point2d
-    drag_handle_node: NodeType
+    drag_handles: List[tuple[NodeType, NodeType]]
+    drag_target: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
     name: str

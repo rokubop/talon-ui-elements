@@ -23,6 +23,7 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_register_effect()` | `callback: Callable`<br>`arg2: Any`<br>`arg3: Any = None` | Register effect independently outside component tree. Works like `effect` element. Use `(on_mount, [])` or `(on_change, [deps])` |
 | `user.ui_elements_get_node()` | `id: str` | Get node object by ID for inspection. Access `.box_model`, `.tree`, `.parent_node`, `.children_nodes`, etc. |
 | `user.ui_elements_get_trees()` | None | Get all tree objects. Each tree represents a rendered UI with all information and methods |
+| `user.ui_elements_render_image()` | `renderer: Callable`<br>`initial_state: dict = None`<br>`effects: bool = False` | Render a UI to an image without showing it. Returns `(image, rect)`: a skia `Image` of the root area on a transparent background, and where that is on screen. No hover, focus, hints or scrollbars. `effects=True` mounts then unmounts effects |
 | `user.ui_elements_dev_tools()` | None | Toggle dev tools UI for debugging and inspecting elements |
 | `user.ui_elements_debug_gc()` | None | Print garbage collection debug info to log for troubleshooting memory issues |
 | `user.ui_elements_version()` | None | Get version object with `.major`, `.minor`, `.patch` attributes. Supports comparison: `version < "0.6.2"` |

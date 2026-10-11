@@ -92,6 +92,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     color: str = DEFAULT_COLOR
     disabled: bool = False
     disabled_style: dict = None
+    drag_bounds: Union[str, tuple[int, int, int, int], Rect] = None
     drag_handle: bool = False
     draggable: bool = False
     drop_shadow: tuple[int, int, int, int, str] = None
@@ -237,6 +238,22 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )
 
+    def validate_drag_bounds(self):
+        bounds = self.drag_bounds
+        if bounds is None or bounds == "root":
+            return
+        if isinstance(bounds, Rect):
+            if bounds.width > 0 and bounds.height > 0:
+                return
+        elif isinstance(bounds, (tuple, list)) and len(bounds) == 4 \
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in bounds) \
+                and bounds[2] > 0 and bounds[3] > 0:
+            return
+        raise ValueError(
+            f"\nInvalid value for drag_bounds: '{bounds}'\n"
+            f"Valid values are: 'root', or (x, y, width, height) in screen pixels, with width and height above 0"
+        )
+
     def validate_transition(self):
         if self.transition:
             if not isinstance(self.transition, dict):
@@ -287,6 +304,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.validate_drop_shadow()
         self.validate_transition()
         self.validate_position_constraints(kwargs)
+        self.validate_drag_bounds()
         self.validate_highlight_style()
         self.validate_mount_style()
         self.validate_unmount_style()
@@ -532,6 +550,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     color: str
     disabled: bool
     disabled_style: dict
+    drag_bounds: Union[str, tuple[int, int, int, int], Rect]
     drag_handle: bool
     draggable: bool
     drop_shadow: tuple[int, int, int, int, str]
@@ -566,6 +585,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    on_drag_end: callable
     on_resize_end: callable
     resizable: Union[bool, str, list]
     right: Union[int, str, float]

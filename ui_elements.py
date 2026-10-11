@@ -4,7 +4,7 @@ from .src.core.entity_manager import entity_manager
 from .src.core.state_manager import state_manager, debug_gc, create_store
 from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
-from .src.entry import render_ui
+from .src.entry import render_ui, render_image
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.syntax import register_theme, register_language
@@ -251,6 +251,29 @@ class Actions:
     def ui_elements_get_trees():
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
+
+    def ui_elements_render_image(
+            renderer: Callable,
+            initial_state: dict[str, Any] = None,
+            effects: bool = False,
+        ) -> tuple:
+        """
+        Render the UI to an image instead of showing it. Returns `(image, rect)`:
+        a skia `Image` of the whole root area on a transparent background, and
+        that area's `Rect` in screen coordinates. Nothing appears on screen and
+        UIs already showing are unaffected.
+
+        ```
+        image, rect = actions.user.ui_elements_render_image(ui)
+
+        # with initial state
+        image, rect = actions.user.ui_elements_render_image(ui, initial_state={"color": "red"})
+
+        # run effects: mount, then unmount straight after. Off by default.
+        image, rect = actions.user.ui_elements_render_image(ui, effects=True)
+        ```
+        """
+        return render_image(renderer, initial_state, effects)
 
     def ui_elements_register(kind: str, name: str, value: Any):
         """

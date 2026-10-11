@@ -17,7 +17,7 @@ class DragController:
     def __init__(self, tree):
         self.tree = tree
         self.session: DragSession = None
-        self.overlay = DragOverlay(tree.create_overlay_canvas, self.on_key)
+        self.overlay = DragOverlay(tree.create_overlay_canvas, self.on_key, tree.on_mouse)
 
     @property
     def active(self) -> bool:
@@ -42,7 +42,7 @@ class DragController:
         # Current before begin: a draw landing from begin must already see
         # the tree as previewing.
         self.session = session
-        if session.preview:
+        if session.pause_renders:
             self.overlay.open()
 
         try:
@@ -57,10 +57,20 @@ class DragController:
             self.overlay.close()
             if session.pause_renders:
                 self.tree.render_manager.resume()
+                self._focus_tree()
             return False
+
+        # A drag never ends in a click, even when its mouseup comes late
+        pressed_id = state_manager.get_mousedown_start_id()
+        if pressed_id:
+            self.tree.meta_state.set_unhighlighted(pressed_id)
+            state_manager.set_mousedown_start_id(None)
 
         if session.preview:
             self._paint()
+        elif session.pause_renders:
+            # Empty, so a hidden frame from an earlier drag can't show
+            self.overlay.set_shapes([])
         return True
 
     def move(self, gpos: Point2d) -> bool:
@@ -101,14 +111,19 @@ class DragController:
         """Build the outline canvas before a drag needs it."""
         self.overlay.prepare()
 
-    def raise_to_top(self) -> None:
-        self.overlay.raise_to_top()
-
     def on_key(self, e) -> None:
         """Esc only. The decorator owns every other key, and this canvas is
         sitting on top of it."""
         if e.down and (e.key or "").lower() == KEY_ESCAPE:
             self.cancel()
+
+    def _focus_tree(self) -> None:
+        decorator = getattr(self.tree, "canvas_decorator", None)
+        if decorator:
+            try:
+                decorator.focused = True
+            except Exception:
+                pass
 
     def _paint(self) -> None:
         self.overlay.set_shapes(self.session.shapes())
@@ -135,4 +150,7 @@ class DragController:
         except Exception as e:
             print(f"ui_elements: {session.kind} drag failed to settle: {e}")
             log_trace()
+        # The overlay took keyboard focus when it opened
+        if session.pause_renders and not session.refocuses:
+            self._focus_tree()
         return True

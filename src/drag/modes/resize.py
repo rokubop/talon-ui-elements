@@ -8,7 +8,7 @@ from talon.types import Point2d, Rect
 from ...constants import RESIZE_MIN_HEIGHT, RESIZE_MIN_WIDTH
 from ...events import ResizeEndEvent
 from ...utils import get_scale, scale_value
-from ..session import DragSession
+from ..session import DragSession, drag_bounds
 from ..shapes import Outline
 
 
@@ -25,6 +25,7 @@ class ResizeSession(DragSession):
         self.start_rect: Rect = None
         self.ghost: Rect = None
         self._radius = None
+        self._bounds: Rect = None
         self._resized: ResizeEndEvent = None
         self._on_resize_end = None
 
@@ -37,6 +38,7 @@ class ResizeSession(DragSession):
         self.start_rect = box_model.border_rect.copy()
         self.ghost = self.start_rect.copy()
         self._radius = self.node.properties.get_border_radius()
+        self._bounds = drag_bounds(self.tree, self.node)
 
         # What the consumer declared, before any earlier resize overrode it.
         # Saved once per node, and outlives this session.
@@ -56,7 +58,7 @@ class ResizeSession(DragSession):
     def commit(self, gpos: Point2d) -> None:
         self.ghost = self._resolve_rect(gpos)
         ms = self.tree.meta_state
-        scale = get_scale() or 1.0
+        scale = getattr(self.tree, "scale", None) or get_scale() or 1.0
         width = self.ghost.width / scale
         height = self.ghost.height / scale
 
@@ -114,6 +116,18 @@ class ResizeSession(DragSession):
         if "top" in edge:
             h = sr.height - dy
             y = sr.y + dy
+
+        b = self._bounds
+        if b:
+            # The dragged edge stops at the bounds; min size below still wins
+            if "left" in edge and x < b.x:
+                w, x = w - (b.x - x), b.x
+            if "right" in edge and x + w > b.x + b.width:
+                w = b.x + b.width - x
+            if "top" in edge and y < b.y:
+                h, y = h - (b.y - y), b.y
+            if "bottom" in edge and y + h > b.y + b.height:
+                h = b.y + b.height - y
 
         constraints = self.tree.meta_state.resize_original_constraints.get(self.node_id, {})
         min_w = constraints.get("min_width") or scale_value(RESIZE_MIN_WIDTH)

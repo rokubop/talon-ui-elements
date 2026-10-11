@@ -1,7 +1,11 @@
 """The canvas a drag previews on.
 
 Nothing else draws on it, so a drag tick is one freeze of a few shapes rather
-than a repaint of the tree. Display only: no blocks_mouse.
+than a repaint of the tree.
+
+It blocks the mouse and hands it to the tree, so a drag's mouse events come
+from here: every screen, so the cursor can't leave it and nothing has to
+follow it. Hidden, it blocks nothing.
 
 Hidden between drags rather than closed, since a drag starting is the worst
 time to pay for building a canvas. It closes with the tree.
@@ -17,9 +21,11 @@ from .shapes import draw_shapes
 
 
 class DragOverlay:
-    def __init__(self, create_canvas: callable, on_key: callable = None):
+    def __init__(self, create_canvas: callable, on_key: callable = None,
+                 on_mouse: callable = None):
         self._create_canvas = create_canvas
         self._on_key = on_key
+        self._on_mouse = on_mouse
         self._canvas = None
         self._shapes = []
         self._pending = False
@@ -40,6 +46,9 @@ class DragOverlay:
         # It sits over the decorator, which owns the tree's keys.
         if self._on_key:
             self._canvas.register("key", self._on_key)
+        if self._on_mouse:
+            self._canvas.blocks_mouse = True
+            self._canvas.register("mouse", self._on_mouse)
         self._hide()
 
     def open(self) -> None:
@@ -48,6 +57,9 @@ class DragOverlay:
             self._canvas.show()
         except Exception as e:
             print(f"ui_elements: error showing drag overlay: {e}")
+        # It blocks the mouse everywhere, so anything above it would keep
+        # the mouseup that ends the drag.
+        self.raise_to_top()
 
     def close(self) -> None:
         """End of a drag. The canvas stays, emptied and hidden."""
@@ -65,6 +77,8 @@ class DragOverlay:
                 self._canvas.unregister("draw", self.on_draw)
                 if self._on_key:
                     self._canvas.unregister("key", self._on_key)
+                if self._on_mouse:
+                    self._canvas.unregister("mouse", self._on_mouse)
                 self._canvas.close()
             except Exception as e:
                 print(f"ui_elements: error closing drag overlay: {e}")
