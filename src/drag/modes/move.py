@@ -43,9 +43,8 @@ class MoveSession(DragSession):
 
         state_manager.set_drag_active(True)
         self._apply(gpos)
-        # Nothing is raised. focused=True is an OS raise, and doing it to the
-        # base canvas flickers the window you are about to drag. Talon only
-        # sank that canvas when it was the drag source, which it no longer is.
+        # Only the overlay is raised. focused=True is an OS raise, and doing it
+        # to the base canvas flickers the window you are about to drag.
         return True
 
     def move(self, gpos: Point2d) -> None:
