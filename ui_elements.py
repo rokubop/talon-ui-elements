@@ -89,29 +89,6 @@ class Actions:
                 actions.user.ui_elements_hide(renderer)
             cron.after(duration, hide_notification)
 
-    def ui_elements_render_image(
-            renderer: Callable,
-            initial_state: dict[str, Any] = None,
-            effects: bool = False,
-        ) -> tuple:
-        """
-        Render the UI to an image instead of showing it. Returns `(image, rect)`:
-        a skia `Image` of the whole root area on a transparent background, and
-        that area's `Rect` in screen coordinates. Nothing appears on screen and
-        UIs already showing are unaffected.
-
-        ```
-        image, rect = actions.user.ui_elements_render_image(ui)
-
-        # with initial state
-        image, rect = actions.user.ui_elements_render_image(ui, initial_state={"color": "red"})
-
-        # run effects: mount, then unmount straight after. Off by default.
-        image, rect = actions.user.ui_elements_render_image(ui, effects=True)
-        ```
-        """
-        return render_image(renderer, initial_state, effects)
-
     def ui_elements_hide(renderer_or_tree_id: Union[str, Callable]):
         """Destroy and hide a specific ui based on its renderer_or_tree_id function or an id on the root node (screen)"""
         entity_manager.hide_tree(renderer_or_tree_id)
@@ -274,6 +251,29 @@ class Actions:
     def ui_elements_get_trees():
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
+
+    def ui_elements_render_image(
+            renderer: Callable,
+            initial_state: dict[str, Any] = None,
+            effects: bool = False,
+        ) -> tuple:
+        """
+        Render the UI to an image instead of showing it. Returns `(image, rect)`:
+        a skia `Image` of the whole root area on a transparent background, and
+        that area's `Rect` in screen coordinates. Nothing appears on screen and
+        UIs already showing are unaffected.
+
+        ```
+        image, rect = actions.user.ui_elements_render_image(ui)
+
+        # with initial state
+        image, rect = actions.user.ui_elements_render_image(ui, initial_state={"color": "red"})
+
+        # run effects: mount, then unmount straight after. Off by default.
+        image, rect = actions.user.ui_elements_render_image(ui, effects=True)
+        ```
+        """
+        return render_image(renderer, initial_state, effects)
 
     def ui_elements_register(kind: str, name: str, value: Any):
         """
