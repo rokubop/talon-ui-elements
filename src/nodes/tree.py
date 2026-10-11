@@ -579,6 +579,7 @@ class RenderCauseState(RenderCauseStateType):
 
 class Tree(TreeType):
     Canvas = ThrottledCanvas # MockTree overrides this
+    offscreen = False # ImageTree: paints to an image, never on screen
     def __init__(
             self,
             tree_constructor: callable,
@@ -3515,7 +3516,7 @@ class Tree(TreeType):
         self._assign_dragging_node_and_handle(current_node)
         self._assign_missing_ids(current_node, node_index_path)
         self._set_interactive_ids(current_node)
-        if not self.is_mounted:
+        if not self.is_mounted and not self.offscreen:
             state_manager.autofocus_node(current_node)
         self._use_meta_state(current_node)
         # use decorator has some redundant looping. refactor this later
