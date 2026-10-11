@@ -3,6 +3,9 @@
 `preview` outlines where it lands instead of moving the real thing.
 `pause_renders` holds the tree's render queue for the duration. A session that
 previews must also pause, or the tree re-lays out under its own outline.
+A paused session takes the mouse through the drag overlay, so its mouseup
+always arrives and renders always resume.
+`refocuses` means settle hands keyboard focus back to the tree itself.
 
 Ending is two steps: `commit` mutates state while renders are still paused,
 the controller resumes, `settle` paints and fires callbacks.
@@ -27,6 +30,7 @@ class DragSession:
     kind = "drag"
     preview = False
     pause_renders = False
+    refocuses = False
 
     def __init__(self, tree):
         self.tree = tree

@@ -16,6 +16,8 @@ class MoveSession(DragSession):
     kind = "move"
     preview = True
     pause_renders = True
+    # The drop's render raises the tree (raise_dragging_canvases_to_top)
+    refocuses = True
 
     def __init__(self, tree, node):
         super().__init__(tree)

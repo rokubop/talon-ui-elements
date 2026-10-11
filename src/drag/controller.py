@@ -42,7 +42,7 @@ class DragController:
         # Current before begin: a draw landing from begin must already see
         # the tree as previewing.
         self.session = session
-        if session.preview:
+        if session.pause_renders:
             self.overlay.open()
 
         try:
@@ -57,6 +57,7 @@ class DragController:
             self.overlay.close()
             if session.pause_renders:
                 self.tree.render_manager.resume()
+                self._focus_tree()
             return False
 
         # A drag never ends in a click, even when its mouseup comes late
@@ -67,6 +68,9 @@ class DragController:
 
         if session.preview:
             self._paint()
+        elif session.pause_renders:
+            # Empty, so a hidden frame from an earlier drag can't show
+            self.overlay.set_shapes([])
         return True
 
     def move(self, gpos: Point2d) -> bool:
@@ -113,6 +117,14 @@ class DragController:
         if e.down and (e.key or "").lower() == KEY_ESCAPE:
             self.cancel()
 
+    def _focus_tree(self) -> None:
+        decorator = getattr(self.tree, "canvas_decorator", None)
+        if decorator:
+            try:
+                decorator.focused = True
+            except Exception:
+                pass
+
     def _paint(self) -> None:
         self.overlay.set_shapes(self.session.shapes())
 
@@ -138,4 +150,7 @@ class DragController:
         except Exception as e:
             print(f"ui_elements: {session.kind} drag failed to settle: {e}")
             log_trace()
+        # The overlay took keyboard focus when it opened
+        if session.pause_renders and not session.refocuses:
+            self._focus_tree()
         return True
