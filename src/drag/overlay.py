@@ -57,6 +57,9 @@ class DragOverlay:
             self._canvas.show()
         except Exception as e:
             print(f"ui_elements: error showing drag overlay: {e}")
+        # It blocks the mouse everywhere, so anything above it would keep
+        # the mouseup that ends the drag.
+        self.raise_to_top()
 
     def close(self) -> None:
         """End of a drag. The canvas stays, emptied and hidden."""

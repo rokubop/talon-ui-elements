@@ -625,6 +625,8 @@ class Tree(TreeType):
         # (draggable, handle) pairs. A draggable with none is its own handle.
         self.drag_handles = []
         self.drag_target = None
+        # The button whose mousedown could start a drag. Only it ends one.
+        self._drag_button = None
         self.draggable_node_delta_pos = None
         self.processing_states = set()
         self.fixed_nodes = []
@@ -2589,7 +2591,13 @@ class Tree(TreeType):
                 not self.render_manager.is_destroying:
             self.last_mouse_event_time = time.time()
 
+            button = getattr(e, "button", None)
             if e.event == "mousemove":
+                if self.drag.active and not self._mouse_buttons_held():
+                    # The mouseup went somewhere else. Drop where it is
+                    # rather than leave the drag stuck to the cursor.
+                    self.on_mouseup(e.gpos)
+                    return
                 # A held drag owns the cursor. Hover hit-testing is
                 # per-event work nothing would use.
                 if self.drag.move(e.gpos):
@@ -2598,9 +2606,21 @@ class Tree(TreeType):
                 self.check_scrollbar_hover(e.gpos)
                 self.on_hover(e.gpos)
             elif e.event == "mousedown":
+                if self.drag.active:
+                    return
+                self._drag_button = button
                 self.on_mousedown(e.gpos)
             elif e.event == "mouseup":
+                if self.drag.active and button != self._drag_button:
+                    return
                 self.on_mouseup(e.gpos)
+
+    def _mouse_buttons_held(self) -> bool:
+        """True when unsure, so a failed check never ends a drag."""
+        try:
+            return bool(ctrl.mouse_buttons_down())
+        except Exception:
+            return True
 
     def _try_scroll_node(self, node, e):
         """Try to scroll a node. Returns True if the node actually scrolled."""
