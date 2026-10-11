@@ -92,6 +92,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     color: str = DEFAULT_COLOR
     disabled: bool = False
     disabled_style: dict = None
+    drag_bounds: Union[str, Rect] = None
     drag_handle: bool = False
     draggable: bool = False
     drop_shadow: tuple[int, int, int, int, str] = None
@@ -532,6 +533,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     color: str
     disabled: bool
     disabled_style: dict
+    drag_bounds: Union[str, Rect]
     drag_handle: bool
     draggable: bool
     drop_shadow: tuple[int, int, int, int, str]
