@@ -2248,10 +2248,26 @@ class Tree(TreeType):
             for handle in handles:
                 if not handle.box_model or not handle.box_model.border_rect.contains(gpos):
                     continue
+                if not self._unclipped_at(handle, gpos):
+                    continue
                 rank = (handle.properties.z_index or 0, handle.depth, order)
                 if target_rank is None or rank > target_rank:
                     target, target_rank = node, rank
         return target
+
+    def _unclipped_at(self, node, gpos) -> bool:
+        """Scrolled away or cut off by an ancestor's overflow, a node is not
+        there to grab. Its own overflow clips its children, not its border."""
+        for clip_ref in node.clip_nodes:
+            clip_node = clip_ref()
+            if clip_node is None or clip_node is node or not clip_node.box_model:
+                continue
+            clip_rect = clip_node.box_model.padding_with_scroll_bar_rect \
+                if clip_node.properties.overflow.scrollable \
+                else clip_node.box_model.padding_rect
+            if clip_rect and not clip_rect.contains(gpos):
+                return False
+        return True
 
     def _drag_allowed_at(self, gpos):
         """With a modal open, only its window's title bar drags."""
