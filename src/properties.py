@@ -238,6 +238,14 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )
 
+    def validate_drag_bounds(self):
+        if self.drag_bounds is not None and self.drag_bounds != "root" \
+                and not isinstance(self.drag_bounds, Rect):
+            raise ValueError(
+                f"\nInvalid value for drag_bounds: '{self.drag_bounds}'\n"
+                f"Valid values are: 'root', or a Rect in screen pixels"
+            )
+
     def validate_transition(self):
         if self.transition:
             if not isinstance(self.transition, dict):
@@ -288,6 +296,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.validate_drop_shadow()
         self.validate_transition()
         self.validate_position_constraints(kwargs)
+        self.validate_drag_bounds()
         self.validate_highlight_style()
         self.validate_mount_style()
         self.validate_unmount_style()
