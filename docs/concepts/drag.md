@@ -26,7 +26,7 @@ Esc during dragging will cancel
 | -- | -- | -- |
 | `draggable` | any div but the root | bool |
 | `drag_handle` | child of a draggable | bool, the grabbable area |
-| `drag_bounds` | draggable or resizable | `"root"` (the tree's screen), or `(x, y, width, height)` in screen pixels. Move and resize stop at its edges |
+| `drag_bounds` | draggable or resizable | `"root"` (the root's area: its screen for `screen`, the window for `active_window`), or `(x, y, width, height)` in screen pixels. Move and resize stop at its edges |
 | `resizable` | node or window | `True`, `"right"`, `["right", "bottom"]` |
 | `on_drag_end` | draggable | callable, arg: `id`, `dx`, `dy` (unscaled, this drag only) |
 | `on_resize_end` | resizable | callable, arg: `id`, `width`, `height`, `edge` |
