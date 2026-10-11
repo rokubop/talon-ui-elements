@@ -1193,8 +1193,8 @@ class Tree(TreeType):
                 self.canvas_decorator.focused = True
             except Exception:
                 pass
-        # Last, so the outline sits above both.
-        self.drag.raise_to_top()
+        # Not the drag overlay: it is hidden by now, and raising it would
+        # leave focus on a hidden canvas. It raises itself when a drag opens it.
 
     def on_draw_base_canvas_scroll(self, canvas: SkiaCanvas):
         try:

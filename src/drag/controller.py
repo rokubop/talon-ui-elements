@@ -107,9 +107,6 @@ class DragController:
         """Build the outline canvas before a drag needs it."""
         self.overlay.prepare()
 
-    def raise_to_top(self) -> None:
-        self.overlay.raise_to_top()
-
     def on_key(self, e) -> None:
         """Esc only. The decorator owns every other key, and this canvas is
         sitting on top of it."""
