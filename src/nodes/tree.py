@@ -2645,7 +2645,9 @@ class Tree(TreeType):
             elif e.event == "mousedown":
                 if self.drag.active:
                     return
-                self._drag_button = button
+                # A second button pressed mid-hold doesn't take over the drag
+                if not self._other_mouse_buttons_held(button):
+                    self._drag_button = button
                 self.on_mousedown(e.gpos)
             elif e.event == "mouseup":
                 if self.drag.active and button != self._drag_button:
@@ -2658,6 +2660,12 @@ class Tree(TreeType):
             return bool(ctrl.mouse_buttons_down())
         except Exception:
             return True
+
+    def _other_mouse_buttons_held(self, button) -> bool:
+        try:
+            return bool(set(ctrl.mouse_buttons_down() or ()) - {button})
+        except Exception:
+            return False
 
     def _try_scroll_node(self, node, e):
         """Try to scroll a node. Returns True if the node actually scrolled."""
