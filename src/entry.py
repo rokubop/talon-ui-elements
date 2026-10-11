@@ -62,15 +62,16 @@ def render_image(
     saved_focused_input = custom_input_manager._focused_id
     staged_effects = set(map(id, store.staged_effects))
 
-    store.reactive_state = {
-        key: value for key, value in saved_state.items() if store.owning_store(key)
-    }
-    for name, value in saved_inputs.items():
-        setattr(custom_input_manager, name, type(value)())
-    custom_input_manager._focused_id = None
-
     tree = None
     try:
+        # Inside the try, so a swap that fails partway is still undone
+        store.reactive_state = {
+            key: value for key, value in saved_state.items() if store.owning_store(key)
+        }
+        for name, value in saved_inputs.items():
+            setattr(custom_input_manager, name, type(value)())
+        custom_input_manager._focused_id = None
+
         tree = ImageTree(tree_constructor, generate_hash(tree_constructor), None, initial_state)
         image, rect = tree.paint(effects)
         if effects:
@@ -78,9 +79,10 @@ def render_image(
         return image, rect
     finally:
         # A store key first set during the render belongs to the store
-        for key, value in store.reactive_state.items():
-            if store.owning_store(key) and key not in saved_state:
-                saved_state[key] = value
+        if store.reactive_state is not saved_state:
+            for key, value in store.reactive_state.items():
+                if store.owning_store(key) and key not in saved_state:
+                    saved_state[key] = value
         store.reactive_state = saved_state
         for name, value in saved_inputs.items():
             setattr(custom_input_manager, name, value)
