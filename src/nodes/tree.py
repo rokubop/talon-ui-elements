@@ -1911,10 +1911,16 @@ class Tree(TreeType):
 
                 for effect in self.effects:
                     if effect.callback:
-                        if len(inspect.signature(effect.callback).parameters) == 1:
-                            cleanup = effect.callback(StateEvent())
-                        else:
-                            cleanup = effect.callback()
+                        # a failing effect shouldn't block the others or the render
+                        try:
+                            if len(inspect.signature(effect.callback).parameters) == 1:
+                                cleanup = effect.callback(StateEvent())
+                            else:
+                                cleanup = effect.callback()
+                        except Exception as e:
+                            print(f"ui_elements: mount effect failed: {e}")
+                            log_trace()
+                            continue
                         if cleanup and not effect.cleanup:
                             effect.cleanup = cleanup
 
