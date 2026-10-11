@@ -137,7 +137,7 @@ Properties mostly match standard CSS properties.
 | drag_handle | bool | False | Treat this area as the drag handle for the nearest draggable above it |
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
-| on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
+| on_drag_end | callable | None | Callback when a draggable is dropped, not on Esc. Accepts 1 event argument with `id`, `dx` and `dy`, how far that drag moved it, unscaled. |
 | on_resize_end | callable | None | Callback when a resize drag ends. Accepts 1 event argument with `id`, `width`, `height` and `edge`. |
 | resizable | bool \| str \| list | False | Drag an element's edges to resize. `True` is all four, or name them: `"right"`, `["right", "bottom"]`. Clamped by `min_width`/`max_width`/`min_height`/`max_height`. Lasts until the UI hides. See [Drag](concepts/drag.md) |
 | value | str | None | Value of `input_text`, `textarea`, or `select` |

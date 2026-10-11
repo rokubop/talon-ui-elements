@@ -66,8 +66,9 @@ class NodeWindow(NodeContainer):
             "border_width": 1,
             "overflow": "hidden",
             **window_properties,
-            "on_drag_end": self.update_saved_positions
+            "on_drag_end": self._on_drag_end
         }
+        self._user_on_drag_end = window_properties.get("on_drag_end", None)
         title_bar_style = {
             "background_color": adjust_color_brightness(
                 window_properties.get("background_color", None), 10
@@ -382,6 +383,14 @@ class NodeWindow(NodeContainer):
     def save_resize_dimensions(self, width, height):
         last_pos_map[self.hash]["last_resize_width"] = width
         last_pos_map[self.hash]["last_resize_height"] = height
+
+    def _on_drag_end(self, e):
+        self.update_saved_positions()
+        if self._user_on_drag_end:
+            if len(inspect.signature(self._user_on_drag_end).parameters) == 1:
+                self._user_on_drag_end(e)
+            else:
+                self._user_on_drag_end()
 
     def update_saved_positions(self):
         if self.has_dock_behavior and self.is_minimized:

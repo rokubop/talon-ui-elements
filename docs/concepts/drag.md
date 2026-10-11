@@ -27,7 +27,7 @@ Esc during dragging will cancel
 | `draggable` | any div but the root | bool |
 | `drag_handle` | child of a draggable | bool, the grabbable area |
 | `resizable` | node or window | `True`, `"right"`, `["right", "bottom"]` |
-| `on_drag_end` | draggable | callable, 1 event arg |
+| `on_drag_end` | draggable | callable, arg: `id`, `dx`, `dy` (unscaled, this drag only) |
 | `on_resize_end` | resizable | callable, arg: `id`, `width`, `height`, `edge` |
 | `drag_title_bar_only` | window | bool, default True |
 

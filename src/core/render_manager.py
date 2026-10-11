@@ -365,6 +365,7 @@ class RenderManager(RenderManagerType):
         on_start: callable = None,
         on_end: callable = None,
         node_id: str = None,
+        drag_end_event: Any = None,
     ):
         metadata = {
             "mouse_pos": mouse_pos,
@@ -372,6 +373,8 @@ class RenderManager(RenderManagerType):
             "mousedown_start_offset": mousedown_start_offset,
             # The draggable that moved. A tree can have many.
             "node_id": node_id,
+            # For on_drag_end. None when the drag was cancelled.
+            "drag_end_event": drag_end_event,
         }
         render_task = RenderTask(
             cause=RenderCause.DRAG_END,

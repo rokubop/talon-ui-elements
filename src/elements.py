@@ -408,6 +408,7 @@ def window(props=None, **additional_props):
             "drop_shadow",
             "icon",
             "on_minimize",
+            "on_drag_end",
             "on_restore",
             "on_close",
             "on_click_outside",

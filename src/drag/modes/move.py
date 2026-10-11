@@ -7,7 +7,8 @@ from talon.types import Point2d, Rect
 
 from ...constants import DRAG_CAPTURE_MARGIN
 from ...core.state_manager import state_manager
-from ...utils import scale_value
+from ...events import DragEndEvent
+from ...utils import get_scale, scale_value
 from ..session import DragSession
 from ..shapes import Dim, Outline
 
@@ -40,6 +41,7 @@ class MoveSession(DragSession):
         self._blockable_rects = []
         self._capture_bounds: Rect = None
         self._capture_offset = Point2d(0, 0)
+        self._dropped: DragEndEvent = None
 
     def begin(self, gpos: Point2d) -> bool:
         box_model = getattr(self.node, "box_model", None)
@@ -73,9 +75,14 @@ class MoveSession(DragSession):
         self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
         # They only tracked the cursor loosely. Land them on the drop.
         self._move_capture(self.offset)
+        scale = getattr(self.tree, "scale", None) or get_scale() or 1.0
+        self._dropped = DragEndEvent(
+            id=self.node_id, dx=self.offset.x / scale, dy=self.offset.y / scale
+        )
 
     def cancel(self) -> None:
         self.offset = Point2d(0, 0)
+        self._dropped = None
         self.tree.meta_state.set_drag_offset(self.node_id, self.offset)
         self._move_capture(self.offset)
 
@@ -86,6 +93,7 @@ class MoveSession(DragSession):
             mousedown_start_offset=self.offset,
             on_start=self.tree.on_drag_mouseup_begin,
             node_id=self.node_id,
+            drag_end_event=self._dropped,
         )
 
     def shapes(self) -> list:

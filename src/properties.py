@@ -566,6 +566,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    on_drag_end: callable
     on_resize_end: callable
     resizable: Union[bool, str, list]
     right: Union[int, str, float]

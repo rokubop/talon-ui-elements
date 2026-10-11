@@ -1852,6 +1852,22 @@ class Tree(TreeType):
         if self.draggable_nodes or self.has_resizable_nodes():
             self.drag.prepare()
 
+    def on_drag_end_callback(self, metadata: dict):
+        """Once per drop, after the node has landed. Not on Esc."""
+        event = metadata.get("drag_end_event")
+        node = self.meta_state.id_to_node.get(event.id) if event else None
+        on_drag_end = getattr(node.properties, "on_drag_end", None) if node else None
+        if not on_drag_end:
+            return
+        try:
+            if len(inspect.signature(on_drag_end).parameters) == 1:
+                on_drag_end(event)
+            else:
+                on_drag_end()
+        except Exception as e:
+            print(f"Error during on_drag_end: {e}")
+            log_trace()
+
     def on_fully_rendered(self):
         if not self.render_manager.is_destroying:
             self.prepare_drag_overlay()
@@ -1859,14 +1875,7 @@ class Tree(TreeType):
                 if self.render_manager.render_cause == RenderCause.STATE_CHANGE:
                     self.on_state_change_effect_callbacks()
                 elif self.render_manager.render_cause == RenderCause.DRAG_END:
-                    metadata = self.render_manager.current_render_task.metadata
-                    node = self.meta_state.id_to_node.get(metadata.get("node_id"))
-                    on_drag_end = getattr(node.properties, "on_drag_end", None) if node else None
-                    if on_drag_end:
-                        if len(inspect.signature(on_drag_end).parameters) == 1:
-                            on_drag_end(StateEvent())
-                        else:
-                            on_drag_end()
+                    self.on_drag_end_callback(self.render_manager.current_render_task.metadata)
             else:
                 self.is_mounted = True
 
