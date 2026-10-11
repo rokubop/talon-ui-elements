@@ -2251,6 +2251,13 @@ class Tree(TreeType):
         if abs(gpos.x - start_pos.x) <= threshold and abs(gpos.y - start_pos.y) <= threshold:
             return
 
+        if not self._mouse_buttons_held():
+            # The mouseup never reached us. Nothing is held, so no drag.
+            self.drag_target = None
+            state_manager.set_mousedown_start_pos(None)
+            state_manager.set_drag_relative_offset(None)
+            return
+
         # A render since mousedown rebuilds the nodes. Ids survive it.
         node = self.meta_state.id_to_node.get(self.drag_target.id, self.drag_target)
         self.drag.start(MoveSession(self, node), gpos)
