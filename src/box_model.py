@@ -13,6 +13,9 @@ from .interfaces import (
 from .constants import DEFAULT_SCROLL_BAR_WIDTH
 from .utils import scale_value
 
+# justify_self / align_self on an absolute node: how far along the free space
+SELF_ALIGN_FRACTION = {"flex_start": 0, "center": 0.5, "flex_end": 1}
+
 @dataclass
 class Overflow(OverflowType):
     x: str = "visible"
@@ -142,6 +145,9 @@ class BoxModelV2(BoxModelV2Type):
         self._position_top = properties.top
         self._position_right = properties.right
         self._position_bottom = properties.bottom
+        self._justify_self = getattr(properties, "justify_self", None)
+        self._align_self = getattr(properties, "align_self", None)
+        self._translate = getattr(properties, "translate", None)
 
         self.margin_spacing = properties.margin
         self.padding_spacing = properties.padding
@@ -675,6 +681,8 @@ class BoxModelV2(BoxModelV2Type):
         self.reposition(diff)
 
     def shift_relative_position(self, cursor):
+        """Relative offset plus translate, after layout. Children move along, siblings don't."""
+        offset = None
         if self.position == "relative":
             offset = Point2d(
                 self.position_left or 0,
@@ -684,6 +692,12 @@ class BoxModelV2(BoxModelV2Type):
                 offset.x = -self.position_right
             if self.position_bottom:
                 offset.y = -self.position_bottom
+        if self._translate:
+            # Percentages are of this box's own size
+            tx = BoxModelV2._resolve_percent(self._translate[0], self.border_size.width) or 0
+            ty = BoxModelV2._resolve_percent(self._translate[1], self.border_size.height) or 0
+            offset = Point2d(offset.x + tx, offset.y + ty) if offset else Point2d(tx, ty)
+        if offset:
             self.reposition(offset)
             cursor.move_to(cursor.x + offset.x, cursor.y + offset.y)
 
@@ -706,6 +720,8 @@ class BoxModelV2(BoxModelV2Type):
                 - BoxModelV2._resolve_percent(right, relative_border.width)
                 - self.margin_size.width
             )
+        elif self._justify_self in SELF_ALIGN_FRACTION:
+            x += (relative_border.width - self.margin_size.width) * SELF_ALIGN_FRACTION[self._justify_self]
 
         if top is not None:
             y += BoxModelV2._resolve_percent(top, relative_border.height)
@@ -715,6 +731,8 @@ class BoxModelV2(BoxModelV2Type):
                 - BoxModelV2._resolve_percent(bottom, relative_border.height)
                 - self.margin_size.height
             )
+        elif self._align_self in SELF_ALIGN_FRACTION:
+            y += (relative_border.height - self.margin_size.height) * SELF_ALIGN_FRACTION[self._align_self]
 
         cursor.move_to(x, y)
 
