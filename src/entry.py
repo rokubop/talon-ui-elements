@@ -78,15 +78,17 @@ def render_image(
             tree.run_effects()
         return image, rect
     finally:
-        # A store key first set during the render belongs to the store
-        if store.reactive_state is not saved_state:
-            for key, value in store.reactive_state.items():
-                if store.owning_store(key) and key not in saved_state:
-                    saved_state[key] = value
+        # Restore first, so a failing merge can't leave the render's state in place
+        render_state = store.reactive_state
         store.reactive_state = saved_state
         for name, value in saved_inputs.items():
             setattr(custom_input_manager, name, value)
         custom_input_manager._focused_id = saved_focused_input
+        # A store key first set during the render belongs to the store
+        if render_state is not saved_state:
+            for key, value in list(render_state.items()):
+                if store.owning_store(key) and key not in saved_state:
+                    saved_state[key] = value
         # Effects staged by the render and never consumed
         store.staged_effects = [e for e in store.staged_effects if id(e) in staged_effects]
         if tree:
