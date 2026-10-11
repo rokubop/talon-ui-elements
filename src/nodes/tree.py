@@ -3731,9 +3731,24 @@ class Tree(TreeType):
             holes.setdefault(id(top), []).append(
                 Rect(r.x - offset.x, r.y - offset.y, r.width, r.height)
             )
+        # Only children with something to click block. Text or a dim layer
+        # on its own stays click-through.
+        ms = self.meta_state
+        interactive_ids = set(ms.buttons) | set(ms.inputs) | set(ms.scrollable) \
+            | ms.resizable_nodes | ms.windows \
+            | {n.id for n in self.interactive_node_list if n.id}
+        interactive_children = set()
+        for node_id in interactive_ids:
+            node = ms.id_to_node.get(node_id)
+            while node is not None and node.parent_node is not root:
+                node = node.parent_node
+            if node is not None:
+                interactive_children.add(id(node))
+
         base = []
         for child in root_children:
-            if getattr(child.properties, 'draggable', False):
+            if getattr(child.properties, 'draggable', False) \
+                    or id(child) not in interactive_children:
                 continue
             child_rects = [_expand_rect(child.box_model.border_rect, threshold)]
             for hole in holes.get(id(child), ()):
