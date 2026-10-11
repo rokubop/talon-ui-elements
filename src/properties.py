@@ -240,14 +240,18 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_drag_bounds(self):
         bounds = self.drag_bounds
-        if bounds is None or bounds == "root" or isinstance(bounds, Rect):
+        if bounds is None or bounds == "root":
             return
-        if isinstance(bounds, (tuple, list)) and len(bounds) == 4 \
-                and all(isinstance(v, (int, float)) for v in bounds):
+        if isinstance(bounds, Rect):
+            if bounds.width > 0 and bounds.height > 0:
+                return
+        elif isinstance(bounds, (tuple, list)) and len(bounds) == 4 \
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in bounds) \
+                and bounds[2] > 0 and bounds[3] > 0:
             return
         raise ValueError(
             f"\nInvalid value for drag_bounds: '{bounds}'\n"
-            f"Valid values are: 'root', or (x, y, width, height) in screen pixels"
+            f"Valid values are: 'root', or (x, y, width, height) in screen pixels, with width and height above 0"
         )
 
     def validate_transition(self):
