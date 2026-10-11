@@ -2435,7 +2435,6 @@ class Tree(TreeType):
         self.meta_state.commit_drag_offset(e.metadata["node_id"])
         state_manager.set_drag_active(False)
         state_manager.set_drag_relative_offset(None)
-        self.drag_target = None
 
     def on_mouseup(self, gpos):
         self.drag_target = None
