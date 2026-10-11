@@ -70,6 +70,15 @@ ANCHORS = {
 
 SELF_ALIGN_VALUES = ("flex_start", "center", "flex_end")
 
+# Expanded once, when the element is made
+CONSTRUCTOR_ONLY = {"anchor"}
+
+# These elements place themselves
+UNSUPPORTED_PROPS = {
+    "window": {"anchor", "translate", "justify_self", "align_self"},
+    "cursor": {"anchor", "justify_self", "align_self"},
+}
+
 _CORNER_RADIUS_KEYS = {
     'border_top_left_radius': 'top_left',
     'border_top_right_radius': 'top_right',
@@ -222,6 +231,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         kwargs = dict(kwargs)
         if position is None:
             self.position = kwargs['position'] = 'absolute'
+            self._explicitly_set.add('position')
         replaced = [k for k in ('justify_self', 'align_self', 'left', 'right', 'top', 'bottom')
                     if kwargs.get(k) is not None]
         if replaced:
@@ -230,12 +240,17 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 kwargs.pop(k)
                 setattr(self, k, None)
         self.justify_self, self.align_self = ANCHORS[self.anchor]
+        self._explicitly_set.update(('justify_self', 'align_self'))
         return kwargs
 
     def validate_self_alignment(self):
         if self.justify_self and self.justify_self not in SELF_ALIGN_VALUES:
             print(f"ui_elements: unsupported justify_self '{self.justify_self}', ignoring it. Valid: {list(SELF_ALIGN_VALUES)}")
             self.justify_self = None
+        valid_align = (*SELF_ALIGN_VALUES, 'stretch')
+        if self.align_self and self.align_self not in valid_align:
+            print(f"ui_elements: unsupported align_self '{self.align_self}', ignoring it. Valid: {list(valid_align)}")
+            self.align_self = None
 
     def validate_translate(self):
         if self.translate is None:
@@ -402,6 +417,9 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key, value in kwargs.items():
             if key in self._explicitly_set:
                 continue
+            if key in CONSTRUCTOR_ONLY:
+                print(f"ui_elements: '{key}' only works on the element itself, not through style(). Ignoring it")
+                continue
             if key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
 
@@ -535,6 +553,9 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def update_overrides(self, overrides):
         for key, value in overrides.items():
+            if key in CONSTRUCTOR_ONLY:
+                print(f"ui_elements: '{key}' can't be changed by an override. Ignoring it")
+                continue
             self.update_property(key, value)
 
     def get_variant(self, state: str) -> 'Properties':
@@ -675,7 +696,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     right: Union[int, str, float]
     top: Union[int, str, float]
     transition: dict
-    translate: tuple
+    translate: Union[tuple, list]
     unmount_style: dict
     value: str
     border_top_left_radius: Union[int, float]
@@ -1442,6 +1463,11 @@ def validate_props(props, element_type):
     if key_value is not None and not isinstance(key_value, (str, int)):
         raise ValueError(f"key must be str or int, got {type(key_value).__name__}")
     props_to_check = {k: v for k, v in props.items() if k != "key"}
+    unsupported = props_to_check.keys() & UNSUPPORTED_PROPS.get(element_type, set())
+    if unsupported:
+        raise ValueError(
+            f"\n\"{element_type}\" positions itself, so it doesn't support: {', '.join(sorted(unsupported))}"
+        )
     invalid_props = props_to_check.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))

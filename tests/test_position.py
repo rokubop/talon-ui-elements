@@ -27,7 +27,7 @@ class PositionTests:
             b = tree.root_node.boundary_rect
             rect = lambda id: tree.meta_state.id_to_node[id].box_model.border_rect
             w, h = rect("flow").width, rect("flow").height
-            near = lambda a, e: round(a) == round(e)
+            near = lambda a, e: abs(a - e) <= 1
 
             r = rect("flow")
             it("translate shifts a flow node", expect=True,

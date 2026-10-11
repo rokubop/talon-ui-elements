@@ -16,6 +16,12 @@ from .utils import scale_value
 # justify_self / align_self on an absolute node: how far along the free space
 SELF_ALIGN_FRACTION = {"flex_start": 0, "center": 0.5, "flex_end": 1}
 
+def _translate_px(value, size):
+    """A translate value in pixels. Percentages are of the box's own size, 0 when it has none."""
+    if isinstance(value, str):
+        return int((size or 0) * float(value.strip().rstrip("%")) / 100)
+    return value or 0
+
 @dataclass
 class Overflow(OverflowType):
     x: str = "visible"
@@ -694,8 +700,8 @@ class BoxModelV2(BoxModelV2Type):
                 offset.y = -self.position_bottom
         if self._translate:
             # Percentages are of this box's own size
-            tx = BoxModelV2._resolve_percent(self._translate[0], self.border_size.width) or 0
-            ty = BoxModelV2._resolve_percent(self._translate[1], self.border_size.height) or 0
+            tx = _translate_px(self._translate[0], self.border_size.width)
+            ty = _translate_px(self._translate[1], self.border_size.height)
             offset = Point2d(offset.x + tx, offset.y + ty) if offset else Point2d(tx, ty)
         if offset:
             self.reposition(offset)

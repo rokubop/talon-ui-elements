@@ -95,13 +95,13 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
-| anchor | "top_left", "top", "top_right", "left", "center", "right", "bottom_left", "bottom", "bottom_right" | None | Puts the node's matching point on its parent's: `"bottom_right"` puts its bottom right corner on the parent's. Shorthand for `justify_self` + `align_self`, implies `position="absolute"`, replaces `left`/`right`/`top`/`bottom`. Offset with `translate`. Doesn't re-anchor after `set_text`, so give right or center anchored text a fixed width |
+| anchor | "top_left", "top", "top_right", "left", "center", "right", "bottom_left", "bottom", "bottom_right" | None | Puts the node's matching point on its parent's: `"bottom_right"` puts its bottom right corner on the parent's. Shorthand for `justify_self` + `align_self`, implies `position="absolute"`, replaces `left`/`right`/`top`/`bottom`. Offset with `translate`. Measured from the parent's border edge, like `left`/`right`. Doesn't re-anchor after `set_text`, so give right or center anchored text a fixed width. Not on `window` or `cursor`, and not through `style()` |
 | bottom | Union[int, str, float] | None | Used with `"position"` property. Inset from the bottom. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | left | Union[int, str, float] | None | Used with `"position"` property. Inset from the left. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | position | "static", "relative", "absolute", "fixed" | "static" | Positioning of element. |
 | right | Union[int, str, float] | None | Used with `"position"` property. Inset from the right. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | top | Union[int, str, float] | None | Used with `"position"` property. Inset from the top. e.g. `0`, `50`, `"25%"`, `"100%"` |
-| translate | tuple | None | `(x, y)` shift after layout, positive is right/down. Moves the node and its children, not its siblings. Any position. Percentages are of the node's own size: `("-50%", 0)` |
+| translate | tuple | None | `(x, y)` shift after layout, positive is right/down. Moves the node and its children, not its siblings. Any position, not on `window` or SVG shapes. Percentages are of the node's own size: `("-50%", 0)` |
 | z_index | int | 0 | higher value will render on top of lower values. Cascades to children |
 
 ## Overflow & Scrolling Properties
