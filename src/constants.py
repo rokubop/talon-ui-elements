@@ -112,8 +112,6 @@ DRAG_GHOST_FILL_COLOR = None
 DRAG_DIM_COLOR = None
 # Floor between overlay repaints. One freeze costs a display frame.
 DRAG_OVERLAY_MIN_FRAME_MS = 8
-# Cursor slack before the mouse capture rect re-centres on it.
-DRAG_CAPTURE_MARGIN = 48
 # How long a freeze may sit undrawn before the overlay stops waiting.
 DRAG_OVERLAY_STALL_MS = 120
 

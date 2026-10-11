@@ -17,7 +17,7 @@ class DragController:
     def __init__(self, tree):
         self.tree = tree
         self.session: DragSession = None
-        self.overlay = DragOverlay(tree.create_overlay_canvas, self.on_key)
+        self.overlay = DragOverlay(tree.create_overlay_canvas, self.on_key, tree.on_mouse)
 
     @property
     def active(self) -> bool:
