@@ -59,6 +59,12 @@ class DragController:
                 self.tree.render_manager.resume()
             return False
 
+        # A drag never ends in a click, even when its mouseup comes late
+        pressed_id = state_manager.get_mousedown_start_id()
+        if pressed_id:
+            self.tree.meta_state.set_unhighlighted(pressed_id)
+            state_manager.set_mousedown_start_id(None)
+
         if session.preview:
             self._paint()
         return True
