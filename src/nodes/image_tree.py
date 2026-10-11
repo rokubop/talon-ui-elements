@@ -52,7 +52,6 @@ class ImageTree(Tree):
             self.consume_components()
             if effects:
                 self.consume_own_effects()
-            # A canvas is only needed here for measuring text
             self.root_node.v2_measure_intrinsic_size(canvas)
             self.root_node.v2_grow_size()
             self.root_node.v2_constrain_size()
