@@ -1,5 +1,40 @@
+import time
 from weakref import WeakMethod
+from talon import settings
 from talon.canvas import Canvas
+
+_interval = 0.0
+_next_check = 0.0
+_last_move = 0.0
+
+
+def _read_interval():
+    try:
+        rate = int(settings.get("user.ui_elements_mouse_rate") or 0)
+    except Exception:
+        rate = 0
+    return 1 / rate if rate > 0 else 0.0
+
+
+class ThrottledCanvas(Canvas):
+    """
+    When using a mouse with a high-refresh-rate, it sends too
+    many mousemove events, which can starve the canvas draw thread.
+    """
+
+    def on_mouse(self, e):
+        global _interval, _next_check, _last_move
+        if type(e).__name__ == "MouseMoveEvent":
+            now = time.perf_counter()
+            if now >= _next_check:
+                _next_check = now + 1.0
+                _interval = _read_interval()
+            if _interval:
+                if now - _last_move < _interval:
+                    return
+                _last_move = now
+        return super().on_mouse(e)
+
 
 class CanvasWeakRef:
     """

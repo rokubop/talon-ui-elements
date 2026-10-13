@@ -618,10 +618,9 @@ class NodeContainer(Node, NodeContainerType):
         if not self.box_model:
             return
 
-        if self.participates_in_layout:
-            self.v2_drag_offset(cursor)
-        else:
+        if not self.participates_in_layout:
             self.box_model.position_from_relative_parent(cursor)
+        self.v2_drag_offset(cursor)
 
         self.box_model.position_for_render(
             cursor,
@@ -642,10 +641,9 @@ class NodeContainer(Node, NodeContainerType):
         if self.wrap_lines:
             is_row = self.properties.flex_direction == "row"
             gap = self.properties.gap or 0
+            self.box_model.shift_relative_position(cursor)
             line_x = self.box_model.content_pos.x
             line_y = self.box_model.content_pos.y
-
-            self.box_model.shift_relative_position(cursor)
 
             for line_idx, line in enumerate(self.wrap_lines):
                 cursor.move_to(line_x, line_y)
@@ -733,9 +731,11 @@ class NodeContainer(Node, NodeContainerType):
     def v2_render_decorator(self, c, transforms: RenderTransforms = None):
         if self.tree:
             self.v2_render_borders(c, transforms)
+            self.v2_crop_start(c, transforms)
             self.v2_render_background(c, transforms)
             for child in self.get_children_nodes():
                 child.v2_render_decorator(c, transforms)
+            self.v2_crop_end(c, transforms)
 
     def v2_render(self, c, transforms: RenderTransforms = None):
         if self.tree:

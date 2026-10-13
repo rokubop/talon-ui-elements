@@ -32,9 +32,13 @@ from .constants import (
 from .utils import hex_color, scale_value, get_scale, _expand_shorthand_hex, parse_background
 
 COLOR_PROPERTIES = {
-    "background_color", "border_color", "color", "stroke", "fill",
+    "background_color", "border_color", "color", "stroke", "fill", "highlight_color",
     "border_top_color", "border_right_color", "border_bottom_color", "border_left_color",
 }
+
+# Dicts of style overrides whose colors feed the same paint calls, so they
+# need the same normalizing as the properties they override.
+STYLE_DICT_PROPERTIES = {"highlight_style", "disabled_style"}
 
 # Properties that should be scaled by the global UI scale setting
 SCALABLE_PROPERTIES = {
@@ -51,6 +55,30 @@ SCALABLE_PROPERTIES = {
     'size'  # For SVG elements
 }
 
+# anchor -> (justify_self, align_self)
+ANCHORS = {
+    "top_left": ("flex_start", "flex_start"),
+    "top": ("center", "flex_start"),
+    "top_right": ("flex_end", "flex_start"),
+    "left": ("flex_start", "center"),
+    "center": ("center", "center"),
+    "right": ("flex_end", "center"),
+    "bottom_left": ("flex_start", "flex_end"),
+    "bottom": ("center", "flex_end"),
+    "bottom_right": ("flex_end", "flex_end"),
+}
+
+SELF_ALIGN_VALUES = ("flex_start", "center", "flex_end")
+
+# Expanded once, when the element is made
+CONSTRUCTOR_ONLY = {"anchor"}
+
+# These elements place themselves
+UNSUPPORTED_PROPS = {
+    "window": {"anchor", "translate", "justify_self", "align_self"},
+    "cursor": {"anchor", "justify_self", "align_self"},
+}
+
 _CORNER_RADIUS_KEYS = {
     'border_top_left_radius': 'top_left',
     'border_top_right_radius': 'top_right',
@@ -65,6 +93,16 @@ _BORDER_WIDTH_ALIASES = {
     'border_left_width': 'border_left',
 }
 
+def _scale_translate(value):
+    """Scale numbers, leave percentages."""
+    if isinstance(value, (tuple, list)) and len(value) == 2:
+        return tuple(
+            scale_value(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v
+            for v in value
+        )
+    return value
+
+
 class Properties(PropertiesDimensionalType, PropertiesType):
     """
     These are base properties and not all inclusive.
@@ -72,6 +110,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     """
     align_items: str = DEFAULT_ALIGN_ITEMS
     align_self: str = None
+    anchor: str = None
     autofocus: bool = False
     background: str = None
     background_color: str = None
@@ -88,6 +127,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     color: str = DEFAULT_COLOR
     disabled: bool = False
     disabled_style: dict = None
+    drag_bounds: Union[str, tuple[int, int, int, int], Rect] = None
     drag_handle: bool = False
     draggable: bool = False
     drop_shadow: tuple[int, int, int, int, str] = None
@@ -109,6 +149,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     scroll_buttons_style: dict = None
     id: str = None
     justify_content: str = DEFAULT_JUSTIFY_CONTENT
+    justify_self: str = None
     key: str = None
     left: Union[int, str, float] = None
     margin: Margin = Margin(0, 0, 0, 0)
@@ -119,6 +160,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     on_change: callable = None
     on_click: callable = None
     on_drag_end: callable = None
+    on_resize_end: callable = None
     opacity: Union[int, float] = None
     overflow: Overflow = None
     padding: Padding = Padding(0, 0, 0, 0)
@@ -127,6 +169,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
     right: Union[int, str, float] = None
     top: Union[int, str, float] = None
     transition: dict = None
+    translate: tuple = None
     unmount_style: dict = None
     value: str = None
     width: Union[int, str, float] = 0
@@ -143,6 +186,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
         for key, value in kwargs.items():
             self.update_property(key, value)
+        kwargs = self.apply_anchor(kwargs)
 
         # Scale defaults that weren't explicitly set
         if 'font_size' not in kwargs:
@@ -168,6 +212,59 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if self.align_items not in valid:
                 print(f"ui_elements: unsupported align_items '{self.align_items}', falling back to 'flex_start'. Valid: {valid}")
                 self.align_items = 'flex_start'
+
+    def apply_anchor(self, kwargs):
+        """Shorthand for justify_self + align_self on an absolute node.
+        Returns the kwargs init continues with."""
+        if not self.anchor:
+            return kwargs
+        if self.anchor not in ANCHORS:
+            raise ValueError(
+                f"\nInvalid value for anchor: '{self.anchor}'\n"
+                f"Valid values are: {', '.join(ANCHORS)}"
+            )
+        position = kwargs.get('position')
+        if position not in (None, 'absolute', 'fixed'):
+            print(f"ui_elements: anchor needs position 'absolute' or 'fixed', not '{position}'. Ignoring anchor '{self.anchor}'")
+            self.anchor = None
+            return kwargs
+        kwargs = dict(kwargs)
+        if position is None:
+            self.position = kwargs['position'] = 'absolute'
+            self._explicitly_set.add('position')
+        replaced = [k for k in ('justify_self', 'align_self', 'left', 'right', 'top', 'bottom')
+                    if kwargs.get(k) is not None]
+        if replaced:
+            print(f"ui_elements: anchor '{self.anchor}' replaces {', '.join(replaced)}, ignoring them")
+            for k in replaced:
+                kwargs.pop(k)
+                setattr(self, k, None)
+        self.justify_self, self.align_self = ANCHORS[self.anchor]
+        self._explicitly_set.update(('justify_self', 'align_self'))
+        return kwargs
+
+    def validate_self_alignment(self):
+        if self.justify_self and self.justify_self not in SELF_ALIGN_VALUES:
+            print(f"ui_elements: unsupported justify_self '{self.justify_self}', ignoring it. Valid: {list(SELF_ALIGN_VALUES)}")
+            self.justify_self = None
+        valid_align = (*SELF_ALIGN_VALUES, 'stretch')
+        if self.align_self and self.align_self not in valid_align:
+            print(f"ui_elements: unsupported align_self '{self.align_self}', ignoring it. Valid: {list(valid_align)}")
+            self.align_self = None
+
+    def validate_translate(self):
+        if self.translate is None:
+            return
+        value = self.translate
+        if isinstance(value, (tuple, list)) and len(value) == 2 and all(
+                (isinstance(v, (int, float)) and not isinstance(v, bool))
+                or (isinstance(v, str) and v.strip().endswith("%"))
+                for v in value):
+            return
+        raise ValueError(
+            f"\nInvalid value for translate: '{value}'\n"
+            f"Use (x, y): numbers, or percentages of the element's own size like (\"-50%\", 0)"
+        )
 
     def validate_drop_shadow(self):
         if self.drop_shadow:
@@ -232,6 +329,22 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                 f"\nCannot use 'left', 'right', 'top', or 'bottom' without setting position to 'absolute', 'relative', or 'fixed'"
             )
 
+    def validate_drag_bounds(self):
+        bounds = self.drag_bounds
+        if bounds is None or bounds == "root":
+            return
+        if isinstance(bounds, Rect):
+            if bounds.width > 0 and bounds.height > 0:
+                return
+        elif isinstance(bounds, (tuple, list)) and len(bounds) == 4 \
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in bounds) \
+                and bounds[2] > 0 and bounds[3] > 0:
+            return
+        raise ValueError(
+            f"\nInvalid value for drag_bounds: '{bounds}'\n"
+            f"Valid values are: 'root', or (x, y, width, height) in screen pixels, with width and height above 0"
+        )
+
     def validate_transition(self):
         if self.transition:
             if not isinstance(self.transition, dict):
@@ -280,8 +393,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         self.validate_justify_content()
         self.validate_align_items()
         self.validate_drop_shadow()
+        self.validate_self_alignment()
+        self.validate_translate()
         self.validate_transition()
         self.validate_position_constraints(kwargs)
+        self.validate_drag_bounds()
         self.validate_highlight_style()
         self.validate_mount_style()
         self.validate_unmount_style()
@@ -301,6 +417,9 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         for key, value in kwargs.items():
             if key in self._explicitly_set:
                 continue
+            if key in CONSTRUCTOR_ONLY:
+                print(f"ui_elements: '{key}' only works on the element itself, not through style(). Ignoring it")
+                continue
             if key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
 
@@ -308,6 +427,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
             if key in SCALABLE_PROPERTIES and value is not None:
                 if isinstance(value, (int, float)):
                     value = scale_value(value)
+            elif key == 'translate':
+                value = _scale_translate(value)
 
             update_padding = 'padding' in key or update_padding
             update_margin = 'margin' in key or update_margin
@@ -392,6 +513,11 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                     value = hex_color(value, property_name=key)
             elif key in COLOR_PROPERTIES:
                 value = hex_color(value, property_name=key)
+            elif key in STYLE_DICT_PROPERTIES and isinstance(value, dict):
+                value = {
+                    k: hex_color(v, property_name=f"{key} {k}") if k in COLOR_PROPERTIES else v
+                    for k, v in value.items()
+                }
 
             if key == "border_radius" and value is not None:
                 if not isinstance(value, BorderRadius):
@@ -408,6 +534,8 @@ class Properties(PropertiesDimensionalType, PropertiesType):
                             setattr(value, attr, getattr(old, attr))
             # Apply scaling to dimensional properties only when explicitly set by user
             # Don't scale when inheriting from parent (already scaled values)
+            elif explicitly_set and key == 'translate':
+                value = _scale_translate(value)
             elif explicitly_set and key in SCALABLE_PROPERTIES and value is not None:
                 if isinstance(value, (int, float)):
                     value = scale_value(value)
@@ -425,6 +553,9 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def update_overrides(self, overrides):
         for key, value in overrides.items():
+            if key in CONSTRUCTOR_ONLY:
+                print(f"ui_elements: '{key}' can't be changed by an override. Ignoring it")
+                continue
             self.update_property(key, value)
 
     def get_variant(self, state: str) -> 'Properties':
@@ -507,6 +638,7 @@ class BoxModelValidationProperties(TypedDict):
 class ValidationProperties(TypedDict, BoxModelValidationProperties):
     align_items: str
     align_self: str
+    anchor: str
     autofocus: bool
     background: str
     background_color: str
@@ -522,6 +654,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     color: str
     disabled: bool
     disabled_style: dict
+    drag_bounds: Union[str, tuple[int, int, int, int], Rect]
     drag_handle: bool
     draggable: bool
     drop_shadow: tuple[int, int, int, int, str]
@@ -545,6 +678,7 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     scroll_buttons: bool
     scroll_buttons_style: dict
     justify_content: str
+    justify_self: str
     left: Union[int, str, float]
     max_height: Union[int, str]
     max_width: Union[int, str]
@@ -556,10 +690,13 @@ class ValidationProperties(TypedDict, BoxModelValidationProperties):
     overflow: str
     scroll_bar: str
     position: str
+    on_drag_end: callable
+    on_resize_end: callable
     resizable: Union[bool, str, list]
     right: Union[int, str, float]
     top: Union[int, str, float]
     transition: dict
+    translate: Union[tuple, list]
     unmount_style: dict
     value: str
     border_top_left_radius: Union[int, float]
@@ -597,6 +734,8 @@ class NodeTextValidationProperties(ValidationProperties):
 class NodeCodeValidationProperties(ValidationProperties):
     copyable: bool
     diff: bool
+    line_numbers: bool
+    line_number_start: int
     font_size: Union[int, float]
     font_family: str
     font_style: str
@@ -655,6 +794,8 @@ class NodeCodeProperties(Properties):
     language: str = "python"
     copyable: bool = True
     diff: bool = False
+    line_numbers: bool = False
+    line_number_start: int = 1
     on_click: any = None
     theme: Union[str, dict] = None
     selectable: bool = True
@@ -1154,6 +1295,10 @@ class NodeWindowProperties(Properties):
     minimized: bool = False
     minimized_style: dict = None
     minimized_body: callable = None
+    close_on_click_outside: bool = False
+    flash_on_minimize: Union[bool, str, dict] = True
+    minimize_on_click_outside: bool = False
+    on_click_outside: callable = None
     on_close: callable = None
     on_minimize: callable = None
     on_restore: callable = None
@@ -1173,6 +1318,8 @@ class NodeWindowProperties(Properties):
             self.on_minimize = None
         if self.on_restore:
             self.on_restore = None
+        if self.on_click_outside:
+            self.on_click_outside = None
         if self.minimized_body:
             self.minimized_body = None
 
@@ -1182,6 +1329,10 @@ class NodeWindowValidationProperties(ValidationProperties):
     minimized: bool
     minimized_style: dict
     minimized_body: callable
+    close_on_click_outside: bool
+    flash_on_minimize: Union[bool, str, dict]
+    minimize_on_click_outside: bool
+    on_click_outside: callable
     on_close: callable
     on_minimize: callable
     on_restore: callable
@@ -1312,6 +1463,11 @@ def validate_props(props, element_type):
     if key_value is not None and not isinstance(key_value, (str, int)):
         raise ValueError(f"key must be str or int, got {type(key_value).__name__}")
     props_to_check = {k: v for k, v in props.items() if k != "key"}
+    unsupported = props_to_check.keys() & UNSUPPORTED_PROPS.get(element_type, set())
+    if unsupported:
+        raise ValueError(
+            f"\n\"{element_type}\" positions itself, so it doesn't support: {', '.join(sorted(unsupported))}"
+        )
     invalid_props = props_to_check.keys() - VALID_ELEMENT_PROP_TYPES[element_type]
     if invalid_props:
         valid_props_message = ",\n".join(sorted(VALID_ELEMENT_PROP_TYPES[element_type]))

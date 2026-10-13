@@ -160,4 +160,12 @@ Set `show_title_bar=False` to hide the entire title bar and make the window full
 
 ## Additional Properties
 
+- `flash_on_minimize`: Controls the flash effect when the window is minimized. Can be `False` to disable, a color string, or a dictionary with `color` and `duration`.
+- `show_minimize`: Controls the visibility of the minimize button. Can be `True` to show or `False` to hide.
+- `show_close`: Controls the visibility of the close button. Can be `True` to show or `False` to hide.
+- `show_title_bar`: Controls the visibility of the title bar. Can be `True` to show or `False` to hide.
+- `drag_title_bar_only`: Controls whether the window can only be dragged by the title bar. Can be `True` to restrict dragging to the title bar or `False` to allow dragging from anywhere.
+- `title_bar_style`: Controls the style of the title bar. Can be set to different predefined styles or custom styles.
+- `title`: Controls the title of the window. Can be set to a string representing the window's title.
+
 See [Window-Specific Properties](../properties.md#window-specific-properties) for all available window properties like `show_title_bar`, `drag_title_bar_only`, `title_bar_style`, and more.

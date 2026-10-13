@@ -1,5 +1,6 @@
 import hashlib
 import inspect
+import traceback
 from talon import ui
 from talon.skia.canvas import Canvas as SkiaCanvas
 from talon.skia.paint import Paint
@@ -9,8 +10,18 @@ from talon.screen import Screen
 from talon.types import Rect
 from typing import Union, Callable, TypeVar
 from .constants import NAMED_COLORS_TO_HEX
-from .fonts import get_typeface
+from .fonts import apply_text_rendering, resolve_font
 from .border_radius import BorderRadius, draw_manual_rounded_rect_path
+
+debug = True
+
+def log_trace():
+    if debug:
+        traceback.print_exc()
+
+def log(*args):
+    if debug:
+        print("LOG:", *args)
 
 def get_scale() -> float:
     try:
@@ -37,14 +48,17 @@ def scale_value(value: Union[int, float]) -> Union[int, float]:
 def draw_text_simple(c: SkiaCanvas, text, color, properties, x, y):
     paint = Paint()
     paint.textsize = properties.font_size
-    c.paint.antialias = True
-    if properties.font_family:
-        typeface = get_typeface(properties.font_family, properties.font_weight)
-        if typeface:
-            paint.typeface = typeface
-    if properties.font_weight == "bold":
+    apply_text_rendering(paint)
+    font = resolve_font(
+        properties.font_family,
+        properties.font_weight,
+        getattr(properties, "font_style", None),
+    )
+    if font.typeface:
+        paint.typeface = font.typeface
+    if font.synthetic_bold:
         paint.font.embolden = True
-    if getattr(properties, "font_style", "normal") == "italic":
+    if font.synthetic_italic:
         paint.font.skew_x = -0.25
 
     if properties.stroke_color:
@@ -123,6 +137,10 @@ def _expand_shorthand_hex(color: str) -> str:
 def get_active_color_from_highlight_color(highlight_color: str) -> str:
     """If highlightcolor is "FFFFFF66", return "FFFFFF88"."""
     highlight_color = _expand_shorthand_hex(highlight_color)
+    if len(highlight_color) < 8:
+        # No alpha to raise. Slicing the last two chars off "4A9AF5" would
+        # eat half the blue channel and repaint the element a new color.
+        return highlight_color
     base_color = highlight_color[:-2]  # "FFFFFF"
     alpha = highlight_color[-2:]       # "66"
 

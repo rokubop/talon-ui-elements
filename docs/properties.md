@@ -34,11 +34,12 @@ Properties mostly match standard CSS properties.
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
 | align_items | "center", "flex_start", "flex_end", "stretch" | "stretch" | How items are aligned in the cross axis |
-| align_self | "center", "flex_start", "flex_end", "stretch" | None | Align self in the cross axis |
+| align_self | "center", "flex_start", "flex_end", "stretch" | None | Align self in the cross axis. On an absolute or fixed node with no `top`/`bottom`: where it sits vertically in its parent |
 | flex | int | None | `1` to stretch fully. |
 | flex_direction | "row", "column" | "column" | "row" to align items horizontally, "column" to align items vertically. Note that the default is "column", which is different than HTML/CSS which defaults to "row". |
 | gap | int | None | Gap between children. Always applicable since every element is flex |
 | justify_content | "center", "flex_start", "flex_end", "space_between", "space_evenly" | "flex_start" | Justify content in the main axis |
+| justify_self | "center", "flex_start", "flex_end" | None | On an absolute or fixed node with no `left`/`right`: where it sits horizontally in its parent. Ignored in flex layout, like CSS |
 
 ## Sizing Properties
 
@@ -94,11 +95,13 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
+| anchor | "top_left", "top", "top_right", "left", "center", "right", "bottom_left", "bottom", "bottom_right" | None | Puts the node's matching point on its parent's: `"bottom_right"` puts its bottom right corner on the parent's. Shorthand for `justify_self` + `align_self`, implies `position="absolute"`, replaces `left`/`right`/`top`/`bottom`. Offset with `translate`. Measured from the parent's border edge, like `left`/`right`. Doesn't re-anchor after `set_text`, so give right or center anchored text a fixed width. Not on `window` or `cursor`, and not through `style()` |
 | bottom | Union[int, str, float] | None | Used with `"position"` property. Inset from the bottom. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | left | Union[int, str, float] | None | Used with `"position"` property. Inset from the left. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | position | "static", "relative", "absolute", "fixed" | "static" | Positioning of element. |
 | right | Union[int, str, float] | None | Used with `"position"` property. Inset from the right. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | top | Union[int, str, float] | None | Used with `"position"` property. Inset from the top. e.g. `0`, `50`, `"25%"`, `"100%"` |
+| translate | tuple | None | `(x, y)` shift after layout, positive is right/down. Moves the node and its children, not its siblings. Any position, not on `window` or SVG shapes. Percentages are of the node's own size: `("-50%", 0)` |
 | z_index | int | 0 | higher value will render on top of lower values. Cascades to children |
 
 ## Overflow & Scrolling Properties
@@ -117,7 +120,7 @@ Properties mostly match standard CSS properties.
 | font_family | str | "" | Font family |
 | font_size | Union[int, float] | 16 | Font size |
 | font_style | "normal", "italic" | "normal" | Font style |
-| font_weight | "normal", "bold" | "normal" | Font weight |
+| font_weight | "light", "normal", "medium", "semibold", "bold", "black" (or 100-900) | "normal" | Font weight. Resolves to a real installed face when one exists, and is synthesized otherwise |
 | for_id | str | None | Associates a label with an input (for `text` element) |
 | selectable | bool | False | Enable text selection by click-and-drag (for `text` element) |
 | selection_color | str | "4488FF88" | Highlight color for selected text (for `text` element) |
@@ -133,11 +136,14 @@ Properties mostly match standard CSS properties.
 | autofocus | bool | False | Autofocus for `input_text`, `textarea`, or `button` |
 | disabled | bool | False | Whether element is disabled (for interactive elements) |
 | disabled_style | dict | None | Style overrides when disabled |
-| draggable | bool | False | Whether element can be dragged |
-| drag_handle | bool | False | Treat this area as the drag handle for a parent draggable |
+| draggable | bool | False | Whether element can be dragged. Any number per tree; one without an `id` gets one assigned. See [Drag](concepts/drag.md) |
+| drag_handle | bool | False | Treat this area as the drag handle for the nearest draggable above it |
+| drag_bounds | str \| tuple | None | Keep a drag or resize inside `"root"` (the root's area: its screen for `screen`, the window for `active_window`) or `(x, y, width, height)` in screen pixels. See [Drag](concepts/drag.md) |
 | on_change | callable | None | On change callback, for `input_text`, `textarea`, `select`, `checkbox`, `switch`. Accepts 1 event argument. |
 | on_click | callable | None | On click callback, for `button`. Accepts 1 event argument. |
-| on_drag_end | callable | None | Callback when drag ends. Accepts 1 event argument. |
+| on_drag_end | callable | None | Callback when a draggable is dropped, not on Esc. Accepts 1 event argument with `id`, `dx` and `dy`, how far that drag moved it, unscaled. |
+| on_resize_end | callable | None | Callback when a resize drag ends. Accepts 1 event argument with `id`, `width`, `height` and `edge`. |
+| resizable | bool \| str \| list | False | Drag an element's edges to resize. `True` is all four, or name them: `"right"`, `["right", "bottom"]`. Clamped by `min_width`/`max_width`/`min_height`/`max_height`. Lasts until the UI hides. See [Drag](concepts/drag.md) |
 | value | str | None | Value of `input_text`, `textarea`, or `select` |
 | placeholder | str | "" | Placeholder hint text for `input_text`, `textarea`, or `select`, shown when empty/unfocused |
 | placeholder_color | str | "FFFFFF55" | Color of placeholder text |
@@ -151,7 +157,7 @@ Properties mostly match standard CSS properties.
 | focus_outline_color | str | "#FFFFFF" | Focus outline color - for keyboard accessibility and after you have interacted with an element. Cascades to children. Use 8-char hex for opacity |
 | focus_outline_width | Union[int, float] | 1.5 | Focus outline width - for keyboard accessibility and after you have interacted with an element. Cascades to children |
 | highlight_color | str | `{color}33` | Highlight color (on hover/interaction). Cascades to children. Defaults to text color with 20% opacity |
-| highlight_style | dict | None | Style overrides when highlighted. Valid keys: `background_color`, `border_color`, `color`, `fill`, `stroke`. Animates smoothly when `transition` is also set. Auto-generated for interactive nodes with `transition` + color properties |
+| highlight_style | dict | None | Style overrides when highlighted, instead of the `highlight_color` overlay. Valid keys: `background_color`, `border_color`, `color`, `fill`, `stroke`. Animates smoothly when `transition` is also set. Auto-generated for interactive nodes with `transition` + color properties |
 | hint_offset | tuple | None | Custom (x, y) offset for voice hint position relative to the element's padding rect. Overrides the default hint placement |
 
 ## Identification Properties
@@ -166,11 +172,15 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
+| close_on_click_outside | bool | False | Close the window when a mouse press lands outside it |
+| flash_on_minimize | bool \| str \| dict | True | Wash the window as it minimizes, so the collapse is noticed. A colour string or `{"color", "duration"}` overrides the default `"FFFFFF59"` over 450ms |
 | drag_title_bar_only | bool | True | Whether window can only be dragged by title bar |
 | icon | Union[str, SVG element] | None | Window icon in the title bar. Pass a built-in icon name string or a custom SVG element. Auto-scales to match title font size |
+| minimize_on_click_outside | bool | False | Minimize the window when a mouse press lands outside it. No-op if already minimized |
 | minimized | bool | False | Whether window is minimized |
 | minimized_body | callable | None | Function that returns alternate body when minimized |
 | minimized_style | dict | None | Style overrides when minimized |
+| on_click_outside | callable | None | Callback when a mouse press lands outside the window. Runs after `minimize_on_click_outside` / `close_on_click_outside`, if either is set |
 | on_close | callable | None | Callback when window is closed |
 | on_minimize | callable | None | Callback when window is minimized |
 | on_restore | callable | None | Callback when window is restored from minimized state |

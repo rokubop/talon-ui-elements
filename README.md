@@ -1,6 +1,6 @@
 # UI Elements
 
-![Version](https://img.shields.io/badge/version-0.21.1-blue)
+![Version](https://img.shields.io/badge/version-0.22.0-blue)
 ![Status](https://img.shields.io/badge/status-stable-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -59,13 +59,13 @@ Interactive component explorer for testing elements and tweaking properties in r
 
 **References:** [Elements](docs/elements.md) · [Properties](docs/properties.md) · [Actions](docs/actions.md) · [Icons](docs/icons.md)
 
-**Concepts:** [Components](docs/concepts/components.md) · [Cursor](docs/concepts/cursor.md) · [Defaults](docs/concepts/defaults.md) · [Effect](docs/concepts/effect.md) · [Ref](docs/concepts/ref.md) · [Rendering](docs/concepts/rendering.md) · [State](docs/concepts/state.md) · [Style](docs/concepts/style.md) · [SVG](docs/concepts/svgs.md) · [Window](docs/concepts/window.md)
+**Concepts:** [Components](docs/concepts/components.md) · [Cursor](docs/concepts/cursor.md) · [Defaults](docs/concepts/defaults.md) · [Drag](docs/concepts/drag.md) · [Effect](docs/concepts/effect.md) · [Mouse](docs/concepts/mouse.md) · [Ref](docs/concepts/ref.md) · [Rendering](docs/concepts/rendering.md) · [State](docs/concepts/state.md) · [Store](docs/concepts/store.md) · [Style](docs/concepts/style.md) · [SVG](docs/concepts/svgs.md) · [Window](docs/concepts/window.md)
 
 **More examples:** [Dashboard](examples/dashboard/dashboard_ui.py) · [Todo List](examples/todo_list/todo_list_ui.py) · [Inputs](examples/inputs/inputs_ui.py) · [Alignment](examples/alignment/alignment_ui.py)
 
 ## AI Agent Skill
 
-This package includes an [agent skill](https://agentskills.io) in `skills/ui-elements/` that teaches AI coding agents how to use this library. Copy the folder into your agent's skills directory:
+This package includes an [agent skill](skills/ui-elements/SKILL.md) in `skills/ui-elements/` that teaches AI coding agents how to use this library. Copy the folder into your agent's skills directory:
 
 ```sh
 # Claude Code

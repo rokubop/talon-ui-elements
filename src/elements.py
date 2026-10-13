@@ -404,12 +404,18 @@ def window(props=None, **additional_props):
             "border_radius",
             "border_width",
             "border_color",
+            "drag_bounds",
             "drag_title_bar_only",
             "drop_shadow",
             "icon",
             "on_minimize",
+            "on_drag_end",
             "on_restore",
             "on_close",
+            "on_click_outside",
+            "minimize_on_click_outside",
+            "close_on_click_outside",
+            "flash_on_minimize",
             "title",
             "show_title_bar",
             "resizable",
@@ -463,10 +469,12 @@ def modal(
     props=None,
     **additional_props,
 ):
-    """Full-viewport overlay layer. Pass content sizing (`width`, `height`,
-    `padding`, etc.) directly — they apply to the centered content panel,
-    not the full-viewport wrapper. The wrapper always covers the screen and
-    auto-scopes hints/clicks to its subtree while open."""
+    """Overlay layer. Pass content sizing (`width`, `height`, `padding`, etc.)
+    directly — they apply to the centered content panel, not the wrapper.
+    The wrapper covers its host and auto-scopes hints/clicks to its subtree
+    while open. The host is the enclosing `window`'s body when there is one,
+    so the modal follows that window (across screens included) and its title
+    bar stays usable; otherwise it is the screen."""
     properties = validate_combined_props(props, additional_props, ELEMENT_ENUM_TYPE["modal"])
 
     content_defaults = {

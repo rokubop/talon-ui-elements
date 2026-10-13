@@ -13,6 +13,15 @@ from .interfaces import (
 from .constants import DEFAULT_SCROLL_BAR_WIDTH
 from .utils import scale_value
 
+# justify_self / align_self on an absolute node: how far along the free space
+SELF_ALIGN_FRACTION = {"flex_start": 0, "center": 0.5, "flex_end": 1}
+
+def _translate_px(value, size):
+    """A translate value in pixels. Percentages are of the box's own size, 0 when it has none."""
+    if isinstance(value, str):
+        return int((size or 0) * float(value.strip().rstrip("%")) / 100)
+    return value or 0
+
 @dataclass
 class Overflow(OverflowType):
     x: str = "visible"
@@ -142,6 +151,9 @@ class BoxModelV2(BoxModelV2Type):
         self._position_top = properties.top
         self._position_right = properties.right
         self._position_bottom = properties.bottom
+        self._justify_self = getattr(properties, "justify_self", None)
+        self._align_self = getattr(properties, "align_self", None)
+        self._translate = getattr(properties, "translate", None)
 
         self.margin_spacing = properties.margin
         self.padding_spacing = properties.padding
@@ -274,15 +286,27 @@ class BoxModelV2(BoxModelV2Type):
     def position_bottom(self):
         return BoxModelV2._resolve_percent(self._position_bottom, self.border_size.height)
 
+    @staticmethod
+    def _used_size_cap(size, max_size):
+        """Largest size a node can reach. `max_size` only reduces `size`,
+        it never stands in for it.
+
+        width and height default to 0 for unset, so a falsy result is no cap
+        at all. Returning 0 reads as a real cap and collapses the node to its
+        own margins."""
+        if size and max_size:
+            return min(size, max_size)
+        return max_size or size or None
+
     @property
     def intrinsic_margin_size_with_bounding_constraints(self):
         width = self.intrinsic_margin_size.width
-        max_width = self.width or self.max_width
+        max_width = BoxModelV2._used_size_cap(self.width, self.max_width)
         max_width = max_width + self.margin_spacing.left + self.margin_spacing.right if max_width is not None else None
         if max_width and max_width < width:
             width = max_width
         height = self.intrinsic_margin_size.height
-        max_height = self.height or self.max_height
+        max_height = BoxModelV2._used_size_cap(self.height, self.max_height)
         max_height = max_height + self.margin_spacing.top + self.margin_spacing.bottom if max_height is not None else None
         if max_height and max_height < height:
             height = max_height
@@ -537,7 +561,11 @@ class BoxModelV2(BoxModelV2Type):
         available_size_height = available_size.height if available_size else None
 
         # if not getattr(overflow, 'scrollable_x', False):
+        # Ceiling for shrinking, not the used size: a flex child grown past
+        # its own width must not be cut back to it here.
         max_width = self.max_width or self.width
+        # What the node can still grow into, which is what children get.
+        growable_max_width = BoxModelV2._used_size_cap(self.width, self.max_width)
 
         if max_width:
             margin_width = min(margin_width, max_width + self.margin_spacing.left + self.margin_spacing.right)
@@ -566,7 +594,7 @@ class BoxModelV2(BoxModelV2Type):
             padding_width = self.calculated_padding_size.width
             content_width = self.calculated_content_size.width
             content_constraint_width = BoxModelV2._upper_content_size(
-                margin_width, content_width, max_width, available_size_width,
+                margin_width, content_width, growable_max_width, available_size_width,
                 self.margin_spacing.left + self.margin_spacing.right,
                 self.border_spacing.left + self.border_spacing.right,
                 self.padding_spacing.left + self.padding_spacing.right,
@@ -585,6 +613,7 @@ class BoxModelV2(BoxModelV2Type):
 
         # if not getattr(overflow, 'scrollable_y', False):
         max_height = self.max_height or self.height
+        growable_max_height = BoxModelV2._used_size_cap(self.height, self.max_height)
 
         if max_height:
             margin_height = min(margin_height, max_height + self.margin_spacing.top + self.margin_spacing.bottom)
@@ -609,7 +638,7 @@ class BoxModelV2(BoxModelV2Type):
             padding_height = self.calculated_padding_size.height
             content_height = self.calculated_content_size.height
             content_constraint_height = BoxModelV2._upper_content_size(
-                margin_height, content_height, max_height, available_size_height,
+                margin_height, content_height, growable_max_height, available_size_height,
                 self.margin_spacing.top + self.margin_spacing.bottom,
                 self.border_spacing.top + self.border_spacing.bottom,
                 self.padding_spacing.top + self.padding_spacing.bottom,
@@ -658,6 +687,8 @@ class BoxModelV2(BoxModelV2Type):
         self.reposition(diff)
 
     def shift_relative_position(self, cursor):
+        """Relative offset plus translate, after layout. Children move along, siblings don't."""
+        offset = None
         if self.position == "relative":
             offset = Point2d(
                 self.position_left or 0,
@@ -667,6 +698,12 @@ class BoxModelV2(BoxModelV2Type):
                 offset.x = -self.position_right
             if self.position_bottom:
                 offset.y = -self.position_bottom
+        if self._translate:
+            # Percentages are of this box's own size
+            tx = _translate_px(self._translate[0], self.border_size.width)
+            ty = _translate_px(self._translate[1], self.border_size.height)
+            offset = Point2d(offset.x + tx, offset.y + ty) if offset else Point2d(tx, ty)
+        if offset:
             self.reposition(offset)
             cursor.move_to(cursor.x + offset.x, cursor.y + offset.y)
 
@@ -689,6 +726,8 @@ class BoxModelV2(BoxModelV2Type):
                 - BoxModelV2._resolve_percent(right, relative_border.width)
                 - self.margin_size.width
             )
+        elif self._justify_self in SELF_ALIGN_FRACTION:
+            x += (relative_border.width - self.margin_size.width) * SELF_ALIGN_FRACTION[self._justify_self]
 
         if top is not None:
             y += BoxModelV2._resolve_percent(top, relative_border.height)
@@ -698,6 +737,8 @@ class BoxModelV2(BoxModelV2Type):
                 - BoxModelV2._resolve_percent(bottom, relative_border.height)
                 - self.margin_size.height
             )
+        elif self._align_self in SELF_ALIGN_FRACTION:
+            y += (relative_border.height - self.margin_size.height) * SELF_ALIGN_FRACTION[self._align_self]
 
         cursor.move_to(x, y)
 

@@ -6,8 +6,10 @@ from .component import Component
 
 CODE_ONLY_PROPS = {
     "language", "theme", "diff", "selectable", "selection_color",
+    "line_numbers", "line_number_start",
     "font_family", "font_size", "font_style", "font_weight",
     "text_align", "white_space", "color", "stroke_width", "stroke_color",
+    "gap",
 }
 
 OVERFLOW_PROPS = {"overflow", "overflow_x", "overflow_y"}
@@ -29,7 +31,7 @@ def code_copy_impl(props):
     overflow_props = {}
     padding_props = {}
     for k, v in props.items():
-        if k in ("copyable", "id", "for_id", "type"):
+        if k in ("copyable", "for_id", "type"):
             continue
         elif k in CODE_ONLY_PROPS:
             code_props[k] = v
@@ -84,7 +86,7 @@ def code_scroll_impl(props):
     code_props = {}
     wrap_props = {}
     for k, v in props.items():
-        if k in ("copyable", "id", "for_id", "type"):
+        if k in ("copyable", "for_id", "type"):
             continue
         elif k in CODE_ONLY_PROPS:
             code_props[k] = v
@@ -105,9 +107,10 @@ def code(text_str: str = "", props=None, **additional_props):
     # this the copyable-path (with wrapping scroll div) is never entered
     # unless the consumer passes copyable=True explicitly.
     properties.setdefault("copyable", True)
-    # Code defaults to white_space="nowrap" -- without overflow_x, long
-    # lines visibly escape the container. "auto" scrolls only when needed.
-    if "overflow_x" not in properties and "overflow" not in properties:
+    # A scroll container never constrains its child's width, so only scroll
+    # when the text cannot wrap.
+    if "overflow_x" not in properties and "overflow" not in properties \
+            and properties.get("white_space", "nowrap") == "nowrap":
         properties["overflow_x"] = "auto"
 
     if properties.get("copyable"):
