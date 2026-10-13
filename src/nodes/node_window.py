@@ -386,7 +386,7 @@ class NodeWindow(NodeContainer):
         last_pos_map[self.hash]["last_resize_height"] = height
 
     def v2_drag_offset(self, cursor):
-        if self.participates_in_layout:
+        if self.participates_in_layout or not self.is_minimized:
             return super().v2_drag_offset(cursor)
         # Placed from a position saved after earlier drags, so only drags
         # since this build move it
