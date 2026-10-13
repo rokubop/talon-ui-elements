@@ -27,6 +27,7 @@ class NodeWindow(NodeContainer):
         })
         self.init_position()
         self.destroying = False
+        self._drag_baseline = None
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
@@ -383,6 +384,19 @@ class NodeWindow(NodeContainer):
     def save_resize_dimensions(self, width, height):
         last_pos_map[self.hash]["last_resize_width"] = width
         last_pos_map[self.hash]["last_resize_height"] = height
+
+    def v2_drag_offset(self, cursor):
+        if self.participates_in_layout or not self.is_minimized:
+            return super().v2_drag_offset(cursor)
+        # Placed from a position saved after earlier drags, so only drags
+        # since this build move it
+        offset = self.tree.meta_state.get_accumulated_drag_offset(self.id)
+        if offset is None:
+            return
+        if self._drag_baseline is None:
+            self._drag_baseline = offset
+        cursor.x += offset.x - self._drag_baseline.x
+        cursor.y += offset.y - self._drag_baseline.y
 
     def _on_drag_end(self, e):
         self.update_saved_positions()
