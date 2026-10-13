@@ -618,10 +618,9 @@ class NodeContainer(Node, NodeContainerType):
         if not self.box_model:
             return
 
-        if self.participates_in_layout:
-            self.v2_drag_offset(cursor)
-        else:
+        if not self.participates_in_layout:
             self.box_model.position_from_relative_parent(cursor)
+        self.v2_drag_offset(cursor)
 
         self.box_model.position_for_render(
             cursor,
