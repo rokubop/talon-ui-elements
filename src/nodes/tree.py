@@ -803,6 +803,9 @@ class Tree(TreeType):
                     raise Exception("actions.user.ui_elements_show was passed a function that didn't return any elements. Be sure to return an element tree composed of `screen`, `div`, `text`, etc.")
                 self.auto_wrap_root_node()
             except Exception as e:
+                # render_image: a picture of the error card would pass for the UI
+                if self.offscreen:
+                    raise
                 from .error_boundary import build_error_card, build_error_window
                 tb_str = traceback.format_exc()
                 label = getattr(self._tree_constructor, "__qualname__", None) or "tree"
@@ -1908,10 +1911,16 @@ class Tree(TreeType):
 
                 for effect in self.effects:
                     if effect.callback:
-                        if len(inspect.signature(effect.callback).parameters) == 1:
-                            cleanup = effect.callback(StateEvent())
-                        else:
-                            cleanup = effect.callback()
+                        # a failing effect shouldn't block the others or the render
+                        try:
+                            if len(inspect.signature(effect.callback).parameters) == 1:
+                                cleanup = effect.callback(StateEvent())
+                            else:
+                                cleanup = effect.callback()
+                        except Exception as e:
+                            print(f"ui_elements: mount effect failed: {e}")
+                            log_trace()
+                            continue
                         if cleanup and not effect.cleanup:
                             effect.cleanup = cleanup
 

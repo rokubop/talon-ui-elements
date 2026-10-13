@@ -28,7 +28,8 @@ def render_ui(
         entity_manager.add_tree(tree)
 
     if scale is not None:
-        entity_manager.set_scale(scale, tree)
+        # notifying would call ui_elements_show from inside itself
+        entity_manager.set_scale(scale, tree, notify=False)
 
     if show_hints is None:
         show_hints = settings.get("user.ui_elements_hints_show")

@@ -642,10 +642,9 @@ class NodeContainer(Node, NodeContainerType):
         if self.wrap_lines:
             is_row = self.properties.flex_direction == "row"
             gap = self.properties.gap or 0
+            self.box_model.shift_relative_position(cursor)
             line_x = self.box_model.content_pos.x
             line_y = self.box_model.content_pos.y
-
-            self.box_model.shift_relative_position(cursor)
 
             for line_idx, line in enumerate(self.wrap_lines):
                 cursor.move_to(line_x, line_y)

@@ -34,11 +34,12 @@ Properties mostly match standard CSS properties.
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
 | align_items | "center", "flex_start", "flex_end", "stretch" | "stretch" | How items are aligned in the cross axis |
-| align_self | "center", "flex_start", "flex_end", "stretch" | None | Align self in the cross axis |
+| align_self | "center", "flex_start", "flex_end", "stretch" | None | Align self in the cross axis. On an absolute or fixed node with no `top`/`bottom`: where it sits vertically in its parent |
 | flex | int | None | `1` to stretch fully. |
 | flex_direction | "row", "column" | "column" | "row" to align items horizontally, "column" to align items vertically. Note that the default is "column", which is different than HTML/CSS which defaults to "row". |
 | gap | int | None | Gap between children. Always applicable since every element is flex |
 | justify_content | "center", "flex_start", "flex_end", "space_between", "space_evenly" | "flex_start" | Justify content in the main axis |
+| justify_self | "center", "flex_start", "flex_end" | None | On an absolute or fixed node with no `left`/`right`: where it sits horizontally in its parent. Ignored in flex layout, like CSS |
 
 ## Sizing Properties
 
@@ -94,11 +95,13 @@ Properties mostly match standard CSS properties.
 
 | Property | Type | Default | Description |
 | -- | -- | -- | -- |
+| anchor | "top_left", "top", "top_right", "left", "center", "right", "bottom_left", "bottom", "bottom_right" | None | Puts the node's matching point on its parent's: `"bottom_right"` puts its bottom right corner on the parent's. Shorthand for `justify_self` + `align_self`, implies `position="absolute"`, replaces `left`/`right`/`top`/`bottom`. Offset with `translate`. Measured from the parent's border edge, like `left`/`right`. Doesn't re-anchor after `set_text`, so give right or center anchored text a fixed width. Not on `window` or `cursor`, and not through `style()` |
 | bottom | Union[int, str, float] | None | Used with `"position"` property. Inset from the bottom. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | left | Union[int, str, float] | None | Used with `"position"` property. Inset from the left. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | position | "static", "relative", "absolute", "fixed" | "static" | Positioning of element. |
 | right | Union[int, str, float] | None | Used with `"position"` property. Inset from the right. e.g. `0`, `50`, `"25%"`, `"100%"` |
 | top | Union[int, str, float] | None | Used with `"position"` property. Inset from the top. e.g. `0`, `50`, `"25%"`, `"100%"` |
+| translate | tuple | None | `(x, y)` shift after layout, positive is right/down. Moves the node and its children, not its siblings. Any position, not on `window` or SVG shapes. Percentages are of the node's own size: `("-50%", 0)` |
 | z_index | int | 0 | higher value will render on top of lower values. Cascades to children |
 
 ## Overflow & Scrolling Properties

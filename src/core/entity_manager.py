@@ -120,7 +120,7 @@ class EntityManager:
             print("tree.meta_state.focused_id", tree.meta_state.focused_id)
             print("tree.meta_state.unhighlight_jobs", tree.meta_state.unhighlight_jobs)
 
-    def set_scale(self, scale: float, tree: TreeType = None, persist: bool = False):
+    def set_scale(self, scale: float, tree: TreeType = None, persist: bool = False, notify: bool = True):
         clamped_scale = max(0.5, min(3.0, scale))
 
         if tree:
@@ -133,7 +133,8 @@ class EntityManager:
                     self._save_tree_scale(tree.hashed_tree_constructor, clamped_scale)
             tree.render()
 
-            show_scale_notification(clamped_scale)
+            if notify:
+                show_scale_notification(clamped_scale)
         else:
             store.scale = clamped_scale
             default_scale = settings.get("user.ui_elements_scale", 1.0)
