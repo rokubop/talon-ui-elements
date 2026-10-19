@@ -101,32 +101,77 @@ REGISTER_KIND = {
     "code_language": "Highlighting rules for a language in code.",
 }
 
-# name: (what the set is, its values, the props that take it)
+# name: what the set is, its values, the props that take it
 _OWN = {
-    "flex_direction": ("Which way children are laid out. Column by default, unlike CSS.",
-                       FLEX_DIRECTION, ["flex_direction"]),
-    "justify_content": ("Where children sit along the layout direction.",
-                        JUSTIFY_CONTENT, ["justify_content"]),
-    "align_items": ("Where children sit across the layout direction.",
-                    ALIGN_ITEMS, ["align_items"]),
-    "justify_self": ("On an absolute or fixed node with no left or right: where it "
-                     "sits across its parent. Ignored in flex layout.",
-                     JUSTIFY_SELF, ["justify_self"]),
-    "align_self": ("Where this node sits across its parent's layout direction, over "
-                   "its parent's align_items. On an absolute or fixed node with no top "
-                   "or bottom: where it sits down its parent.",
-                   ALIGN_SELF, ["align_self"]),
-    "position": ("How the node is placed.", POSITION, ["position"]),
-    "overflow": ("What content past the node's edge does.",
-                 OVERFLOW, ["overflow", "overflow_x", "overflow_y"]),
-    "scroll_bar": ("How a scrolling node shows its scroll bar.", SCROLL_BAR, ["scroll_bar"]),
-    "text_align": ("How lines of text line up.", TEXT_ALIGN, ["text_align"]),
-    "white_space": ("Whether text wraps.", WHITE_SPACE, ["white_space"]),
-    "font_style": ("Upright or italic.", FONT_STYLE, ["font_style"]),
-    "resize_edge": ("An edge resizable lets you drag. True is all four, and a list "
-                    "names several.", RESIZE_EDGE, ["resizable"]),
-    "sort_direction": ("Which way a data_table sorts.", SORT_DIRECTION, ["sort_direction"]),
-    "register_kind": ("What ui_elements_register adds.", REGISTER_KIND, []),
+    "flex_direction": {
+        "desc": "Which way children are laid out. Column by default, unlike CSS.",
+        "values": FLEX_DIRECTION,
+        "props": ["flex_direction"],
+    },
+    "justify_content": {
+        "desc": "Where children sit along the layout direction.",
+        "values": JUSTIFY_CONTENT,
+        "props": ["justify_content"],
+    },
+    "align_items": {
+        "desc": "Where children sit across the layout direction.",
+        "values": ALIGN_ITEMS,
+        "props": ["align_items"],
+    },
+    "justify_self": {
+        "desc": "On an absolute or fixed node with no left or right: where it sits across its parent. Ignored in flex layout.",
+        "values": JUSTIFY_SELF,
+        "props": ["justify_self"],
+    },
+    "align_self": {
+        "desc": "Where this node sits across its parent's layout direction, over its parent's align_items. On an absolute or fixed node with no top or bottom: where it sits down its parent.",
+        "values": ALIGN_SELF,
+        "props": ["align_self"],
+    },
+    "position": {
+        "desc": "How the node is placed.",
+        "values": POSITION,
+        "props": ["position"],
+    },
+    "overflow": {
+        "desc": "What content past the node's edge does.",
+        "values": OVERFLOW,
+        "props": ["overflow", "overflow_x", "overflow_y"],
+    },
+    "scroll_bar": {
+        "desc": "How a scrolling node shows its scroll bar.",
+        "values": SCROLL_BAR,
+        "props": ["scroll_bar"],
+    },
+    "text_align": {
+        "desc": "How lines of text line up.",
+        "values": TEXT_ALIGN,
+        "props": ["text_align"],
+    },
+    "white_space": {
+        "desc": "Whether text wraps.",
+        "values": WHITE_SPACE,
+        "props": ["white_space"],
+    },
+    "font_style": {
+        "desc": "Upright or italic.",
+        "values": FONT_STYLE,
+        "props": ["font_style"],
+    },
+    "resize_edge": {
+        "desc": "An edge resizable lets you drag. True is all four, and a list names several.",
+        "values": RESIZE_EDGE,
+        "props": ["resizable"],
+    },
+    "sort_direction": {
+        "desc": "Which way a data_table sorts.",
+        "values": SORT_DIRECTION,
+        "props": ["sort_direction"],
+    },
+    "register_kind": {
+        "desc": "What ui_elements_register adds.",
+        "values": REGISTER_KIND,
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -167,8 +212,7 @@ ELEMENT = {
     "effect": "Runs on mount, or when the state it names changes.",
     "ref": "A handle on an element, to read or change it directly.",
     "component": "A reusable piece of UI from a render function.",
-    "error_boundary": "Shows an error card for its subtree when rendering it raises, "
-                      "instead of blanking the tree.",
+    "error_boundary": "Shows an error card for its subtree when rendering it raises, instead of blanking the tree.",
     "style": "Styles for every element of a kind, an id or a class_name.",
 }
 
@@ -228,8 +272,9 @@ GRADIENT_DIRECTION = {
 
 
 def _tables() -> dict:
-    """name: (what the set is, the table whose keys are its values, their
-    descriptions, the props that take it). Imported here, not at the top,
+    """name: what the set is, the table whose keys are its values, their
+    descriptions, the props that take it, and for an open set the regex
+    anything else it takes must match. Imported here, not at the top,
     since properties.py reads this module."""
     from .core.animations import EASING_FUNCTIONS
     from .elements import element_collection
@@ -238,39 +283,59 @@ def _tables() -> dict:
     from .properties import ANCHORS
     from .utils import GRADIENT_DIRECTIONS
     return {
-        "element": ("An element ui_elements hands back by name.",
-                    element_collection, ELEMENT, []),
-        "anchor": ("Puts the node's matching point on its parent's. Implies position "
-                   "absolute; replaces left, right, top and bottom.",
-                   ANCHORS, ANCHOR, ["anchor"]),
-        "font_weight": ("How heavy the text is. Uses a real installed face when there "
-                        "is one, else synthesizes it. Also takes 100 to 900, and the "
-                        "names in aliases.",
-                        _WEIGHT_ORDER, FONT_WEIGHT, ["font_weight"]),
-        "stroke_linecap": ("How an SVG stroke's open ends look.",
-                           linecap, STROKE_LINECAP, ["stroke_linecap"]),
-        "stroke_linejoin": ("How an SVG stroke's corners look.",
-                            linejoin, STROKE_LINEJOIN, ["stroke_linejoin"]),
-        "easing": ("How a transition paces itself.",
-                   EASING_FUNCTIONS, EASING, []),
-        "gradient_direction": ("Which way a linear_gradient background runs. Also "
-                               "takes an angle, like 45deg.",
-                               GRADIENT_DIRECTIONS, GRADIENT_DIRECTION, []),
+        "element": {
+            "desc": "An element ui_elements hands back by name.",
+            "values": element_collection,
+            "descs": ELEMENT,
+        },
+        "anchor": {
+            "desc": "Puts the node's matching point on its parent's. Implies position absolute; replaces left, right, top and bottom.",
+            "values": ANCHORS,
+            "descs": ANCHOR,
+            "props": ["anchor"],
+        },
+        "font_weight": {
+            "desc": "How heavy the text is. Uses a real installed face when there is one, else synthesizes it. Also takes 100 to 900, and the names in aliases.",
+            "values": _WEIGHT_ORDER,
+            "descs": FONT_WEIGHT,
+            "props": ["font_weight"],
+            "accepts": r"[1-9]00",
+        },
+        "stroke_linecap": {
+            "desc": "How an SVG stroke's open ends look.",
+            "values": linecap,
+            "descs": STROKE_LINECAP,
+            "props": ["stroke_linecap"],
+        },
+        "stroke_linejoin": {
+            "desc": "How an SVG stroke's corners look.",
+            "values": linejoin,
+            "descs": STROKE_LINEJOIN,
+            "props": ["stroke_linejoin"],
+        },
+        "easing": {
+            "desc": "How a transition paces itself.",
+            "values": EASING_FUNCTIONS,
+            "descs": EASING,
+        },
+        "gradient_direction": {
+            "desc": "Which way a linear_gradient background runs. Also takes an angle, like 45deg.",
+            "values": GRADIENT_DIRECTIONS,
+            "descs": GRADIENT_DIRECTION,
+            "accepts": r"-?\d+(\.\d+)?deg",
+        },
     }
 
 
-# Open sets: anything matching is taken too
-_PATTERNS = {
-    "font_weight": r"[1-9]00",
-    "gradient_direction": r"-?\d+(\.\d+)?deg",
-}
-
-
-def _set(desc: str, values, descs: dict, props: list) -> dict:
-    out = {"desc": desc,
-           "values": [{"id": v, "desc": descs.get(v, "")} for v in values]}
-    if props:
-        out["props"] = list(props)
+def _set(spec: dict) -> dict:
+    descs = spec.get("descs", spec["values"])
+    out = {
+        "desc": spec["desc"],
+        "values": [{"id": v, "desc": descs.get(v, "")} for v in spec["values"]],
+    }
+    for key in ("props", "accepts"):
+        if key in spec:
+            out[key] = spec[key]
     return out
 
 
@@ -278,13 +343,9 @@ def types() -> dict:
     """Every set, as `{name: {"desc", "values": [{"id", "desc"}], ...}}`.
     An open set adds `accepts`, a full-match regex; font_weight adds
     `aliases`, the other names it takes and what each stands for."""
-    out = {name: _set(desc, values, values, props)
-           for name, (desc, values, props) in _OWN.items()}
-    for name, (desc, table, descs, props) in _tables().items():
-        out[name] = _set(desc, table, descs, props)
-    for name, pattern in _PATTERNS.items():
-        out[name]["accepts"] = pattern
+    out = {name: _set(spec) for name, spec in {**_OWN, **_tables()}.items()}
     from .fonts import _WEIGHT_ALIASES
     out["font_weight"]["aliases"] = {
-        k: v for k, v in _WEIGHT_ALIASES.items() if k and not k.isdigit()}
+        k: v for k, v in _WEIGHT_ALIASES.items() if k and not k.isdigit()
+    }
     return out
