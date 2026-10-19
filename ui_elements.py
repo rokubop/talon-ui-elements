@@ -8,6 +8,7 @@ from .src.entry import render_ui, render_image
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.syntax import register_theme, register_language
+from .src.value_types import REGISTER_KIND, types as value_types
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
 from .storybook.main import storybook_ui
@@ -32,6 +33,9 @@ class Actions:
         svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
         circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
         ```
+
+        Args:
+            elements: One element's name, or a list of them. Type: ui_elements.element
         """
         return ui_elements(elements)
 
@@ -285,6 +289,11 @@ class Actions:
         - `"code_theme"` - value is a dict mapping token types to hex colors
         - `"code_language"` - value is a list of (token_type, compiled_regex) tuples
 
+        Args:
+            kind: What to add: "code_theme" or "code_language". Type: ui_elements.register_kind
+            name: The name it is used by, as `theme="nord"`
+            value: What the kind takes, as above
+
         ```
         actions.user.ui_elements_register("code_theme", "nord", {
             "keyword": "81A1C1",
@@ -311,7 +320,26 @@ class Actions:
         elif kind == "code_language":
             register_language(name, value)
         else:
-            raise ValueError(f"Unknown ui_elements_register kind: {kind!r}")
+            raise ValueError(f"Unknown ui_elements_register kind: {kind!r}. "
+                             f"Valid kinds: {', '.join(REGISTER_KIND)}")
+
+    def ui_elements_types() -> dict:
+        """
+        The sets of values ui_elements takes beyond its actions' signatures,
+        each value described: element names, and the values of props like
+        anchor, overflow and font_weight.
+
+        A param that takes one says so in its docstring: `Type: ui_elements.<name>`.
+
+        ```
+        {"anchor": {"desc": "...", "props": ["anchor"],
+                    "values": [{"id": "top_left", "desc": "Top left corner."}, ...]},
+         ...}
+        ```
+        An open set also has `pattern`, a full-match regex for the values
+        it takes beyond its list (`45deg`, `700`).
+        """
+        return value_types()
 
     def ui_elements_storybook_toggle():
         """Toggle the storybook UI"""

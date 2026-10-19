@@ -6,6 +6,7 @@ from talon.types import Rect
 from typing import TypedDict, Union
 from typing import TypedDict
 from .border_radius import BorderRadius
+from .value_types import ALIGN_ITEMS, ALIGN_SELF, JUSTIFY_CONTENT, JUSTIFY_SELF, POSITION
 from .box_model import (
     Overflow,
     parse_box_model
@@ -68,7 +69,7 @@ ANCHORS = {
     "bottom_right": ("flex_end", "flex_end"),
 }
 
-SELF_ALIGN_VALUES = ("flex_start", "center", "flex_end")
+SELF_ALIGN_VALUES = tuple(JUSTIFY_SELF)
 
 # Expanded once, when the element is made
 CONSTRUCTOR_ONLY = {"anchor"}
@@ -201,14 +202,14 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_justify_content(self):
         if self.justify_content:
-            valid = ['flex_start', 'flex_end', 'space_between', 'center', 'space_evenly']
+            valid = list(JUSTIFY_CONTENT)
             if self.justify_content not in valid:
                 print(f"ui_elements: unsupported justify_content '{self.justify_content}', falling back to 'flex_start'. Valid: {valid}")
                 self.justify_content = 'flex_start'
 
     def validate_align_items(self):
         if self.align_items:
-            valid = ['stretch', 'center', 'flex_start', 'flex_end']
+            valid = list(ALIGN_ITEMS)
             if self.align_items not in valid:
                 print(f"ui_elements: unsupported align_items '{self.align_items}', falling back to 'flex_start'. Valid: {valid}")
                 self.align_items = 'flex_start'
@@ -247,7 +248,7 @@ class Properties(PropertiesDimensionalType, PropertiesType):
         if self.justify_self and self.justify_self not in SELF_ALIGN_VALUES:
             print(f"ui_elements: unsupported justify_self '{self.justify_self}', ignoring it. Valid: {list(SELF_ALIGN_VALUES)}")
             self.justify_self = None
-        valid_align = (*SELF_ALIGN_VALUES, 'stretch')
+        valid_align = tuple(ALIGN_SELF)
         if self.align_self and self.align_self not in valid_align:
             print(f"ui_elements: unsupported align_self '{self.align_self}', ignoring it. Valid: {list(valid_align)}")
             self.align_self = None
@@ -296,10 +297,10 @@ class Properties(PropertiesDimensionalType, PropertiesType):
 
     def validate_position_constraints(self, kwargs):
         if kwargs.get('position'):
-            if self.position not in ['absolute', 'relative', 'fixed', 'static']:
+            if self.position not in POSITION:
                 raise ValueError(
                     f"\nInvalid value for position: '{self.position}'\n"
-                    f"Valid values are: 'static' (default), 'relative', 'absolute', 'fixed'"
+                    f"Valid values are: {', '.join(repr(p) for p in POSITION)}"
                 )
 
             if self.position == 'relative':
