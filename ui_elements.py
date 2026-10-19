@@ -336,7 +336,7 @@ class Actions:
                     "values": [{"id": "top_left", "desc": "Top left corner."}, ...]},
          ...}
         ```
-        An open set also has `pattern`, a full-match regex for the values
+        An open set also has `accepts`, a full-match regex for the values
         it takes beyond its list (`45deg`, `700`).
         """
         return value_types()

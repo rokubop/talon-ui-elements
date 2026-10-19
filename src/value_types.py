@@ -257,7 +257,7 @@ def _tables() -> dict:
     }
 
 
-# Open sets: anything matching the pattern is taken too
+# Open sets: anything matching is taken too
 _PATTERNS = {
     "font_weight": r"[1-9]00",
     "gradient_direction": r"-?\d+(\.\d+)?deg",
@@ -274,14 +274,14 @@ def _set(desc: str, values, descs: dict, props: list) -> dict:
 
 def types() -> dict:
     """Every set, as `{name: {"desc", "values": [{"id", "desc"}], ...}}`.
-    An open set adds `pattern`, a full-match regex; font_weight adds
+    An open set adds `accepts`, a full-match regex; font_weight adds
     `aliases`, the other names it takes and what each stands for."""
     out = {name: _set(desc, values, values, props)
            for name, (desc, values, props) in _OWN.items()}
     for name, (desc, table, descs, props) in _tables().items():
         out[name] = _set(desc, table, descs, props)
     for name, pattern in _PATTERNS.items():
-        out[name]["pattern"] = pattern
+        out[name]["accepts"] = pattern
     from .fonts import _WEIGHT_ALIASES
     out["font_weight"]["aliases"] = {
         k: v for k, v in _WEIGHT_ALIASES.items() if k and not k.isdigit()}
