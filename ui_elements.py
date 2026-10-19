@@ -325,15 +325,14 @@ class Actions:
 
     def ui_elements_types() -> dict:
         """
-        The sets of values ui_elements takes beyond its actions' signatures,
-        each value described: element names, and the values of props like
-        anchor, overflow and font_weight.
+        Named sets of values ui_elements takes: element names, and prop
+        values like anchor, overflow and font_weight.
 
         A param that takes one says so in its docstring: `Type: ui_elements.<name>`.
 
         ```
         {"anchor": {"desc": "...", "props": ["anchor"],
-                    "values": [{"id": "top_left", "desc": "Top left corner."}, ...]},
+                    "values": [{"id": "top_left", "desc": ""}, ...]},
          ...}
         ```
         An open set also has `accepts`, a full-match regex for the values

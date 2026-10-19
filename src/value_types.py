@@ -1,15 +1,8 @@
-"""The sets of values ui_elements takes beyond what its actions' signatures
-say, each value described. `user.ui_elements_types()` hands them out as
-plain dicts. A param that takes one says so in its docstring:
-`Type: ui_elements.<name>`.
+"""Value sets for user.ui_elements_types().
 
-A set the code keeps no table for is listed here. Validation reads
-justify_content, align_items, justify_self, align_self and position from
-here; the rest are the strings the code compares against, which only
-these describe. A set with a table that does the work
-(anchors, easings, weights, ...) takes its values from that table, and
-only its descriptions live here: tests/test_types.py checks the two name
-the same values.
+Validation reads justify_content, align_items, justify_self, align_self and
+position from here; the other own sets only describe. Sets with a real table
+(anchors, easings, ...) take values from it; tests/test_types.py keeps them in sync.
 """
 
 # ---------------------------------------------------------------------------
@@ -69,9 +62,9 @@ SCROLL_BAR = {
 }
 
 TEXT_ALIGN = {
-    "left": "Left. The default.",
-    "center": "Centered.",
-    "right": "Right.",
+    "left": "The default.",
+    "center": "",
+    "right": "",
 }
 
 WHITE_SPACE = {
@@ -80,15 +73,15 @@ WHITE_SPACE = {
 }
 
 FONT_STYLE = {
-    "normal": "Upright.",
-    "italic": "Slanted. A real italic face when there is one, else synthesized.",
+    "normal": "",
+    "italic": "",
 }
 
 RESIZE_EDGE = {
-    "top": "Top edge.",
-    "right": "Right edge.",
-    "bottom": "Bottom edge.",
-    "left": "Left edge.",
+    "top": "",
+    "right": "",
+    "bottom": "",
+    "left": "",
 }
 
 SORT_DIRECTION = {
@@ -186,14 +179,14 @@ ELEMENT = {
     "window": "Draggable window with a title bar and close button; first inside screen.",
     "modal": "Dialog over a backdrop, opened and closed by its open prop.",
     "cursor": "Container that follows the mouse.",
-    "text": "A run of text.",
+    "text": "",
     "code": "Syntax-highlighted code, with a theme and a language.",
     "input_text": "One-line text input.",
     "textarea": "Multi-line text input with wrapping and scrolling.",
     "select": "Dropdown to pick one of its options.",
     "icon": "A built-in icon, by name.",
     "button": "Clickable button.",
-    "checkbox": "Checkbox, checked or not.",
+    "checkbox": "",
     "switch": "On/off switch.",
     "link": "Clickable link to a url.",
     "data_table": "Sortable, searchable table of data, optionally multi-select.",
@@ -217,15 +210,15 @@ ELEMENT = {
 }
 
 ANCHOR = {
-    "top_left": "Top left corner.",
-    "top": "Top edge, centered.",
-    "top_right": "Top right corner.",
-    "left": "Left edge, centered.",
-    "center": "Center.",
-    "right": "Right edge, centered.",
-    "bottom_left": "Bottom left corner.",
-    "bottom": "Bottom edge, centered.",
-    "bottom_right": "Bottom right corner.",
+    "top_left": "",
+    "top": "",
+    "top_right": "",
+    "left": "",
+    "center": "",
+    "right": "",
+    "bottom_left": "",
+    "bottom": "",
+    "bottom_right": "",
 }
 
 FONT_WEIGHT = {
@@ -260,22 +253,19 @@ EASING = {
 }
 
 GRADIENT_DIRECTION = {
-    "to_bottom": "Top to bottom. The default.",
-    "to_top": "Bottom to top.",
-    "to_right": "Left to right.",
-    "to_left": "Right to left.",
-    "to_bottom_right": "Top left to bottom right.",
-    "to_bottom_left": "Top right to bottom left.",
-    "to_top_right": "Bottom left to top right.",
-    "to_top_left": "Bottom right to top left.",
+    "to_bottom": "The default.",
+    "to_top": "",
+    "to_right": "",
+    "to_left": "",
+    "to_bottom_right": "",
+    "to_bottom_left": "",
+    "to_top_right": "",
+    "to_top_left": "",
 }
 
 
 def _tables() -> dict:
-    """name: what the set is, the table whose keys are its values, their
-    descriptions, the props that take it, and for an open set the regex
-    anything else it takes must match. Imported here, not at the top,
-    since properties.py reads this module."""
+    """Imported here, not at the top: properties.py reads this module."""
     from .core.animations import EASING_FUNCTIONS
     from .elements import element_collection
     from .fonts import _WEIGHT_ORDER
@@ -340,9 +330,7 @@ def _set(spec: dict) -> dict:
 
 
 def types() -> dict:
-    """Every set, as `{name: {"desc", "values": [{"id", "desc"}], ...}}`.
-    An open set adds `accepts`, a full-match regex; font_weight adds
-    `aliases`, the other names it takes and what each stands for."""
+    """`accepts`: full-match regex for values beyond the list. `aliases`: other names font_weight takes."""
     out = {name: _set(spec) for name, spec in {**_OWN, **_tables()}.items()}
     from .fonts import _WEIGHT_ALIASES
     out["font_weight"]["aliases"] = {
