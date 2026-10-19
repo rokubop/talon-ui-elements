@@ -3,8 +3,10 @@ say, each value described. `user.ui_elements_types()` hands them out as
 plain dicts. A param that takes one says so in its docstring:
 `Type: ui_elements.<name>`.
 
-A set the code keeps no table for is listed here, and the checks that
-validate it read it from here. A set with a table that does the work
+A set the code keeps no table for is listed here. Validation reads
+justify_content, align_items, justify_self, align_self and position from
+here; the rest are the strings the code compares against, which only
+these describe. A set with a table that does the work
 (anchors, easings, weights, ...) takes its values from that table, and
 only its descriptions live here: tests/test_types.py checks the two name
 the same values.
@@ -67,9 +69,9 @@ SCROLL_BAR = {
 }
 
 TEXT_ALIGN = {
-    "left": "",
+    "left": "Left. The default.",
     "center": "Centered.",
-    "right": "",
+    "right": "Right.",
 }
 
 WHITE_SPACE = {
@@ -79,7 +81,7 @@ WHITE_SPACE = {
 
 FONT_STYLE = {
     "normal": "Upright.",
-    "italic": "",
+    "italic": "Slanted. A real italic face when there is one, else synthesized.",
 }
 
 RESIZE_EDGE = {
@@ -139,14 +141,14 @@ ELEMENT = {
     "window": "Draggable window with a title bar and close button; first inside screen.",
     "modal": "Dialog over a backdrop, opened and closed by its open prop.",
     "cursor": "Container that follows the mouse.",
-    "text": "",
+    "text": "A run of text.",
     "code": "Syntax-highlighted code, with a theme and a language.",
     "input_text": "One-line text input.",
     "textarea": "Multi-line text input with wrapping and scrolling.",
     "select": "Dropdown to pick one of its options.",
     "icon": "A built-in icon, by name.",
     "button": "Clickable button.",
-    "checkbox": "",
+    "checkbox": "Checkbox, checked or not.",
     "switch": "On/off switch.",
     "link": "Clickable link to a url.",
     "data_table": "Sortable, searchable table of data, optionally multi-select.",
@@ -175,7 +177,7 @@ ANCHOR = {
     "top": "Top edge, centered.",
     "top_right": "Top right corner.",
     "left": "Left edge, centered.",
-    "center": "",
+    "center": "Center.",
     "right": "Right edge, centered.",
     "bottom_left": "Bottom left corner.",
     "bottom": "Bottom edge, centered.",
@@ -183,13 +185,13 @@ ANCHOR = {
 }
 
 FONT_WEIGHT = {
-    "light": "",
+    "light": "Lightest; also 100 to 300.",
     "semilight": "Between light and regular.",
-    "regular": "Regular; also normal.",
-    "medium": "",
-    "semibold": "",
-    "bold": "",
-    "black": "Heaviest.",
+    "regular": "Regular; also normal and 400.",
+    "medium": "500.",
+    "semibold": "600.",
+    "bold": "700 and 800.",
+    "black": "Heaviest; 900.",
 }
 
 STROKE_LINECAP = {

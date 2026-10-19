@@ -32,6 +32,9 @@ class TypesTests:
            actual={p for s in types.values() for p in s.get("props", [])} - known)
         it("every set described", expect=[],
            actual=[name for name, s in types.items() if not s["desc"]])
+        it("every value described", expect=[],
+           actual=[f"{name}.{v['id']}" for name, s in types.items()
+                   for v in s["values"] if not v["desc"]])
         source = (Path(__file__).parent.parent / "ui_elements.py").read_text(encoding="utf-8")
         it("every Type: link resolves", expect=[],
            actual=[f"{ns}.{name}" for ns, name in re.findall(r"Type: (\w+)\.(\w+)", source)
