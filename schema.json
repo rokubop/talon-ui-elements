@@ -1,0 +1,653 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user.ui_elements",
+  "x-format": 1,
+  "description": "What ui_elements accepts beyond its actions' signatures: element names, and the values of props.",
+  "$defs": {
+    "element": {
+      "description": "An element ui_elements hands back by name.",
+      "oneOf": [
+        {
+          "const": "screen",
+          "description": "Full-screen root; wraps everything."
+        },
+        {
+          "const": "active_window",
+          "description": "Root the size of the active window; wraps everything."
+        },
+        {
+          "const": "div",
+          "description": "Generic container."
+        },
+        {
+          "const": "form",
+          "description": "Container that submits: Enter in an input_text, or a button with type 'submit'."
+        },
+        {
+          "const": "window",
+          "description": "Draggable window with a title bar and close button; first inside screen."
+        },
+        {
+          "const": "modal",
+          "description": "Dialog over a backdrop, opened and closed by its open prop."
+        },
+        {
+          "const": "cursor",
+          "description": "Container that follows the mouse."
+        },
+        {
+          "const": "text"
+        },
+        {
+          "const": "code",
+          "description": "Syntax-highlighted code, with a theme and a language."
+        },
+        {
+          "const": "input_text",
+          "description": "One-line text input."
+        },
+        {
+          "const": "textarea",
+          "description": "Multi-line text input with wrapping and scrolling."
+        },
+        {
+          "const": "select",
+          "description": "Dropdown to pick one of its options."
+        },
+        {
+          "const": "icon",
+          "description": "A built-in icon, by name."
+        },
+        {
+          "const": "button",
+          "description": "Clickable button."
+        },
+        {
+          "const": "checkbox"
+        },
+        {
+          "const": "switch",
+          "description": "On/off switch."
+        },
+        {
+          "const": "link",
+          "description": "Clickable link to a url."
+        },
+        {
+          "const": "data_table",
+          "description": "Sortable, searchable table of data, optionally multi-select."
+        },
+        {
+          "const": "table",
+          "description": "Table container."
+        },
+        {
+          "const": "tr",
+          "description": "Table row."
+        },
+        {
+          "const": "th",
+          "description": "Table header cell."
+        },
+        {
+          "const": "td",
+          "description": "Table data cell."
+        },
+        {
+          "const": "svg",
+          "description": "SVG container."
+        },
+        {
+          "const": "path",
+          "description": "SVG path, inside svg."
+        },
+        {
+          "const": "rect",
+          "description": "SVG rectangle, inside svg."
+        },
+        {
+          "const": "circle",
+          "description": "SVG circle, inside svg."
+        },
+        {
+          "const": "line",
+          "description": "SVG line, inside svg."
+        },
+        {
+          "const": "polyline",
+          "description": "SVG connected lines, open, inside svg."
+        },
+        {
+          "const": "polygon",
+          "description": "SVG closed shape, inside svg."
+        },
+        {
+          "const": "state",
+          "description": "Reactive state: get, set, use."
+        },
+        {
+          "const": "effect",
+          "description": "Runs on mount, or when the state it names changes."
+        },
+        {
+          "const": "ref",
+          "description": "A handle on an element, to read or change it directly."
+        },
+        {
+          "const": "component",
+          "description": "A reusable piece of UI from a render function."
+        },
+        {
+          "const": "error_boundary",
+          "description": "Shows an error card for its subtree when rendering it raises, instead of blanking the tree."
+        },
+        {
+          "const": "style",
+          "description": "Styles for every element of a kind, an id or a class_name."
+        }
+      ]
+    },
+    "register_kind": {
+      "description": "What ui_elements_register adds.",
+      "oneOf": [
+        {
+          "const": "code_theme",
+          "description": "A color theme for code."
+        },
+        {
+          "const": "code_language",
+          "description": "Highlighting rules for a language in code."
+        }
+      ]
+    },
+    "flex_direction": {
+      "description": "Which way children are laid out. Column by default, unlike CSS.",
+      "oneOf": [
+        {
+          "const": "column",
+          "description": "Top to bottom."
+        },
+        {
+          "const": "row",
+          "description": "Left to right."
+        }
+      ]
+    },
+    "justify_content": {
+      "description": "Where children sit along the layout direction.",
+      "oneOf": [
+        {
+          "const": "flex_start",
+          "description": "At the start."
+        },
+        {
+          "const": "center",
+          "description": "In the middle."
+        },
+        {
+          "const": "flex_end",
+          "description": "At the end."
+        },
+        {
+          "const": "space_between",
+          "description": "Spread out, first and last at the edges."
+        },
+        {
+          "const": "space_evenly",
+          "description": "Spread out, with even space around each."
+        }
+      ]
+    },
+    "align_items": {
+      "description": "Where children sit across the layout direction.",
+      "oneOf": [
+        {
+          "const": "stretch",
+          "description": "Stretched to fill it."
+        },
+        {
+          "const": "flex_start",
+          "description": "At the start."
+        },
+        {
+          "const": "center",
+          "description": "In the middle."
+        },
+        {
+          "const": "flex_end",
+          "description": "At the end."
+        }
+      ]
+    },
+    "justify_self": {
+      "description": "On an absolute or fixed node with no left or right: where it sits across its parent. Ignored in flex layout.",
+      "oneOf": [
+        {
+          "const": "flex_start",
+          "description": "Left."
+        },
+        {
+          "const": "center",
+          "description": "Middle."
+        },
+        {
+          "const": "flex_end",
+          "description": "Right."
+        }
+      ]
+    },
+    "align_self": {
+      "description": "Where this node sits across its parent's layout direction, over its parent's align_items. On an absolute or fixed node with no top or bottom: where it sits down its parent.",
+      "oneOf": [
+        {
+          "const": "flex_start",
+          "description": "Start, or top."
+        },
+        {
+          "const": "center",
+          "description": "Middle."
+        },
+        {
+          "const": "flex_end",
+          "description": "End, or bottom."
+        },
+        {
+          "const": "stretch",
+          "description": "Stretched to fill it."
+        }
+      ]
+    },
+    "anchor": {
+      "description": "Puts the node's matching point on its parent's. Implies position absolute; replaces left, right, top and bottom.",
+      "oneOf": [
+        {
+          "const": "top_left",
+          "description": "Top left corner."
+        },
+        {
+          "const": "top",
+          "description": "Top edge, centered."
+        },
+        {
+          "const": "top_right",
+          "description": "Top right corner."
+        },
+        {
+          "const": "left",
+          "description": "Left edge, centered."
+        },
+        {
+          "const": "center"
+        },
+        {
+          "const": "right",
+          "description": "Right edge, centered."
+        },
+        {
+          "const": "bottom_left",
+          "description": "Bottom left corner."
+        },
+        {
+          "const": "bottom",
+          "description": "Bottom edge, centered."
+        },
+        {
+          "const": "bottom_right",
+          "description": "Bottom right corner."
+        }
+      ]
+    },
+    "position": {
+      "description": "How the node is placed.",
+      "oneOf": [
+        {
+          "const": "static",
+          "description": "In the layout, as usual."
+        },
+        {
+          "const": "relative",
+          "description": "In the layout, then moved by top, left, bottom and right."
+        },
+        {
+          "const": "absolute",
+          "description": "Out of the layout, placed in its parent by top, left, bottom and right."
+        },
+        {
+          "const": "fixed",
+          "description": "Out of the layout, placed on the screen by top, left, bottom and right."
+        }
+      ]
+    },
+    "overflow": {
+      "description": "What content past the node's edge does.",
+      "oneOf": [
+        {
+          "const": "visible",
+          "description": "Shows past the edge."
+        },
+        {
+          "const": "hidden",
+          "description": "Is cut off."
+        },
+        {
+          "const": "scroll",
+          "description": "Is cut off, and scrolls."
+        },
+        {
+          "const": "auto",
+          "description": "Is cut off, and scrolls; the same as scroll."
+        }
+      ]
+    },
+    "scroll_bar": {
+      "description": "How a scrolling node shows its scroll bar.",
+      "oneOf": [
+        {
+          "const": "overlay",
+          "description": "Floats over the content and hides when idle."
+        },
+        {
+          "const": "visible",
+          "description": "Always shows, and takes space in the layout."
+        }
+      ]
+    },
+    "text_align": {
+      "description": "How lines of text line up.",
+      "oneOf": [
+        {
+          "const": "left"
+        },
+        {
+          "const": "center",
+          "description": "Centered."
+        },
+        {
+          "const": "right"
+        }
+      ]
+    },
+    "white_space": {
+      "description": "Whether text wraps.",
+      "oneOf": [
+        {
+          "const": "normal",
+          "description": "Wraps to the container's width."
+        },
+        {
+          "const": "nowrap",
+          "description": "Stays on one line."
+        }
+      ]
+    },
+    "font_style": {
+      "description": "Upright or italic.",
+      "oneOf": [
+        {
+          "const": "normal",
+          "description": "Upright."
+        },
+        {
+          "const": "italic"
+        }
+      ]
+    },
+    "font_weight": {
+      "description": "How heavy the text is. Uses a real installed face when there is one, else synthesizes it. Also takes 100 to 900, and names like normal, thin, demibold, extrabold and heavy, which map to these.",
+      "anyOf": [
+        {
+          "oneOf": [
+            {
+              "const": "light"
+            },
+            {
+              "const": "semilight",
+              "description": "Between light and regular."
+            },
+            {
+              "const": "regular",
+              "description": "Regular; also normal."
+            },
+            {
+              "const": "medium"
+            },
+            {
+              "const": "semibold"
+            },
+            {
+              "const": "bold"
+            },
+            {
+              "const": "black",
+              "description": "Heaviest."
+            }
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^[1-9]00$",
+          "description": "A number weight, 100 to 900."
+        }
+      ]
+    },
+    "stroke_linecap": {
+      "description": "How an SVG stroke's open ends look.",
+      "oneOf": [
+        {
+          "const": "butt",
+          "description": "Flat, at the end."
+        },
+        {
+          "const": "round",
+          "description": "Rounded past the end."
+        },
+        {
+          "const": "square",
+          "description": "Squared past the end."
+        }
+      ]
+    },
+    "stroke_linejoin": {
+      "description": "How an SVG stroke's corners look.",
+      "oneOf": [
+        {
+          "const": "miter",
+          "description": "Sharp."
+        },
+        {
+          "const": "round",
+          "description": "Rounded."
+        },
+        {
+          "const": "bevel",
+          "description": "Cut off."
+        }
+      ]
+    },
+    "easing": {
+      "description": "How a transition paces itself.",
+      "oneOf": [
+        {
+          "const": "ease_out",
+          "description": "Starts fast and slows into the end. The default."
+        },
+        {
+          "const": "ease_in",
+          "description": "Starts slow and speeds up."
+        },
+        {
+          "const": "ease_in_out",
+          "description": "Slow at both ends."
+        },
+        {
+          "const": "linear",
+          "description": "The same pace throughout."
+        },
+        {
+          "const": "ease_in_cubic",
+          "description": "Starts slow and speeds up, sharper: a cubed curve."
+        },
+        {
+          "const": "ease_out_bounce",
+          "description": "Bounces at the end."
+        }
+      ]
+    },
+    "gradient_direction": {
+      "description": "Which way a linear_gradient background runs. Also takes an angle, like 45deg.",
+      "anyOf": [
+        {
+          "oneOf": [
+            {
+              "const": "to_bottom",
+              "description": "Top to bottom. The default."
+            },
+            {
+              "const": "to_top",
+              "description": "Bottom to top."
+            },
+            {
+              "const": "to_right",
+              "description": "Left to right."
+            },
+            {
+              "const": "to_left",
+              "description": "Right to left."
+            },
+            {
+              "const": "to_bottom_right",
+              "description": "Top left to bottom right."
+            },
+            {
+              "const": "to_bottom_left",
+              "description": "Top right to bottom left."
+            },
+            {
+              "const": "to_top_right",
+              "description": "Bottom left to top right."
+            },
+            {
+              "const": "to_top_left",
+              "description": "Bottom right to top left."
+            }
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^-?\\d+(\\.\\d+)?deg$",
+          "description": "An angle, like 45deg."
+        }
+      ]
+    },
+    "resize_edge": {
+      "description": "An edge resizable lets you drag. True is all four.",
+      "oneOf": [
+        {
+          "const": "top",
+          "description": "Top edge."
+        },
+        {
+          "const": "right",
+          "description": "Right edge."
+        },
+        {
+          "const": "bottom",
+          "description": "Bottom edge."
+        },
+        {
+          "const": "left",
+          "description": "Left edge."
+        }
+      ]
+    },
+    "sort_direction": {
+      "description": "Which way a data_table sorts.",
+      "oneOf": [
+        {
+          "const": "asc",
+          "description": "Smallest first. The default."
+        },
+        {
+          "const": "desc",
+          "description": "Largest first."
+        }
+      ]
+    },
+    "props": {
+      "description": "The props whose values are one of these sets. Any element taking the prop takes the set.",
+      "type": "object",
+      "properties": {
+        "align_items": {
+          "$ref": "#/$defs/align_items"
+        },
+        "align_self": {
+          "$ref": "#/$defs/align_self"
+        },
+        "anchor": {
+          "$ref": "#/$defs/anchor"
+        },
+        "flex_direction": {
+          "$ref": "#/$defs/flex_direction"
+        },
+        "font_style": {
+          "$ref": "#/$defs/font_style"
+        },
+        "font_weight": {
+          "$ref": "#/$defs/font_weight"
+        },
+        "justify_content": {
+          "$ref": "#/$defs/justify_content"
+        },
+        "justify_self": {
+          "$ref": "#/$defs/justify_self"
+        },
+        "overflow": {
+          "$ref": "#/$defs/overflow"
+        },
+        "overflow_x": {
+          "$ref": "#/$defs/overflow"
+        },
+        "overflow_y": {
+          "$ref": "#/$defs/overflow"
+        },
+        "position": {
+          "$ref": "#/$defs/position"
+        },
+        "resizable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/resize_edge"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/resize_edge"
+              }
+            }
+          ]
+        },
+        "scroll_bar": {
+          "$ref": "#/$defs/scroll_bar"
+        },
+        "sort_direction": {
+          "$ref": "#/$defs/sort_direction"
+        },
+        "stroke_linecap": {
+          "$ref": "#/$defs/stroke_linecap"
+        },
+        "stroke_linejoin": {
+          "$ref": "#/$defs/stroke_linejoin"
+        },
+        "text_align": {
+          "$ref": "#/$defs/text_align"
+        },
+        "white_space": {
+          "$ref": "#/$defs/white_space"
+        }
+      }
+    }
+  }
+}

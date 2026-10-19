@@ -32,6 +32,9 @@ class Actions:
         svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
         circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
         ```
+
+        Args:
+            elements: One element's name, or a list of them. Type: ui_elements.element
         """
         return ui_elements(elements)
 
@@ -281,9 +284,11 @@ class Actions:
         Register a named extension for use with ui_elements. Forward-compatible
         single entry point so future plugins/extensions share one action.
 
-        Supported kinds:
-        - `"code_theme"` - value is a dict mapping token types to hex colors
-        - `"code_language"` - value is a list of (token_type, compiled_regex) tuples
+        Args:
+            kind: What to add. Type: ui_elements.register_kind
+            name: The name it is used by, as `theme="nord"`
+            value: For `"code_theme"`, a dict mapping token types to hex colors.
+                For `"code_language"`, a list of (token_type, compiled_regex) tuples
 
         ```
         actions.user.ui_elements_register("code_theme", "nord", {
