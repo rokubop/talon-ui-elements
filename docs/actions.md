@@ -17,7 +17,7 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_highlight()` | `id: str`<br>`color: str = None` | Highlight element by ID. Optional color override. Renders on decoration layer only, no relayout |
 | `user.ui_elements_unhighlight()` | `id: str` | Remove highlight from element by ID. Decoration layer only, no relayout |
 | `user.ui_elements_highlight_briefly()` | `id: str`<br>`color: str = None` | Highlight element briefly (auto-removes). Optional color override. Decoration layer only, no relayout |
-| `user.ui_elements_set_property()` | `id: str`<br>`property_name: Union[str, dict]`<br>`value: Any` | Set element property by ID. Triggers full re-render with relayout. Pass dict to set multiple properties: `{"background_color": "red", "padding": 20}` |
+| `user.ui_elements_set_property()` | `id: str`<br>`property_name: Union[str, dict]`<br>`value: Any = None` | Set element property by ID. Triggers full re-render with relayout. Pass dict to set multiple properties: `{"background_color": "red", "padding": 20}` |
 | `user.ui_elements_get_input_value()` | `id: str` | Get the current value of an `input_text` or `textarea` element by ID |
 | `user.ui_elements_toggle_hints()` | `enabled: bool = None` | Toggle hints visibility globally. Pass `True`/`False` to set explicitly, or no args to toggle |
 | `user.ui_elements_register_effect()` | `callback: Callable`<br>`arg2: Any`<br>`arg3: Any = None` | Register effect independently outside component tree. Works like `effect` element. Use `(on_mount, [])` or `(on_change, [deps])` |

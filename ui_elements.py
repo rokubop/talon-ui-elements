@@ -206,7 +206,7 @@ class Actions:
         """
         state_manager.set_text_mutation(id, text_or_callable)
 
-    def ui_elements_set_property(id: str, property_name: Union[str, dict], value: Any):
+    def ui_elements_set_property(id: str, property_name: Union[str, dict], value: Any = None):
         """
         Set a property of an element based on its `id`. Will cause a rerender.
 
@@ -224,7 +224,7 @@ class Actions:
         """
         if isinstance(property_name, dict):
             for key, val in property_name.items():
-                state_manager.set_property_override(id, key, val)
+                state_manager.set_ref_property_override(id, key, val)
         else:
             state_manager.set_ref_property_override(id, property_name, value)
 
