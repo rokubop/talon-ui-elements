@@ -30,9 +30,21 @@ def _call(callback):
 class ImageTree(Tree):
     offscreen = True
 
-    def paint(self, effects: bool = False) -> tuple[Image, Rect]:
+    def paint(self, effects: bool = False, texts: dict = None, properties: dict = None,
+              highlighted=None) -> tuple[Image, Rect]:
         """The whole root area on a transparent background, and where that
-        area is on screen."""
+        area is on screen. `texts`, `properties` and `highlighted` are by
+        id, as set_text, set_property and highlight would set them on a
+        shown tree."""
+        for id, props in (properties or {}).items():
+            for name, value in props.items():
+                self.meta_state.set_ref_property_override(id, name, value)
+        if isinstance(highlighted, dict):
+            highlighted = highlighted.items()
+        else:
+            highlighted = [(id, None) for id in highlighted or ()]
+        for id, color in highlighted:
+            self.meta_state.set_highlighted(id, color)
         bounds = self.root_node.boundary_rect
         width = max(1, int(round(bounds.width)))
         height = max(1, int(round(bounds.height)))
@@ -48,6 +60,7 @@ class ImageTree(Tree):
             self.meta_state.clear_nodes()
             self.reset_cursor()
             self.init_node_hierarchy(self.root_node)
+            self.set_texts(texts)
             self.transition_manager.end_render()
             self.consume_components()
             if effects:
@@ -68,11 +81,21 @@ class ImageTree(Tree):
                 self.draw_decoration_renders(canvas, transforms, behind_modal=True)
                 self.draw_modal_layers(canvas)
             self.draw_decoration_renders(canvas, transforms)
+            self.draw_highlight_overlays(canvas, Point2d(0, 0))
             self.draw_text_mutations(canvas, Point2d(0, 0))
         finally:
             state_manager.set_processing_tree(None)
 
         return surface.snapshot(), Rect(bounds.x, bounds.y, width, height)
+
+    def set_texts(self, texts: dict):
+        """Once the nodes are known. A callable gets the current text, as
+        with set_text. An id that isn't a text is skipped."""
+        mutations = self.meta_state.text_mutations
+        for id, value in (texts or {}).items():
+            if id not in mutations:
+                continue
+            mutations[id] = str(value(mutations[id]) if callable(value) else value)
 
     def consume_own_effects(self):
         """consume_effects also takes effects with no tree, which belong to

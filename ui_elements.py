@@ -260,6 +260,9 @@ class Actions:
             renderer: Callable,
             initial_state: dict[str, Any] = None,
             effects: bool = False,
+            texts: dict = None,
+            properties: dict = None,
+            highlighted: Union[list, dict] = None,
         ) -> tuple:
         """
         Render the UI to an image instead of showing it. Returns `(image, rect)`:
@@ -276,9 +279,17 @@ class Actions:
 
         # run effects: mount, then unmount straight after. Off by default.
         image, rect = actions.user.ui_elements_render_image(ui, effects=True)
+
+        # by id, as set_text, set_property and highlight would on a shown UI
+        image, rect = actions.user.ui_elements_render_image(
+            ui,
+            texts={"status": "Ready"},
+            properties={"panel": {"background_color": "222222"}},
+            highlighted=["key_w"],  # or {"key_w": "ff0000"}
+        )
         ```
         """
-        return render_image(renderer, initial_state, effects)
+        return render_image(renderer, initial_state, effects, texts, properties, highlighted)
 
     def ui_elements_register(kind: str, name: str, value: Any):
         """

@@ -52,6 +52,9 @@ def render_image(
         tree_constructor: callable,
         initial_state: dict[str, Any] = None,
         effects: bool = False,
+        texts: dict = None,
+        properties: dict = None,
+        highlighted=None,
     ):
     """Paint a tree to (image, rect) without showing it.
 
@@ -74,7 +77,7 @@ def render_image(
         custom_input_manager._focused_id = None
 
         tree = ImageTree(tree_constructor, generate_hash(tree_constructor), None, initial_state)
-        image, rect = tree.paint(effects)
+        image, rect = tree.paint(effects, texts, properties, highlighted)
         if effects:
             tree.run_effects()
         return image, rect
