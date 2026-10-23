@@ -3,7 +3,10 @@ from .node_container import NodeContainer
 from ..constants import (
     ELEMENT_ENUM_TYPE,
     DEFAULT_DROP_SHADOW,
+    DEFAULT_MINIMIZE_FLASH_COLOR,
+    DEFAULT_MINIMIZE_FLASH_MS,
     DEFAULT_WINDOW_BACKGROUND_COLOR,
+    MINIMIZE_FLASH_Z_INDEX,
 )
 from ..events import WindowCloseEvent
 from ..icons import VALID_ICON_NAMES
@@ -24,6 +27,7 @@ class NodeWindow(NodeContainer):
         })
         self.init_position()
         self.destroying = False
+        self._drag_baseline = None
         last_pos = self.last_pos
         last_docked_pos = self.last_docked_pos
 
@@ -63,8 +67,9 @@ class NodeWindow(NodeContainer):
             "border_width": 1,
             "overflow": "hidden",
             **window_properties,
-            "on_drag_end": self.update_saved_positions
+            "on_drag_end": self._on_drag_end
         }
+        self._user_on_drag_end = window_properties.get("on_drag_end", None)
         title_bar_style = {
             "background_color": adjust_color_brightness(
                 window_properties.get("background_color", None), 10
@@ -137,6 +142,14 @@ class NodeWindow(NodeContainer):
                     pct = float(val.replace("%", "")) / 100
                     resolved_window_props[key] = int(screen_size * pct)
 
+        # An unsized window is sized by its content, so runaway content grows
+        # it past the display and takes the title bar off screen with it. An
+        # explicit width/height/max_* is the consumer's call and is left alone.
+        for dim, screen_size in [("width", screen_rect.width), ("height", screen_rect.height)]:
+            max_dim = f"max_{dim}"
+            if resolved_window_props.get(dim) is None and resolved_window_props.get(max_dim) is None:
+                resolved_window_props[max_dim] = int(screen_size)
+
         super().__init__(
             element_type=ELEMENT_ENUM_TYPE["window"],
             properties=NodeWindowProperties(**resolved_window_props)
@@ -185,8 +198,30 @@ class NodeWindow(NodeContainer):
         def on_button_click_close():
             on_close(WindowCloseEvent(hide=True))
 
+        def on_click_outside():
+            """A mouse press landed outside this window. Runs the declarative
+            action, if any, then the user's callback."""
+            if self.destroying:
+                return
+
+            if window_properties.get("minimize_on_click_outside", False):
+                if not self.is_minimized:
+                    on_minimize()
+            elif window_properties.get("close_on_click_outside", False):
+                on_close(WindowCloseEvent(hide=True))
+
+            callback = window_properties.get("on_click_outside", None)
+            if callback:
+                callback()
+
         self.on_minimize = on_minimize
         self.on_close = on_close
+        self.on_click_outside = on_click_outside
+        self.wants_click_outside = bool(
+            window_properties.get("on_click_outside", None)
+            or window_properties.get("minimize_on_click_outside", False)
+            or window_properties.get("close_on_click_outside", False)
+        )
 
         if window_properties.get("title_bar_style", None):
             for key, value in window_properties.get("title_bar_style", {}).items():
@@ -267,18 +302,65 @@ class NodeWindow(NodeContainer):
                         icon("close", size=20, **icon_style),
                     ] if window_properties.get("show_close", True) else None,
                 ],
-            ],
+            ]
 
-        self.body = div(flex=1, **body_properties)
+        # Clip the body so content cannot draw over the title bar and the
+        # close button on it. overflow on window() lands in body_properties.
+        self.body = div(flex=1, **{"overflow": "hidden", **body_properties})
+        # Stays live while a modal covers the body
+        self.title_bar_node = None
         if window_properties.get("show_title_bar", True):
-            self.add_child(title_bar())
+            self.title_bar_node = title_bar()
+            self.add_child(self.title_bar_node)
         if self.is_minimized:
             minimized_body_fn = window_properties.get("minimized_body", None) or (
                 lambda: div(height=24, width=200)
             )
-            self.add_child(minimized_body_fn())
+            minimized_body = minimized_body_fn()
+            # It replaces the body at the same child index, so it would
+            # generate the same id and read as the same node - no mount.
+            if minimized_body is not None and not minimized_body.id:
+                minimized_body.id = f"minimized_body_{self.hash}"
+            self.add_child(minimized_body)
+            if window_properties.get("flash_on_minimize", True):
+                self.add_child(self.minimize_flash(div, window_properties))
         else:
             self.add_child(self.body)
+
+    def minimize_flash(self, div, window_properties):
+        """A wash over the window as it collapses. It minimises to a corner
+        while the eye is elsewhere, so the collapse is easy to miss. Exists
+        only while minimised, so it mounts - and flashes - every time."""
+        # True, a colour, or {"color", "duration"}. Same shape as `resizable`.
+        flash = window_properties.get("flash_on_minimize", True)
+        options = (
+            flash if isinstance(flash, dict)
+            else {"color": flash} if isinstance(flash, str)
+            else {}
+        )
+        color = options.get("color") or DEFAULT_MINIMIZE_FLASH_COLOR
+        duration = options.get("duration") or DEFAULT_MINIMIZE_FLASH_MS
+        # Same colour at zero alpha, so it fades out rather than to black.
+        rgb = color.lstrip("#")
+        if len(rgb) in (3, 4):
+            rgb = "".join(channel * 2 for channel in rgb)
+        transparent = rgb[:6] + "00"
+        flash = div(
+            position="fixed",
+            top=0,
+            left=0,
+            width="100%",
+            height="100%",
+            z_index=MINIMIZE_FLASH_Z_INDEX,
+            background_color=transparent,
+            mount_style={"background_color": color},
+            transition={"background_color": duration},
+        )
+        # Fixed nodes anchor to the root by default; the window is not
+        # reliably a positioned ancestor when minimised.
+        flash.anchors_to_window = True
+        flash.id = f"minimize_flash_{self.hash}"
+        return flash
 
     def init_position(self):
         if not last_pos_map.get(self.hash):
@@ -302,6 +384,27 @@ class NodeWindow(NodeContainer):
     def save_resize_dimensions(self, width, height):
         last_pos_map[self.hash]["last_resize_width"] = width
         last_pos_map[self.hash]["last_resize_height"] = height
+
+    def v2_drag_offset(self, cursor):
+        if self.participates_in_layout or not self.is_minimized:
+            return super().v2_drag_offset(cursor)
+        # Placed from a position saved after earlier drags, so only drags
+        # since this build move it
+        offset = self.tree.meta_state.get_accumulated_drag_offset(self.id)
+        if offset is None:
+            return
+        if self._drag_baseline is None:
+            self._drag_baseline = offset
+        cursor.x += offset.x - self._drag_baseline.x
+        cursor.y += offset.y - self._drag_baseline.y
+
+    def _on_drag_end(self, e):
+        self.update_saved_positions()
+        if self._user_on_drag_end:
+            if len(inspect.signature(self._user_on_drag_end).parameters) == 1:
+                self._user_on_drag_end(e)
+            else:
+                self._user_on_drag_end()
 
     def update_saved_positions(self):
         if self.has_dock_behavior and self.is_minimized:
@@ -355,18 +458,22 @@ class NodeWindow(NodeContainer):
         if self.is_minimized:
             return self
 
-        if children_nodes is None:
-            children_nodes = []
-
-        if not isinstance(children_nodes, list):
-            children_nodes = [children_nodes]
-
-        for node in children_nodes:
-            self.body.add_child(node)
+        # Flat, so the modal test below sees each child. `window()[head(),
+        # modal()]` arrives as one tuple, and a tuple is not a modal, so the
+        # whole group went to the body and the test never fired.
+        for node in self.normalize_children(children_nodes):
+            # A modal covers the body but hangs off the window, out of reach
+            # of the body's overflow clip. Being fixed, it takes no part in
+            # the title-bar/body flex column either way.
+            if getattr(node, "element_type", None) == ELEMENT_ENUM_TYPE["modal"]:
+                self.add_child(node)
+            else:
+                self.body.add_child(node)
 
         return self
 
     def destroy(self):
         self.on_minimize = None
         self.on_close = None
+        self.on_click_outside = None
         super().destroy()

@@ -198,6 +198,15 @@ class NodeSelect(NodeContainer):
             node.v2_render(c, transforms)
 
     def v2_render_decorator(self, c, transforms=None):
+        if self.uses_decoration_render:
+            # `highlight_style` cascades from an ancestor into our own
+            # properties, so the decorator pass claims this whole select and
+            # `v2_build_render_list` skips it. This pass then owns everything
+            # we draw - trigger included, not just the dropdown. Without it a
+            # closed select inside a highlighted parent paints nothing at all.
+            super().v2_render_decorator(c, transforms)
+            return
+
         if self._is_open:
             for child in self.get_children_nodes():
                 if child.uses_decoration_render:

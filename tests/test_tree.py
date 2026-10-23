@@ -1,6 +1,7 @@
 from ..src.core.store import store
 from ..src.entry import render_ui
 from .test_helpers import test_module, it, spy
+from ..src.core.state_manager import state_manager
 from talon import actions, cron
 
 def test_ui():
@@ -29,3 +30,63 @@ class TreeTests:
                 done()
             ))
         ))
+
+
+def highlight_test_ui():
+    screen, div, text = actions.user.ui_elements(["screen", "div", "text"])
+    return screen()[
+        div(id="key_x", highlight_style={"background_color": "FF0000"})[
+            text("x")
+        ]
+    ]
+
+def inert_highlight_test_ui():
+    screen, div = actions.user.ui_elements(["screen", "div"])
+    return screen()[
+        div(id="paints", border_color="4a5270",
+            highlight_style={"border_color": "6db3ff"}, on_click=lambda e: None),
+        # Spelled both ways on purpose. Colors normalize on the way in, so
+        # the "#" must not make an inert style look like it paints.
+        div(id="inert", border_color="#4a5270", highlight_color="#4a9af5",
+            highlight_style={"border_color": "4a5270"}, on_click=lambda e: None),
+    ]
+
+@test_module
+class HighlightTests:
+    def test_unhighlight_survives_a_render_walk(self, done):
+        mock_tree = render_ui(highlight_test_ui, test_mode=True)
+        def check(tree=mock_tree):
+            state_manager.highlight("key_x")
+            it("should highlight by id", expect=True,
+                actual="key_x" in tree.meta_state.highlighted)
+
+            # What a base render looks like between clearing its node map and
+            # the walk re-registering it. An unhighlight landing here used to
+            # resolve to no tree at all and leave the element lit for good.
+            tree.meta_state.clear_nodes()
+            state_manager.unhighlight("key_x")
+            it("should unhighlight mid render walk", expect=False,
+                actual="key_x" in tree.meta_state.highlighted)
+
+            tree.destroy()
+            done()
+        cron.after("50ms", check)
+
+    def test_inert_highlight_style_keeps_the_overlay(self, done):
+        mock_tree = render_ui(inert_highlight_test_ui, test_mode=True)
+        def check(tree=mock_tree):
+            renders = tree.meta_state.decoration_renders
+            it("should decoration render a style that paints", expect=True,
+                actual="paints" in renders)
+            # Declaring a style that matches the resting style used to opt the
+            # node out of the overlay and leave it with no highlight at all.
+            it("should not decoration render an inert style", expect=False,
+                actual="inert" in renders)
+
+            inert = tree.meta_state.id_to_node["inert"]
+            it("should strip # from highlight_color", expect="4a9af5",
+                actual=inert.properties.highlight_color)
+
+            tree.destroy()
+            done()
+        cron.after("50ms", check)

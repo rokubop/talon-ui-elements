@@ -2,6 +2,8 @@
 
 `state` is for global reactive state that rerenders the entire UI when changed. Can be updated with `actions.user.ui_elements_set_state`.
 
+> **Note:** `state` is cleared when the UI hides. For data that should outlive it, see [Store](./store.md).
+
 > **Note:** If you just want to highlight something (e.g., change background color or show an overlay), consider using `actions.user.ui_elements_highlight` or `actions.user.ui_elements_highlight_briefly` instead. These only update the decoration layer and don't require state or trigger a full UI re-render.
 
 - [State](#state)
@@ -12,6 +14,7 @@
   - [Setting initial state](#setting-initial-state)
   - [Batching state updates](#batching-state-updates)
   - [Complex state](#complex-state)
+  - [State that outlives the UI](#state-that-outlives-the-ui)
   - [Other considerations for faster performance](#other-considerations-for-faster-performance)
   - [Lifecycle](#lifecycle)
 
@@ -114,10 +117,23 @@ If you use a callback in the setter, it will give you the previous value, and yo
 actions.user.ui_elements_set_state("form", lambda form: {**form, "name": "new_name"})
 ```
 
+## State that outlives the UI
+
+A [store](./store.md) is named state your package owns instead of a tree. Read it through the same `state` API, by its `"<store>.<key>"` name:
+
+```py
+gk = actions.user.ui_elements_store("gk", {"game": None})
+
+game = state.get("gk.game")   # in a render
+gk.set("game", "celeste")     # anywhere, UI open or not
+```
+
+Hiding the UI does not clear it.
+
 ## Other considerations for faster performance
 Because `state` causes a full re-render of the UI, you may want to consider these alternatives for better performance:
 - Use `actions.user.ui_elements_set_text` for changing text, which only rerenders the decoration layer.
 - Use `actions.user.ui_elements_highlight`, `actions.user.ui_elements_highlight_briefly`, and `actions.user.ui_elements_unhighlight` to highlight elements which only affects the decoration layer and is faster than state updates.
 
 ## Lifecycle
-States are cleared when the UI is hidden/destroyed.
+States are cleared when the UI is hidden/destroyed. [Store](./store.md) values are not.

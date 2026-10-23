@@ -1,13 +1,14 @@
 from talon import Module, actions, cron
 from typing import List, Any, Union, Callable
 from .src.core.entity_manager import entity_manager
-from .src.core.state_manager import state_manager, debug_gc
+from .src.core.state_manager import state_manager, debug_gc, create_store
 from .src.dev_tools import DevTools
 from .src.elements import ui_elements, ui_elements_svg, use_effect_without_tree
-from .src.entry import render_ui
+from .src.entry import render_ui, render_image
 from .src.errors import show_error_if_not_compatible
 from .src.hints import show_scale_notification
 from .src.syntax import register_theme, register_language
+from .src.value_types import REGISTER_KIND, types as value_types
 from .tests.test_runner_ui import runner_ui
 from .examples.examples_main import toggle_elements_examples
 from .storybook.main import storybook_ui
@@ -32,6 +33,9 @@ class Actions:
         svg, path, rect, line = actions.user.ui_elements(["svg", "path", "rect", "line"])
         circle, polyline, polygon = actions.user.ui_elements(["circle", "polyline", "polygon"])
         ```
+
+        Args:
+            elements: One element's name, or a list of them. Type: ui_elements.element
         """
         return ui_elements(elements)
 
@@ -161,6 +165,34 @@ class Actions:
             return state_manager.get_state_value(name, initial_state)
         return state_manager.get_all_states()
 
+    def ui_elements_store(name: str, initial_state: dict[str, Any] = None):
+        """
+        Create a named state store owned by your package instead of by a UI.
+        Its values survive hiding the UI, so they are the place for data
+        that means something with no UI open.
+
+        ```py
+        # once, at module level
+        gk = actions.user.ui_elements_store("gk", {
+            "game": None,
+            "bindings": {},
+        })
+
+        # anywhere, with or without a UI open
+        gk.set("game", "celeste")
+        gk.get("game")
+
+        # in a UI, read it by its full "<store>.<key>" name
+        game = state.get("gk.game")
+        ```
+
+        Calling this again with the same name returns the same store, so a
+        file save re-seeds new keys without discarding existing values.
+
+        See [Store documentation](./docs/concepts/store.md)
+        """
+        return create_store(name, initial_state)
+
     def ui_elements_set_text(id: str, text_or_callable: Any):
         """
         Set text based on its `id`. Renders on a decoration layer, and faster than using `ui_elements_set_state`.
@@ -174,7 +206,7 @@ class Actions:
         """
         state_manager.set_text_mutation(id, text_or_callable)
 
-    def ui_elements_set_property(id: str, property_name: Union[str, dict], value: Any):
+    def ui_elements_set_property(id: str, property_name: Union[str, dict], value: Any = None):
         """
         Set a property of an element based on its `id`. Will cause a rerender.
 
@@ -192,7 +224,7 @@ class Actions:
         """
         if isinstance(property_name, dict):
             for key, val in property_name.items():
-                state_manager.set_property_override(id, key, val)
+                state_manager.set_ref_property_override(id, key, val)
         else:
             state_manager.set_ref_property_override(id, property_name, value)
 
@@ -224,6 +256,41 @@ class Actions:
         """Get all trees. A tree is responsible for each individual UI that is rendered and has all information and methods related to that UI."""
         return entity_manager.get_all_trees()
 
+    def ui_elements_render_image(
+            renderer: Callable,
+            initial_state: dict[str, Any] = None,
+            effects: bool = False,
+            texts: dict = None,
+            properties: dict = None,
+            highlighted: Union[list, dict] = None,
+        ) -> tuple:
+        """
+        Render the UI to an image instead of showing it. Returns `(image, rect)`:
+        a skia `Image` of the whole root area on a transparent background, and
+        that area's `Rect` in screen coordinates. Nothing appears on screen and
+        UIs already showing are unaffected. If the renderer raises, so does
+        this, where a shown UI would draw an error card.
+
+        ```
+        image, rect = actions.user.ui_elements_render_image(ui)
+
+        # with initial state
+        image, rect = actions.user.ui_elements_render_image(ui, initial_state={"color": "red"})
+
+        # run effects: mount, then unmount straight after. Off by default.
+        image, rect = actions.user.ui_elements_render_image(ui, effects=True)
+
+        # by id, as set_text, set_property and highlight would on a shown UI
+        image, rect = actions.user.ui_elements_render_image(
+            ui,
+            texts={"status": "Ready"},
+            properties={"panel": {"background_color": "222222"}},
+            highlighted=["key_w"],  # or {"key_w": "ff0000"}
+        )
+        ```
+        """
+        return render_image(renderer, initial_state, effects, texts, properties, highlighted)
+
     def ui_elements_register(kind: str, name: str, value: Any):
         """
         Register a named extension for use with ui_elements. Forward-compatible
@@ -232,6 +299,11 @@ class Actions:
         Supported kinds:
         - `"code_theme"` - value is a dict mapping token types to hex colors
         - `"code_language"` - value is a list of (token_type, compiled_regex) tuples
+
+        Args:
+            kind: What to add: "code_theme" or "code_language". Type: ui_elements.register_kind
+            name: The name it is used by, as `theme="nord"`
+            value: What the kind takes, as above
 
         ```
         actions.user.ui_elements_register("code_theme", "nord", {
@@ -259,7 +331,25 @@ class Actions:
         elif kind == "code_language":
             register_language(name, value)
         else:
-            raise ValueError(f"Unknown ui_elements_register kind: {kind!r}")
+            raise ValueError(f"Unknown ui_elements_register kind: {kind!r}. "
+                             f"Valid kinds: {', '.join(REGISTER_KIND)}")
+
+    def ui_elements_types() -> dict:
+        """
+        Named sets of values ui_elements takes: element names, and prop
+        values like anchor, overflow and font_weight.
+
+        A param that takes one says so in its docstring: `Type: ui_elements.<name>`.
+
+        ```
+        {"anchor": {"desc": "...", "props": ["anchor"],
+                    "values": [{"id": "top_left", "desc": ""}, ...]},
+         ...}
+        ```
+        An open set also has `accepts`, a full-match regex for the values
+        it takes beyond its list (`45deg`, `700`).
+        """
+        return value_types()
 
     def ui_elements_storybook_toggle():
         """Toggle the storybook UI"""

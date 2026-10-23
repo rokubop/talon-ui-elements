@@ -204,6 +204,7 @@ class MetaStateType(ABC):
     decoration_renders: dict
     _highlighted: dict[str, str]
     _buttons: set[str]
+    _hover_links: list[tuple[str, str]]
     _draggable_offset: dict[str, Point2d]
     _last_drag_offset: dict[str, Point2d]
     _scrollable = dict[str, ScrollableType]
@@ -714,14 +715,6 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
-    def is_drag_start(self):
-        pass
-
-    @abstractmethod
-    def is_dragging(self):
-        pass
-
-    @abstractmethod
     def is_drag_end(self):
         pass
 
@@ -772,10 +765,6 @@ class RenderManagerType(ABC):
         pass
 
     @abstractmethod
-    def render_drag_start(self):
-        pass
-
-    @abstractmethod
     def render_drag_end(self):
         pass
 
@@ -814,9 +803,10 @@ class TreeType(ABC):
     canvas_mouse: Canvas
     current_canvas: SkiaCanvas
     cursor: CursorType
-    draggable_node: NodeType
+    draggable_nodes: List[NodeType]
     draggable_node_delta_pos: Point2d
-    drag_handle_node: NodeType
+    drag_handles: List[tuple[NodeType, NodeType]]
+    drag_target: NodeType
     effects: List[Effect]
     meta_state: MetaStateType
     name: str

@@ -7,7 +7,7 @@ from ..box_model import BoxModelV2
 from ..constants import ELEMENT_ENUM_TYPE, DEFAULT_INPUT_BACKGROUND_COLOR
 from ..interfaces import RenderTransforms
 from ..properties import NodeInputTextProperties
-from ..fonts import get_typeface
+from ..fonts import apply_text_rendering, resolve_font
 
 from ..text_utils import binary_search_cursor as _binary_search_cursor
 
@@ -42,11 +42,17 @@ class NodeInputText(Node):
         if self._cached_paint is None:
             paint = Paint()
             paint.textsize = self.properties.font_size
-            paint.antialias = True
-            if self.properties.font_family:
-                typeface = get_typeface(self.properties.font_family)
-                if typeface:
-                    paint.typeface = typeface
+            apply_text_rendering(paint)
+            font = resolve_font(
+                self.properties.font_family,
+                getattr(self.properties, "font_weight", None),
+                getattr(self.properties, "font_style", None),
+            )
+            if font.typeface:
+                paint.typeface = font.typeface
+            paint.font.embolden = font.synthetic_bold
+            if font.synthetic_italic:
+                paint.font.skew_x = -0.25
             self._cached_paint = paint
         return self._cached_paint
 

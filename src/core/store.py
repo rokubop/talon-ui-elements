@@ -29,6 +29,7 @@ class Store():
         self.id_to_hint: dict[str, str] = {}
         self.pause_renders = False
         self.reactive_state: dict[str, ReactiveStateType] = {}
+        self.named_stores: dict[str, "StateStore"] = {}
         self.staged_effects: list[Effect] = []
         self.ref_count_nodes = 0
         self.ref_count_trees = 0
@@ -56,6 +57,13 @@ class Store():
             "drag_relative_offset": None,
         }
 
+    def owning_store(self, key: str):
+        """The store `"gk.game"` belongs to, or None if nothing owns "gk"."""
+        name, separator, _ = key.partition(".")
+        if separator and name in self.named_stores:
+            return self.named_stores[name]
+        return None
+
     def synchronize_ids(self):
         new_id_to_node = {}
         for tree in self.trees:
@@ -75,7 +83,12 @@ class Store():
         self.root_nodes = []
         self.id_to_node = {}
         self.id_to_hint = {}
-        self.reactive_state = {}
+        # Stores outlive every tree, so their values survive clearing.
+        self.reactive_state = {
+            key: value
+            for key, value in self.reactive_state.items()
+            if self.owning_store(key)
+        }
         self.staged_effects = []
         self.reset_mouse_state()
 

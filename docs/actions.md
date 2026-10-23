@@ -12,16 +12,18 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_is_active()` | `renderer: Union[str, Callable]` | Check if a specific UI is active by renderer function or tree ID. Returns boolean |
 | `user.ui_elements_set_state()` | `name: Union[str, dict]`<br>`value: Any = UNSET` | Set global state value(s). Triggers full re-render with relayout. Pass dict to set multiple: `{"key": value}`. Pass callable to update: `lambda current: current + 1` |
 | `user.ui_elements_get_state()` | `name: str = None`<br>`initial_state: Any = None` | Get global state value by name. Returns `initial_state` if not found. Pass no args to get all states. Does not trigger re-render |
+| `user.ui_elements_store()` | `name: str`<br>`initial_state: dict = None` | Create a named store owned by your package instead of by a UI. Values survive hiding the UI. Read them in a render as `state.get("name.key")`, or anywhere with `store.get()` / `store.set()`. Calling again with the same name returns the same store. See [Store documentation](./concepts/store.md) |
 | `user.ui_elements_set_text()` | `id: str`<br>`text_or_callable: Any` | Set text content by element ID. Fast update on decoration layer only, no rerender or relayout. Pass callable to update: `lambda current: current + "!"` |
 | `user.ui_elements_highlight()` | `id: str`<br>`color: str = None` | Highlight element by ID. Optional color override. Renders on decoration layer only, no relayout |
 | `user.ui_elements_unhighlight()` | `id: str` | Remove highlight from element by ID. Decoration layer only, no relayout |
 | `user.ui_elements_highlight_briefly()` | `id: str`<br>`color: str = None` | Highlight element briefly (auto-removes). Optional color override. Decoration layer only, no relayout |
-| `user.ui_elements_set_property()` | `id: str`<br>`property_name: Union[str, dict]`<br>`value: Any` | Set element property by ID. Triggers full re-render with relayout. Pass dict to set multiple properties: `{"background_color": "red", "padding": 20}` |
+| `user.ui_elements_set_property()` | `id: str`<br>`property_name: Union[str, dict]`<br>`value: Any = None` | Set element property by ID. Triggers full re-render with relayout. Pass dict to set multiple properties: `{"background_color": "red", "padding": 20}` |
 | `user.ui_elements_get_input_value()` | `id: str` | Get the current value of an `input_text` or `textarea` element by ID |
 | `user.ui_elements_toggle_hints()` | `enabled: bool = None` | Toggle hints visibility globally. Pass `True`/`False` to set explicitly, or no args to toggle |
 | `user.ui_elements_register_effect()` | `callback: Callable`<br>`arg2: Any`<br>`arg3: Any = None` | Register effect independently outside component tree. Works like `effect` element. Use `(on_mount, [])` or `(on_change, [deps])` |
 | `user.ui_elements_get_node()` | `id: str` | Get node object by ID for inspection. Access `.box_model`, `.tree`, `.parent_node`, `.children_nodes`, etc. |
 | `user.ui_elements_get_trees()` | None | Get all tree objects. Each tree represents a rendered UI with all information and methods |
+| `user.ui_elements_render_image()` | `renderer: Callable`<br>`initial_state: dict = None`<br>`effects: bool = False`<br>`texts: dict = None`<br>`properties: dict = None`<br>`highlighted: list \| dict = None` | Render a UI to an image without showing it. Returns `(image, rect)`: a skia `Image` of the root area on a transparent background, and where that is on screen. No hover, focus, hints or scrollbars. `effects=True` mounts then unmounts effects. `texts`, `properties` and `highlighted` are by id, as `set_text`, `set_property` and `highlight` would set them on a shown UI |
 | `user.ui_elements_dev_tools()` | None | Toggle dev tools UI for debugging and inspecting elements |
 | `user.ui_elements_debug_gc()` | None | Print garbage collection debug info to log for troubleshooting memory issues |
 | `user.ui_elements_version()` | None | Get version object with `.major`, `.minor`, `.patch` attributes. Supports comparison: `version < "0.6.2"` |
@@ -97,6 +99,25 @@ actions.user.ui_elements_set_state({"name": "John", "age": 30})
 # Get state
 value = actions.user.ui_elements_get_state("counter", 0)
 all_states = actions.user.ui_elements_get_state()
+```
+
+### Store (State That Outlives The UI)
+
+```python
+# once, at module level
+gk = actions.user.ui_elements_store("gk", {"game": None, "bindings": {}})
+
+# anywhere, with or without a UI open
+gk.set("game", "celeste")
+gk.get("game")
+gk.get_all()
+gk.reset()
+
+# save it yourself, ui_elements does not write files
+gk.subscribe(lambda: save_config(gk.get_all()))
+
+# in a UI, read it by its full name
+game = state.get("gk.game")
 ```
 
 ### Property Updates (Full Rerender)
