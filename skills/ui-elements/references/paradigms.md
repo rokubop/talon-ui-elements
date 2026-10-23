@@ -6,7 +6,7 @@ Two paradigms for updating UI. Choose based on whether the layout itself changes
 
 Layout renders once. Rapid updates go through `highlight`, `set_text`, and refs - these paint on top of existing elements without re-rendering or recalculating layout.
 
-`highlight_style` defines what highlighting looks like on an element. `highlight()`/`unhighlight()` toggle that style on and off. `highlight_briefly()` flashes it.
+`highlight()`/`unhighlight()` toggle an element's highlight on and off. `highlight_briefly()` flashes it. By default the highlight is a `highlight_color` overlay. `highlight_style` replaces it with style overrides, as below, but repaints on every highlight change, so on boards with many keys prefer `highlight_color`.
 
 ```python
 from talon import Module, actions, cron
@@ -74,7 +74,7 @@ class Actions:
 
 Key points:
 - Elements have `id` props so they can be targeted by `highlight()` and `set_text()`
-- `highlight_style` is defined on the element - it controls what the highlight looks like
+- `highlight_style` (or `highlight_color`) on the element controls what the highlight looks like
 - Event handlers fire many times per second but never trigger a re-render
 - `set_text` can only change text content, `highlight` can only change visual style - neither adds/removes/repositions elements
 

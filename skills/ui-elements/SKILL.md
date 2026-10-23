@@ -10,7 +10,7 @@ Python canvas UI library for Talon voice control runtime.
 - NOT web/browser - renders on a Skia canvas. No HTML, CSS, DOM, or browser APIs.
 - Everything is flexbox. No `display: block/inline/grid`. Every container is a flex container.
 - `flex_direction` defaults to `"column"` - children stack vertically. Use `flex_direction="row"` for horizontal.
-- `align_items` defaults to `"stretch"` on containers (divs), `"flex_start"` on screen.
+- `align_items` defaults to `"stretch"` on containers (divs), rows included, and `"flex_start"` on screen and active_window.
 - Runs inside Talon's Python runtime (no pip, no virtualenv, no build step). Talon hot-reloads `.py` files on save.
 - React-inspired declarative API with CSS-like properties (flexbox layout, styling kwargs).
 - Import: `from talon import actions` → call `actions.user.ui_elements(["div", "text", "screen", ...])` to get element constructors.
@@ -56,7 +56,7 @@ style, component = actions.user.ui_elements(["style", "component"])
 window = actions.user.ui_elements("window")  # single element returns directly
 ```
 
-All elements: `div`, `text`, `code`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `link`, `checkbox`, `switch`, `table`, `tr`, `td`, `th`, `window`, `active_window`
+All elements: `div`, `text`, `code`, `screen`, `button`, `input_text`, `textarea`, `select`, `data_table`, `form`, `state`, `ref`, `effect`, `icon`, `style`, `component`, `error_boundary`, `link`, `checkbox`, `switch`, `table`, `tr`, `td`, `th`, `window`, `modal`, `cursor`, `active_window`
 
 SVG elements (must be used inside `svg()`): `svg`, `path`, `rect`, `circle`, `line`, `polyline`, `polygon`
 
@@ -66,7 +66,7 @@ SVG elements (must be used inside `svg()`): `svg`, `path`, `rect`, `circle`, `li
 
 - Root must be `screen()` or `active_window()`
 - Children via bracket syntax: `parent()[child1, child2]`
-- Containers (can have children): `div`, `form`, `window`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
+- Containers (can have children): `div`, `form`, `window`, `modal`, `cursor`, `table`, `tr`, `td`, `th`, `screen`, `active_window`, `svg`
 - Leaves (no children): `text`, `code`, `icon`, `checkbox`, `switch`, `input_text`, `textarea`, `select`, `data_table`, `link`
 - `button`: leaf with label `button("Click")`, container without: `button(on_click=fn)[icon("check")]`
 - Dynamic lists: `div()[*[text(item) for item in items]]`
@@ -82,24 +82,24 @@ All properties are kwargs: `div(background_color="333333", padding=16)`.
 - Layout: `flex_direction` ("column"/"row"), `justify_content`, `align_items`, `align_self`, `flex`, `gap`, `flex_wrap`
 - Sizing: `width`, `height`, `min_width`, `max_width`, `min_height`, `max_height` - pixels or `"100%"`
 - Spacing: `padding`, `margin` - plus `_top`, `_right`, `_bottom`, `_left` variants
-- Position: `position` ("static"/"relative"/"absolute"/"fixed"), `top`, `left`, `right`, `bottom`
+- Position: `position` ("static"/"relative"/"absolute"/"fixed"), `top`, `left`, `right`, `bottom`, `anchor` ("top_left" ... "bottom_right")
 - Colors: `background_color`, `color`, `border_color` - hex strings (`"FF0000"`, `"#FF0000"`, `"FF000080"`) or named colors
 - Gradients: `background="linear_gradient(to_right, FF0000, 0000FF)"` - directions: `to_right`, `to_left`, `to_bottom`, `to_top`, or angle like `45deg`
-- Font: `font_size` (default 16), `font_weight` ("normal"/"bold"), `font_family`, `text_align` ("left"/"center"/"right"), `white_space` ("normal"/"nowrap")
+- Font: `font_size` (default 16), `font_weight` ("light" ... "bold"/"black", or 100-900), `font_family`, `text_align` ("left"/"center"/"right"), `white_space` ("normal"/"nowrap")
 - Border: `border_width`, `border_radius`, `border_color` - plus individual sides (`border_top`, etc.)
-- Interactivity: `on_click`, `on_change`, `highlight_style`, `disabled`, `draggable`, `drag_handle`, `autofocus`
+- Interactivity: `on_click`, `on_change`, `highlight_color`, `highlight_style`, `disabled`, `draggable`, `drag_handle`, `resizable`, `autofocus`
 - Animation: `transition`, `mount_style`, `unmount_style`
 - Identity: `id`, `key`, `class_name`, `z_index`
-- Scrolling: `overflow` / `overflow_y` / `overflow_x` = `"scroll"` | `"hidden"`
+- Scrolling: `overflow` / `overflow_y` / `overflow_x` = `"scroll"` | `"hidden"`, `scroll_bar` ("overlay"/"visible")
 - Other: `opacity` (0.0-1.0, cascades), `drop_shadow`
 
-See [properties.md](references/properties.md) for full tables with types and defaults.
+See [properties.md](references/properties.md) for full tables with types and defaults. `actions.user.ui_elements_types()` returns every valid value for enum-like props and element names, with descriptions.
 
 ---
 
 ## State Management
 
-All state is global - any UI or voice command can read/write any key. State is shared across UIs, so one UI can react to state set by another UI or by a voice command.
+State is global - any UI or voice command can read/write any key, so one UI can react to state set by another UI or by a voice command. State is cleared when the UI hides.
 
 ```python
 state = actions.user.ui_elements("state")
@@ -126,7 +126,15 @@ Initial state (pre-set before first render):
 actions.user.ui_elements_show(my_ui, initial_state={"tab": "home", "items": []})
 ```
 
-See: `docs/concepts/state.md`
+Data that should outlive the UI goes in a store, owned by your package. Same `state` API, keyed `"<store>.<key>"`. Survives hide/show, not Talon restarts:
+```python
+my_store = actions.user.ui_elements_store("my_store", {"color": None})
+
+color, set_color = state.use("my_store.color")   # in a render
+my_store.set("color", "blue")                     # anywhere, UI open or not
+```
+
+See: `docs/concepts/state.md`, `docs/concepts/store.md`
 
 ---
 
@@ -207,9 +215,13 @@ See: `docs/concepts/style.md`
 - `switch(checked=True, on_change=fn, animated=True)` - Toggle switch. Uses `on_change` not `on_click`. `animated` enables smooth transitions. `size` scales dimensions (default 14).
 - `link("text", url="...")` - Clickable URL. `close_on_click=True` to hide UI after click.
 - `icon("name", size=24)` - Built-in SVG icon (Lucide-style, 24x24 viewbox). ~48 available names: `arrow_down`, `arrow_left`, `arrow_right`, `arrow_up`, `check`, `chevron_down`, `chevron_left`, `chevron_right`, `chevron_up`, `close`, `clock`, `copy`, `delta`, `diamond`, `download`, `edit`, `external_link`, `file`, `file_text`, `folder`, `home`, `maximize`, `menu`, `mic`, `minimize`, `minus`, `more_horizontal`, `more_vertical`, `multiply`, `pause`, `play`, `plus`, `rotate_left`, `settings`, `shrink`, `star`, `stop`, `trash`, `upload`.
-- `window(title="...")` - Draggable panel with title bar, minimize, close buttons.
+- `window(title="...")` - Draggable panel with title bar, minimize, close buttons. First element inside `screen`. `show_title_bar`, `show_minimize`, `show_close` toggle the chrome.
+- `modal(open=is_open, on_close=fn, title="...")` - Dialog over a backdrop. Sizing props go to the content panel. Inside a `window` it covers that window, otherwise the screen.
+- `cursor()` - Container that follows the mouse.
+- `data_table(id="t", columns=[...], data=[...])` - Sortable, searchable table of data, optional multi-select. Use over hand-built `table` for data.
 - `table()` / `tr()` / `th()` / `td()` - Table structure.
-- `component(fn, props)` - Reusable UI with local state (`state.use_local`). Only needed for local state or scoped styles.
+- `component(fn, props)` - Usually not necessary, plain functions that return elements are enough. Only use for `state.use_local` (multiple UIs each with their own local state) or scoped `style`.
+- `error_boundary(fn, props)` - Same args as `component`. An exception in `fn` shows an error card for that subtree instead of blanking the whole UI.
 - `svg()` / `path()` / `rect()` / `circle()` / `line()` - Custom SVG. Use `size` and `view_box`, not `width`/`height`/`viewBox`. Icons use a 24x24 viewbox. To create a custom icon:
 ```python
 svg, path, circle = actions.user.ui_elements(["svg", "path", "circle"])
@@ -257,7 +269,12 @@ actions.user.ui_elements_highlight_briefly("element_id")
 
 # Read input:
 actions.user.ui_elements_get_input_value("input_id")
+
+# Render to a skia Image instead of showing. Returns (image, rect):
+image, rect = actions.user.ui_elements_render_image(my_ui)
 ```
+
+Full list: `docs/actions.md`
 
 ---
 
@@ -270,10 +287,13 @@ Choose your update strategy based on whether layout changes:
 
 The decoration layer paints on top of existing elements without touching layout. `highlight` changes an element's visual state (background, border, color). `set_text` swaps displayed text. Neither can add, remove, or reposition elements - use state for that.
 
+Two ways to style a highlight (hover, or `highlight()`):
+- `highlight_color` - a translucent overlay, on every element by default (its text color at 20%). Cheap. Use this on boards with many highlightable elements, like a keyboard or long list.
+- `highlight_style` - real style overrides (`background_color`, `border_color`, `color`, `fill`, `stroke`). Moves the element to the decorator canvas, repainted on every highlight change. Fine for a handful of elements.
+
 ```python
 # Game overlay: render once, update via decoration layer
-# highlight_style defines the look; default is a gray overlay if omitted
-div(id="jump", highlight_style={"background_color": "87ceeb88"}, **key_style)[text("jump")]
+div(id="jump", highlight_color="87ceeb88", **key_style)[text("jump")]
 
 # On rapid input events (no re-render):
 actions.user.ui_elements_highlight_briefly("jump")       # tap
@@ -301,6 +321,8 @@ See [paradigms.md](references/paradigms.md) for complete examples of both approa
 11. `show()` twice is a no-op. To restart, hide first then show.
 12. `checkbox` and `switch` use `on_change`, not `on_click`. `on_click` will raise an error.
 13. `svg()` is not HTML `<svg>`. Use `size` and `view_box` (underscore), not `width`/`height`/`viewBox`/`xmlns`.
+14. `state` is cleared when the UI hides. Data that should survive goes in `ui_elements_store`.
+15. `highlight_style` on many elements makes hover slow. Use `highlight_color` there.
 
 ---
 
@@ -309,7 +331,7 @@ See [paradigms.md](references/paradigms.md) for complete examples of both approa
 | Property | Default |
 |---|---|
 | `flex_direction` | `"column"` |
-| `align_items` | `"stretch"` (containers), `"flex_start"` (screen) |
+| `align_items` | `"stretch"` (containers), `"flex_start"` (screen, active_window) |
 | `justify_content` | `"flex_start"` |
 | `font_size` | `16` |
 | `color` | `"FFFFFF"` |
@@ -332,6 +354,10 @@ Cascaded (inherited by children): `color`, `font_family`, `font_size`, `highligh
 - `docs/elements.md` - All elements with detailed examples
 - `docs/actions.md` - All Talon actions
 - `docs/concepts/state.md` - State management deep dive
+- `docs/concepts/store.md` - State that outlives the UI
+- `docs/concepts/rendering.md` - Canvases, and what triggers full vs decorator-only renders
+- `docs/concepts/drag.md` - Dragging and resizing
+- `docs/concepts/cursor.md` - Mouse-following UI
 - `docs/concepts/effect.md` - Lifecycle effects
 - `docs/concepts/ref.md` - Imperative ref system
 - `docs/concepts/components.md` - Reusable components

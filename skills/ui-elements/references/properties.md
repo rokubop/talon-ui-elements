@@ -7,7 +7,7 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 - `flex_direction`: str = "column" - "column", "row"
 - `justify_content`: str = "flex_start" - "flex_start", "flex_end", "center", "space_between", "space_evenly"
 - `align_items`: str = "stretch" - "stretch", "center", "flex_start", "flex_end"
-- `align_self`: str = None - "stretch", "center", "flex_start", "flex_end"
+- `align_self`: str = None - "stretch", "center", "flex_start", "flex_end". Overrides the parent's `align_items`.
 - `flex`: int = None - e.g. `1`, fills available space
 - `flex_wrap`: bool/str = False - "wrap" or True. Requires explicit primary-axis size (e.g. width for row).
 - `gap`: int/float = None - space between children in pixels
@@ -30,6 +30,10 @@ All properties are passed as keyword arguments: `div(background_color="333333", 
 
 - `position`: str = "static" - "static", "relative", "absolute", "fixed"
 - `top`, `left`, `right`, `bottom`: int/float - requires position to be set (not "static")
+- `anchor`: str - "top_left", "top", "top_right", "left", "center", "right", "bottom_left", "bottom", "bottom_right". Pins the node's matching point to its parent's. Implies `position="absolute"`, in place of top/left/right/bottom. Offset with `translate`. Doesn't re-anchor after `set_text`, so give right or center anchored text a fixed width.
+- `justify_self`: str - "flex_start", "center", "flex_end". Horizontal place in its parent, for an absolute or fixed node with no left or right. Ignored in flex layout.
+
+Absolute nodes place inside the nearest non-static ancestor, so `position="relative"` on a parent with no offsets is how you scope them. Fixed nodes place on the screen.
 
 ## Colors
 
@@ -44,7 +48,7 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 
 - `font_size`: int/float = 16
 - `font_style`: str = "normal" - "normal", "italic"
-- `font_weight`: str = "normal" - "normal", "bold"
+- `font_weight`: str = "normal" - "light", "normal", "medium", "semibold", "bold", "black", or 100-900. Synthesized when no installed face matches.
 - `font_family`: str = "" - system font name
 - `text_align`: str = "left" - "left", "center", "right"
 - `white_space`: str = "normal" - "normal" (wraps to container), "nowrap" (no wrapping)
@@ -64,6 +68,7 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 
 - `overflow`: str - "hidden", "scroll"
 - `overflow_x`, `overflow_y`: str - "hidden", "scroll"
+- `scroll_bar`: str = "overlay" - "overlay" floats over content and hides when idle, "visible" always shows and takes space
 
 ## Interactivity
 
@@ -71,11 +76,13 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 - `on_change`: callable - for input_text, textarea, select, checkbox, switch. Receives ChangeEvent (SwitchEvent for switch).
 - `on_submit`: callable - form only. Receives SubmitEvent(data={"input_id": "value", ...}) with all child input values. Also works with 0 args.
 - `type`: str - button only. Use `type="submit"` inside a form to trigger the form's `on_submit`.
-- `highlight_style`: dict - hover style e.g. {"background_color": "444444"}. Keys: background_color, border_color, color, fill, stroke
+- `highlight_color`: str = text color at 20% - translucent overlay on hover or `highlight()`. Cascades. Cheap, use on many-element boards.
+- `highlight_style`: dict - replaces the overlay with style overrides e.g. {"background_color": "444444"}. Keys: background_color, border_color, color, fill, stroke. Moves the element to the decorator canvas, so keep it to a handful of elements.
 - `disabled`: bool - disables interactivity
 - `disabled_style`: dict - style when disabled
 - `draggable`: bool - makes element draggable
 - `drag_handle`: bool - makes this element the drag handle for a draggable ancestor
+- `resizable`: bool/str/list - drag edges to resize. True for all four, or `"right"`, `["right", "bottom"]`. Clamped by min/max sizes. Lasts until the UI hides.
 - `autofocus`: bool - auto-focus input_text or textarea on mount
 
 ## Animation
@@ -84,7 +91,7 @@ Named colors: black, white, red, green, blue, yellow, cyan, gray, silver, lime, 
 - `mount_style`: dict - initial style when element mounts (animates FROM these values)
 - `unmount_style`: dict - style to animate TO before element unmounts
 
-Easing: "linear", "ease_in", "ease_out", "ease_in_out", "ease_out_bounce"
+Easing: "ease_out" (default), "ease_in", "ease_in_out", "linear", "ease_in_cubic", "ease_out_bounce"
 
 ## Identity
 
