@@ -21,6 +21,7 @@ Pass a list of element names to get the elements you need. You can request any c
 | `div` | Layout | Generic container | `div(padding=16)[...]` |
 | `form` | Layout | Form container. Enter in child `input_text` or clicking child `button(type="submit")` triggers `on_submit`. Ctrl+Enter submits from `textarea`. | `form(on_submit=handler)[input_text(id="name"), button("Submit", type="submit")]` |
 | `window` | Layout | Draggable window with title bar, close button, and drop shadow - must be first element after screen | `screen(justify_content="center", align_items="center")[window(title="My App")[...]]` |
+| `modal` | Layout | Dialog over a backdrop, shown while `open` is true. Esc or a backdrop click calls `on_close` | `modal(title="Hello", open=is_open, on_close=lambda: set_open(False))[text("Hi")]` |
 | `cursor` | Layout | Container that follows the mouse cursor position | `cursor()[text("Status")]` |
 | `text` | Content | Display text content | `text("Hello world", font_size=16)` |
 | `code` | Content | Syntax-highlighted code block. Built-in: Python, Talon. Themes: monokai (default), vscode_dark, dracula, one_dark, github_light. `line_numbers=True` adds a gutter, `line_number_start` sets the first number | `code("def hello():", language="python", theme="dracula")` |

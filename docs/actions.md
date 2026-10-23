@@ -29,6 +29,8 @@ All actions are prefixed with `user.ui_elements_*`
 | `user.ui_elements_version()` | None | Get version object with `.major`, `.minor`, `.patch` attributes. Supports comparison: `version < "0.6.2"` |
 | `user.ui_elements_reset_all_scale_overrides()` | None | Clear all manual scale overrides (from Ctrl/Cmd +/-) and revert to default scale |
 | `user.ui_elements_register()` | `kind: str`<br>`name: str`<br>`value: Any` | Register a named extension. `kind="code_theme"` (value is dict of token to hex), `kind="code_language"` (value is list of `(token_type, compiled_regex)` tuples). Built-in themes: monokai, vscode_dark, dracula, one_dark, github_light. Built-in languages: python, talon |
+| `user.ui_elements_types()` | None | Named sets of values ui_elements takes: element names, and prop values like `anchor`, `overflow`, `font_weight`. `{name: {"desc", "props", "values": [{"id", "desc"}]}}`. An open set also has `accepts`, a regex for values beyond its list (`45deg`, `700`). Docstrings link to a set with `Type: ui_elements.<name>` |
+| `user.ui_elements_svg()` | `elements: List[str]` | SVG elements only. The same `svg`, `path`, etc. that `user.ui_elements()` gives. See [SVG](concepts/svgs.md) |
 | `user.ui_elements_storybook_toggle()` | None | Toggle storybook UI for browsing component examples |
 | `user.ui_elements_examples()` | None | Toggle example UIs for demonstration and testing |
 | `user.ui_elements_test_runner()` | None | Toggle test runner UI for running and viewing tests |
